@@ -3,7 +3,7 @@ import io.papermc.paperweight.util.Git
 plugins {
     java
     id("com.github.johnrengelman.shadow") version "7.0.0" apply false
-    id("io.papermc.paperweight.patcher") version "1.0.3"
+    id("io.papermc.paperweight.patcher") version "1.0.4"
 }
 
 repositories {
@@ -79,6 +79,15 @@ paperweight {
                     patchDir.set(layout.projectDirectory.dir("patches/server"))
                     outputDir.set(layout.projectDirectory.dir("ForkTest-Server"))
                 }
+            }
+        }
+
+        patchTasks {
+            register("mojangApi") {
+                isBareDirectory.set(true)
+                upstreamDirPath.convention("Paper-MojangAPI")
+                patchDir.set(file("patches/mojangapi"))
+                outputDir.set(file("ForkTest-MojangAPI"))
             }
         }
     }
