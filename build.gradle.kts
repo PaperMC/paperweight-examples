@@ -3,7 +3,26 @@ import io.papermc.paperweight.util.Git
 plugins {
     java
     id("com.github.johnrengelman.shadow") version "7.0.0" apply false
-    id("io.papermc.paperweight.patcher") version "1.0.0-SNAPSHOT"
+    id("io.papermc.paperweight.patcher") version "1.0.3"
+}
+
+repositories {
+    mavenCentral()
+    maven("https://papermc.io/repo/repository/maven-public/") {
+        content {
+            onlyForConfigurations("paperclip")
+        }
+    }
+    maven("https://maven.quiltmc.org/repository/release/") {
+        content {
+            onlyForConfigurations("remapper")
+        }
+    }
+}
+
+dependencies {
+    remapper("org.quiltmc:tiny-remapper:0.4.1")
+    paperclip("io.papermc:paperclip:2.0.0-SNAPSHOT@jar")
 }
 
 subprojects {
@@ -35,8 +54,7 @@ val paperDir = layout.projectDirectory.dir("work/Paper")
 val initSubmodules by tasks.registering {
     outputs.upToDateWhen { false }
     doLast {
-        paperDir.asFile.mkdirs()
-        Git(paperDir)("submodule", "update", "--init").executeOut()
+        Git(layout.projectDirectory)("submodule", "update", "--init").executeOut()
     }
 }
 
@@ -52,12 +70,12 @@ paperweight {
 
             patchTasks {
                 register("api") {
-                    sourceDir.set(paperDir.dir("Paper-API"))
+                    upstreamDir.set(paperDir.dir("Paper-API"))
                     patchDir.set(layout.projectDirectory.dir("patches/api"))
                     outputDir.set(layout.projectDirectory.dir("ForkTest-API"))
                 }
                 register("server") {
-                    sourceDir.set(paperDir.dir("Paper-Server"))
+                    upstreamDir.set(paperDir.dir("Paper-Server"))
                     patchDir.set(layout.projectDirectory.dir("patches/server"))
                     outputDir.set(layout.projectDirectory.dir("ForkTest-Server"))
                 }
