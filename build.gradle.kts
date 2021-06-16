@@ -74,20 +74,17 @@ paperweight {
                     patchDir.set(layout.projectDirectory.dir("patches/api"))
                     outputDir.set(layout.projectDirectory.dir("ForkTest-API"))
                 }
+                register("mojangApi") {
+                    isBareDirectory.set(true)
+                    upstreamDir.set(paperDir.dir("Paper-MojangAPI"))
+                    patchDir.set(layout.projectDirectory.dir("patches/mojangapi"))
+                    outputDir.set(layout.projectDirectory.dir("ForkTest-MojangAPI"))
+                }
                 register("server") {
                     upstreamDir.set(paperDir.dir("Paper-Server"))
                     patchDir.set(layout.projectDirectory.dir("patches/server"))
                     outputDir.set(layout.projectDirectory.dir("ForkTest-Server"))
                 }
-            }
-        }
-
-        patchTasks {
-            register("mojangApi") {
-                isBareDirectory.set(true)
-                upstreamDirPath.convention("Paper-MojangAPI")
-                patchDir.set(file("patches/mojangapi"))
-                outputDir.set(file("ForkTest-MojangAPI"))
             }
         }
     }
