@@ -81,6 +81,7 @@ paperweight {
                     upstreamDir.set(paperDir.dir("Paper-Server"))
                     patchDir.set(layout.projectDirectory.dir("patches/server"))
                     outputDir.set(layout.projectDirectory.dir("ForkTest-Server"))
+                    importMcDev.set(true)
                 }
             }
         }
