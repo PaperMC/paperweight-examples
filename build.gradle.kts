@@ -59,7 +59,7 @@ val initSubmodules by tasks.registering {
 }
 
 paperweight {
-    serverProject.set(project(":ForkTest-Server"))
+    serverProject.set(project(":forktest-server"))
 
     remapRepo.set("https://maven.fabricmc.net/")
     decompileRepo.set("https://files.minecraftforge.net/maven/")
@@ -75,12 +75,12 @@ paperweight {
                 register("api") {
                     upstreamDir.set(paperDir.dir("Paper-API"))
                     patchDir.set(layout.projectDirectory.dir("patches/api"))
-                    outputDir.set(layout.projectDirectory.dir("ForkTest-API"))
+                    outputDir.set(layout.projectDirectory.dir("forktest-api"))
                 }
                 register("server") {
                     upstreamDir.set(paperDir.dir("Paper-Server"))
                     patchDir.set(layout.projectDirectory.dir("patches/server"))
-                    outputDir.set(layout.projectDirectory.dir("ForkTest-Server"))
+                    outputDir.set(layout.projectDirectory.dir("forktest-server"))
                     importMcDev.set(true)
                 }
             }
