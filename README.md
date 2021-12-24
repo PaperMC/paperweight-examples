@@ -35,3 +35,10 @@ Each branch of this project represents an example:
  - [`submodules` shows how paperweight can be applied on a fork using the more traditional git submodule system](https://github.com/PaperMC/paperweight-examples/tree/submodules)
  - [`mojangapi` shows how a fork could patch arbitrary non-git directories (such as `Paper-MojangAPI`)](https://github.com/PaperMC/paperweight-examples/tree/mojangapi)
  - [`submodules-mojang` shows the same as `mojangapi`, but on the git submodules setup from `submodules`](https://github.com/PaperMC/paperweight-examples/tree/submodules-mojangapi)
+
+## Setup
+
+1. `git clone https://github.com/PaperMC/paperweight-examples` ( Use terminal or something else except for IDE)
+2. `cd paperweight-examples`
+3. `./gradlew applyPatches`
+4. Import the project from your IDE. **You had to run `applyPatches` first or you'll get failed**
