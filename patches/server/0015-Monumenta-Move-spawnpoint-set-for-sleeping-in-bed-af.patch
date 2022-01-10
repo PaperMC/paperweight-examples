@@ -1,0 +1,35 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Byron Marohn <combustible@live.com>
+Date: Mon, 5 Apr 2021 14:04:44 -0400
+Subject: [PATCH] Monumenta - Move spawnpoint set for sleeping in bed after
+ event
+
+Signed-off-by: Byron Marohn <combustible@live.com>
+
+diff --git a/src/main/java/net/minecraft/server/level/ServerPlayer.java b/src/main/java/net/minecraft/server/level/ServerPlayer.java
+index d5afe47b7fd6b21d0dab208c463d0c8d0483c8f3..e520f70d29bbeb243548fad41bed89d37d83f117 100644
+--- a/src/main/java/net/minecraft/server/level/ServerPlayer.java
++++ b/src/main/java/net/minecraft/server/level/ServerPlayer.java
+@@ -1276,12 +1276,7 @@ public class ServerPlayer extends Player {
+             } else if (this.bedBlocked(blockposition, enumdirection)) {
+                 return Either.left(Player.BedSleepingProblem.OBSTRUCTED);
+             } else {
+-                this.setRespawnPosition(this.level.dimension(), blockposition, this.getYRot(), false, true, com.destroystokyo.paper.event.player.PlayerSetSpawnEvent.Cause.BED); // Paper - PlayerSetSpawnEvent
+-                if (this.level.isDay()) {
+-                    return Either.left(Player.BedSleepingProblem.NOT_POSSIBLE_NOW);
+-                } else {
+-                    return Either.right(Unit.INSTANCE);
+-                }
++                return Either.right(Unit.INSTANCE);
+             }
+         } else {
+             return Either.left(Player.BedSleepingProblem.OTHER_PROBLEM);
+@@ -1306,6 +1301,8 @@ public class ServerPlayer extends Player {
+             return bedResult;
+         }
+ 
++        this.setRespawnPosition(this.level.dimension(), blockposition, this.getYRot(), false, true, com.destroystokyo.paper.event.player.PlayerSetSpawnEvent.Cause.BED); // Paper - PlayerSetSpawnEvent
++
+         {
+             {
+                 {

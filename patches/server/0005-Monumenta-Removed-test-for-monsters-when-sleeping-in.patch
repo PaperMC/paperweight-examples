@@ -1,0 +1,30 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Byron Marohn <combustible@live.com>
+Date: Thu, 5 Oct 2017 21:45:16 -0700
+Subject: [PATCH] Monumenta - Removed test for monsters when sleeping in beds
+
+
+diff --git a/src/main/java/net/minecraft/server/level/ServerPlayer.java b/src/main/java/net/minecraft/server/level/ServerPlayer.java
+index b6f9c99d580d985f2b84efaa655d9ae40073e72b..d5afe47b7fd6b21d0dab208c463d0c8d0483c8f3 100644
+--- a/src/main/java/net/minecraft/server/level/ServerPlayer.java
++++ b/src/main/java/net/minecraft/server/level/ServerPlayer.java
+@@ -1280,19 +1280,6 @@ public class ServerPlayer extends Player {
+                 if (this.level.isDay()) {
+                     return Either.left(Player.BedSleepingProblem.NOT_POSSIBLE_NOW);
+                 } else {
+-                    if (!this.isCreative()) {
+-                        double d0 = 8.0D;
+-                        double d1 = 5.0D;
+-                        Vec3 vec3d = Vec3.atBottomCenterOf(blockposition);
+-                        List<Monster> list = this.level.getEntitiesOfClass(Monster.class, new AABB(vec3d.x() - 8.0D, vec3d.y() - 5.0D, vec3d.z() - 8.0D, vec3d.x() + 8.0D, vec3d.y() + 5.0D, vec3d.z() + 8.0D), (entitymonster) -> {
+-                            return entitymonster.isPreventingPlayerRest(this);
+-                        });
+-
+-                        if (!list.isEmpty()) {
+-                            return Either.left(Player.BedSleepingProblem.NOT_SAFE);
+-                        }
+-                    }
+-
+                     return Either.right(Unit.INSTANCE);
+                 }
+             }

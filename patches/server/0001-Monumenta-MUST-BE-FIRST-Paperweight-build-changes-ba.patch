@@ -1,11 +1,12 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
-From: MiniDigger <admin@minidigger.me>
+From: Byron Marohn <combustible@live.com>
 Date: Sat, 12 Jun 2021 16:40:34 +0200
-Subject: [PATCH] Build changes
+Subject: [PATCH] Monumenta - MUST BE FIRST - Paperweight build changes based
+ on example
 
 
 diff --git a/build.gradle.kts b/build.gradle.kts
-index cd74406039704e5a880f00b9b60bb7b1dedc5398..c4dfc34277e59143d346725c9ef2bfbcee59bc06 100644
+index cd74406039704e5a880f00b9b60bb7b1dedc5398..e6889f988414cb7b2ea7c222600b5c14915a6564 100644
 --- a/build.gradle.kts
 +++ b/build.gradle.kts
 @@ -18,8 +18,12 @@ repositories {
@@ -42,7 +43,7 @@ index cd74406039704e5a880f00b9b60bb7b1dedc5398..c4dfc34277e59143d346725c9ef2bfbc
      standardInput = System.`in`
      workingDir = rootProject.layout.projectDirectory
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index 893badbe321fa974cb82f5f11ab590bb3827f8b8..4aba540f4bc8014548cc10818472431dfa6b2ede 100644
+index 893badbe321fa974cb82f5f11ab590bb3827f8b8..1fd3dff9edc0fdeb077abf9980e8c019191a60a3 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
 @@ -1708,7 +1708,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
@@ -55,7 +56,7 @@ index 893badbe321fa974cb82f5f11ab590bb3827f8b8..4aba540f4bc8014548cc10818472431d
  
      public SystemReport fillSystemReport(SystemReport details) {
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-index d938dc26886aa8a64c11db5e49fe5639bc27e1fb..d941957dee45911626f62e55f598490a60d6c818 100644
+index d938dc26886aa8a64c11db5e49fe5639bc27e1fb..dafd15dddbd79d1cf5c104c84bae28545a77ff54 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
 @@ -255,7 +255,7 @@ import javax.annotation.Nullable; // Paper
@@ -68,7 +69,7 @@ index d938dc26886aa8a64c11db5e49fe5639bc27e1fb..d941957dee45911626f62e55f598490a
      private final String bukkitVersion = Versioning.getBukkitVersion();
      private final Logger logger = Logger.getLogger("Minecraft");
 diff --git a/src/main/java/org/bukkit/craftbukkit/util/Versioning.java b/src/main/java/org/bukkit/craftbukkit/util/Versioning.java
-index 774556a62eb240da42e84db4502e2ed43495be17..21f39bd0c33ef2635249298e6a247afba8b05742 100644
+index 774556a62eb240da42e84db4502e2ed43495be17..571a11011936734fc9c3ac02f67e3f9e8b3e15b8 100644
 --- a/src/main/java/org/bukkit/craftbukkit/util/Versioning.java
 +++ b/src/main/java/org/bukkit/craftbukkit/util/Versioning.java
 @@ -11,7 +11,7 @@ public final class Versioning {

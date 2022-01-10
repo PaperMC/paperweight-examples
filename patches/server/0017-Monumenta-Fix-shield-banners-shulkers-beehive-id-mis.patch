@@ -1,0 +1,35 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Byron Marohn <combustible@live.com>
+Date: Thu, 30 May 2019 18:33:51 -0400
+Subject: [PATCH] Monumenta - Fix shield banners, shulkers, beehive id missing
+ 'minecraft' namespace
+
+Signed-off-by: Byron Marohn <combustible@live.com>
+
+diff --git a/src/main/java/org/bukkit/craftbukkit/inventory/CraftMetaBlockState.java b/src/main/java/org/bukkit/craftbukkit/inventory/CraftMetaBlockState.java
+index 56f65b49e0ce55ee5aa9d929a98ea055ce27a8a1..79a08f4606b521d25eb2596cd744f176bbe25609 100644
+--- a/src/main/java/org/bukkit/craftbukkit/inventory/CraftMetaBlockState.java
++++ b/src/main/java/org/bukkit/craftbukkit/inventory/CraftMetaBlockState.java
+@@ -223,7 +223,7 @@ public class CraftMetaBlockState extends CraftMetaItem implements BlockStateMeta
+             switch (material) {
+                 // Paper end
+                 case SHIELD:
+-                    blockEntityTag.putString("id", "banner"); // Paper
++                    blockEntityTag.putString("id", "minecraft:banner"); // Paper
+                     break;
+                 case SHULKER_BOX:
+                 case WHITE_SHULKER_BOX:
+@@ -242,11 +242,11 @@ public class CraftMetaBlockState extends CraftMetaItem implements BlockStateMeta
+                 case GREEN_SHULKER_BOX:
+                 case RED_SHULKER_BOX:
+                 case BLACK_SHULKER_BOX:
+-                    blockEntityTag.putString("id", "shulker_box"); // Paper
++                    blockEntityTag.putString("id", "minecraft:shulker_box"); // Paper
+                     break;
+                 case BEE_NEST:
+                 case BEEHIVE:
+-                    blockEntityTag.putString("id", "beehive"); // Paper
++                    blockEntityTag.putString("id", "minecraft:beehive"); // Paper
+                     break;
+             }
+         }

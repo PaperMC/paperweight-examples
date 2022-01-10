@@ -1,0 +1,20 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Byron Marohn <combustible@live.com>
+Date: Mon, 5 Jul 2021 03:31:35 -0400
+Subject: [PATCH] Monumenta - Increase shutdown grace period to 20s
+
+Signed-off-by: Byron Marohn <combustible@live.com>
+
+diff --git a/src/main/java/org/bukkit/craftbukkit/util/ServerShutdownThread.java b/src/main/java/org/bukkit/craftbukkit/util/ServerShutdownThread.java
+index d752720f2f234b9dbd2117333fee1bfad663ec02..4376f006f3d3eb0cc5600c0f07a040a0f1b6738b 100644
+--- a/src/main/java/org/bukkit/craftbukkit/util/ServerShutdownThread.java
++++ b/src/main/java/org/bukkit/craftbukkit/util/ServerShutdownThread.java
+@@ -14,7 +14,7 @@ public class ServerShutdownThread extends Thread {
+         try {
+             // Paper start - try to shutdown on main
+             server.safeShutdown(false, false);
+-            for (int i = 1000; i > 0 && !server.hasStopped(); i -= 100) {
++            for (int i = 20000; i > 0 && !server.hasStopped(); i -= 100) {
+                 Thread.sleep(100);
+             }
+             if (server.hasStopped()) {

@@ -1,0 +1,20 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Byron Marohn <combustible@live.com>
+Date: Thu, 16 Apr 2020 19:50:43 -0400
+Subject: [PATCH] Monumenta - Max level for curse of vanishing is 2
+
+Signed-off-by: Byron Marohn <combustible@live.com>
+
+diff --git a/src/main/java/net/minecraft/world/item/enchantment/VanishingCurseEnchantment.java b/src/main/java/net/minecraft/world/item/enchantment/VanishingCurseEnchantment.java
+index 2e758f153812741f540a70a3ce28692526b271aa..1b41065dd776a58dd907a2e526642876c6fe7fb5 100644
+--- a/src/main/java/net/minecraft/world/item/enchantment/VanishingCurseEnchantment.java
++++ b/src/main/java/net/minecraft/world/item/enchantment/VanishingCurseEnchantment.java
+@@ -19,7 +19,7 @@ public class VanishingCurseEnchantment extends Enchantment {
+ 
+     @Override
+     public int getMaxLevel() {
+-        return 1;
++        return 2;
+     }
+ 
+     @Override

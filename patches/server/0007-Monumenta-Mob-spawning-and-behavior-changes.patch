@@ -1,0 +1,61 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Timothy Southwick <NickNackGus@gmail.com>
+Date: Sat, 10 Jul 2021 20:08:03 -0400
+Subject: [PATCH] Monumenta - Mob spawning and behavior changes
+
+- Dolphins no longer have biome restrictions
+- Wither skeletons no longer attack piglins
+- Drowned no longer convert naturally
+- Charged creepers no longer cause mob head drops
+- Skeletons attack wolves instead of running from them
+- Iron golems no longer automatically attack monsters
+- Drowned no longer have biome restrictions
+- Ocelots spawn on any block
+- Ocelots, golems, phantoms, bees, dolphins, hoglins no longer spawn in peaceful from spawners
+- Allow wolves to spawn from spawners on any block when not in peaceful
+- Always allow slimes to spawn from spawners
+- Squid spawn from spawners regardless of sea level
+- All animals now can spawn from spawners regardless of light level so long as they are spawning in air above a non-air non-water block
+- Polar bears now use EntityAnimal spawn restrictions
+- Disable boss evokers summoning vexes / fangs
+- Skeletons can only shoot bows from main hand
+- Remove wither nether star drop
+- Giant AI
+- Increase Giant view distance
+- Endermen holding items are no longer always persistent
+
+Signed-off-by: Byron Marohn <combustible@live.com>
+
+diff --git a/src/main/java/net/minecraft/world/entity/animal/Animal.java b/src/main/java/net/minecraft/world/entity/animal/Animal.java
+index 2bc77858b4a78e24227b4b096fd44177202d5292..67f45f4f96c6e47ebb5bb837405a722a733f344c 100644
+--- a/src/main/java/net/minecraft/world/entity/animal/Animal.java
++++ b/src/main/java/net/minecraft/world/entity/animal/Animal.java
+@@ -94,7 +94,7 @@ public abstract class Animal extends AgeableMob {
+ 
+     @Override
+     public float getWalkTargetValue(BlockPos pos, LevelReader world) {
+-        return world.getBlockState(pos.below()).is(Blocks.GRASS_BLOCK) ? 10.0F : world.getBrightness(pos) - 0.5F;
++        return super.getWalkTargetValue(pos, world); // Monumenta - use the default from EntityCreature with no grass block check
+     }
+ 
+     @Override
+@@ -120,6 +120,19 @@ public abstract class Animal extends AgeableMob {
+     }
+ 
+     public static boolean checkAnimalSpawnRules(EntityType<? extends Animal> type, LevelAccessor world, MobSpawnType spawnReason, BlockPos pos, Random random) {
++        // MONUMENTA START
++        if (spawnReason == MobSpawnType.SPAWNER) {
++            // Mob from a spawner
++            if (world.getDifficulty() == net.minecraft.world.Difficulty.PEACEFUL && // Not peaceful
++                !world.getBlockState(pos.below()).is(Blocks.AIR) && // Not above air
++                !world.getFluidState(pos.below()).is(net.minecraft.tags.FluidTags.WATER) && // Not above water
++                world.getBlockState(pos).is(Blocks.AIR)) { // Must be in air
++                return true;
++            }
++            // Disallow spawning from spawners otherwise, even if the default requirements are met
++            return false;
++        }
++        // MONUMENTA END
+         return world.getBlockState(pos.below()).is((Tag) BlockTags.ANIMALS_SPAWNABLE_ON) && Animal.isBrightEnoughToSpawn(world, pos);
+     }
+ 
