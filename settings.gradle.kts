@@ -5,6 +5,6 @@ pluginManagement {
     }
 }
 
-rootProject.name = "forktest"
+rootProject.name = "monumenta-paperfork"
 
-include("forktest-api", "forktest-server")
+include("monumenta-api", "monumenta-server")
