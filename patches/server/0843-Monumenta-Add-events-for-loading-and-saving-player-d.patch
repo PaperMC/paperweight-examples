@@ -1,0 +1,57 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Byron Marohn <combustible@live.com>
+Date: Fri, 3 Apr 2020 21:20:03 -0700
+Subject: [PATCH] Monumenta - Add events for loading and saving player data
+
+Signed-off-by: Byron Marohn <combustible@live.com>
+
+diff --git a/src/main/java/net/minecraft/world/level/storage/PlayerDataStorage.java b/src/main/java/net/minecraft/world/level/storage/PlayerDataStorage.java
+index 35c39aed9583275ef25d32c783715798b52bdb63..d2ec7b45553ca71e2b5bd9b35600cd4eb9dfd44f 100644
+--- a/src/main/java/net/minecraft/world/level/storage/PlayerDataStorage.java
++++ b/src/main/java/net/minecraft/world/level/storage/PlayerDataStorage.java
+@@ -35,13 +35,23 @@ public class PlayerDataStorage {
+         if (org.spigotmc.SpigotConfig.disablePlayerDataSaving) return; // Spigot
+         try {
+             CompoundTag nbttagcompound = player.saveWithoutId(new CompoundTag());
+-            File file = File.createTempFile(player.getStringUUID() + "-", ".dat", this.playerDir);
+ 
+-            NbtIo.writeCompressed(nbttagcompound, file);
++            // Paper start
+             File file1 = new File(this.playerDir, player.getStringUUID() + ".dat");
+             File file2 = new File(this.playerDir, player.getStringUUID() + ".dat_old");
+ 
+-            Util.safeReplaceFile(file1, file, file2);
++            com.destroystokyo.paper.event.player.PlayerDataSaveEvent event = new com.destroystokyo.paper.event.player.PlayerDataSaveEvent((CraftPlayer)(player.getBukkitEntity()), file1, nbttagcompound);
++            if (!event.callEvent()) {
++                // Event cancelled player data saving
++                return;
++            }
++
++            // Event may have modified the tag compound - and potentially also the destination path.
++            // Follow vanilla process - write to temp file, then rename to target path creating a backup if it exists
++            File file = File.createTempFile(player.getStringUUID() + "-", ".dat", this.playerDir);
++            NbtIo.writeCompressed((CompoundTag)event.getData(), file);
++            Util.safeReplaceFile(event.getPath(), file, file2);
++            // Paper end
+         } catch (Exception exception) {
+             PlayerDataStorage.LOGGER.warn("Failed to save player data for {}", player.getScoreboardName(), exception); // Paper
+         }
+@@ -67,9 +77,16 @@ public class PlayerDataStorage {
+             }
+             // Spigot End
+ 
+-            if (file.exists() && file.isFile()) {
+-                nbttagcompound = NbtIo.readCompressed(file);
++            // Paper Start
++            com.destroystokyo.paper.event.player.PlayerDataLoadEvent event = new com.destroystokyo.paper.event.player.PlayerDataLoadEvent((CraftPlayer)(player.getBukkitEntity()), file);
++            event.callEvent();
++
++            if (event.getData() != null) {
++                nbttagcompound = (CompoundTag) event.getData();
++            } else if (event.getPath().exists() && event.getPath().isFile()) {
++                nbttagcompound = NbtIo.readCompressed(event.getPath());
+             }
++            // Paper End
+             // Spigot Start
+             if ( usingWrongFile )
+             {

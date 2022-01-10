@@ -1,0 +1,40 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Byron Marohn <combustible@live.com>
+Date: Sat, 9 May 2020 01:54:16 +0000
+Subject: [PATCH] Monumenta - Move player saving to before disabling plugins
+
+Signed-off-by: Byron Marohn <combustible@live.com>
+
+diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
+index 481a5dbad82f3f8dd5b1bf8ab207d82ec73d5bbd..78be734c8738960b4e9ee0d4f4c614827f4fa58f 100644
+--- a/src/main/java/net/minecraft/server/MinecraftServer.java
++++ b/src/main/java/net/minecraft/server/MinecraftServer.java
+@@ -1031,6 +1031,13 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+         // CraftBukkit end
+         MinecraftServer.LOGGER.info("Stopping server");
+         MinecraftTimings.stopServer(); // Paper
++        this.isSaving = true;
++        if (this.playerList != null) {
++            MinecraftServer.LOGGER.info("Saving players");
++            this.playerList.saveAll();
++            this.playerList.removeAll(this.isRestarting); // Paper
++            try { Thread.sleep(100); } catch (InterruptedException ex) {} // CraftBukkit - SPIGOT-625 - give server at least a chance to send packets
++        }
+         // CraftBukkit start
+         if (this.server != null) {
+             this.server.disablePlugins();
+@@ -1041,14 +1048,6 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+             this.getConnection().stop();
+         }
+ 
+-        this.isSaving = true;
+-        if (this.playerList != null) {
+-            MinecraftServer.LOGGER.info("Saving players");
+-            this.playerList.saveAll();
+-            this.playerList.removeAll(this.isRestarting); // Paper
+-            try { Thread.sleep(100); } catch (InterruptedException ex) {} // CraftBukkit - SPIGOT-625 - give server at least a chance to send packets
+-        }
+-
+         MinecraftServer.LOGGER.info("Saving worlds");
+         Iterator iterator = this.getAllLevels().iterator();
+ 
