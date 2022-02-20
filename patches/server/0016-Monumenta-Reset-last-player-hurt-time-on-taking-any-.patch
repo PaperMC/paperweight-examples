@@ -6,10 +6,10 @@ Subject: [PATCH] Monumenta - Reset last player hurt time on taking any damage
 Signed-off-by: Byron Marohn <combustible@live.com>
 
 diff --git a/src/main/java/net/minecraft/world/entity/LivingEntity.java b/src/main/java/net/minecraft/world/entity/LivingEntity.java
-index 93b616d1b95e9c112dcd4b6fda9bd467177e6dec..99fd19b94c5a1a56c9aeddb18cbc6090ad95ee12 100644
+index 572f9ca81b78c6229725f6693940ac0a70ecdfd5..5f3cea1a6c2df02dd6241ce2f78c66fbf3298ac6 100644
 --- a/src/main/java/net/minecraft/world/entity/LivingEntity.java
 +++ b/src/main/java/net/minecraft/world/entity/LivingEntity.java
-@@ -1371,6 +1371,10 @@ public abstract class LivingEntity extends Entity {
+@@ -1370,6 +1370,10 @@ public abstract class LivingEntity extends Entity {
              this.hurtDir = 0.0F;
              Entity entity1 = source.getEntity();
  

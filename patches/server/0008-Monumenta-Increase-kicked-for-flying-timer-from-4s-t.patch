@@ -6,10 +6,10 @@ Subject: [PATCH] Monumenta - Increase kicked-for-flying timer from 4s to 6s
 Signed-off-by: Byron Marohn <combustible@live.com>
 
 diff --git a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-index 3eba6962040f33b7b31b16c9de22d90f225710b4..fb953f3a240fc99e074cd829aa39c07d9c7217c1 100644
+index 926d0a80cbb55184955ac6720948d2e86683cc57..e77f3035022f1f1eaf56469806c385d1aa004054 100644
 --- a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 +++ b/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-@@ -317,7 +317,7 @@ public class ServerGamePacketListenerImpl implements ServerPlayerConnection, Ser
+@@ -319,7 +319,7 @@ public class ServerGamePacketListenerImpl implements ServerPlayerConnection, Ser
          ++this.tickCount;
          this.knownMovePacketCount = this.receivedMovePacketCount;
          if (this.clientIsFloating && !this.player.isSleeping()) {
@@ -18,7 +18,7 @@ index 3eba6962040f33b7b31b16c9de22d90f225710b4..fb953f3a240fc99e074cd829aa39c07d
                  ServerGamePacketListenerImpl.LOGGER.warn("{} was kicked for floating too long!", this.player.getName().getString());
                  this.disconnect(com.destroystokyo.paper.PaperConfig.flyingKickPlayerMessage, org.bukkit.event.player.PlayerKickEvent.Cause.FLYING_PLAYER); // Paper - use configurable kick message & kick event cause
                  return;
-@@ -336,7 +336,7 @@ public class ServerGamePacketListenerImpl implements ServerPlayerConnection, Ser
+@@ -338,7 +338,7 @@ public class ServerGamePacketListenerImpl implements ServerPlayerConnection, Ser
              this.vehicleLastGoodY = this.lastVehicle.getY();
              this.vehicleLastGoodZ = this.lastVehicle.getZ();
              if (this.clientVehicleIsFloating && this.player.getRootVehicle().getControllingPassenger() == this.player) {

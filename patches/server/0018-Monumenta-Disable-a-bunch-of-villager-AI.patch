@@ -1,0 +1,88 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Timothy Southwick <NickNackGus@gmail.com>
+Date: Sat, 19 Feb 2022 20:45:47 -0500
+Subject: [PATCH] Monumenta - Disable a bunch of villager AI
+
+
+diff --git a/src/main/java/net/minecraft/world/entity/ai/behavior/VillagerGoalPackages.java b/src/main/java/net/minecraft/world/entity/ai/behavior/VillagerGoalPackages.java
+index 70a3db78c4913c14f39ddee39e5fcdd0e741c971..dc4a59102ad336170add34cd4b43124e6d5ccc4b 100644
+--- a/src/main/java/net/minecraft/world/entity/ai/behavior/VillagerGoalPackages.java
++++ b/src/main/java/net/minecraft/world/entity/ai/behavior/VillagerGoalPackages.java
+@@ -46,7 +46,7 @@ public class VillagerGoalPackages {
+     }
+ 
+     public static ImmutableList<Pair<Integer, ? extends Behavior<? super Villager>>> getIdlePackage(VillagerProfession profession, float speed) {
+-        return ImmutableList.of(Pair.of(2, new RunOne<>(ImmutableList.of(Pair.of(InteractWith.of(EntityType.VILLAGER, 8, MemoryModuleType.INTERACTION_TARGET, speed, 2), 2), Pair.of(new InteractWith<>(EntityType.VILLAGER, 8, AgeableMob::canBreed, AgeableMob::canBreed, MemoryModuleType.BREED_TARGET, speed, 2), 1), Pair.of(InteractWith.of(EntityType.CAT, 8, MemoryModuleType.INTERACTION_TARGET, speed, 2), 1), Pair.of(new VillageBoundRandomStroll(speed), 1), Pair.of(new SetWalkTargetFromLookTarget(speed, 2), 1), Pair.of(new JumpOnBed(speed), 1), Pair.of(new DoNothing(30, 60), 1)))), Pair.of(3, new GiveGiftToHero(100)), Pair.of(3, new SetLookAndInteract(EntityType.PLAYER, 4)), Pair.of(3, new ShowTradesToPlayer(400, 1600)), Pair.of(3, new GateBehavior<>(ImmutableMap.of(), ImmutableSet.of(MemoryModuleType.INTERACTION_TARGET), GateBehavior.OrderPolicy.ORDERED, GateBehavior.RunningPolicy.RUN_ONE, ImmutableList.of(Pair.of(new TradeWithVillager(), 1)))), Pair.of(3, new GateBehavior<>(ImmutableMap.of(), ImmutableSet.of(MemoryModuleType.BREED_TARGET), GateBehavior.OrderPolicy.ORDERED, GateBehavior.RunningPolicy.RUN_ONE, ImmutableList.of(Pair.of(new VillagerMakeLove(), 1)))), getFullLookBehavior(), Pair.of(99, new UpdateActivityFromSchedule()));
++        return ImmutableList.of(Pair.of(2, new RunOne<>(ImmutableList.of(Pair.of(new DoNothing(30, 60), 1)))), Pair.of(3, new SetLookAndInteract(EntityType.PLAYER, 4)), Pair.of(3, new ShowTradesToPlayer(400, 1600)), Pair.of(3, new GateBehavior<>(ImmutableMap.of(), ImmutableSet.of(MemoryModuleType.INTERACTION_TARGET), GateBehavior.OrderPolicy.ORDERED, GateBehavior.RunningPolicy.RUN_ONE, ImmutableList.of(Pair.of(new TradeWithVillager(), 1)))), getFullLookBehavior(), Pair.of(99, new UpdateActivityFromSchedule()));
+     }
+ 
+     public static ImmutableList<Pair<Integer, ? extends Behavior<? super Villager>>> getPanicPackage(VillagerProfession profession, float speed) {
+diff --git a/src/main/java/net/minecraft/world/entity/npc/Villager.java b/src/main/java/net/minecraft/world/entity/npc/Villager.java
+index ea612b3c3ed7305b504d65eb6d38ed99547fd488..b6dd74e4688251fb3b8008b3fdad5de9ee676722 100644
+--- a/src/main/java/net/minecraft/world/entity/npc/Villager.java
++++ b/src/main/java/net/minecraft/world/entity/npc/Villager.java
+@@ -145,7 +145,7 @@ public class Villager extends AbstractVillager implements ReputationEventHandler
+     public Villager(EntityType<? extends Villager> entityType, Level world, VillagerType type) {
+         super(entityType, world);
+         this.gossips = new GossipContainer();
+-        ((GroundPathNavigation) this.getNavigation()).setCanOpenDoors(true);
++        ((GroundPathNavigation) this.getNavigation()).setCanOpenDoors(false);
+         this.getNavigation().setCanFloat(true);
+         this.setCanPickUpLoot(true);
+         this.setVillagerData(this.getVillagerData().setType(type).setProfession(VillagerProfession.NONE));
+@@ -180,23 +180,8 @@ public class Villager extends AbstractVillager implements ReputationEventHandler
+     private void registerBrainGoals(Brain<Villager> brain) {
+         VillagerProfession villagerprofession = this.getVillagerData().getProfession();
+ 
+-        if (this.isBaby()) {
+-            brain.setSchedule(Schedule.VILLAGER_BABY);
+-            brain.addActivity(Activity.PLAY, VillagerGoalPackages.getPlayPackage(0.5F));
+-        } else {
+-            brain.setSchedule(Schedule.VILLAGER_DEFAULT);
+-            brain.addActivityWithConditions(Activity.WORK, VillagerGoalPackages.getWorkPackage(villagerprofession, 0.5F), ImmutableSet.of(Pair.of(MemoryModuleType.JOB_SITE, MemoryStatus.VALUE_PRESENT)));
+-        }
+-
+-        brain.addActivity(Activity.CORE, VillagerGoalPackages.getCorePackage(villagerprofession, 0.5F));
+-        brain.addActivityWithConditions(Activity.MEET, VillagerGoalPackages.getMeetPackage(villagerprofession, 0.5F), ImmutableSet.of(Pair.of(MemoryModuleType.MEETING_POINT, MemoryStatus.VALUE_PRESENT)));
+-        brain.addActivity(Activity.REST, VillagerGoalPackages.getRestPackage(villagerprofession, 0.5F));
+         brain.addActivity(Activity.IDLE, VillagerGoalPackages.getIdlePackage(villagerprofession, 0.5F));
+-        brain.addActivity(Activity.PANIC, VillagerGoalPackages.getPanicPackage(villagerprofession, 0.5F));
+-        brain.addActivity(Activity.PRE_RAID, VillagerGoalPackages.getPreRaidPackage(villagerprofession, 0.5F));
+-        brain.addActivity(Activity.RAID, VillagerGoalPackages.getRaidPackage(villagerprofession, 0.5F));
+-        brain.addActivity(Activity.HIDE, VillagerGoalPackages.getHidePackage(villagerprofession, 0.5F));
+-        brain.setCoreActivities(ImmutableSet.of(Activity.CORE));
++        brain.setCoreActivities(ImmutableSet.of(Activity.IDLE));
+         brain.setDefaultActivity(Activity.IDLE);
+         brain.setActiveActivityIfPossible(Activity.IDLE);
+         brain.updateActivityFromSchedule(this.level.getDayTime(), this.level.getGameTime());
+diff --git a/src/main/java/net/minecraft/world/entity/npc/WanderingTrader.java b/src/main/java/net/minecraft/world/entity/npc/WanderingTrader.java
+index 642279bb7e15db9f662094ffd6ded2e3c7af3fd6..ed8f42f3200b2d6b4ba662a97bf2d69026a22f26 100644
+--- a/src/main/java/net/minecraft/world/entity/npc/WanderingTrader.java
++++ b/src/main/java/net/minecraft/world/entity/npc/WanderingTrader.java
+@@ -70,26 +70,8 @@ public class WanderingTrader extends net.minecraft.world.entity.npc.AbstractVill
+     @Override
+     protected void registerGoals() {
+         this.goalSelector.addGoal(0, new FloatGoal(this));
+-        this.goalSelector.addGoal(0, new UseItemGoal<>(this, PotionUtils.setPotion(new ItemStack(Items.POTION), Potions.INVISIBILITY), SoundEvents.WANDERING_TRADER_DISAPPEARED, (entityvillagertrader) -> {
+-            return this.canDrinkPotion && this.level.isNight() && !entityvillagertrader.isInvisible(); // Paper - Add more WanderingTrader API
+-        }));
+-        this.goalSelector.addGoal(0, new UseItemGoal<>(this, new ItemStack(Items.MILK_BUCKET), SoundEvents.WANDERING_TRADER_REAPPEARED, (entityvillagertrader) -> {
+-            return canDrinkMilk && this.level.isDay() && entityvillagertrader.isInvisible(); // Paper - Add more WanderingTrader API
+-        }));
+         this.goalSelector.addGoal(1, new TradeWithPlayerGoal(this));
+-        this.goalSelector.addGoal(1, new AvoidEntityGoal<>(this, Zombie.class, 8.0F, 0.5D, 0.5D));
+-        this.goalSelector.addGoal(1, new AvoidEntityGoal<>(this, Evoker.class, 12.0F, 0.5D, 0.5D));
+-        this.goalSelector.addGoal(1, new AvoidEntityGoal<>(this, Vindicator.class, 8.0F, 0.5D, 0.5D));
+-        this.goalSelector.addGoal(1, new AvoidEntityGoal<>(this, Vex.class, 8.0F, 0.5D, 0.5D));
+-        this.goalSelector.addGoal(1, new AvoidEntityGoal<>(this, Pillager.class, 15.0F, 0.5D, 0.5D));
+-        this.goalSelector.addGoal(1, new AvoidEntityGoal<>(this, Illusioner.class, 12.0F, 0.5D, 0.5D));
+-        this.goalSelector.addGoal(1, new AvoidEntityGoal<>(this, Zoglin.class, 10.0F, 0.5D, 0.5D));
+-        this.goalSelector.addGoal(1, new PanicGoal(this, 0.5D));
+         this.goalSelector.addGoal(1, new LookAtTradingPlayerGoal(this));
+-        this.goalSelector.addGoal(2, new WanderingTrader.WanderToPositionGoal(this, 2.0D, 0.35D));
+-        this.goalSelector.addGoal(4, new MoveTowardsRestrictionGoal(this, 0.35D));
+-        this.goalSelector.addGoal(8, new WaterAvoidingRandomStrollGoal(this, 0.35D));
+-        this.goalSelector.addGoal(9, new InteractGoal(this, Player.class, 3.0F, 1.0F));
+         this.goalSelector.addGoal(10, new LookAtPlayerGoal(this, Mob.class, 8.0F));
+     }
+ 

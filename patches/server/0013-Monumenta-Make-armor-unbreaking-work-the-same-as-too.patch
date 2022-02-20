@@ -6,10 +6,10 @@ Subject: [PATCH] Monumenta - Make armor unbreaking work the same as tools
 Signed-off-by: Byron Marohn <combustible@live.com>
 
 diff --git a/src/main/java/net/minecraft/world/item/ItemStack.java b/src/main/java/net/minecraft/world/item/ItemStack.java
-index 8f2f516b1f473ce18a07e9f130b49b795dd6b46e..1f2aad42e8138b9a1999675bc13e91db85e68f47 100644
+index 66f808cabcf6a9a6584849b285f1c60133adc7b4..f79f39a5eb38925ac252220ba9fa04255ce6b466 100644
 --- a/src/main/java/net/minecraft/world/item/ItemStack.java
 +++ b/src/main/java/net/minecraft/world/item/ItemStack.java
-@@ -537,6 +537,12 @@ public final class ItemStack {
+@@ -535,6 +535,12 @@ public final class ItemStack {
                  j = EnchantmentHelper.getItemEnchantmentLevel(Enchantments.UNBREAKING, this);
                  int k = 0;
  

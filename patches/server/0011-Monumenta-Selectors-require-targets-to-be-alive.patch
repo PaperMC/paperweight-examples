@@ -5,10 +5,10 @@ Subject: [PATCH] Monumenta - Selectors require targets to be alive
 
 
 diff --git a/src/main/java/net/minecraft/commands/arguments/selector/EntitySelectorParser.java b/src/main/java/net/minecraft/commands/arguments/selector/EntitySelectorParser.java
-index 466d1d8d80df028ff842ce21be198be6a1c77b42..51c7854c6794fc9232cf788e532104415fe51f97 100644
+index 015d01242a9e8e7c6ef5b6bbf1b6d6ad0c8f36ca..8945a14b455f6c31a55d78e4951239b80e225f8e 100644
 --- a/src/main/java/net/minecraft/commands/arguments/selector/EntitySelectorParser.java
 +++ b/src/main/java/net/minecraft/commands/arguments/selector/EntitySelectorParser.java
-@@ -125,9 +125,7 @@ public class EntitySelectorParser {
+@@ -132,9 +132,7 @@ public class EntitySelectorParser {
          this.level = MinMaxBounds.Ints.ANY;
          this.rotX = WrappedMinMaxBounds.ANY;
          this.rotY = WrappedMinMaxBounds.ANY;
