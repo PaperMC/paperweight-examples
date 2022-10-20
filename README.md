@@ -6,6 +6,7 @@ The files of most interest are
 - build.gradle.kts
 - settings.gradle.kts
 - gradle.properties
+- patches/server/0001-Build-changes.patch
 
 ## Tasks
 
