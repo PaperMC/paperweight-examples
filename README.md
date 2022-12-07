@@ -38,3 +38,10 @@ Each branch of this project represents an example:
  - [`submodules` shows how paperweight can be applied on a fork using the more traditional git submodule system](https://github.com/PaperMC/paperweight-examples/tree/submodules)
  - [`mojangapi` shows how a fork could patch arbitrary non-git directories (such as `Paper-MojangAPI`)](https://github.com/PaperMC/paperweight-examples/tree/mojangapi)
  - [`submodules-mojang` shows the same as `mojangapi`, but on the git submodules setup from `submodules`](https://github.com/PaperMC/paperweight-examples/tree/submodules-mojangapi)
+
+## Setup
+Note that when importing this project into your IDE of choice for the first time, you may experience an error such as `Could not create task ':generateDevelopmentBundle'.`. This is expected behavior - you should follow the instructions below to setup your workspace.
+
+1. Clone this repo (e.g. `git clone https://github.com/PaperMC/paperweight-examples`)
+2. Run the `applyPatches` gradle task and let it complete.
+3. Open paperweight-examples in your IDE. Your IDE's import process should now succeed. 
