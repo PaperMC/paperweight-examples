@@ -54,7 +54,7 @@ subprojects {
 }
 
 paperweight {
-    serverProject.set(project(":forktest-server"))
+    serverProject.set(project(":mccreativelab-server"))
 
     remapRepo.set(paperMavenPublicUrl)
     decompileRepo.set(paperMavenPublicUrl)
@@ -62,10 +62,10 @@ paperweight {
     usePaperUpstream(providers.gradleProperty("paperRef")) {
         withPaperPatcher {
             apiPatchDir.set(layout.projectDirectory.dir("patches/api"))
-            apiOutputDir.set(layout.projectDirectory.dir("forktest-api"))
+            apiOutputDir.set(layout.projectDirectory.dir("mccreativelab-api"))
 
             serverPatchDir.set(layout.projectDirectory.dir("patches/server"))
-            serverOutputDir.set(layout.projectDirectory.dir("forktest-server"))
+            serverOutputDir.set(layout.projectDirectory.dir("mccreativelab-server"))
         }
     }
 }
