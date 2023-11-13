@@ -5,7 +5,7 @@ Subject: [PATCH] Ability to open an inventory with a different title
 
 
 diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftHumanEntity.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftHumanEntity.java
-index 017e97c1618b8ee4640b36a0ec1b07026047bfc3..38af0b30e4510391a4aadb6577e49cc6320cd302 100644
+index 017e97c1618b8ee4640b36a0ec1b07026047bfc3..98af2b84c3de48796014387917ac4d1cc52f164c 100644
 --- a/src/main/java/org/bukkit/craftbukkit/entity/CraftHumanEntity.java
 +++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftHumanEntity.java
 @@ -67,6 +67,8 @@ import org.bukkit.permissions.Permission;
