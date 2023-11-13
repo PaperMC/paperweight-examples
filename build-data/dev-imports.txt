@@ -8,3 +8,47 @@
 # To import classes from the vanilla Minecraft jar use `minecraft` as the artifactId:
 #     minecraft net.minecraft.world.level.entity.LevelEntityGetterAdapter
 #     minecraft net/minecraft/world/level/entity/LevelEntityGetter.java
+
+minecraft net.minecraft.world.entity.ai.sensing.Sensing
+minecraft net.minecraft.world.entity.ai.sensing.Sensing
+minecraft net.minecraft.world.level.levelgen.structure.StructurePiece
+minecraft net.minecraft.world.level.levelgen.feature.Feature
+minecraft net.minecraft.world.entity.ai.control.LookControl
+minecraft net.minecraft.world.level.block.entity.SmokerBlockEntity
+minecraft net.minecraft.world.level.block.entity.BlastFurnaceBlockEntity
+minecraft net.minecraft.world.level.block.entity.AbstractFurnaceBlockEntity
+minecraft net.minecraft.advancements.TreeNodePosition
+minecraft net.minecraft.world.level.chunk.storage.ChunkSerializer
+minecraft net.minecraft.server.ReloadableServerResources
+minecraft net.minecraft.world.ContainerHelper
+minecraft net.minecraft.world.level.levelgen.feature.TreeFeature
+minecraft net.minecraft.world.level.levelgen.feature.OreFeature
+minecraft net.minecraft.world.level.levelgen.feature.ScatteredOreFeature
+minecraft net.minecraft.world.level.chunk.BulkSectionAccess
+minecraft net.minecraft.world.level.levelgen.feature.configurations.OreConfiguration
+minecraft net.minecraft.world.item.ItemUtils
+
+minecraft net.minecraft.world.item.crafting.BlastingRecipe
+minecraft net.minecraft.world.item.crafting.CampfireCookingRecipe
+minecraft net.minecraft.world.item.crafting.ShapedRecipe
+minecraft net.minecraft.world.item.crafting.ShapelessRecipe
+minecraft net.minecraft.world.item.crafting.SmeltingRecipe
+minecraft net.minecraft.world.item.crafting.SmithingTransformRecipe
+minecraft net.minecraft.world.item.crafting.SmithingTrimRecipe
+minecraft net.minecraft.world.item.crafting.SmokingRecipe
+minecraft net.minecraft.world.item.crafting.StonecutterRecipe
+minecraft net.minecraft.world.item.crafting.AbstractCookingRecipe
+
+minecraft net.minecraft.world.item.crafting.DecoratedPotRecipe
+minecraft net.minecraft.world.item.crafting.FireworkStarFadeRecipe
+minecraft net.minecraft.world.item.crafting.FireworkStarRecipe
+minecraft net.minecraft.world.item.crafting.MapCloningRecipe
+minecraft net.minecraft.world.item.crafting.ShieldDecorationRecipe
+minecraft net.minecraft.world.item.crafting.ShulkerBoxColoring
+minecraft net.minecraft.world.item.crafting.SuspiciousStewRecipe
+minecraft net.minecraft.world.item.crafting.TippedArrowRecipe
+minecraft net.minecraft.world.item.crafting.ArmorDyeRecipe
+minecraft net.minecraft.world.item.crafting.BannerDuplicateRecipe
+minecraft net.minecraft.world.item.crafting.BookCloningRecipe
+minecraft net.minecraft.world.item.crafting.FireworkRocketRecipe
+minecraft net.minecraft.world.item.crafting.RepairItemRecipe

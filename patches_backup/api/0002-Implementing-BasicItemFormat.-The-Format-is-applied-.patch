@@ -1,0 +1,54 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <lukasjonsson@outlook.de>
+Date: Sun, 12 Nov 2023 17:17:12 +0100
+Subject: [PATCH] Implementing BasicItemFormat. The Format is applied to every
+ new item created.
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/item/BasicItemFormat.java b/src/main/java/de/verdox/mccreativelab/item/BasicItemFormat.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..2df9f41bacaa197fdbadc3953915dfd53f59ec9f
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/item/BasicItemFormat.java
+@@ -0,0 +1,41 @@
++package de.verdox.mccreativelab.item;
++
++import org.bukkit.NamespacedKey;
++import org.bukkit.inventory.ItemStack;
++import org.bukkit.persistence.PersistentDataType;
++import org.jetbrains.annotations.NotNull;
++
++import java.util.concurrent.ThreadLocalRandom;
++import java.util.function.Function;
++
++@FunctionalInterface
++public interface BasicItemFormat {
++
++    BasicItemFormat BASIC_FORMAT = stack -> {};
++    void applyItemFormat(ItemStack stack);
++    static ItemStack applyItemFormatAndReturn(ItemStack stack){
++        return applyItemFormatAndReturn(stack, BASIC_FORMAT);
++    }
++
++    static ItemStack applyItemFormatAndReturn(@NotNull ItemStack stack, @NotNull BasicItemFormat basicItemFormat) {
++        if(needsConversion(stack)){
++            basicItemFormat.applyItemFormat(stack);
++            applyConversionTag(stack);
++        }
++        return stack;
++    }
++
++    String randomSessionID = Integer.toHexString(ThreadLocalRandom.current().nextInt(1000000));
++    NamespacedKey sessionIDKey = new NamespacedKey("MCCLab","sessionID");
++    static boolean needsConversion(ItemStack stack){
++        if(!stack.hasItemMeta())
++            return true;
++        if(!stack.getItemMeta().getPersistentDataContainer().has(sessionIDKey))
++            return true;
++        var storedID = stack.getItemMeta().getPersistentDataContainer().get(sessionIDKey, PersistentDataType.STRING);
++        return !randomSessionID.equals(storedID);
++    }
++    static void applyConversionTag(ItemStack stack){
++        stack.editMeta(meta -> meta.getPersistentDataContainer().set(sessionIDKey, PersistentDataType.STRING, randomSessionID));
++    }
++}

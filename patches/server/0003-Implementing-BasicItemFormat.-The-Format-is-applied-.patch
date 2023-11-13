@@ -1,0 +1,297 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <lukasjonsson@outlook.de>
+Date: Sun, 12 Nov 2023 17:17:12 +0100
+Subject: [PATCH] Implementing BasicItemFormat. The Format is applied to every
+ new item created.
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/worldgen/item/ItemFormatUtil.java b/src/main/java/de/verdox/mccreativelab/worldgen/item/ItemFormatUtil.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..b8948c62050fe95f81a4319c4e179b8b9ed34453
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/worldgen/item/ItemFormatUtil.java
+@@ -0,0 +1,15 @@
++package de.verdox.mccreativelab.worldgen.item;
++
++import de.verdox.mccreativelab.item.BasicItemFormat;
++import net.minecraft.world.item.ItemStack;
++import org.bukkit.craftbukkit.inventory.CraftItemStack;
++
++public class ItemFormatUtil {
++    public static ItemStack applyFormat (ItemStack stack){
++        return CraftItemStack.asNMSCopy(BasicItemFormat.applyItemFormatAndReturn(CraftItemStack.asCraftMirror(stack)));
++    }
++
++    public static CraftItemStack applyFormat(CraftItemStack craftItemStack){
++        return (CraftItemStack) BasicItemFormat.applyItemFormatAndReturn(craftItemStack);
++    }
++}
+diff --git a/src/main/java/net/minecraft/world/SimpleContainer.java b/src/main/java/net/minecraft/world/SimpleContainer.java
+index ecd6cb02ef326c8e1d7fba8138d806f3107b5ac0..efb5f54f4ac6fab23688fa78f1472e408b714fec 100644
+--- a/src/main/java/net/minecraft/world/SimpleContainer.java
++++ b/src/main/java/net/minecraft/world/SimpleContainer.java
+@@ -5,6 +5,8 @@ import java.util.Iterator;
+ import java.util.List;
+ import java.util.stream.Collectors;
+ import javax.annotation.Nullable;
++
++import de.verdox.mccreativelab.item.BasicItemFormat;
+ import net.minecraft.core.NonNullList;
+ import net.minecraft.nbt.CompoundTag;
+ import net.minecraft.nbt.ListTag;
+@@ -17,6 +19,7 @@ import net.minecraft.world.item.ItemStack;
+ // CraftBukkit start
+ import org.bukkit.Location;
+ import org.bukkit.craftbukkit.entity.CraftHumanEntity;
++import org.bukkit.craftbukkit.inventory.CraftItemStack;
+ import org.bukkit.entity.HumanEntity;
+ // CraftBukkit end
+ 
+@@ -339,7 +342,11 @@ public class SimpleContainer implements Container, StackedContentsCompatible {
+             ItemStack itemstack = ItemStack.of(nbtList.getCompound(i));
+ 
+             if (!itemstack.isEmpty()) {
+-                this.addItem(itemstack);
++                // MCCLab - start
++
++                this.addItem(CraftItemStack.asNMSCopy(BasicItemFormat.applyItemFormatAndReturn(CraftItemStack.asCraftMirror(itemstack))));
++
++                // MCCLab - end
+             }
+         }
+ 
+diff --git a/src/main/java/net/minecraft/world/entity/player/Inventory.java b/src/main/java/net/minecraft/world/entity/player/Inventory.java
+index 96d664c28738d6090f7067761c2978dd1aa0fd0e..16da75f98f50ff75a12e9c5ff197d4d0bf54dce4 100644
+--- a/src/main/java/net/minecraft/world/entity/player/Inventory.java
++++ b/src/main/java/net/minecraft/world/entity/player/Inventory.java
+@@ -4,6 +4,8 @@ import com.google.common.collect.ImmutableList;
+ import java.util.Iterator;
+ import java.util.List;
+ import java.util.function.Predicate;
++
++import de.verdox.mccreativelab.item.BasicItemFormat;
+ import net.minecraft.CrashReport;
+ import net.minecraft.CrashReportCategory;
+ import net.minecraft.ReportedException;
+@@ -29,6 +31,7 @@ import net.minecraft.world.level.block.state.BlockState;
+ import java.util.ArrayList;
+ import org.bukkit.Location;
+ import org.bukkit.craftbukkit.entity.CraftHumanEntity;
++import org.bukkit.craftbukkit.inventory.CraftItemStack;
+ import org.bukkit.entity.HumanEntity;
+ // CraftBukkit end
+ 
+@@ -549,6 +552,10 @@ public class Inventory implements Container, Nameable {
+             int j = nbttagcompound.getByte("Slot") & 255;
+             ItemStack itemstack = ItemStack.of(nbttagcompound);
+ 
++            // MCCLab start
++            itemstack = CraftItemStack.asNMSCopy(BasicItemFormat.applyItemFormatAndReturn(CraftItemStack.asCraftMirror(itemstack)));
++            // MCCLab end
++
+             if (!itemstack.isEmpty()) {
+                 if (j >= 0 && j < this.items.size()) {
+                     this.items.set(j, itemstack);
+diff --git a/src/main/java/net/minecraft/world/item/ItemStack.java b/src/main/java/net/minecraft/world/item/ItemStack.java
+index 4697df75fdee2023c41260bed211e3e3d90d2b9b..605222ebac0d8255308b5bc4d542e327d638c4f9 100644
+--- a/src/main/java/net/minecraft/world/item/ItemStack.java
++++ b/src/main/java/net/minecraft/world/item/ItemStack.java
+@@ -21,6 +21,8 @@ import java.util.function.Predicate;
+ import java.util.stream.Collectors;
+ import java.util.stream.Stream;
+ import javax.annotation.Nullable;
++
++import de.verdox.mccreativelab.worldgen.item.ItemFormatUtil;
+ import net.minecraft.ChatFormatting;
+ import net.minecraft.Util;
+ import net.minecraft.advancements.CriteriaTriggers;
+@@ -278,7 +280,9 @@ public final class ItemStack {
+ 
+     public static ItemStack of(CompoundTag nbt) {
+         try {
+-            return new ItemStack(nbt);
++            // MCCLab - start
++            return ItemFormatUtil.applyFormat(new ItemStack(nbt));
++            // MCCLab - end
+         } catch (RuntimeException runtimeexception) {
+             ItemStack.LOGGER.debug("Tried to load invalid item: {}", nbt, runtimeexception);
+             return ItemStack.EMPTY;
+diff --git a/src/main/java/net/minecraft/world/item/crafting/AbstractCookingRecipe.java b/src/main/java/net/minecraft/world/item/crafting/AbstractCookingRecipe.java
+index 760a429137350d8ae100e77273318f3ba1ccfcc5..f15c6bf32bba52ad1501d1cd814f8e77914e8302 100644
+--- a/src/main/java/net/minecraft/world/item/crafting/AbstractCookingRecipe.java
++++ b/src/main/java/net/minecraft/world/item/crafting/AbstractCookingRecipe.java
+@@ -1,5 +1,6 @@
+ package net.minecraft.world.item.crafting;
+ 
++import de.verdox.mccreativelab.worldgen.item.ItemFormatUtil;
+ import net.minecraft.core.NonNullList;
+ import net.minecraft.core.RegistryAccess;
+ import net.minecraft.world.Container;
+@@ -33,7 +34,9 @@ public abstract class AbstractCookingRecipe extends io.papermc.paper.inventory.r
+ 
+     @Override
+     public ItemStack assemble(Container inventory, RegistryAccess registryManager) {
+-        return this.result.copy();
++        // MCCLab - start
++        return ItemFormatUtil.applyFormat(this.result.copy());
++        // MCCLab - end
+     }
+ 
+     @Override
+diff --git a/src/main/java/net/minecraft/world/item/crafting/ShapedRecipe.java b/src/main/java/net/minecraft/world/item/crafting/ShapedRecipe.java
+index 17bef91546fa85d401b263c3a69fbf464f290eca..0c87bf556e047424b4ad976e7a7db4327e847922 100644
+--- a/src/main/java/net/minecraft/world/item/crafting/ShapedRecipe.java
++++ b/src/main/java/net/minecraft/world/item/crafting/ShapedRecipe.java
+@@ -9,6 +9,8 @@ import java.util.Iterator;
+ import java.util.List;
+ import java.util.Map;
+ import java.util.Set;
++
++import de.verdox.mccreativelab.worldgen.item.ItemFormatUtil;
+ import net.minecraft.core.NonNullList;
+ import net.minecraft.core.RegistryAccess;
+ import net.minecraft.network.FriendlyByteBuf;
+@@ -130,7 +132,9 @@ public class ShapedRecipe extends io.papermc.paper.inventory.recipe.RecipeBookEx
+ 
+     @Override
+     public ItemStack getResultItem(RegistryAccess registryManager) {
+-        return this.result;
++        // MCCLab - start
++        return ItemFormatUtil.applyFormat(this.result);
++        // MCCLab - end
+     }
+ 
+     @Override
+@@ -189,7 +193,9 @@ public class ShapedRecipe extends io.papermc.paper.inventory.recipe.RecipeBookEx
+     }
+ 
+     public ItemStack assemble(CraftingContainer inventory, RegistryAccess registryManager) {
+-        return this.getResultItem(registryManager).copy();
++        // MCCLab - start
++        return ItemFormatUtil.applyFormat(this.getResultItem(registryManager).copy());
++        // MCCLab - end
+     }
+ 
+     public int getWidth() {
+diff --git a/src/main/java/net/minecraft/world/item/crafting/ShapelessRecipe.java b/src/main/java/net/minecraft/world/item/crafting/ShapelessRecipe.java
+index 38f7d1ece27ec1a3deda21fb6a6f0e788c8ed718..dff131966e26b62acc4969557b1c08bc66bdb8fe 100644
+--- a/src/main/java/net/minecraft/world/item/crafting/ShapelessRecipe.java
++++ b/src/main/java/net/minecraft/world/item/crafting/ShapelessRecipe.java
+@@ -3,6 +3,7 @@ package net.minecraft.world.item.crafting;
+ import com.mojang.serialization.Codec;
+ import com.mojang.serialization.DataResult;
+ import com.mojang.serialization.codecs.RecordCodecBuilder;
++import de.verdox.mccreativelab.worldgen.item.ItemFormatUtil;
+ import it.unimi.dsi.fastutil.ints.IntList;
+ import java.util.Iterator;
+ import net.minecraft.core.NonNullList;
+@@ -68,7 +69,9 @@ public class ShapelessRecipe extends io.papermc.paper.inventory.recipe.RecipeBoo
+ 
+     @Override
+     public ItemStack getResultItem(RegistryAccess registryManager) {
+-        return this.result;
++        // MCCLab - start
++        return ItemFormatUtil.applyFormat(this.result);
++        // MCCLab - end
+     }
+ 
+     @Override
+@@ -94,7 +97,9 @@ public class ShapelessRecipe extends io.papermc.paper.inventory.recipe.RecipeBoo
+     }
+ 
+     public ItemStack assemble(CraftingContainer inventory, RegistryAccess registryManager) {
+-        return this.result.copy();
++        // MCCLab - start
++        return ItemFormatUtil.applyFormat(this.getResultItem(registryManager).copy());
++        // MCCLab - end
+     }
+ 
+     @Override
+diff --git a/src/main/java/org/bukkit/craftbukkit/inventory/CraftItemStack.java b/src/main/java/org/bukkit/craftbukkit/inventory/CraftItemStack.java
+index 6556d7ab09826bb5a99f11385eddc26b67e44d68..c76d0704ef7e96229290be40fa8e2772ac3929d4 100644
+--- a/src/main/java/org/bukkit/craftbukkit/inventory/CraftItemStack.java
++++ b/src/main/java/org/bukkit/craftbukkit/inventory/CraftItemStack.java
+@@ -4,6 +4,9 @@ import static org.bukkit.craftbukkit.inventory.CraftMetaItem.*;
+ import com.google.common.base.Preconditions;
+ import com.google.common.collect.ImmutableMap;
+ import java.util.Map;
++
++import de.verdox.mccreativelab.item.BasicItemFormat;
++import de.verdox.mccreativelab.worldgen.item.ItemFormatUtil;
+ import net.minecraft.nbt.CompoundTag;
+ import net.minecraft.nbt.ListTag;
+ import net.minecraft.world.item.Item;
+@@ -79,11 +82,16 @@ public final class CraftItemStack extends ItemStack {
+         if (CraftItemStack.hasItemMeta(original)) {
+             stack.setItemMeta(CraftItemStack.getItemMeta(original));
+         }
+-        return stack;
++        // MCCLab start
++        return BasicItemFormat.applyItemFormatAndReturn(stack);
++        // MCCLab end
+     }
+ 
+     public static CraftItemStack asCraftMirror(net.minecraft.world.item.ItemStack original) {
+-        return new CraftItemStack((original == null || original.isEmpty()) ? null : original);
++        CraftItemStack stack = new CraftItemStack((original == null || original.isEmpty()) ? null : original);
++        if (original == null || original.isEmpty())
++            return stack;
++        return ItemFormatUtil.applyFormat(stack);
+     }
+ 
+     public static CraftItemStack asCraftCopy(ItemStack original) {
+diff --git a/src/main/java/org/bukkit/craftbukkit/inventory/CraftRecipe.java b/src/main/java/org/bukkit/craftbukkit/inventory/CraftRecipe.java
+index 13d25d118eb4d3ef35a4cdfb9bbde9ed83f6c04b..abd75e199a532f4835d038ba44a24dd42bee689a 100644
+--- a/src/main/java/org/bukkit/craftbukkit/inventory/CraftRecipe.java
++++ b/src/main/java/org/bukkit/craftbukkit/inventory/CraftRecipe.java
+@@ -1,8 +1,12 @@
+ package org.bukkit.craftbukkit.inventory;
+ 
+ import com.google.common.base.Preconditions;
++
+ import java.util.ArrayList;
+ import java.util.List;
++
++import de.verdox.mccreativelab.item.BasicItemFormat;
++import de.verdox.mccreativelab.worldgen.item.ItemFormatUtil;
+ import net.minecraft.world.item.crafting.Ingredient;
+ import org.bukkit.craftbukkit.util.CraftMagicNumbers;
+ import org.bukkit.inventory.ItemStack;
+@@ -26,9 +30,22 @@ public interface CraftRecipe extends Recipe {
+         if (bukkit == null) {
+             stack = Ingredient.EMPTY;
+         } else if (bukkit instanceof RecipeChoice.MaterialChoice) {
+-            stack = new Ingredient(((RecipeChoice.MaterialChoice) bukkit).getChoices().stream().map((mat) -> new net.minecraft.world.item.crafting.Ingredient.ItemValue(CraftItemStack.asNMSCopy(new ItemStack(mat)))));
++            stack = new Ingredient(((RecipeChoice.MaterialChoice) bukkit).getChoices()
++                                                                         .stream()
++                 // MCCLab - start
++                .map(material -> CraftItemStack.asNMSCopy(BasicItemFormat.applyItemFormatAndReturn(new ItemStack(material))))
++                                                                         //.map((mat) -> new net.minecraft.world.item.crafting.Ingredient.ItemValue(CraftItemStack.asNMSCopy(new ItemStack(mat))))
++                                                                         .map(Ingredient.ItemValue::new)
++                // MCCLab - end
++            );
+         } else if (bukkit instanceof RecipeChoice.ExactChoice) {
+-            stack = new Ingredient(((RecipeChoice.ExactChoice) bukkit).getChoices().stream().map((mat) -> new net.minecraft.world.item.crafting.Ingredient.ItemValue(CraftItemStack.asNMSCopy(mat))));
++            stack = new Ingredient(((RecipeChoice.ExactChoice) bukkit).getChoices().stream()
++                // MCCLab - start
++                                                                      .map(material -> CraftItemStack.asNMSCopy(BasicItemFormat.applyItemFormatAndReturn(new ItemStack(material))))
++                                                                      //.map((mat) -> new net.minecraft.world.item.crafting.Ingredient.ItemValue(CraftItemStack.asNMSCopy(mat)))
++                                                                      .map(Ingredient.ItemValue::new)
++                // MCCLab - end
++            );
+             stack.exact = true;
+         } else {
+             throw new IllegalArgumentException("Unknown recipe stack instance " + bukkit);
+@@ -49,6 +66,12 @@ public interface CraftRecipe extends Recipe {
+             return null;
+         }
+ 
++        for (int i = 0; i < list.itemStacks.length; i++) {
++            var item = list.itemStacks[i];
++            list.itemStacks[i] = ItemFormatUtil.applyFormat(item);
++        }
++
++
+         if (list.exact) {
+             List<org.bukkit.inventory.ItemStack> choices = new ArrayList<>(list.itemStacks.length);
+             for (net.minecraft.world.item.ItemStack i : list.itemStacks) {
