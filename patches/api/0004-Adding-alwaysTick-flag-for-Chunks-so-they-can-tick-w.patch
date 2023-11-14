@@ -1,0 +1,30 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <lukasjonsson@outlook.de>
+Date: Mon, 13 Nov 2023 21:26:23 +0100
+Subject: [PATCH] Adding alwaysTick flag for Chunks, so they can tick with no
+ nearby player.
+
+
+diff --git a/src/main/java/org/bukkit/Chunk.java b/src/main/java/org/bukkit/Chunk.java
+index 4418c41f75e9a190dd77abdd6048b0a4fb2a57ed..17da443c4ea30679664df13f2f6830a387458131 100644
+--- a/src/main/java/org/bukkit/Chunk.java
++++ b/src/main/java/org/bukkit/Chunk.java
+@@ -338,4 +338,18 @@ public interface Chunk extends PersistentDataHolder {
+          */
+         UNLOADED;
+     }
++
++    // MCCLab - start
++    /**
++     * Sets the always ticking flag of this chunk
++     * @param alwaysTicking new value
++     */
++    void setAlwaysTicking(boolean alwaysTicking);
++
++    /**
++     * Tests if the chunk ticks even without any players nearby.
++     * @return if the chunk is always ticking
++     */
++    boolean isAlwaysTicking();
++    // MCCLab - end
+ }
