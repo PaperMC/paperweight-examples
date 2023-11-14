@@ -9,6 +9,6 @@ plugins {
     id("org.gradle.toolchains.foojay-resolver-convention") version "0.7.0"
 }
 
-rootProject.name = "mccreativelab"
+rootProject.name = "MCCreativeLab"
 
 include("mccreativelab-api", "mccreativelab-server")
