@@ -1,0 +1,228 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <lukasjonsson@outlook.de>
+Date: Wed, 15 Nov 2023 17:14:25 +0100
+Subject: [PATCH] Attribute API class not an enum anymore.
+
+
+diff --git a/src/main/java/org/bukkit/Registry.java b/src/main/java/org/bukkit/Registry.java
+index 44d863510d454f316a5d9b7214b54ca499226d74..cd248a9d7ff2ed0eead190927cb1fe1d961570de 100644
+--- a/src/main/java/org/bukkit/Registry.java
++++ b/src/main/java/org/bukkit/Registry.java
+@@ -73,7 +73,23 @@ public interface Registry<T extends Keyed> extends Iterable<T> {
+      *
+      * @see Attribute
+      */
+-    Registry<Attribute> ATTRIBUTE = new SimpleRegistry<>(Attribute.class);
++    Registry<Attribute> ATTRIBUTE = new Registry<Attribute>() {
++        @NotNull
++        @Override
++        public Iterator<Attribute> iterator() {
++            return Attribute.attributesIterator();
++        }
++
++        @Override
++        public @Nullable Attribute get(@NotNull NamespacedKey key) {
++            return Attribute.getByKey(key);
++        }
++
++        @Override
++        public @NotNull Stream<Attribute> stream() {
++            return Attribute.streamAttributes();
++        }
++    };
+     /**
+      * Server biomes.
+      *
+diff --git a/src/main/java/org/bukkit/attribute/Attribute.java b/src/main/java/org/bukkit/attribute/Attribute.java
+index 37f93b7e9f722e76631c3e7d3e770526ee0c3926..ab90b65946f93d9c94b0deb9ef0686e69042c468 100644
+--- a/src/main/java/org/bukkit/attribute/Attribute.java
++++ b/src/main/java/org/bukkit/attribute/Attribute.java
+@@ -2,69 +2,173 @@ package org.bukkit.attribute;
+ 
+ import org.bukkit.Keyed;
+ import org.bukkit.NamespacedKey;
++import org.bukkit.Registry;
++import org.jetbrains.annotations.ApiStatus;
+ import org.jetbrains.annotations.NotNull;
++import org.jetbrains.annotations.Nullable;
++
++import java.util.HashMap;
++import java.util.Iterator;
++import java.util.Map;
++import java.util.NoSuchElementException;
++import java.util.stream.Stream;
+ 
+ /**
+  * Types of attributes which may be present on an {@link Attributable}.
+  */
+-public enum Attribute implements Keyed, net.kyori.adventure.translation.Translatable { // Paper - Adventure translations
++public class Attribute implements Keyed, net.kyori.adventure.translation.Translatable { // Paper - Adventure translations
++
++    // MCCLab - start
++    private static final Map<NamespacedKey, Attribute> storage = new HashMap<>();
++
++    /**
++     * Streams all bukkit attributes
++     * @return a stream of attributes
++     */
++    public static Stream<Attribute> streamAttributes(){
++        return storage.values().stream();
++    }
++
++    /**
++     * Returns an iterator of all bukkit attributes
++     * @return an attribute iterator
++     */
++    public static Iterator<Attribute> attributesIterator(){
++        return storage.values().iterator();
++    }
++
++    /**
++     * Gets an attribute by its key
++     * @param namespacedKey The key of the attribute
++     * @return the attribute or null if it doesn't exist
++     */
++    @Nullable
++    public static Attribute getByKey(NamespacedKey namespacedKey){
++        return storage.getOrDefault(namespacedKey, null);
++    }
++
++    /**
++     * Registers an attribute to the bukkit registry.
++     * If the key is already taken it throws an IllegalStateException
++     * This does not create a new attribute in minecraft but just a reference to an existing minecraft attribute.
++     * @param namespacedKey The key of the attribute
++     * @param attribute The bukkit attribute reference
++     * @return The bukkit attribute reference
++     */
++    public static Attribute register(NamespacedKey namespacedKey, Attribute attribute){
++        if(storage.containsKey(namespacedKey))
++            throw new IllegalStateException("NamespacedKey "+namespacedKey.toString()+" already taken");
++        return registerOrOverride(namespacedKey, attribute);
++    }
++
++    /**
++     * Registers an attribute to the bukkit registry.
++     * If the key is already taken it throws an IllegalStateException
++     * This does not create a new attribute in minecraft but just a reference to an existing minecraft attribute.
++     * @param key The key of the attribute as string. Will be interpreted in minecraft namespace.
++     * @param attribute The bukkit attribute reference
++     * @return The bukkit attribute reference
++     */
++    public static Attribute register(String key, Attribute attribute){
++        return register(NamespacedKey.minecraft(key), attribute);
++    }
++
++    /**
++     * Registers an attribute to the bukkit registry.
++     * If the key is already taken it will be overwritten
++     * This does not create a new attribute in minecraft but just a reference to an existing minecraft attribute.
++     * @param namespacedKey The key of the attribute
++     * @param attribute The bukkit attribute reference
++     * @return The bukkit attribute reference
++     */
++    @ApiStatus.Internal
++    public static Attribute registerOrOverride(NamespacedKey namespacedKey, Attribute attribute){
++        storage.put(namespacedKey, attribute);
++        return attribute;
++    }
++
++    /**
++     * Registers an attribute to the bukkit registry.
++     * If the key is already taken it will be overwritten
++     * This does not create a new attribute in minecraft but just a reference to an existing minecraft attribute.
++     * @param key The key of the attribute as string. Will be interpreted in minecraft namespace.
++     * @param attribute The bukkit attribute reference
++     * @return The bukkit attribute reference
++     */
++    @ApiStatus.Internal
++    public static Attribute registerOrOverride(String key, Attribute attribute){
++        return registerOrOverride(NamespacedKey.minecraft(key), attribute);
++    }
++
++    /**
++     * Creates a bukkit attribute. Bukkit references are not used to create entirely new minecraft attributes.
++     * They act as an api representative of vanilla attributes.
++     * @param key The key of the attribute reference
++     * @return The attribute reference object
++     */
++    @ApiStatus.Internal
++    public static Attribute createAttributeReference(String key){
++        return new Attribute(key);
++    }
++
++    // MCCLab - end
+ 
+     /**
+      * Maximum health of an Entity.
+      */
+-    GENERIC_MAX_HEALTH("generic.max_health"),
++    public static final Attribute GENERIC_MAX_HEALTH = new Attribute("generic.max_health");
+     /**
+      * Range at which an Entity will follow others.
+      */
+-    GENERIC_FOLLOW_RANGE("generic.follow_range"),
++    public static final Attribute GENERIC_FOLLOW_RANGE = new Attribute("generic.follow_range");
+     /**
+      * Resistance of an Entity to knockback.
+      */
+-    GENERIC_KNOCKBACK_RESISTANCE("generic.knockback_resistance"),
++    public static final Attribute GENERIC_KNOCKBACK_RESISTANCE = new Attribute("generic.knockback_resistance");
+     /**
+      * Movement speed of an Entity.
+      */
+-    GENERIC_MOVEMENT_SPEED("generic.movement_speed"),
++    public static final Attribute GENERIC_MOVEMENT_SPEED = new Attribute("generic.movement_speed");
+     /**
+      * Flying speed of an Entity.
+      */
+-    GENERIC_FLYING_SPEED("generic.flying_speed"),
++    public static final Attribute GENERIC_FLYING_SPEED = new Attribute("generic.flying_speed");
+     /**
+      * Attack damage of an Entity.
+      */
+-    GENERIC_ATTACK_DAMAGE("generic.attack_damage"),
++    public static final Attribute GENERIC_ATTACK_DAMAGE = new Attribute("generic.attack_damage");
+     /**
+      * Attack knockback of an Entity.
+      */
+-    GENERIC_ATTACK_KNOCKBACK("generic.attack_knockback"),
++    public static final Attribute GENERIC_ATTACK_KNOCKBACK = new Attribute("generic.attack_knockback");
+     /**
+      * Attack speed of an Entity.
+      */
+-    GENERIC_ATTACK_SPEED("generic.attack_speed"),
++    public static final Attribute GENERIC_ATTACK_SPEED = new Attribute("generic.attack_speed");
+     /**
+      * Armor bonus of an Entity.
+      */
+-    GENERIC_ARMOR("generic.armor"),
++    public static final Attribute GENERIC_ARMOR = new Attribute("generic.armor");
+     /**
+      * Armor durability bonus of an Entity.
+      */
+-    GENERIC_ARMOR_TOUGHNESS("generic.armor_toughness"),
++    public static final Attribute GENERIC_ARMOR_TOUGHNESS = new Attribute("generic.armor_toughness");
+     /**
+      * Luck bonus of an Entity.
+      */
+-    GENERIC_LUCK("generic.luck"),
++    public static final Attribute GENERIC_LUCK = new Attribute("generic.luck");
+     /**
+      * Maximum absorption of an Entity.
+      */
+-    GENERIC_MAX_ABSORPTION("generic.max_absorption"),
++    public static final Attribute GENERIC_MAX_ABSORPTION = new Attribute("generic.max_absorption");
+     /**
+      * Strength with which a horse will jump.
+      */
+-    HORSE_JUMP_STRENGTH("horse.jump_strength"),
++    public static final Attribute HORSE_JUMP_STRENGTH = new Attribute("horse.jump_strength");
+     /**
+      * Chance of a zombie to spawn reinforcements.
+      */
+-    ZOMBIE_SPAWN_REINFORCEMENTS("zombie.spawn_reinforcements");
++    public static final Attribute ZOMBIE_SPAWN_REINFORCEMENTS = new Attribute("zombie.spawn_reinforcements");
+ 
+     private final NamespacedKey key;
+ 
