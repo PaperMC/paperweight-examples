@@ -5,27 +5,6 @@ Subject: [PATCH] Implementing BasicItemFormat. The Format is applied to every
  new item created.
 
 
-diff --git a/src/main/java/de/verdox/mccreativelab/worldgen/item/ItemFormatUtil.java b/src/main/java/de/verdox/mccreativelab/worldgen/item/ItemFormatUtil.java
-new file mode 100644
-index 0000000000000000000000000000000000000000..b8948c62050fe95f81a4319c4e179b8b9ed34453
---- /dev/null
-+++ b/src/main/java/de/verdox/mccreativelab/worldgen/item/ItemFormatUtil.java
-@@ -0,0 +1,15 @@
-+package de.verdox.mccreativelab.worldgen.item;
-+
-+import de.verdox.mccreativelab.item.BasicItemFormat;
-+import net.minecraft.world.item.ItemStack;
-+import org.bukkit.craftbukkit.inventory.CraftItemStack;
-+
-+public class ItemFormatUtil {
-+    public static ItemStack applyFormat (ItemStack stack){
-+        return CraftItemStack.asNMSCopy(BasicItemFormat.applyItemFormatAndReturn(CraftItemStack.asCraftMirror(stack)));
-+    }
-+
-+    public static CraftItemStack applyFormat(CraftItemStack craftItemStack){
-+        return (CraftItemStack) BasicItemFormat.applyItemFormatAndReturn(craftItemStack);
-+    }
-+}
 diff --git a/src/main/java/net/minecraft/world/SimpleContainer.java b/src/main/java/net/minecraft/world/SimpleContainer.java
 index ecd6cb02ef326c8e1d7fba8138d806f3107b5ac0..efb5f54f4ac6fab23688fa78f1472e408b714fec 100644
 --- a/src/main/java/net/minecraft/world/SimpleContainer.java
