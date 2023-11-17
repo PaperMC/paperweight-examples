@@ -5,7 +5,7 @@ Subject: [PATCH] Opening random ticks to API
 
 
 diff --git a/src/main/java/net/minecraft/world/level/block/BambooSaplingBlock.java b/src/main/java/net/minecraft/world/level/block/BambooSaplingBlock.java
-index fd0143944e4fecaf6f1ffa4561702178431575e9..d512b599f8b548dcaa7674ed89c3cd01ce9cd654 100644
+index fd0143944e4fecaf6f1ffa4561702178431575e9..3969b5c04f498c6c8283a21017b7f3d2406a49b1 100644
 --- a/src/main/java/net/minecraft/world/level/block/BambooSaplingBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/BambooSaplingBlock.java
 @@ -1,5 +1,6 @@
@@ -78,6 +78,37 @@ index 6365ddea0c23bc5d4009d98915f2b39aed2a0328..a65b1b29c6f84d5518442572dab0732b
          if (world.getRawBrightness(pos, 0) >= 9) {
              int i = this.getAge(state);
  
+diff --git a/src/main/java/net/minecraft/world/level/block/FarmBlock.java b/src/main/java/net/minecraft/world/level/block/FarmBlock.java
+index 5946f06f63b5694034bd027984a4925b0831d439..49ce3d74ef277a6f832e82a3c4084af258c77b33 100644
+--- a/src/main/java/net/minecraft/world/level/block/FarmBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/FarmBlock.java
+@@ -2,6 +2,8 @@ package net.minecraft.world.level.block;
+ 
+ import java.util.Iterator;
+ import javax.annotation.Nullable;
++
++import de.verdox.mccreativelab.tick.RandomTickExtension;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+ import net.minecraft.server.level.ServerLevel;
+@@ -82,8 +84,17 @@ public class FarmBlock extends Block {
+ 
+     }
+ 
++    @Override
++    public boolean isRandomlyTicking(BlockState state) {
++        if (RandomTickExtension.FARM_BLOCK_BEHAVIOUR != null)
++            return RandomTickExtension.isRandomlyTicking(RandomTickExtension.FARM_BLOCK_BEHAVIOUR, state.createCraftBlockData());
++        return super.isRandomlyTicking(state);
++    }
++
+     @Override
+     public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
++        if(RandomTickExtension.executeCustomRandomTickBehaviourIfPossible(RandomTickExtension.FARM_BLOCK_BEHAVIOUR, toBukkitBlock(world, pos)))
++            return;
+         int i = (Integer) state.getValue(FarmBlock.MOISTURE);
+ 
+         if (!FarmBlock.isNearWater(world, pos) && !world.isRainingAt(pos.above())) {
 diff --git a/src/main/java/net/minecraft/world/level/block/SaplingBlock.java b/src/main/java/net/minecraft/world/level/block/SaplingBlock.java
 index 53ac4e618fec3fe384d8a106c521f3eace0b5b35..3a7f9da8c2236def1d7a18cb6d526426cdf87677 100644
 --- a/src/main/java/net/minecraft/world/level/block/SaplingBlock.java

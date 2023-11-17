@@ -5,6 +5,30 @@ Subject: [PATCH] Implementing BasicItemFormat. The Format is applied to every
  new item created.
 
 
+diff --git a/src/main/java/de/verdox/mccreativelab/item/ItemFormatUtil.java b/src/main/java/de/verdox/mccreativelab/item/ItemFormatUtil.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..4925752c5ff15fff7b49b905816a757fe6bb9df6
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/item/ItemFormatUtil.java
+@@ -0,0 +1,18 @@
++package de.verdox.mccreativelab.item;
++
++import net.minecraft.world.item.ItemStack;
++import org.bukkit.craftbukkit.inventory.CraftItemStack;
++
++public class ItemFormatUtil {
++
++    public static ItemStack applyFormat(ItemStack itemStack){
++        BasicItemFormat.applyItemFormatAndReturn(CraftItemStack.asCraftMirror(itemStack));
++        return itemStack;
++    }
++
++    public static CraftItemStack applyFormat(CraftItemStack craftItemStack){
++        BasicItemFormat.applyItemFormatAndReturn(craftItemStack);
++        return craftItemStack;
++    }
++
++}
 diff --git a/src/main/java/net/minecraft/world/SimpleContainer.java b/src/main/java/net/minecraft/world/SimpleContainer.java
 index ecd6cb02ef326c8e1d7fba8138d806f3107b5ac0..efb5f54f4ac6fab23688fa78f1472e408b714fec 100644
 --- a/src/main/java/net/minecraft/world/SimpleContainer.java
@@ -72,7 +96,7 @@ index 96d664c28738d6090f7067761c2978dd1aa0fd0e..16da75f98f50ff75a12e9c5ff197d4d0
                  if (j >= 0 && j < this.items.size()) {
                      this.items.set(j, itemstack);
 diff --git a/src/main/java/net/minecraft/world/item/ItemStack.java b/src/main/java/net/minecraft/world/item/ItemStack.java
-index 4697df75fdee2023c41260bed211e3e3d90d2b9b..605222ebac0d8255308b5bc4d542e327d638c4f9 100644
+index 4697df75fdee2023c41260bed211e3e3d90d2b9b..86a86ca0b8e7c5d0f51d69889a4367738196b954 100644
 --- a/src/main/java/net/minecraft/world/item/ItemStack.java
 +++ b/src/main/java/net/minecraft/world/item/ItemStack.java
 @@ -21,6 +21,8 @@ import java.util.function.Predicate;
@@ -80,7 +104,7 @@ index 4697df75fdee2023c41260bed211e3e3d90d2b9b..605222ebac0d8255308b5bc4d542e327
  import java.util.stream.Stream;
  import javax.annotation.Nullable;
 +
-+import de.verdox.mccreativelab.worldgen.item.ItemFormatUtil;
++import de.verdox.mccreativelab.item.ItemFormatUtil;
  import net.minecraft.ChatFormatting;
  import net.minecraft.Util;
  import net.minecraft.advancements.CriteriaTriggers;
@@ -96,13 +120,13 @@ index 4697df75fdee2023c41260bed211e3e3d90d2b9b..605222ebac0d8255308b5bc4d542e327
              ItemStack.LOGGER.debug("Tried to load invalid item: {}", nbt, runtimeexception);
              return ItemStack.EMPTY;
 diff --git a/src/main/java/net/minecraft/world/item/crafting/AbstractCookingRecipe.java b/src/main/java/net/minecraft/world/item/crafting/AbstractCookingRecipe.java
-index 760a429137350d8ae100e77273318f3ba1ccfcc5..f15c6bf32bba52ad1501d1cd814f8e77914e8302 100644
+index 760a429137350d8ae100e77273318f3ba1ccfcc5..cf37ffa6656914413582819143fb07f3c30410f5 100644
 --- a/src/main/java/net/minecraft/world/item/crafting/AbstractCookingRecipe.java
 +++ b/src/main/java/net/minecraft/world/item/crafting/AbstractCookingRecipe.java
 @@ -1,5 +1,6 @@
  package net.minecraft.world.item.crafting;
  
-+import de.verdox.mccreativelab.worldgen.item.ItemFormatUtil;
++import de.verdox.mccreativelab.item.ItemFormatUtil;
  import net.minecraft.core.NonNullList;
  import net.minecraft.core.RegistryAccess;
  import net.minecraft.world.Container;
@@ -118,7 +142,7 @@ index 760a429137350d8ae100e77273318f3ba1ccfcc5..f15c6bf32bba52ad1501d1cd814f8e77
  
      @Override
 diff --git a/src/main/java/net/minecraft/world/item/crafting/ShapedRecipe.java b/src/main/java/net/minecraft/world/item/crafting/ShapedRecipe.java
-index 17bef91546fa85d401b263c3a69fbf464f290eca..0c87bf556e047424b4ad976e7a7db4327e847922 100644
+index 17bef91546fa85d401b263c3a69fbf464f290eca..98f1918d9f2bbb138bd5f5ec1775340f7dcb661d 100644
 --- a/src/main/java/net/minecraft/world/item/crafting/ShapedRecipe.java
 +++ b/src/main/java/net/minecraft/world/item/crafting/ShapedRecipe.java
 @@ -9,6 +9,8 @@ import java.util.Iterator;
@@ -126,7 +150,7 @@ index 17bef91546fa85d401b263c3a69fbf464f290eca..0c87bf556e047424b4ad976e7a7db432
  import java.util.Map;
  import java.util.Set;
 +
-+import de.verdox.mccreativelab.worldgen.item.ItemFormatUtil;
++import de.verdox.mccreativelab.item.ItemFormatUtil;
  import net.minecraft.core.NonNullList;
  import net.minecraft.core.RegistryAccess;
  import net.minecraft.network.FriendlyByteBuf;
@@ -153,14 +177,14 @@ index 17bef91546fa85d401b263c3a69fbf464f290eca..0c87bf556e047424b4ad976e7a7db432
  
      public int getWidth() {
 diff --git a/src/main/java/net/minecraft/world/item/crafting/ShapelessRecipe.java b/src/main/java/net/minecraft/world/item/crafting/ShapelessRecipe.java
-index 38f7d1ece27ec1a3deda21fb6a6f0e788c8ed718..dff131966e26b62acc4969557b1c08bc66bdb8fe 100644
+index 38f7d1ece27ec1a3deda21fb6a6f0e788c8ed718..2e4d3c80bf30072d3d9718b3753d8e41ac89eb5f 100644
 --- a/src/main/java/net/minecraft/world/item/crafting/ShapelessRecipe.java
 +++ b/src/main/java/net/minecraft/world/item/crafting/ShapelessRecipe.java
 @@ -3,6 +3,7 @@ package net.minecraft.world.item.crafting;
  import com.mojang.serialization.Codec;
  import com.mojang.serialization.DataResult;
  import com.mojang.serialization.codecs.RecordCodecBuilder;
-+import de.verdox.mccreativelab.worldgen.item.ItemFormatUtil;
++import de.verdox.mccreativelab.item.ItemFormatUtil;
  import it.unimi.dsi.fastutil.ints.IntList;
  import java.util.Iterator;
  import net.minecraft.core.NonNullList;
@@ -187,7 +211,7 @@ index 38f7d1ece27ec1a3deda21fb6a6f0e788c8ed718..dff131966e26b62acc4969557b1c08bc
  
      @Override
 diff --git a/src/main/java/org/bukkit/craftbukkit/inventory/CraftItemStack.java b/src/main/java/org/bukkit/craftbukkit/inventory/CraftItemStack.java
-index 6556d7ab09826bb5a99f11385eddc26b67e44d68..c76d0704ef7e96229290be40fa8e2772ac3929d4 100644
+index 6556d7ab09826bb5a99f11385eddc26b67e44d68..c2d1526538610ae3bb8ffcab1c0bc3a28abbbda9 100644
 --- a/src/main/java/org/bukkit/craftbukkit/inventory/CraftItemStack.java
 +++ b/src/main/java/org/bukkit/craftbukkit/inventory/CraftItemStack.java
 @@ -4,6 +4,9 @@ import static org.bukkit.craftbukkit.inventory.CraftMetaItem.*;
@@ -196,7 +220,7 @@ index 6556d7ab09826bb5a99f11385eddc26b67e44d68..c76d0704ef7e96229290be40fa8e2772
  import java.util.Map;
 +
 +import de.verdox.mccreativelab.item.BasicItemFormat;
-+import de.verdox.mccreativelab.worldgen.item.ItemFormatUtil;
++import de.verdox.mccreativelab.item.ItemFormatUtil;
  import net.minecraft.nbt.CompoundTag;
  import net.minecraft.nbt.ListTag;
  import net.minecraft.world.item.Item;
@@ -220,7 +244,7 @@ index 6556d7ab09826bb5a99f11385eddc26b67e44d68..c76d0704ef7e96229290be40fa8e2772
  
      public static CraftItemStack asCraftCopy(ItemStack original) {
 diff --git a/src/main/java/org/bukkit/craftbukkit/inventory/CraftRecipe.java b/src/main/java/org/bukkit/craftbukkit/inventory/CraftRecipe.java
-index 13d25d118eb4d3ef35a4cdfb9bbde9ed83f6c04b..abd75e199a532f4835d038ba44a24dd42bee689a 100644
+index 13d25d118eb4d3ef35a4cdfb9bbde9ed83f6c04b..cdc15479e3040f2a63c801f167e42b9a979048d9 100644
 --- a/src/main/java/org/bukkit/craftbukkit/inventory/CraftRecipe.java
 +++ b/src/main/java/org/bukkit/craftbukkit/inventory/CraftRecipe.java
 @@ -1,8 +1,12 @@
@@ -232,7 +256,7 @@ index 13d25d118eb4d3ef35a4cdfb9bbde9ed83f6c04b..abd75e199a532f4835d038ba44a24dd4
  import java.util.List;
 +
 +import de.verdox.mccreativelab.item.BasicItemFormat;
-+import de.verdox.mccreativelab.worldgen.item.ItemFormatUtil;
++import de.verdox.mccreativelab.item.ItemFormatUtil;
  import net.minecraft.world.item.crafting.Ingredient;
  import org.bukkit.craftbukkit.util.CraftMagicNumbers;
  import org.bukkit.inventory.ItemStack;
