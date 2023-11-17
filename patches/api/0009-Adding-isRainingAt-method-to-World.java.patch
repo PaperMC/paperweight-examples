@@ -1,0 +1,25 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <lukasjonsson@outlook.de>
+Date: Fri, 17 Nov 2023 17:05:04 +0100
+Subject: [PATCH] Adding isRainingAt method to World.java
+
+
+diff --git a/src/main/java/org/bukkit/World.java b/src/main/java/org/bukkit/World.java
+index 293fdfee1c097c57c55b7fc8b5b9d925921cb1a4..81535600385c23d1af837ea2e61617ab6d115eb7 100644
+--- a/src/main/java/org/bukkit/World.java
++++ b/src/main/java/org/bukkit/World.java
+@@ -50,6 +50,14 @@ import org.jetbrains.annotations.Nullable;
+ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient, Metadatable, PersistentDataHolder, Keyed, net.kyori.adventure.audience.ForwardingAudience { // Paper
+ 
+     // MCCLab - start
++
++    /**
++     * Checks if it is raining at a specific location
++     * @param location The location to check
++     * @return true if it is raining at the block location
++     */
++    boolean isRainingAt(Location location);
++
+     /**
+      * Creates a tree at the given {@link Location} if the {@link BlockData} of the {@link Block} is of type {@link Sapling}
+      *

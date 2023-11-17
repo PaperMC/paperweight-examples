@@ -1,0 +1,158 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <lukasjonsson@outlook.de>
+Date: Sat, 15 Jul 2023 18:02:55 +0200
+Subject: [PATCH] Changes to Potion API
+
+
+diff --git a/src/main/java/io/papermc/paper/potion/PotionMix.java b/src/main/java/io/papermc/paper/potion/PotionMix.java
+index cb6d93526b637946aec311bef103ad3096781113..031aabafbe12892153f0e487cd648b83bae11c39 100644
+--- a/src/main/java/io/papermc/paper/potion/PotionMix.java
++++ b/src/main/java/io/papermc/paper/potion/PotionMix.java
+@@ -19,6 +19,7 @@ public class PotionMix implements Keyed {
+     private final ItemStack result;
+     private final RecipeChoice input;
+     private final RecipeChoice ingredient;
++    private final int brewingTime;
+ 
+     /**
+      * Creates a new potion mix. Add it to the server with {@link org.bukkit.potion.PotionBrewer#addPotionMix(PotionMix)}.
+@@ -28,11 +29,12 @@ public class PotionMix implements Keyed {
+      * @param input the input placed into the bottom 3 slots
+      * @param ingredient the ingredient placed into the top slot
+      */
+-    public PotionMix(@NotNull NamespacedKey key, @NotNull ItemStack result, @NotNull RecipeChoice input, @NotNull RecipeChoice ingredient) {
++    public PotionMix(@NotNull NamespacedKey key, @NotNull ItemStack result, @NotNull RecipeChoice input, @NotNull RecipeChoice ingredient, int brewingTime) {
+         this.key = key;
+         this.result = result;
+         this.input = input;
+         this.ingredient = ingredient;
++        this.brewingTime = brewingTime;
+     }
+ 
+     @Override
+@@ -40,6 +42,14 @@ public class PotionMix implements Keyed {
+         return this.key;
+     }
+ 
++    /**
++     * Gets the brewing time for this potion mix
++     * @return the brewingTime
++     */
++    public int getBrewingTime() {
++        return brewingTime;
++    }
++
+     /**
+      * Gets the resulting itemstack after the brew has finished.
+      *
+diff --git a/src/main/java/org/bukkit/event/block/BrewingStartEvent.java b/src/main/java/org/bukkit/event/block/BrewingStartEvent.java
+index fe6573d8fca0aa8d8f37f8b476fc45adc786795f..09b657fa9a9c3142cffe43174078cdeecaad53cc 100644
+--- a/src/main/java/org/bukkit/event/block/BrewingStartEvent.java
++++ b/src/main/java/org/bukkit/event/block/BrewingStartEvent.java
+@@ -1,9 +1,11 @@
+ package org.bukkit.event.block;
+ 
++import io.papermc.paper.potion.PotionMix;
+ import org.bukkit.block.Block;
+ import org.bukkit.event.HandlerList;
+ import org.bukkit.inventory.ItemStack;
+ import org.jetbrains.annotations.NotNull;
++import org.jetbrains.annotations.Nullable;
+ 
+ /**
+  * Called when a brewing stand starts to brew.
+@@ -12,10 +14,20 @@ public class BrewingStartEvent extends InventoryBlockStartEvent {
+ 
+     // Paper - remove HandlerList
+     private int brewingTime;
++    private final PotionMix potionMix;
+ 
+-    public BrewingStartEvent(@NotNull final Block furnace, @NotNull ItemStack source, int brewingTime) {
++    public BrewingStartEvent(@NotNull final Block furnace, @NotNull ItemStack source, int brewingTime, @Nullable PotionMix potionMix) {
+         super(furnace, source);
+         this.brewingTime = brewingTime;
++        this.potionMix = potionMix;
++    }
++
++    /**
++     * Gets the potion mix associated with this event
++     * @return the PotionMix
++     */
++    public PotionMix getPotionMix() {
++        return potionMix;
+     }
+ 
+     /**
+diff --git a/src/main/java/org/bukkit/event/inventory/BrewEvent.java b/src/main/java/org/bukkit/event/inventory/BrewEvent.java
+index f37cc5dee0bf678444be12c4acc61182d3d72fe0..f489ffde3aadbf1e3cbbf64e5a8d276ffb97d5ed 100644
+--- a/src/main/java/org/bukkit/event/inventory/BrewEvent.java
++++ b/src/main/java/org/bukkit/event/inventory/BrewEvent.java
+@@ -1,6 +1,8 @@
+ package org.bukkit.event.inventory;
+ 
+ import java.util.List;
++
++import io.papermc.paper.potion.PotionMix;
+ import org.bukkit.block.Block;
+ import org.bukkit.event.Cancellable;
+ import org.bukkit.event.HandlerList;
+@@ -8,6 +10,7 @@ import org.bukkit.event.block.BlockEvent;
+ import org.bukkit.inventory.BrewerInventory;
+ import org.bukkit.inventory.ItemStack;
+ import org.jetbrains.annotations.NotNull;
++import org.jetbrains.annotations.Nullable;
+ 
+ /**
+  * Called when the brewing of the contents inside the Brewing Stand is
+@@ -18,13 +21,23 @@ public class BrewEvent extends BlockEvent implements Cancellable {
+     private BrewerInventory contents;
+     private final List<ItemStack> results;
+     private int fuelLevel;
++    private PotionMix potionMix;
+     private boolean cancelled;
+ 
+-    public BrewEvent(@NotNull Block brewer, @NotNull BrewerInventory contents, @NotNull List<ItemStack> results, int fuelLevel) {
++    public BrewEvent(@NotNull Block brewer, @NotNull BrewerInventory contents, @NotNull List<ItemStack> results, int fuelLevel, @Nullable PotionMix potionMix) {
+         super(brewer);
+         this.contents = contents;
+         this.results = results;
+         this.fuelLevel = fuelLevel;
++        this.potionMix = potionMix;
++    }
++
++    /**
++     * Gets the potion mix associated with this event
++     * @return the PotionMix
++     */
++    public PotionMix getPotionMix() {
++        return potionMix;
+     }
+ 
+     /**
+diff --git a/src/main/java/org/bukkit/potion/PotionBrewer.java b/src/main/java/org/bukkit/potion/PotionBrewer.java
+index 1598f34d306fb34ff7ffe7886b0d6e4abe734b6b..74a6e9c41748636cf055526c6f98e29213372607 100644
+--- a/src/main/java/org/bukkit/potion/PotionBrewer.java
++++ b/src/main/java/org/bukkit/potion/PotionBrewer.java
+@@ -1,6 +1,9 @@
+ package org.bukkit.potion;
+ 
+ import java.util.Collection;
++import java.util.List;
++
++import io.papermc.paper.potion.PotionMix;
+ import org.jetbrains.annotations.NotNull;
+ 
+ /**
+@@ -32,6 +35,12 @@ public interface PotionBrewer {
+     @NotNull
+     public Collection<PotionEffect> getEffectsFromDamage(int damage);
+ 
++    /**
++     * Returns a collection of all potion mixes. All vanilla potion mixes are also returned.
++     * @return The list of potion mixes
++     */
++    public List<PotionMix> getAllPotionMixes();
++
+     /**
+      * Returns a collection of {@link PotionEffect} that would be applied from
+      * a potion with the given type.

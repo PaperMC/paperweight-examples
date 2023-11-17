@@ -31,10 +31,10 @@ index 0000000000000000000000000000000000000000..bcbfb35f8118b1bea638872ed8e56907
 +}
 diff --git a/src/main/java/de/verdox/mccreativelab/tick/RandomTickExtension.java b/src/main/java/de/verdox/mccreativelab/tick/RandomTickExtension.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..313867039b12cdcba6d95fda0b97ff9598665825
+index 0000000000000000000000000000000000000000..e76233379eb23da74659a675e745092747cfbe4f
 --- /dev/null
 +++ b/src/main/java/de/verdox/mccreativelab/tick/RandomTickExtension.java
-@@ -0,0 +1,58 @@
+@@ -0,0 +1,59 @@
 +package de.verdox.mccreativelab.tick;
 +
 +
@@ -61,6 +61,7 @@ index 0000000000000000000000000000000000000000..313867039b12cdcba6d95fda0b97ff95
 +    public static RandomTickBehaviour SUGAR_CANE_BLOCK_BEHAVIOUR = new VanillaSugarCaneBlockBehaviour();
 +    public static RandomTickBehaviour BAMBOO_SAPLING_BLOCK_BEHAVIOUR = null;
 +    public static RandomTickBehaviour SAPLING_BLOCK_BEHAVIOUR = new VanillaSaplingBlockBehaviour();
++    public static RandomTickBehaviour FARM_BLOCK_BEHAVIOUR = new VanillaFarmBlockTickBehaviour();
 +
 +    public static boolean executeCustomRandomTickBehaviourIfPossible(RandomTickBehaviour randomTickBehaviour, Block block){
 +        if(randomTickBehaviour == null || NO_RANDOM_TICK_BEHAVIOUR.equals(randomTickBehaviour))
@@ -302,6 +303,111 @@ index 0000000000000000000000000000000000000000..5a2011e3b45fac439af3268e35272f60
 +
 +    protected boolean isSameCrop(Block block, Location relativePos) {
 +        return block.getWorld().getBlockState(relativePos).getType().equals(block.getType());
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/tick/impl/VanillaFarmBlockTickBehaviour.java b/src/main/java/de/verdox/mccreativelab/tick/impl/VanillaFarmBlockTickBehaviour.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..87a0a980e0898d78ba63524cf29eec338fc9eea4
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/tick/impl/VanillaFarmBlockTickBehaviour.java
+@@ -0,0 +1,99 @@
++package de.verdox.mccreativelab.tick.impl;
++
++import de.verdox.mccreativelab.tick.RandomTickBehaviour;
++import org.bukkit.*;
++import org.bukkit.block.Block;
++import org.bukkit.block.BlockState;
++import org.bukkit.block.data.BlockData;
++import org.bukkit.block.data.type.Farmland;
++import org.bukkit.event.block.BlockFadeEvent;
++import org.bukkit.event.block.MoistureChangeEvent;
++import org.bukkit.util.BlockVector;
++
++public class VanillaFarmBlockTickBehaviour implements RandomTickBehaviour {
++    private static int FARMLAND_WATER_RADIUS = 4;
++
++    @Override
++    public void randomTick(Block block) {
++        Farmland farmlandData = (Farmland) block.getBlockData();
++        int moisture = farmlandData.getMoisture();
++
++        if (isNearWater(block, FARMLAND_WATER_RADIUS) || block.getWorld()
++                                                              .isRainingAt(above(block).getLocation())) {
++            if (moisture >= 7)
++                return;
++            handleMoistureChangeEvent(block, 7);
++            return;
++        }
++
++        if (moisture > 0)
++            handleMoistureChangeEvent(block, moisture - 1);
++        else if (!shouldMaintainFarmland(block))
++            turnToDirt(block);
++    }
++
++    @Override
++    public boolean isRandomlyTicking(BlockData blockData) {
++        return true;
++    }
++
++    private static boolean shouldMaintainFarmland(Block block) {
++        return Tag.MAINTAINS_FARMLAND.isTagged(above(block).getType());
++    }
++
++    private static Block above(Block block) {
++        return block.getRelative(0, 1, 0);
++    }
++
++    private static boolean isNearWater(Block block, int horizontalRadius) {
++        int xOff = block.getX();
++        int yOff = block.getY();
++        int zOff = block.getZ();
++
++        for (int dz = -horizontalRadius; dz <= horizontalRadius; ++dz) {
++            int z = dz + zOff;
++            for (int dx = -horizontalRadius; dx <= horizontalRadius; ++dx) {
++                int x = xOff + dx;
++                for (int dy = 0; dy <= 1; ++dy) {
++                    int y = dy + yOff;
++                    Block nearBlock = block.getWorld().getBlockAt(x, y, z);
++                    if (nearBlock.getType().equals(Material.WATER))
++                        return true;
++                }
++            }
++        }
++
++        return false;
++    }
++
++    private static boolean handleMoistureChangeEvent(Block block, int newMoistureLevel) {
++        Farmland farmland = (Farmland) block.getBlockData();
++        if (newMoistureLevel == farmland.getMoisture() || newMoistureLevel > farmland.getMaximumMoisture())
++            return false;
++
++        farmland.setMoisture(newMoistureLevel);
++        var newState = block.getState();
++        newState.setBlockData(farmland);
++
++        MoistureChangeEvent event = new MoistureChangeEvent(block, newState);
++        Bukkit.getPluginManager().callEvent(event);
++
++        if (!event.isCancelled()) {
++            block.setBlockData(newState.getBlockData());
++        }
++        return !event.isCancelled();
++    }
++
++    private static void turnToDirt(Block block){
++        BlockState newState = block.getState();
++        newState.setType(Material.DIRT);
++
++        BlockFadeEvent event = new BlockFadeEvent(block, newState);
++        Bukkit.getPluginManager().callEvent(event);
++        if(event.isCancelled())
++            return;
++
++        block.setType(Material.DIRT, true);
++        block.getWorld().sendGameEvent(null, GameEvent.BLOCK_CHANGE, new BlockVector(block.getX(), block.getY(), block.getZ()));
 +    }
 +}
 diff --git a/src/main/java/de/verdox/mccreativelab/tick/impl/VanillaSaplingBlockBehaviour.java b/src/main/java/de/verdox/mccreativelab/tick/impl/VanillaSaplingBlockBehaviour.java

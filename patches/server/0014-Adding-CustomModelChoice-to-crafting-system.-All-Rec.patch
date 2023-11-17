@@ -1,0 +1,93 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <lukasjonsson@outlook.de>
+Date: Fri, 17 Nov 2023 20:36:42 +0100
+Subject: [PATCH] Adding CustomModelChoice to crafting system. All Recipes
+ compare for customModels by default
+
+
+diff --git a/src/main/java/net/minecraft/world/item/crafting/Ingredient.java b/src/main/java/net/minecraft/world/item/crafting/Ingredient.java
+index 06fe5b056d78d42cdf78437eeabe1786d596b7f8..c80c545689d4a08f54adea05898b05ca89e7d935 100644
+--- a/src/main/java/net/minecraft/world/item/crafting/Ingredient.java
++++ b/src/main/java/net/minecraft/world/item/crafting/Ingredient.java
+@@ -29,6 +29,7 @@ import net.minecraft.world.entity.player.StackedContents;
+ import net.minecraft.world.item.Item;
+ import net.minecraft.world.item.ItemStack;
+ import net.minecraft.world.level.ItemLike;
++import org.bukkit.craftbukkit.inventory.CraftItemStack;
+ 
+ public final class Ingredient implements Predicate<ItemStack> {
+ 
+@@ -39,6 +40,7 @@ public final class Ingredient implements Predicate<ItemStack> {
+     @Nullable
+     private IntList stackingIds;
+     public boolean exact; // CraftBukkit
++    public boolean isCustomModelChoice = true;
+     public static final Codec<Ingredient> CODEC = Ingredient.codec(true);
+     public static final Codec<Ingredient> CODEC_NONEMPTY = Ingredient.codec(false);
+ 
+@@ -84,6 +86,13 @@ public final class Ingredient implements Predicate<ItemStack> {
+ 
+                     continue;
+                 }
++                else if(this.isCustomModelChoice){
++                    var material = itemstack.getBukkitStack().getType();
++                    var customModelData = CraftItemStack.getCustomModelData(itemstack);
++                    if(itemstack1.getBukkitStack().getType().equals(material) && CraftItemStack.getCustomModelData(itemstack1) == customModelData)
++                        return true;
++                    continue;
++                }
+                 // CraftBukkit end
+                 if (itemstack1.is(itemstack.getItem())) {
+                     return true;
+diff --git a/src/main/java/org/bukkit/craftbukkit/inventory/CraftRecipe.java b/src/main/java/org/bukkit/craftbukkit/inventory/CraftRecipe.java
+index cdc15479e3040f2a63c801f167e42b9a979048d9..58409a38807da6451aeb35d1626a32c94b5db338 100644
+--- a/src/main/java/org/bukkit/craftbukkit/inventory/CraftRecipe.java
++++ b/src/main/java/org/bukkit/craftbukkit/inventory/CraftRecipe.java
+@@ -7,6 +7,8 @@ import java.util.List;
+ 
+ import de.verdox.mccreativelab.item.BasicItemFormat;
+ import de.verdox.mccreativelab.item.ItemFormatUtil;
++import de.verdox.mccreativelab.recipe.CustomItemData;
++import de.verdox.mccreativelab.recipe.CustomModelChoice;
+ import net.minecraft.world.item.crafting.Ingredient;
+ import org.bukkit.craftbukkit.util.CraftMagicNumbers;
+ import org.bukkit.inventory.ItemStack;
+@@ -38,6 +40,7 @@ public interface CraftRecipe extends Recipe {
+                                                                          .map(Ingredient.ItemValue::new)
+                 // MCCLab - end
+             );
++            stack.isCustomModelChoice = false; // isCustomModelChoice is true by default to prevent vanilla / datapack recipes from working with custom items.
+         } else if (bukkit instanceof RecipeChoice.ExactChoice) {
+             stack = new Ingredient(((RecipeChoice.ExactChoice) bukkit).getChoices().stream()
+                 // MCCLab - start
+@@ -47,6 +50,13 @@ public interface CraftRecipe extends Recipe {
+                 // MCCLab - end
+             );
+             stack.exact = true;
++            stack.isCustomModelChoice = false;
++        } else if (bukkit instanceof CustomModelChoice choice) {
++            stack = new Ingredient(choice.getChoices().stream()
++                                         .map(customItemData -> CraftItemStack.asNMSCopy(BasicItemFormat.applyItemFormatAndReturn(customItemData.createStack())))
++                                         .map(Ingredient.ItemValue::new)
++            );
++            stack.isCustomModelChoice = true;
+         } else {
+             throw new IllegalArgumentException("Unknown recipe stack instance " + bukkit);
+         }
+@@ -79,7 +89,15 @@ public interface CraftRecipe extends Recipe {
+             }
+ 
+             return new RecipeChoice.ExactChoice(choices);
+-        } else {
++        }
++        else if(list.isCustomModelChoice){
++            List<CustomItemData> choices = new ArrayList<>(list.itemStacks.length);
++            for (net.minecraft.world.item.ItemStack i : list.itemStacks) {
++                choices.add(CustomItemData.fromItemStack(CraftItemStack.asBukkitCopy(i)));
++            }
++            return new CustomModelChoice(choices);
++        }
++        else {
+ 
+             List<org.bukkit.Material> choices = new ArrayList<>(list.itemStacks.length);
+             for (net.minecraft.world.item.ItemStack i : list.itemStacks) {

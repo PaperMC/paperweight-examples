@@ -1,0 +1,45 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <lukasjonsson@outlook.de>
+Date: Fri, 17 Nov 2023 20:45:37 +0100
+Subject: [PATCH] RepairItemRecipe now also comparing CustomModelData
+
+
+diff --git a/src/main/java/net/minecraft/world/item/crafting/RepairItemRecipe.java b/src/main/java/net/minecraft/world/item/crafting/RepairItemRecipe.java
+index 15394aa4d7836ca140e52e061fde08ca5e7151b0..9107e15ac3a0280dbe8f5b74cc116947befba708 100644
+--- a/src/main/java/net/minecraft/world/item/crafting/RepairItemRecipe.java
++++ b/src/main/java/net/minecraft/world/item/crafting/RepairItemRecipe.java
+@@ -12,6 +12,7 @@ import net.minecraft.world.item.ItemStack;
+ import net.minecraft.world.item.enchantment.Enchantment;
+ import net.minecraft.world.item.enchantment.EnchantmentHelper;
+ import net.minecraft.world.level.Level;
++import org.bukkit.craftbukkit.inventory.CraftItemStack;
+ 
+ public class RepairItemRecipe extends CustomRecipe {
+     public RepairItemRecipe(CraftingBookCategory category) {
+@@ -31,6 +32,10 @@ public class RepairItemRecipe extends CustomRecipe {
+                     if (!itemStack.is(itemStack2.getItem()) || itemStack2.getCount() != 1 || itemStack.getCount() != 1 || !itemStack2.getItem().canBeDepleted()) {
+                         return false;
+                     }
++                    // MCCLab - start
++                    if(CraftItemStack.getCustomModelData(itemStack) != CraftItemStack.getCustomModelData(itemStack2))
++                        return false;
++                    // MCCLab - end
+                 }
+             }
+         }
+@@ -58,6 +63,15 @@ public class RepairItemRecipe extends CustomRecipe {
+         if (list.size() == 2) {
+             ItemStack itemStack3 = list.get(0);
+             ItemStack itemStack4 = list.get(1);
++
++            // MCCLab - start
++            var customModelChoice1 = CraftItemStack.getCustomModelData(itemStack3);
++            var customModelChoice2 = CraftItemStack.getCustomModelData(itemStack4);
++
++            if(customModelChoice1 != customModelChoice2)
++                return ItemStack.EMPTY;
++            // MCCLab - end
++
+             if (itemStack3.is(itemStack4.getItem()) && itemStack3.getCount() == 1 && itemStack4.getCount() == 1 && itemStack3.getItem().canBeDepleted()) {
+                 Item item = itemStack3.getItem();
+                 int j = item.getMaxDamage() - itemStack3.getDamageValue();

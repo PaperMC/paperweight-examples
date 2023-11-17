@@ -1,0 +1,38 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <lukasjonsson@outlook.de>
+Date: Fri, 17 Nov 2023 19:05:17 +0100
+Subject: [PATCH] Opening fuel burn durations to API
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/FuelBurnBehaviour.java b/src/main/java/de/verdox/mccreativelab/behaviour/FuelBurnBehaviour.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..ea73f2de1d35b49300c5b4cce3d8f4c4ebcdf783
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/behaviour/FuelBurnBehaviour.java
+@@ -0,0 +1,26 @@
++package de.verdox.mccreativelab.behaviour;
++
++import de.verdox.mccreativelab.CustomBehaviour;
++import org.bukkit.inventory.ItemStack;
++
++public interface FuelBurnBehaviour {
++    CustomBehaviour<FuelBurnBehaviour> FUEL_BURN_BEHAVIOUR = new CustomBehaviour<>("MCCLab - FuelBurnBehaviour");
++    /**
++     * Calculates the burn duration of a particular fuel {@link ItemStack} in a {@link org.bukkit.block.Furnace}
++     * @param fuel The Fuel ItemStack
++     * @return The calculated burn duration
++     */
++    int calculateFurnaceBurnDuration(ItemStack fuel);
++    /**
++     * Calculates the burn duration of a particular fuel {@link ItemStack} in a {@link org.bukkit.block.Smoker}
++     * @param fuel The Fuel ItemStack
++     * @return The calculated burn duration
++     */
++    int calculateSmokerBurnDuration(ItemStack fuel);
++    /**
++     * Calculates the burn duration of a particular fuel {@link ItemStack} in a {@link org.bukkit.block.BlastFurnace}
++     * @param fuel The Fuel ItemStack
++     * @return The calculated burn duration
++     */
++    int calculateBlastFurnaceDuration(ItemStack fuel);
++}
