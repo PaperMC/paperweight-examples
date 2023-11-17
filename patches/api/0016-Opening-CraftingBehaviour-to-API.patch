@@ -1,0 +1,39 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <lukasjonsson@outlook.de>
+Date: Sat, 18 Nov 2023 00:32:58 +0100
+Subject: [PATCH] Opening CraftingBehaviour to API
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/CraftingBehaviour.java b/src/main/java/de/verdox/mccreativelab/behaviour/CraftingBehaviour.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..e9be0dac2d285d121c59d70ba93e3be53e62e33f
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/behaviour/CraftingBehaviour.java
+@@ -0,0 +1,27 @@
++package de.verdox.mccreativelab.behaviour;
++
++import de.verdox.mccreativelab.CustomBehaviour;
++import org.bukkit.inventory.ItemStack;
++import org.bukkit.inventory.Recipe;
++import org.jetbrains.annotations.NotNull;
++import org.jetbrains.annotations.Nullable;
++
++public interface CraftingBehaviour {
++    CustomBehaviour<CraftingBehaviour> CRAFTING_BEHAVIOUR = new CustomBehaviour<>("MCCLab - CraftingBehaviour");
++    /**
++     * Is called for every item that was used to craft a particular recipe.
++     * @param recipe The Recipe involved
++     * @param stack The ItemStack that was consumed by the recipe
++     * @return The ItemStack that remains. Null if no item remains
++     */
++    @Nullable
++    ItemStack getRemainingItem(@NotNull Recipe recipe, @NotNull ItemStack stack);
++    /**
++     * Is called for every item that was used to craft a particular recipe.
++     * Returns if the provided ItemStack has remainingItems in the recipe
++     * @param recipe The Recipe involved
++     * @param stack The ItemStack that was consumed by the recipe
++     * @return True if the ItemStack has remaining items in the recipe
++     */
++    boolean hasRemainingItem(@NotNull Recipe recipe, @NotNull ItemStack stack);
++}

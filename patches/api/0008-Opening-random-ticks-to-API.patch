@@ -34,7 +34,7 @@ new file mode 100644
 index 0000000000000000000000000000000000000000..e76233379eb23da74659a675e745092747cfbe4f
 --- /dev/null
 +++ b/src/main/java/de/verdox/mccreativelab/tick/RandomTickExtension.java
-@@ -0,0 +1,59 @@
+@@ -0,0 +1,68 @@
 +package de.verdox.mccreativelab.tick;
 +
 +
@@ -89,8 +89,17 @@ index 0000000000000000000000000000000000000000..e76233379eb23da74659a675e7450927
 +    public static @NotNull List<CustomBlockTick> getCustomTicks(@NotNull Material material) {
 +        return customTicks.getOrDefault(material, new LinkedList<>());
 +    }
++    public static boolean executeCustomRandomTicks(Block block){
++        boolean allowVanillaLogic = true;
++        for (CustomBlockTick customTick : getCustomTicks(block.getType())) {
++            if(customTick.disableVanillaTickLogic())
++                allowVanillaLogic = false;
++            customTick.tick().accept(block.getState(false));
++        }
++        return allowVanillaLogic;
++    }
 +
-+    public record CustomBlockTick(@NotNull Plugin plugin, @NotNull Consumer<BlockState> tick) {
++    public record CustomBlockTick(@NotNull Plugin plugin, @NotNull Consumer<BlockState> tick, boolean disableVanillaTickLogic) {
 +
 +    }
 +}

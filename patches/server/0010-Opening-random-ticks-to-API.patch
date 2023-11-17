@@ -231,3 +231,29 @@ index e6a4a5898ffdcb2aa2bc01371a6d7dbc06d610ce..47a9a3407badf3b82795c5769e0d7c6d
          }
  
          public long getSeed(BlockPos pos) {
+
+diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
+index 17610196db7a1c6feb2cf74a02479a8691aa323f..447e38adc2089adee466a26f5cd7c53c56077754 100644
+--- a/src/main/java/net/minecraft/server/level/ServerLevel.java
++++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
+@@ -6,6 +6,7 @@ import com.google.common.collect.Lists;
+ import com.mojang.datafixers.DataFixer;
+ import com.mojang.datafixers.util.Pair;
+ import com.mojang.logging.LogUtils;
++import de.verdox.mccreativelab.tick.RandomTickExtension;
+ import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+ import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+ import it.unimi.dsi.fastutil.longs.LongSet;
+@@ -1041,6 +1042,12 @@ public class ServerLevel extends Level implements WorldGenLevel {
+                     BlockPos blockposition2 = blockposition.set(j + randomX, randomY, k + randomZ);
+                     BlockState iblockdata = com.destroystokyo.paper.util.maplist.IBlockDataList.getBlockDataFromRaw(raw);
+ 
++                    // MCCLab - start
++                    org.bukkit.block.Block bukkitBlock = this.getWorld().getBlockAt(blockposition2.getX(), blockposition2.getY(), blockposition2.getZ());
++                    if(!RandomTickExtension.executeCustomRandomTicks(bukkitBlock))
++                        continue;
++                    // MCCLab - end
++
+                     iblockdata.randomTick(this, blockposition2, this.randomTickRandom);
+                     // We drop the fluid tick since LAVA is ALREADY TICKED by the above method (See LiquidBlock).
+                     // TODO CHECK ON UPDATE (ping the Canadian)
