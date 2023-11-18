@@ -21,7 +21,7 @@ index a18aadbf7ae83713e1f2b21553185d8000bc7699..2f87b5af0d21ef7a2b84250db8986791
  
      protected int getBurnDuration(ItemStack fuel) {
 +        if(FuelBurnBehaviour.FUEL_BURN_BEHAVIOUR.isImplemented())
-+            return FuelBurnBehaviour.FUEL_BURN_BEHAVIOUR.getBehaviour().calculateBlastFurnaceDuration(CraftItemStack.asCraftMirror(fuel));
++            return FuelBurnBehaviour.FUEL_BURN_BEHAVIOUR.getBehaviour().calculateFurnaceBurnDuration(CraftItemStack.asCraftMirror(fuel));
          if (fuel.isEmpty()) {
              return 0;
          } else {
