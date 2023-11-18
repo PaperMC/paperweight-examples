@@ -1,8 +1,78 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: derverdox <lukasjonsson@outlook.de>
-Date: Sat, 15 Jul 2023 18:02:55 +0200
-Subject: [PATCH] Changes to Potion API
+Date: Sat, 18 Nov 2023 00:51:00 +0100
+Subject: [PATCH] Implementing PotionDataChoice for custom potions
 
+
+diff --git a/src/main/java/de/verdox/mccreativelab/recipe/PotionDataChoice.java b/src/main/java/de/verdox/mccreativelab/recipe/PotionDataChoice.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..3ba92c5c6024193a7993cc4c0f5d06d6007969b7
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/recipe/PotionDataChoice.java
+@@ -0,0 +1,63 @@
++package de.verdox.mccreativelab.recipe;
++
++import org.bukkit.Material;
++import org.bukkit.inventory.ItemStack;
++import org.bukkit.inventory.RecipeChoice;
++import org.bukkit.inventory.meta.PotionMeta;
++import org.bukkit.potion.PotionData;
++import org.jetbrains.annotations.NotNull;
++
++import java.util.Objects;
++
++public class PotionDataChoice implements RecipeChoice {
++    private final PotionData potionData;
++
++    public PotionDataChoice(PotionData potionData) {
++        Objects.requireNonNull(potionData);
++        this.potionData = potionData;
++    }
++
++    @Override
++    public @NotNull ItemStack getItemStack() {
++        var item = new ItemStack(Material.POTION);
++        item.editMeta(PotionMeta.class, potionMeta -> potionMeta.setBasePotionData(potionData));
++        return item;
++    }
++
++    @Override
++    public @NotNull RecipeChoice clone() {
++        return new PotionDataChoice(this.potionData);
++    }
++
++    @Override
++    public boolean test(@NotNull ItemStack stackToCheck) {
++
++        if (!stackToCheck.hasItemMeta() || !(stackToCheck.getItemMeta() instanceof PotionMeta potionMeta))
++            return false;
++        return potionMeta.getBasePotionData().equals(potionData);
++    }
++
++    @Override
++    public boolean equals(Object o) {
++        if (this == o) return true;
++        if (o == null || getClass() != o.getClass()) return false;
++        PotionDataChoice that = (PotionDataChoice) o;
++        return Objects.equals(potionData, that.potionData);
++    }
++
++    @Override
++    public int hashCode() {
++        return Objects.hash(potionData);
++    }
++
++    @Override
++    public String toString() {
++        return "PotionDataChoice{" +
++            "potionData=" + potionData +
++            '}';
++    }
++
++    public PotionData getPotionData() {
++        return potionData;
++    }
++}
 
 diff --git a/src/main/java/io/papermc/paper/potion/PotionMix.java b/src/main/java/io/papermc/paper/potion/PotionMix.java
 index cb6d93526b637946aec311bef103ad3096781113..031aabafbe12892153f0e487cd648b83bae11c39 100644
@@ -156,3 +226,4 @@ index 1598f34d306fb34ff7ffe7886b0d6e4abe734b6b..74a6e9c41748636cf055526c6f98e292
      /**
       * Returns a collection of {@link PotionEffect} that would be applied from
       * a potion with the given type.
+
