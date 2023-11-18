@@ -1,0 +1,526 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <lukasjonsson@outlook.de>
+Date: Sat, 18 Nov 2023 22:53:41 +0100
+Subject: [PATCH] Temp saved changes
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/BoneMealBehaviour.java b/src/main/java/de/verdox/mccreativelab/behaviour/BoneMealBehaviour.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..336627905ad46f4b536e95d38fb3ae4724d8e2d2
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/behaviour/BoneMealBehaviour.java
+@@ -0,0 +1,27 @@
++package de.verdox.mccreativelab.behaviour;
++
++import de.verdox.mccreativelab.MultiCustomBehaviour;
++import de.verdox.mccreativelab.random.VanillaRandomSource;
++import org.bukkit.Material;
++import org.bukkit.block.Block;
++
++public interface BoneMealBehaviour {
++    MultiCustomBehaviour<Material, BoneMealBehaviour> BONE_MEAL_BEHAVIOUR = new MultiCustomBehaviour<>("MCCLab - BoneMealBehaviour");
++    /**
++     * This method is called every time the server software checks whether a particular block is a valid bonemeal target.
++     * @param block The Block
++     * @return true if the block is a valid bonemeal target
++     */
++    boolean isValidBonemealTarget(Block block);
++    /**
++     * This method is called every time the server software checks whether a particular bonemeal action is successfully.
++     * @param block The Block
++     * @return true if the block is a valid bonemeal target
++     */
++    boolean isBonemealSuccess(VanillaRandomSource vanillaRandomSource, Block block);
++    /**
++     * This method is called every time the server software performs a bonemeal action on a block.
++     * @param block The Block
++     */
++    void performBonemeal(VanillaRandomSource vanillaRandomSource, Block block);
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/RandomTickBehaviour.java b/src/main/java/de/verdox/mccreativelab/behaviour/RandomTickBehaviour.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..56f3b9957d8e768e2b702f7a8db69d54696b11bf
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/behaviour/RandomTickBehaviour.java
+@@ -0,0 +1,23 @@
++package de.verdox.mccreativelab.behaviour;
++
++import de.verdox.mccreativelab.MultiCustomBehaviour;
++import de.verdox.mccreativelab.random.VanillaRandomSource;
++import org.bukkit.Material;
++import org.bukkit.block.Block;
++import org.bukkit.block.data.BlockData;
++
++public interface RandomTickBehaviour {
++    MultiCustomBehaviour<Material, RandomTickBehaviour> RANDOM_TICK_BEHAVIOUR = new MultiCustomBehaviour<>("MCCLab - RandomTickBehaviour");
++    /**
++     * This method is called every time the server software checks whether a particular blockdata is randomly ticking.
++     * @param blockData The Blockdata
++     * @return true if the block is a valid bonemeal target
++     */
++    boolean isRandomlyTicking(BlockData blockData);
++    /**
++     * This method is called every time the server software tries to randomly tick a block.
++     * @param block The randomly ticked block
++     * @param vanillaRandomSource The vanilla random source
++     */
++    void randomTick(Block block, VanillaRandomSource vanillaRandomSource);
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/randomtick/VanillaBambooSaplingBlock.java b/src/main/java/de/verdox/mccreativelab/behaviour/randomtick/VanillaBambooSaplingBlock.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..85860c91897a8c37e763c15a3b24ff0fc4806659
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/behaviour/randomtick/VanillaBambooSaplingBlock.java
+@@ -0,0 +1,18 @@
++package de.verdox.mccreativelab.behaviour.randomtick;
++
++import de.verdox.mccreativelab.behaviour.RandomTickBehaviour;
++import de.verdox.mccreativelab.random.VanillaRandomSource;
++import org.bukkit.block.Block;
++import org.bukkit.block.data.BlockData;
++
++public class VanillaBambooSaplingBlock implements RandomTickBehaviour {
++    @Override
++    public boolean isRandomlyTicking(BlockData blockData) {
++        return false;
++    }
++
++    @Override
++    public void randomTick(Block block, VanillaRandomSource vanillaRandomSource) {
++
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/randomtick/VanillaCropBlockRandomTick.java b/src/main/java/de/verdox/mccreativelab/behaviour/randomtick/VanillaCropBlockRandomTick.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..73a11f2212bbb1a98d76840fca2bdb38135989a2
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/behaviour/randomtick/VanillaCropBlockRandomTick.java
+@@ -0,0 +1,160 @@
++package de.verdox.mccreativelab.behaviour.randomtick;
++
++import de.verdox.mccreativelab.behaviour.RandomTickBehaviour;
++import de.verdox.mccreativelab.random.VanillaRandomSource;
++import org.bukkit.Bukkit;
++import org.bukkit.Location;
++import org.bukkit.Material;
++import org.bukkit.block.Block;
++import org.bukkit.block.BlockFace;
++import org.bukkit.block.BlockState;
++import org.bukkit.block.data.Ageable;
++import org.bukkit.block.data.BlockData;
++import org.bukkit.block.data.type.Farmland;
++import org.bukkit.event.block.BlockGrowEvent;
++
++import java.util.concurrent.ThreadLocalRandom;
++
++public class VanillaCropBlockRandomTick implements RandomTickBehaviour {
++    @Override
++    public void randomTick(Block block, VanillaRandomSource vanillaRandomSource) {
++        var lightLevel = block.getLightLevel();
++        if (lightLevel < 9)
++            return;
++
++        Ageable ageable = (Ageable) block.getBlockData();
++        var age = ageable.getAge();
++
++        if (age < ageable.getMaximumAge()) {
++            float growthSpeed = calculateCropGrowthSpeed(block);
++
++            int modifier;
++            if (block.getType().equals(Material.BEETROOT))
++                modifier = getAndValidateGrowth("Beetroot");
++            else if (block.getType().equals(Material.CARROT))
++                modifier = getAndValidateGrowth("Carrot");
++            else if (block.getType().equals(Material.POTATO))
++                modifier = getAndValidateGrowth("Potato");
++            else if (block.getType().equals(Material.TORCHFLOWER_CROP))
++                modifier = getAndValidateGrowth("TorchFlower");
++            else
++                modifier = getAndValidateGrowth("Wheat");
++
++            var randomNumber = drawRandomNumber();
++
++            if(canGrow(block, growthSpeed, modifier, randomNumber)){
++                ageUpAndCallBlockGrowEvent(block, ageable);
++            }
++        }
++    }
++
++    protected void ageUpAndCallBlockGrowEvent(Block block, Ageable ageable) {
++        var stateSnapshot = block.getState();
++        ageable.setAge(Math.min(ageable.getMaximumAge(), ageable.getAge() + 1));
++        stateSnapshot.setBlockData(ageable);
++        handleBlockGrowEvent(block, stateSnapshot);
++    }
++
++    protected boolean handleBlockGrowEvent(Block block, BlockState newBlockState){
++        BlockGrowEvent event = new BlockGrowEvent(block, newBlockState);
++        Bukkit.getPluginManager().callEvent(event);
++
++        if (!event.isCancelled()) {
++            block.setBlockData(newBlockState.getBlockData());
++        }
++        return !event.isCancelled();
++    }
++
++    protected boolean handleBlockGrowEvent(Block block, BlockData blockData){
++        var blockState = block.getState(true);
++        blockState.setBlockData(blockData);
++        return handleBlockGrowEvent(block, blockState);
++    }
++
++    protected float drawRandomNumber(){
++        return ThreadLocalRandom.current().nextFloat();
++    }
++
++    @Override
++    public boolean isRandomlyTicking(BlockData blockData) {
++        if(!(blockData instanceof Ageable ageable))
++            return false;
++        return ageable.getAge() < ageable.getMaximumAge();
++    }
++
++    protected boolean canGrow(Block block, float growthSpeed, float spigotConfigModifier, float minecraftRandomNumber){
++        return minecraftRandomNumber < (spigotConfigModifier / (100.0f * (Math.floor((25.0F / growthSpeed) + 1))));
++    }
++
++    protected float calculateCropGrowthSpeed(Block block) {
++        float growthSpeed = 1.0F;
++        var pos = block.getLocation();
++        var world = block.getWorld();
++        var farmLandPos = pos.getBlock().getRelative(BlockFace.DOWN).getLocation();
++
++        for (int i = -1; i <= 1; ++i) {
++            for (int j = -1; j <= 1; ++j) {
++                float tempGrowthSpeedValueThisBlock = 0.0F;
++                var blockState = world.getBlockState(farmLandPos.clone().add(i, 0, j));
++
++                if (blockState.getType().equals(Material.FARMLAND)) {
++                    var farmLand = ((Farmland) blockState.getBlockData());
++                    tempGrowthSpeedValueThisBlock = calculateGrowthSpeedValueBasedOnFarmland(farmLand);
++                }
++
++                if (i != 0 || j != 0)
++                    tempGrowthSpeedValueThisBlock /= 4.0F;
++
++
++                growthSpeed += tempGrowthSpeedValueThisBlock;
++            }
++        }
++
++        var northBlockPos = getRelative(pos, BlockFace.NORTH);
++        var southBlockPos = getRelative(pos, BlockFace.SOUTH);
++        var westBlockPos = getRelative(pos, BlockFace.WEST);
++        var eastBlockPos = getRelative(pos, BlockFace.EAST);
++        boolean westOrEastSameCrop = isSameCrop(block, westBlockPos) || isSameCrop(block, eastBlockPos);
++        boolean northOrWestSameCrop = isSameCrop(block, northBlockPos) || isSameCrop(block, southBlockPos);
++
++        if (westOrEastSameCrop && northOrWestSameCrop)
++            growthSpeed /= 2.0F;
++        else {
++            boolean sameCropDiagonal =
++                isSameCrop(block, getRelative(westBlockPos, BlockFace.NORTH))
++                    || isSameCrop(block, getRelative(eastBlockPos, BlockFace.NORTH))
++                    || isSameCrop(block, getRelative(eastBlockPos, BlockFace.SOUTH))
++                    || isSameCrop(block, getRelative(westBlockPos, BlockFace.SOUTH));
++
++            if (sameCropDiagonal)
++                growthSpeed /= 2.0F;
++        }
++
++        return growthSpeed;
++    }
++
++    protected float calculateGrowthSpeedValueBasedOnFarmland(Farmland farmLand) {
++        float tempGrowthSpeedValueThisBlock;
++        tempGrowthSpeedValueThisBlock = 1.0F;
++        if (farmLand.getMoisture() > 0) {
++            tempGrowthSpeedValueThisBlock = 3.0F;
++        }
++        return tempGrowthSpeedValueThisBlock;
++    }
++
++    protected final Location getRelative(Location location, BlockFace face) {
++        return location.getBlock().getRelative(face).getLocation();
++    }
++
++    protected final int getAndValidateGrowth(String crop) {
++        var config = Bukkit.spigot().getSpigotConfig();
++        int modifier = config.getInt("growth." + crop.toLowerCase(java.util.Locale.ENGLISH) + "-modifier", 100);
++        if (modifier == 0)
++            modifier = 100;
++        return modifier;
++    }
++
++    protected boolean isSameCrop(Block block, Location relativePos) {
++        return block.getWorld().getBlockState(relativePos).getType().equals(block.getType());
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/randomtick/VanillaFarmBlockTickBehaviour.java b/src/main/java/de/verdox/mccreativelab/behaviour/randomtick/VanillaFarmBlockTickBehaviour.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..3e02cb17beeb341d99ba79ed61f71272fc41cc28
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/behaviour/randomtick/VanillaFarmBlockTickBehaviour.java
+@@ -0,0 +1,103 @@
++package de.verdox.mccreativelab.behaviour.randomtick;
++
++import de.verdox.mccreativelab.behaviour.RandomTickBehaviour;
++import de.verdox.mccreativelab.random.VanillaRandomSource;
++import org.bukkit.Bukkit;
++import org.bukkit.GameEvent;
++import org.bukkit.Material;
++import org.bukkit.Tag;
++import org.bukkit.block.Block;
++import org.bukkit.block.BlockState;
++import org.bukkit.block.data.BlockData;
++import org.bukkit.block.data.type.Farmland;
++import org.bukkit.event.block.BlockFadeEvent;
++import org.bukkit.event.block.MoistureChangeEvent;
++import org.bukkit.util.BlockVector;
++
++public class VanillaFarmBlockTickBehaviour implements RandomTickBehaviour {
++    private static int FARMLAND_WATER_RADIUS = 4;
++
++    @Override
++    public void randomTick(Block block, VanillaRandomSource vanillaRandomSource) {
++        Farmland farmlandData = (Farmland) block.getBlockData();
++        int moisture = farmlandData.getMoisture();
++
++        if (isNearWater(block, FARMLAND_WATER_RADIUS) || block.getWorld()
++                                                              .isRainingAt(above(block).getLocation())) {
++            if (moisture >= 7)
++                return;
++            handleMoistureChangeEvent(block, 7);
++            return;
++        }
++
++        if (moisture > 0)
++            handleMoistureChangeEvent(block, moisture - 1);
++        else if (!shouldMaintainFarmland(block))
++            turnToDirt(block);
++    }
++
++    @Override
++    public boolean isRandomlyTicking(BlockData blockData) {
++        return true;
++    }
++
++    private static boolean shouldMaintainFarmland(Block block) {
++        return Tag.MAINTAINS_FARMLAND.isTagged(above(block).getType());
++    }
++
++    private static Block above(Block block) {
++        return block.getRelative(0, 1, 0);
++    }
++
++    private static boolean isNearWater(Block block, int horizontalRadius) {
++        int xOff = block.getX();
++        int yOff = block.getY();
++        int zOff = block.getZ();
++
++        for (int dz = -horizontalRadius; dz <= horizontalRadius; ++dz) {
++            int z = dz + zOff;
++            for (int dx = -horizontalRadius; dx <= horizontalRadius; ++dx) {
++                int x = xOff + dx;
++                for (int dy = 0; dy <= 1; ++dy) {
++                    int y = dy + yOff;
++                    Block nearBlock = block.getWorld().getBlockAt(x, y, z);
++                    if (nearBlock.getType().equals(Material.WATER))
++                        return true;
++                }
++            }
++        }
++
++        return false;
++    }
++
++    private static boolean handleMoistureChangeEvent(Block block, int newMoistureLevel) {
++        Farmland farmland = (Farmland) block.getBlockData();
++        if (newMoistureLevel == farmland.getMoisture() || newMoistureLevel > farmland.getMaximumMoisture())
++            return false;
++
++        farmland.setMoisture(newMoistureLevel);
++        var newState = block.getState();
++        newState.setBlockData(farmland);
++
++        MoistureChangeEvent event = new MoistureChangeEvent(block, newState);
++        Bukkit.getPluginManager().callEvent(event);
++
++        if (!event.isCancelled()) {
++            block.setBlockData(newState.getBlockData());
++        }
++        return !event.isCancelled();
++    }
++
++    private static void turnToDirt(Block block){
++        BlockState newState = block.getState();
++        newState.setType(Material.DIRT);
++
++        BlockFadeEvent event = new BlockFadeEvent(block, newState);
++        Bukkit.getPluginManager().callEvent(event);
++        if(event.isCancelled())
++            return;
++
++        block.setType(Material.DIRT, true);
++        block.getWorld().sendGameEvent(null, GameEvent.BLOCK_CHANGE, new BlockVector(block.getX(), block.getY(), block.getZ()));
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/randomtick/VanillaSaplingBlockBehaviour.java b/src/main/java/de/verdox/mccreativelab/behaviour/randomtick/VanillaSaplingBlockBehaviour.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..9c9175bf3fdbd9893c29ecfab5ea31e2f247f1fb
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/behaviour/randomtick/VanillaSaplingBlockBehaviour.java
+@@ -0,0 +1,28 @@
++package de.verdox.mccreativelab.behaviour.randomtick;
++
++import de.verdox.mccreativelab.random.VanillaRandomSource;
++import org.bukkit.block.Block;
++import org.bukkit.block.data.BlockData;
++import org.bukkit.block.data.type.Sapling;
++
++public class VanillaSaplingBlockBehaviour extends VanillaCropBlockRandomTick {
++    @Override
++    public void randomTick(Block block, VanillaRandomSource vanillaRandomSource) {
++        if(block.getLightLevel() >= 9 && drawRandomNumber() < (getAndValidateGrowth("Sapling") / (100.0f * 7))){
++            var sapling = (Sapling) block.getBlockData();
++            var stage = sapling.getStage();
++            if(stage == 0){
++                sapling.setStage(1);
++                handleBlockGrowEvent(block, sapling);
++            }
++            else {
++                block.getWorld().growTreeIfSapling(block.getLocation());
++            }
++        }
++    }
++
++    @Override
++    public boolean isRandomlyTicking(BlockData blockData) {
++        return true;
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/randomtick/VanillaStemBlockBehaviour.java b/src/main/java/de/verdox/mccreativelab/behaviour/randomtick/VanillaStemBlockBehaviour.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..448eecfb9cbfa8db18d20a1333705f19e345c018
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/behaviour/randomtick/VanillaStemBlockBehaviour.java
+@@ -0,0 +1,71 @@
++package de.verdox.mccreativelab.behaviour.randomtick;
++
++import de.verdox.mccreativelab.random.VanillaRandomSource;
++import org.bukkit.Bukkit;
++import org.bukkit.Material;
++import org.bukkit.block.Block;
++import org.bukkit.block.BlockFace;
++import org.bukkit.block.data.Ageable;
++import org.bukkit.block.data.BlockData;
++import org.bukkit.block.data.Directional;
++
++import java.util.concurrent.ThreadLocalRandom;
++
++public class VanillaStemBlockBehaviour extends VanillaCropBlockRandomTick {
++    public static BlockFace[] HORIZONTAL_PLANE = new BlockFace[]{BlockFace.NORTH, BlockFace.SOUTH, BlockFace.EAST, BlockFace.WEST};
++
++    @Override
++    public void randomTick(Block block, VanillaRandomSource vanillaRandomSource) {
++        var lightLevel = block.getLightLevel();
++        if (lightLevel < 9)
++            return;
++
++        float growthSpeed = calculateCropGrowthSpeed(block);
++        var randomNumber = drawRandomNumber();
++
++        int modifier;
++        Material fruit;
++        Material attachedStem;
++        if (block.getType().equals(Material.PUMPKIN_STEM)) {
++            modifier = getAndValidateGrowth("Pumpkin");
++            fruit = Material.PUMPKIN;
++            attachedStem = Material.ATTACHED_PUMPKIN_STEM;
++        }
++        else {
++            modifier = getAndValidateGrowth("Melon");
++            fruit = Material.MELON;
++            attachedStem = Material.ATTACHED_MELON_STEM;
++        }
++
++        if (randomNumber >= (modifier) / (100.0f * (Math.floor((25.0F / growthSpeed) + 1))))
++            return;
++
++        var ageable = (Ageable) block.getBlockData();
++        var age = ageable.getAge();
++        var maxAge = ageable.getMaximumAge();
++
++        if (age < maxAge) {
++            ageUpAndCallBlockGrowEvent(block, ageable);
++            return;
++        }
++        var randomBlockFace = HORIZONTAL_PLANE[ThreadLocalRandom.current().nextInt(HORIZONTAL_PLANE.length)];
++        var relativeBlockPos = getRelative(block.getLocation(), randomBlockFace);
++        var relativeBlock = relativeBlockPos.getBlock();
++        var belowRelativPos = relativeBlock.getRelative(0, -1, 0);
++
++        if (belowRelativPos.getType().isAir() && (relativeBlock.getType().equals(Material.FARMLAND) || relativeBlock
++            .getType().equals(Material.DIRT))) {
++
++            if(!handleBlockGrowEvent(relativeBlock, Bukkit.createBlockData(fruit)))
++                return;
++
++            var stemBlockData = Bukkit.createBlockData(attachedStem, blockData -> ((Directional) blockData).setFacing(randomBlockFace));
++            block.setBlockData(stemBlockData, true);
++        }
++    }
++
++    @Override
++    public boolean isRandomlyTicking(BlockData blockData) {
++        return true;
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/randomtick/VanillaSugarCaneBlockBehaviour.java b/src/main/java/de/verdox/mccreativelab/behaviour/randomtick/VanillaSugarCaneBlockBehaviour.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..a7615978914b2d9f306cebd54207a06c5b85a7f6
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/behaviour/randomtick/VanillaSugarCaneBlockBehaviour.java
+@@ -0,0 +1,42 @@
++package de.verdox.mccreativelab.behaviour.randomtick;
++
++import de.verdox.mccreativelab.random.VanillaRandomSource;
++import org.bukkit.Bukkit;
++import org.bukkit.Material;
++import org.bukkit.block.Block;
++import org.bukkit.block.data.Ageable;
++import org.bukkit.block.data.BlockData;
++
++public class VanillaSugarCaneBlockBehaviour extends VanillaCropBlockRandomTick {
++    @Override
++    public void randomTick(Block block, VanillaRandomSource vanillaRandomSource) {
++        if (!block.getRelative(0, 1, 0).getType().isAir())
++            return;
++        var heightCounter = 0;
++        for(heightCounter = 1; block.getRelative(0, heightCounter,0).getType().equals(Material.SUGAR_CANE); heightCounter++){
++            ;
++        }
++        var modifier = getAndValidateGrowth("Cane");
++        var ageable = (Ageable) block.getBlockData();
++        var age = ageable.getAge();
++        var maxAge = ageable.getMaximumAge();
++
++        if(heightCounter < 3){
++
++            if(age >= 15 || (modifier != 100 && drawRandomNumber() < (modifier / (100f * 16)))){
++                handleBlockGrowEvent(block.getRelative(0,1,0), Bukkit.createBlockData(Material.SUGAR_CANE));
++                ageable.setAge(0);
++                block.setBlockData(ageable);
++            }
++            else if(modifier == 100 || drawRandomNumber() < (modifier / (100.0f * 16))){
++                ageable.setAge(Math.min(maxAge, ageable.getAge() + 1));
++                block.setBlockData(ageable);
++            }
++        }
++    }
++
++    @Override
++    public boolean isRandomlyTicking(BlockData blockData) {
++        return true;
++    }
++}

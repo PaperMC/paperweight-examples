@@ -1,0 +1,258 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <lukasjonsson@outlook.de>
+Date: Thu, 16 Nov 2023 00:47:01 +0100
+Subject: [PATCH] Opening random ticks to API
+
+
+diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
+index 17610196db7a1c6feb2cf74a02479a8691aa323f..447e38adc2089adee466a26f5cd7c53c56077754 100644
+--- a/src/main/java/net/minecraft/server/level/ServerLevel.java
++++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
+@@ -6,6 +6,7 @@ import com.google.common.collect.Lists;
+ import com.mojang.datafixers.DataFixer;
+ import com.mojang.datafixers.util.Pair;
+ import com.mojang.logging.LogUtils;
++import de.verdox.mccreativelab.tick.RandomTickExtension;
+ import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+ import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+ import it.unimi.dsi.fastutil.longs.LongSet;
+@@ -1041,6 +1042,12 @@ public class ServerLevel extends Level implements WorldGenLevel {
+                     BlockPos blockposition2 = blockposition.set(j + randomX, randomY, k + randomZ);
+                     BlockState iblockdata = com.destroystokyo.paper.util.maplist.IBlockDataList.getBlockDataFromRaw(raw);
+ 
++                    // MCCLab - start
++                    org.bukkit.block.Block bukkitBlock = this.getWorld().getBlockAt(blockposition2.getX(), blockposition2.getY(), blockposition2.getZ());
++                    if(!RandomTickExtension.executeCustomRandomTicks(bukkitBlock))
++                        continue;
++                    // MCCLab - end
++
+                     iblockdata.randomTick(this, blockposition2, this.randomTickRandom);
+                     // We drop the fluid tick since LAVA is ALREADY TICKED by the above method (See LiquidBlock).
+                     // TODO CHECK ON UPDATE (ping the Canadian)
+diff --git a/src/main/java/net/minecraft/world/level/block/BambooSaplingBlock.java b/src/main/java/net/minecraft/world/level/block/BambooSaplingBlock.java
+index fd0143944e4fecaf6f1ffa4561702178431575e9..3969b5c04f498c6c8283a21017b7f3d2406a49b1 100644
+--- a/src/main/java/net/minecraft/world/level/block/BambooSaplingBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/BambooSaplingBlock.java
+@@ -1,5 +1,6 @@
+ package net.minecraft.world.level.block;
+ 
++import de.verdox.mccreativelab.tick.RandomTickExtension;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+ import net.minecraft.server.level.ServerLevel;
+@@ -38,10 +39,18 @@ public class BambooSaplingBlock extends Block implements BonemealableBlock {
+ 
+     @Override
+     public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
++        if (RandomTickExtension.executeCustomRandomTickBehaviourIfPossible(RandomTickExtension.BAMBOO_SAPLING_BLOCK_BEHAVIOUR, toBukkitBlock(world, pos)))
++            return;
+         if (random.nextFloat() < (world.spigotConfig.bambooModifier / (100.0f * 3)) && world.isEmptyBlock(pos.above()) && world.getRawBrightness(pos.above(), 0) >= 9) { // Spigot - SPIGOT-7159: Better modifier resolution
+             this.growBamboo(world, pos);
+         }
++    }
+ 
++    @Override
++    public boolean isRandomlyTicking(BlockState state) {
++        if (RandomTickExtension.BAMBOO_SAPLING_BLOCK_BEHAVIOUR != null)
++            return RandomTickExtension.isRandomlyTicking(RandomTickExtension.BAMBOO_SAPLING_BLOCK_BEHAVIOUR, state.createCraftBlockData());
++        return super.isRandomlyTicking(state);
+     }
+ 
+     @Override
+diff --git a/src/main/java/net/minecraft/world/level/block/Block.java b/src/main/java/net/minecraft/world/level/block/Block.java
+index d4cbff18adb62073a1dceb189043789620af6877..0493214d429da67947ee5225b5e33fb806fb7427 100644
+--- a/src/main/java/net/minecraft/world/level/block/Block.java
++++ b/src/main/java/net/minecraft/world/level/block/Block.java
+@@ -64,6 +64,10 @@ import org.slf4j.Logger;
+ 
+ public class Block extends BlockBehaviour implements ItemLike {
+ 
++    protected org.bukkit.block.Block toBukkitBlock(ServerLevel world, BlockPos pos){
++        return world.getWorld().getBlockAt(pos.getX(), pos.getY(), pos.getZ());
++    }
++
+     private static final Logger LOGGER = LogUtils.getLogger();
+     private final Holder.Reference<Block> builtInRegistryHolder;
+     public static final IdMapper<BlockState> BLOCK_STATE_REGISTRY = new IdMapper<>();
+diff --git a/src/main/java/net/minecraft/world/level/block/CropBlock.java b/src/main/java/net/minecraft/world/level/block/CropBlock.java
+index 6365ddea0c23bc5d4009d98915f2b39aed2a0328..a65b1b29c6f84d5518442572dab0732bb559e788 100644
+--- a/src/main/java/net/minecraft/world/level/block/CropBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/CropBlock.java
+@@ -1,5 +1,6 @@
+ package net.minecraft.world.level.block;
+ 
++import de.verdox.mccreativelab.tick.RandomTickExtension;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.util.Mth;
+@@ -65,11 +66,16 @@ public class CropBlock extends BushBlock implements BonemealableBlock {
+ 
+     @Override
+     public boolean isRandomlyTicking(BlockState state) {
+-        return !this.isMaxAge(state);
++        if (RandomTickExtension.CROP_BLOCK_BEHAVIOUR != null)
++            return RandomTickExtension.isRandomlyTicking(RandomTickExtension.CROP_BLOCK_BEHAVIOUR, state.createCraftBlockData());
++        else
++            return !this.isMaxAge(state);
+     }
+ 
+     @Override
+     public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
++        if(RandomTickExtension.executeCustomRandomTickBehaviourIfPossible(RandomTickExtension.CROP_BLOCK_BEHAVIOUR, toBukkitBlock(world, pos)))
++            return;
+         if (world.getRawBrightness(pos, 0) >= 9) {
+             int i = this.getAge(state);
+ 
+diff --git a/src/main/java/net/minecraft/world/level/block/FarmBlock.java b/src/main/java/net/minecraft/world/level/block/FarmBlock.java
+index 5946f06f63b5694034bd027984a4925b0831d439..49ce3d74ef277a6f832e82a3c4084af258c77b33 100644
+--- a/src/main/java/net/minecraft/world/level/block/FarmBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/FarmBlock.java
+@@ -2,6 +2,8 @@ package net.minecraft.world.level.block;
+ 
+ import java.util.Iterator;
+ import javax.annotation.Nullable;
++
++import de.verdox.mccreativelab.tick.RandomTickExtension;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+ import net.minecraft.server.level.ServerLevel;
+@@ -82,8 +84,17 @@ public class FarmBlock extends Block {
+ 
+     }
+ 
++    @Override
++    public boolean isRandomlyTicking(BlockState state) {
++        if (RandomTickExtension.FARM_BLOCK_BEHAVIOUR != null)
++            return RandomTickExtension.isRandomlyTicking(RandomTickExtension.FARM_BLOCK_BEHAVIOUR, state.createCraftBlockData());
++        return super.isRandomlyTicking(state);
++    }
++
+     @Override
+     public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
++        if(RandomTickExtension.executeCustomRandomTickBehaviourIfPossible(RandomTickExtension.FARM_BLOCK_BEHAVIOUR, toBukkitBlock(world, pos)))
++            return;
+         int i = (Integer) state.getValue(FarmBlock.MOISTURE);
+ 
+         if (!FarmBlock.isNearWater(world, pos) && !world.isRainingAt(pos.above())) {
+diff --git a/src/main/java/net/minecraft/world/level/block/SaplingBlock.java b/src/main/java/net/minecraft/world/level/block/SaplingBlock.java
+index 53ac4e618fec3fe384d8a106c521f3eace0b5b35..3a7f9da8c2236def1d7a18cb6d526426cdf87677 100644
+--- a/src/main/java/net/minecraft/world/level/block/SaplingBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/SaplingBlock.java
+@@ -1,5 +1,6 @@
+ package net.minecraft.world.level.block;
+ 
++import de.verdox.mccreativelab.tick.RandomTickExtension;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.util.RandomSource;
+@@ -42,12 +43,21 @@ public class SaplingBlock extends BushBlock implements BonemealableBlock {
+ 
+     @Override
+     public void randomTick(net.minecraft.world.level.block.state.BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
++        if(RandomTickExtension.executeCustomRandomTickBehaviourIfPossible(RandomTickExtension.SAPLING_BLOCK_BEHAVIOUR, toBukkitBlock(world, pos)))
++            return;
+         if (world.getMaxLocalRawBrightness(pos.above()) >= 9 && random.nextFloat() < (world.spigotConfig.saplingModifier / (100.0f * 7))) { // Spigot - SPIGOT-7159: Better modifier resolution
+             this.advanceTree(world, pos, state, random);
+         }
+ 
+     }
+ 
++    @Override
++    public boolean isRandomlyTicking(net.minecraft.world.level.block.state.BlockState state) {
++        if (RandomTickExtension.SAPLING_BLOCK_BEHAVIOUR != null)
++            return RandomTickExtension.isRandomlyTicking(RandomTickExtension.SAPLING_BLOCK_BEHAVIOUR, state.createCraftBlockData());
++        return super.isRandomlyTicking(state);
++    }
++
+     public void advanceTree(ServerLevel world, BlockPos pos, net.minecraft.world.level.block.state.BlockState state, RandomSource random) {
+         if ((Integer) state.getValue(SaplingBlock.STAGE) == 0) {
+             world.setBlock(pos, (net.minecraft.world.level.block.state.BlockState) state.cycle(SaplingBlock.STAGE), 4);
+diff --git a/src/main/java/net/minecraft/world/level/block/StemBlock.java b/src/main/java/net/minecraft/world/level/block/StemBlock.java
+index 0d9be3b28ba4957c3f4da5455283fca903836c91..e4a4e37427df44be5133d351e2c9b18193f92b05 100644
+--- a/src/main/java/net/minecraft/world/level/block/StemBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/StemBlock.java
+@@ -1,6 +1,8 @@
+ package net.minecraft.world.level.block;
+ 
+ import java.util.function.Supplier;
++
++import de.verdox.mccreativelab.tick.RandomTickExtension;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+ import net.minecraft.server.level.ServerLevel;
+@@ -50,6 +52,8 @@ public class StemBlock extends BushBlock implements BonemealableBlock {
+ 
+     @Override
+     public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
++        if(RandomTickExtension.executeCustomRandomTickBehaviourIfPossible(RandomTickExtension.STEM_BLOCK_BEHAVIOUR, toBukkitBlock(world, pos)))
++            return;
+         if (world.getRawBrightness(pos, 0) >= 9) {
+             float f = CropBlock.getGrowthSpeed(this, world, pos);
+ 
+@@ -78,6 +82,13 @@ public class StemBlock extends BushBlock implements BonemealableBlock {
+         }
+     }
+ 
++    @Override
++    public boolean isRandomlyTicking(BlockState state) {
++        if (RandomTickExtension.STEM_BLOCK_BEHAVIOUR != null)
++            return RandomTickExtension.isRandomlyTicking(RandomTickExtension.STEM_BLOCK_BEHAVIOUR, state.createCraftBlockData());
++        return super.isRandomlyTicking(state);
++    }
++
+     @Override
+     public ItemStack getCloneItemStack(BlockGetter world, BlockPos pos, BlockState state) {
+         return new ItemStack((ItemLike) this.seedSupplier.get());
+diff --git a/src/main/java/net/minecraft/world/level/block/SugarCaneBlock.java b/src/main/java/net/minecraft/world/level/block/SugarCaneBlock.java
+index c3f500580d257e1397f2eb7c47b063a6fe6bb405..bf9c7f796acf69d70a074f7cb37c36b6bce876d2 100644
+--- a/src/main/java/net/minecraft/world/level/block/SugarCaneBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/SugarCaneBlock.java
+@@ -1,6 +1,8 @@
+ package net.minecraft.world.level.block;
+ 
+ import java.util.Iterator;
++
++import de.verdox.mccreativelab.tick.RandomTickExtension;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+ import net.minecraft.server.level.ServerLevel;
+@@ -43,8 +45,17 @@ public class SugarCaneBlock extends Block {
+ 
+     }
+ 
++    @Override
++    public boolean isRandomlyTicking(BlockState state) {
++        if (RandomTickExtension.SUGAR_CANE_BLOCK_BEHAVIOUR != null)
++            return RandomTickExtension.isRandomlyTicking(RandomTickExtension.SUGAR_CANE_BLOCK_BEHAVIOUR, state.createCraftBlockData());
++        return super.isRandomlyTicking(state);
++    }
++
+     @Override
+     public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
++        if(RandomTickExtension.executeCustomRandomTickBehaviourIfPossible(RandomTickExtension.SUGAR_CANE_BLOCK_BEHAVIOUR, toBukkitBlock(world, pos)))
++            return;
+         if (world.isEmptyBlock(pos.above())) {
+             int i;
+ 
+diff --git a/src/main/java/net/minecraft/world/level/block/state/BlockBehaviour.java b/src/main/java/net/minecraft/world/level/block/state/BlockBehaviour.java
+index e6a4a5898ffdcb2aa2bc01371a6d7dbc06d610ce..47a9a3407badf3b82795c5769e0d7c6d7c936f69 100644
+--- a/src/main/java/net/minecraft/world/level/block/state/BlockBehaviour.java
++++ b/src/main/java/net/minecraft/world/level/block/state/BlockBehaviour.java
+@@ -13,6 +13,8 @@ import java.util.function.Predicate;
+ import java.util.function.ToIntFunction;
+ import java.util.stream.Stream;
+ import javax.annotation.Nullable;
++
++import de.verdox.mccreativelab.tick.RandomTickExtension;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+ import net.minecraft.core.Holder;
+@@ -1308,7 +1310,7 @@ public abstract class BlockBehaviour implements FeatureElement {
+         }
+ 
+         public final boolean isRandomlyTicking() { // Paper
+-            return this.isRandomlyTicking;
++            return this.isRandomlyTicking || RandomTickExtension.hasCustomTicks(getBlock().defaultBlockState().getBukkitMaterial());
+         }
+ 
+         public long getSeed(BlockPos pos) {
