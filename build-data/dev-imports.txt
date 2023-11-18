@@ -52,3 +52,35 @@ minecraft net.minecraft.world.item.crafting.BannerDuplicateRecipe
 minecraft net.minecraft.world.item.crafting.BookCloningRecipe
 minecraft net.minecraft.world.item.crafting.FireworkRocketRecipe
 minecraft net.minecraft.world.item.crafting.RepairItemRecipe
+
+# All blocks implementing BonemealableBlock interface
+minecraft net.minecraft.world.level.block.SweetBerryBushBlock
+minecraft net.minecraft.world.level.block.StemBlock
+minecraft net.minecraft.world.level.block.SaplingBlock
+minecraft net.minecraft.world.level.block.PitcherCropBlock
+minecraft net.minecraft.world.level.block.NyliumBlock
+minecraft net.minecraft.world.level.block.MushroomBlock
+minecraft net.minecraft.world.level.block.GrowingPlantHeadBlock
+minecraft net.minecraft.world.level.block.FungusBlock
+minecraft net.minecraft.world.level.block.CropBlock
+minecraft net.minecraft.world.level.block.CocoaBlock
+minecraft net.minecraft.world.level.block.CaveVinesBlock
+minecraft net.minecraft.world.level.block.BigDripleafBlock
+minecraft net.minecraft.world.level.block.BambooStalkBlock
+minecraft net.minecraft.world.level.block.BambooSaplingBlock
+minecraft net.minecraft.world.level.block.AzaleaBlock
+minecraft net.minecraft.world.level.block.TallGrassBlock
+minecraft net.minecraft.world.level.block.TallFlowerBlock
+minecraft net.minecraft.world.level.block.SmallDripleafBlock
+minecraft net.minecraft.world.level.block.SeagrassBlock
+minecraft net.minecraft.world.level.block.SeaPickleBlock
+minecraft net.minecraft.world.level.block.PinkPetalsBlock
+minecraft net.minecraft.world.level.block.NetherrackBlock
+minecraft net.minecraft.world.level.block.MossBlock
+minecraft net.minecraft.world.level.block.MangroveLeavesBlock
+minecraft net.minecraft.world.level.block.GrowingPlantBodyBlock
+minecraft net.minecraft.world.level.block.GrassBlock
+minecraft net.minecraft.world.level.block.GlowLichenBlock
+minecraft net.minecraft.world.level.block.CaveVinesPlantBlock
+minecraft net.minecraft.world.level.block.BigDripleafStemBlock
+minecraft net.minecraft.world.level.block.RootedDirtBlock
