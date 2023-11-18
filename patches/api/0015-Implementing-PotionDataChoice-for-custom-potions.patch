@@ -73,7 +73,6 @@ index 0000000000000000000000000000000000000000..3ba92c5c6024193a7993cc4c0f5d06d6
 +        return potionData;
 +    }
 +}
-
 diff --git a/src/main/java/io/papermc/paper/potion/PotionMix.java b/src/main/java/io/papermc/paper/potion/PotionMix.java
 index cb6d93526b637946aec311bef103ad3096781113..031aabafbe12892153f0e487cd648b83bae11c39 100644
 --- a/src/main/java/io/papermc/paper/potion/PotionMix.java
@@ -226,4 +225,3 @@ index 1598f34d306fb34ff7ffe7886b0d6e4abe734b6b..74a6e9c41748636cf055526c6f98e292
      /**
       * Returns a collection of {@link PotionEffect} that would be applied from
       * a potion with the given type.
-
