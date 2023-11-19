@@ -1,0 +1,1051 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: lukas <lukasjonsson@outlook.de>
+Date: Sun, 19 Nov 2023 14:32:31 +0100
+Subject: [PATCH] Opening random tick behaviour to API
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/BehaviourUtil.java b/src/main/java/de/verdox/mccreativelab/behaviour/BehaviourUtil.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..6f692be6d0fc70763e9f900361ed5a5ed961f3e6
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/behaviour/BehaviourUtil.java
+@@ -0,0 +1,35 @@
++package de.verdox.mccreativelab.behaviour;
++
++import de.verdox.mccreativelab.random.CraftVanillaRandomSource;
++import net.minecraft.core.BlockPos;
++import net.minecraft.server.level.ServerLevel;
++import net.minecraft.util.RandomSource;
++import net.minecraft.world.level.block.state.BlockState;
++import org.bukkit.Material;
++import org.bukkit.block.Block;
++
++public class BehaviourUtil {
++
++    public static boolean isRandomlyTicking(BlockState blockState){
++        Material material = blockState.getBukkitMaterial();
++        if(RandomTickBehaviour.RANDOM_TICK_BEHAVIOUR.isImplemented(material))
++            return RandomTickBehaviour.RANDOM_TICK_BEHAVIOUR.getBehaviour(material).isRandomlyTicking(blockState.createCraftBlockData());
++        return false;
++    }
++
++    public static boolean isRandomTickBehaviourImplemented(BlockState blockState){
++        Material material = blockState.getBukkitMaterial();
++        return RandomTickBehaviour.RANDOM_TICK_BEHAVIOUR.isImplemented(material);
++    }
++
++    public static boolean randomTick(BlockState blockState, ServerLevel world, BlockPos pos, RandomSource random){
++        Material material = blockState.getBukkitMaterial();
++        if(RandomTickBehaviour.RANDOM_TICK_BEHAVIOUR.isImplemented(material)) {
++            Block block = world.getWorld().getBlockAt(pos.getX(), pos.getY(), pos.getZ());
++            RandomTickBehaviour.RANDOM_TICK_BEHAVIOUR.getBehaviour(material).randomTick(block, new CraftVanillaRandomSource(random));
++            return true;
++        }
++        return false;
++    }
++
++}
+diff --git a/src/main/java/net/minecraft/world/level/block/BambooSaplingBlock.java b/src/main/java/net/minecraft/world/level/block/BambooSaplingBlock.java
+index fd0143944e4fecaf6f1ffa4561702178431575e9..d3cc3fd59feabf92277d9175bcee7f49cdb1be39 100644
+--- a/src/main/java/net/minecraft/world/level/block/BambooSaplingBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/BambooSaplingBlock.java
+@@ -1,5 +1,6 @@
+ package net.minecraft.world.level.block;
+ 
++import de.verdox.mccreativelab.behaviour.BehaviourUtil;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+ import net.minecraft.server.level.ServerLevel;
+@@ -38,6 +39,10 @@ public class BambooSaplingBlock extends Block implements BonemealableBlock {
+ 
+     @Override
+     public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
++        // MCCLab - start
++        if(BehaviourUtil.randomTick(state, world, pos, random))
++            return;
++        // MCCLab - end
+         if (random.nextFloat() < (world.spigotConfig.bambooModifier / (100.0f * 3)) && world.isEmptyBlock(pos.above()) && world.getRawBrightness(pos.above(), 0) >= 9) { // Spigot - SPIGOT-7159: Better modifier resolution
+             this.growBamboo(world, pos);
+         }
+diff --git a/src/main/java/net/minecraft/world/level/block/BambooStalkBlock.java b/src/main/java/net/minecraft/world/level/block/BambooStalkBlock.java
+index 05a508cb457b67078ccb08bd2228a59e73701cf3..1b19204d4b5375c581ab9f202e9333977d0c5beb 100644
+--- a/src/main/java/net/minecraft/world/level/block/BambooStalkBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/BambooStalkBlock.java
+@@ -1,6 +1,8 @@
+ package net.minecraft.world.level.block;
+ 
+ import javax.annotation.Nullable;
++
++import de.verdox.mccreativelab.behaviour.BehaviourUtil;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+ import net.minecraft.server.level.ServerLevel;
+@@ -121,11 +123,19 @@ public class BambooStalkBlock extends Block implements BonemealableBlock {
+ 
+     @Override
+     public boolean isRandomlyTicking(BlockState state) {
++        // MCCLab - start
++        if(BehaviourUtil.isRandomTickBehaviourImplemented(state))
++            return BehaviourUtil.isRandomlyTicking(state);
++        // MCCLab - end
+         return (Integer) state.getValue(BambooStalkBlock.STAGE) == 0;
+     }
+ 
+     @Override
+     public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
++        // MCCLab - start
++        if(BehaviourUtil.randomTick(state, world, pos, random))
++            return;
++        // MCCLab - end
+         if ((Integer) state.getValue(BambooStalkBlock.STAGE) == 0) {
+             if (random.nextFloat() < (world.spigotConfig.bambooModifier / (100.0f * 3)) && world.isEmptyBlock(pos.above()) && world.getRawBrightness(pos.above(), 0) >= 9) { // Spigot - SPIGOT-7159: Better modifier resolution
+                 int i = this.getHeightBelowUpToMax(world, pos) + 1;
+diff --git a/src/main/java/net/minecraft/world/level/block/BeetrootBlock.java b/src/main/java/net/minecraft/world/level/block/BeetrootBlock.java
+index 2bd714466fb86d4013bd3bceddecba19ce98df08..184e2d32bf92365cc0eddd679bcf8551259e4453 100644
+--- a/src/main/java/net/minecraft/world/level/block/BeetrootBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/BeetrootBlock.java
+@@ -1,5 +1,6 @@
+ package net.minecraft.world.level.block;
+ 
++import de.verdox.mccreativelab.behaviour.BehaviourUtil;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.util.RandomSource;
+@@ -41,6 +42,10 @@ public class BeetrootBlock extends CropBlock {
+ 
+     @Override
+     public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
++        // MCCLab - start
++        if(BehaviourUtil.randomTick(state, world, pos, random))
++            return;
++        // MCCLab - end
+         if (random.nextInt(3) != 0) {
+             super.randomTick(state, world, pos, random);
+         }
+diff --git a/src/main/java/net/minecraft/world/level/block/Block.java b/src/main/java/net/minecraft/world/level/block/Block.java
+index d4cbff18adb62073a1dceb189043789620af6877..cbe73e81bdb5927233e129564cdcef489118e323 100644
+--- a/src/main/java/net/minecraft/world/level/block/Block.java
++++ b/src/main/java/net/minecraft/world/level/block/Block.java
+@@ -5,6 +5,7 @@ import com.google.common.cache.CacheLoader;
+ import com.google.common.cache.LoadingCache;
+ import com.google.common.collect.ImmutableMap;
+ import com.mojang.logging.LogUtils;
++import de.verdox.mccreativelab.behaviour.BehaviourUtil;
+ import it.unimi.dsi.fastutil.objects.Object2ByteLinkedOpenHashMap;
+ import java.util.Iterator;
+ import java.util.List;
+@@ -223,6 +224,10 @@ public class Block extends BlockBehaviour implements ItemLike {
+     }
+ 
+     public boolean isRandomlyTicking(BlockState state) {
++        // MCCLab - start
++        if(BehaviourUtil.isRandomTickBehaviourImplemented(state))
++            return BehaviourUtil.isRandomlyTicking(state);
++        // MCCLab - end
+         return this.isRandomlyTicking;
+     }
+ 
+diff --git a/src/main/java/net/minecraft/world/level/block/BuddingAmethystBlock.java b/src/main/java/net/minecraft/world/level/block/BuddingAmethystBlock.java
+index 2548244c089dff583c8c424dcaa5504caedf3f10..ccfcd7f781cf206c53f3c24a8e8a52387b661088 100644
+--- a/src/main/java/net/minecraft/world/level/block/BuddingAmethystBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/BuddingAmethystBlock.java
+@@ -1,5 +1,6 @@
+ package net.minecraft.world.level.block;
+ 
++import de.verdox.mccreativelab.behaviour.BehaviourUtil;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+ import net.minecraft.server.level.ServerLevel;
+@@ -19,6 +20,10 @@ public class BuddingAmethystBlock extends AmethystBlock {
+ 
+     @Override
+     public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
++        // MCCLab - start
++        if(BehaviourUtil.randomTick(state, world, pos, random))
++            return;
++        // MCCLab - end
+         if (random.nextInt(5) == 0) {
+             Direction enumdirection = BuddingAmethystBlock.DIRECTIONS[random.nextInt(BuddingAmethystBlock.DIRECTIONS.length)];
+             BlockPos blockposition1 = pos.relative(enumdirection);
+diff --git a/src/main/java/net/minecraft/world/level/block/CactusBlock.java b/src/main/java/net/minecraft/world/level/block/CactusBlock.java
+index 0003fb51ae3a6575575e10b4c86719f3061e2577..78fcf9b2c42b833034f22be79313c7bc71529999 100644
+--- a/src/main/java/net/minecraft/world/level/block/CactusBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/CactusBlock.java
+@@ -1,6 +1,8 @@
+ package net.minecraft.world.level.block;
+ 
+ import java.util.Iterator;
++
++import de.verdox.mccreativelab.behaviour.BehaviourUtil;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+ import net.minecraft.server.level.ServerLevel;
+@@ -45,6 +47,10 @@ public class CactusBlock extends Block {
+ 
+     @Override
+     public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
++        // MCCLab - start
++        if(BehaviourUtil.randomTick(state, world, pos, random))
++            return;
++        // MCCLab - end
+         BlockPos blockposition1 = pos.above();
+ 
+         if (world.isEmptyBlock(blockposition1)) {
+diff --git a/src/main/java/net/minecraft/world/level/block/ChorusFlowerBlock.java b/src/main/java/net/minecraft/world/level/block/ChorusFlowerBlock.java
+index e9beebedf1d60e06e16c442b64d28d022a3e3164..13ec76031000af5a749ce0c2f00088ad5db7117d 100644
+--- a/src/main/java/net/minecraft/world/level/block/ChorusFlowerBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/ChorusFlowerBlock.java
+@@ -2,6 +2,8 @@ package net.minecraft.world.level.block;
+ 
+ import java.util.Iterator;
+ import javax.annotation.Nullable;
++
++import de.verdox.mccreativelab.behaviour.BehaviourUtil;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+ import net.minecraft.server.level.ServerLevel;
+@@ -45,6 +47,10 @@ public class ChorusFlowerBlock extends Block {
+ 
+     @Override
+     public boolean isRandomlyTicking(BlockState state) {
++        // MCCLab - start
++        if(BehaviourUtil.isRandomTickBehaviourImplemented(state))
++            return BehaviourUtil.isRandomlyTicking(state);
++        // MCCLab - end
+         return (Integer) state.getValue(ChorusFlowerBlock.AGE) < 5;
+     }
+ 
+@@ -55,6 +61,10 @@ public class ChorusFlowerBlock extends Block {
+ 
+     @Override
+     public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
++        // MCCLab - start
++        if(BehaviourUtil.randomTick(state, world, pos, random))
++            return;
++        // MCCLab - end
+         BlockPos blockposition1 = pos.above();
+ 
+         if (world.isEmptyBlock(blockposition1) && blockposition1.getY() < world.getMaxBuildHeight()) {
+diff --git a/src/main/java/net/minecraft/world/level/block/CocoaBlock.java b/src/main/java/net/minecraft/world/level/block/CocoaBlock.java
+index f5c42fee3ec68a7a9260f01d19c7a1d7533bad9c..7e6b549fc9f3141057776c8649272546c7818bb4 100644
+--- a/src/main/java/net/minecraft/world/level/block/CocoaBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/CocoaBlock.java
+@@ -1,6 +1,8 @@
+ package net.minecraft.world.level.block;
+ 
+ import javax.annotation.Nullable;
++
++import de.verdox.mccreativelab.behaviour.BehaviourUtil;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+ import net.minecraft.server.level.ServerLevel;
+@@ -46,11 +48,19 @@ public class CocoaBlock extends HorizontalDirectionalBlock implements Bonemealab
+ 
+     @Override
+     public boolean isRandomlyTicking(BlockState state) {
++        // MCCLab - start
++        if(BehaviourUtil.isRandomTickBehaviourImplemented(state))
++            return BehaviourUtil.isRandomlyTicking(state);
++        // MCCLab - end
+         return (Integer) state.getValue(CocoaBlock.AGE) < 2;
+     }
+ 
+     @Override
+     public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
++        // MCCLab - start
++        if(BehaviourUtil.randomTick(state, world, pos, random))
++            return;
++        // MCCLab - end
+         if (world.random.nextFloat() < (world.spigotConfig.cocoaModifier / (100.0f * 5))) { // Spigot - SPIGOT-7159: Better modifier resolution
+             int i = (Integer) state.getValue(CocoaBlock.AGE);
+ 
+diff --git a/src/main/java/net/minecraft/world/level/block/CropBlock.java b/src/main/java/net/minecraft/world/level/block/CropBlock.java
+index 6365ddea0c23bc5d4009d98915f2b39aed2a0328..daacad5376c7e399917a608a36a8c870f3527d4b 100644
+--- a/src/main/java/net/minecraft/world/level/block/CropBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/CropBlock.java
+@@ -1,5 +1,6 @@
+ package net.minecraft.world.level.block;
+ 
++import de.verdox.mccreativelab.behaviour.BehaviourUtil;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.util.Mth;
+@@ -65,11 +66,19 @@ public class CropBlock extends BushBlock implements BonemealableBlock {
+ 
+     @Override
+     public boolean isRandomlyTicking(BlockState state) {
++        // MCCLab - start
++        if(BehaviourUtil.isRandomTickBehaviourImplemented(state))
++            return BehaviourUtil.isRandomlyTicking(state);
++        // MCCLab - end
+         return !this.isMaxAge(state);
+     }
+ 
+     @Override
+     public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
++        // MCCLab - start
++        if(BehaviourUtil.randomTick(state, world, pos, random))
++            return;
++        // MCCLab - end
+         if (world.getRawBrightness(pos, 0) >= 9) {
+             int i = this.getAge(state);
+ 
+diff --git a/src/main/java/net/minecraft/world/level/block/FarmBlock.java b/src/main/java/net/minecraft/world/level/block/FarmBlock.java
+index 5946f06f63b5694034bd027984a4925b0831d439..e9e6e6c4ad018914645e0a1d64bb4fc33391f897 100644
+--- a/src/main/java/net/minecraft/world/level/block/FarmBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/FarmBlock.java
+@@ -2,6 +2,8 @@ package net.minecraft.world.level.block;
+ 
+ import java.util.Iterator;
+ import javax.annotation.Nullable;
++
++import de.verdox.mccreativelab.behaviour.BehaviourUtil;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+ import net.minecraft.server.level.ServerLevel;
+@@ -84,6 +86,10 @@ public class FarmBlock extends Block {
+ 
+     @Override
+     public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
++        // MCCLab - start
++        if(BehaviourUtil.randomTick(state, world, pos, random))
++            return;
++        // MCCLab - end
+         int i = (Integer) state.getValue(FarmBlock.MOISTURE);
+ 
+         if (!FarmBlock.isNearWater(world, pos) && !world.isRainingAt(pos.above())) {
+diff --git a/src/main/java/net/minecraft/world/level/block/FrostedIceBlock.java b/src/main/java/net/minecraft/world/level/block/FrostedIceBlock.java
+index a3af96b2518b41f370d09cfda26dc589b9ee977b..4fbf129b56608ef4f9a6c9b1e7a12c320fa875bc 100644
+--- a/src/main/java/net/minecraft/world/level/block/FrostedIceBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/FrostedIceBlock.java
+@@ -1,5 +1,6 @@
+ package net.minecraft.world.level.block;
+ 
++import de.verdox.mccreativelab.behaviour.BehaviourUtil;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+ import net.minecraft.server.level.ServerLevel;
+@@ -27,6 +28,10 @@ public class FrostedIceBlock extends IceBlock {
+ 
+     @Override
+     public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
++        // MCCLab - start
++        if(BehaviourUtil.randomTick(state, world, pos, random))
++            return;
++        // MCCLab - end
+         this.tick(state, world, pos, random);
+     }
+ 
+diff --git a/src/main/java/net/minecraft/world/level/block/GrowingPlantHeadBlock.java b/src/main/java/net/minecraft/world/level/block/GrowingPlantHeadBlock.java
+index b325fdec8eb99ce57152a5c0fefa5059685276e4..c7ebdbd4c852a5262c0388ec4e969a9899d6deb9 100644
+--- a/src/main/java/net/minecraft/world/level/block/GrowingPlantHeadBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/GrowingPlantHeadBlock.java
+@@ -1,5 +1,6 @@
+ package net.minecraft.world.level.block;
+ 
++import de.verdox.mccreativelab.behaviour.BehaviourUtil;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+ import net.minecraft.server.level.ServerLevel;
+@@ -35,11 +36,19 @@ public abstract class GrowingPlantHeadBlock extends GrowingPlantBlock implements
+ 
+     @Override
+     public boolean isRandomlyTicking(BlockState state) {
++        // MCCLab - start
++        if(BehaviourUtil.isRandomTickBehaviourImplemented(state))
++            return BehaviourUtil.isRandomlyTicking(state);
++        // MCCLab - end
+         return (Integer) state.getValue(GrowingPlantHeadBlock.AGE) < 25;
+     }
+ 
+     @Override
+     public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
++        // MCCLab - start
++        if(BehaviourUtil.randomTick(state, world, pos, random))
++            return;
++        // MCCLab - end
+         // Spigot start
+         int modifier;
+         if (this == Blocks.KELP) {
+diff --git a/src/main/java/net/minecraft/world/level/block/IceBlock.java b/src/main/java/net/minecraft/world/level/block/IceBlock.java
+index 04089e6f7d6e3d532b00585870283922b6be5246..d450dbc5e49cb83d954f3e73053cb7da646158f8 100644
+--- a/src/main/java/net/minecraft/world/level/block/IceBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/IceBlock.java
+@@ -1,6 +1,8 @@
+ package net.minecraft.world.level.block;
+ 
+ import javax.annotation.Nullable;
++
++import de.verdox.mccreativelab.behaviour.BehaviourUtil;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.util.RandomSource;
+@@ -49,6 +51,10 @@ public class IceBlock extends HalfTransparentBlock {
+ 
+     @Override
+     public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
++        // MCCLab - start
++        if(BehaviourUtil.randomTick(state, world, pos, random))
++            return;
++        // MCCLab - end
+         if (world.getBrightness(LightLayer.BLOCK, pos) > 11 - state.getLightBlock(world, pos)) {
+             this.melt(state, world, pos);
+         }
+diff --git a/src/main/java/net/minecraft/world/level/block/LeavesBlock.java b/src/main/java/net/minecraft/world/level/block/LeavesBlock.java
+index ebee1dfdb1d75381de847834262a66b45fd9f0ce..57dc9201bddb91baabc024dabb9cf3ed4a4f7c8a 100644
+--- a/src/main/java/net/minecraft/world/level/block/LeavesBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/LeavesBlock.java
+@@ -1,6 +1,8 @@
+ package net.minecraft.world.level.block;
+ 
+ import java.util.OptionalInt;
++
++import de.verdox.mccreativelab.behaviour.BehaviourUtil;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+ import net.minecraft.core.particles.ParticleTypes;
+@@ -45,11 +47,19 @@ public class LeavesBlock extends Block implements SimpleWaterloggedBlock {
+ 
+     @Override
+     public boolean isRandomlyTicking(BlockState state) {
++        // MCCLab - start
++        if(BehaviourUtil.isRandomTickBehaviourImplemented(state))
++            return BehaviourUtil.isRandomlyTicking(state);
++        // MCCLab - end
+         return (Integer) state.getValue(LeavesBlock.DISTANCE) == 7 && !(Boolean) state.getValue(LeavesBlock.PERSISTENT);
+     }
+ 
+     @Override
+     public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
++        // MCCLab - start
++        if(BehaviourUtil.randomTick(state, world, pos, random))
++            return;
++        // MCCLab - end
+         if (this.decaying(state)) {
+             // CraftBukkit start
+             LeavesDecayEvent event = new LeavesDecayEvent(world.getWorld().getBlockAt(pos.getX(), pos.getY(), pos.getZ()));
+diff --git a/src/main/java/net/minecraft/world/level/block/LiquidBlock.java b/src/main/java/net/minecraft/world/level/block/LiquidBlock.java
+index 4a1830f85f47014da63e4584f411d13f0f0cd8b3..3890008b41bf644250409487cf5e013768ff9849 100644
+--- a/src/main/java/net/minecraft/world/level/block/LiquidBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/LiquidBlock.java
+@@ -7,6 +7,8 @@ import java.util.Collections;
+ import java.util.List;
+ import java.util.Optional;
+ import javax.annotation.Nullable;
++
++import de.verdox.mccreativelab.behaviour.BehaviourUtil;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+ import net.minecraft.server.level.ServerLevel;
+@@ -60,11 +62,19 @@ public class LiquidBlock extends Block implements BucketPickup {
+ 
+     @Override
+     public boolean isRandomlyTicking(BlockState state) {
++        // MCCLab - start
++        if(BehaviourUtil.isRandomTickBehaviourImplemented(state))
++            return BehaviourUtil.isRandomlyTicking(state);
++        // MCCLab - end
+         return state.getFluidState().isRandomlyTicking();
+     }
+ 
+     @Override
+     public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
++        // MCCLab - start
++        if(BehaviourUtil.randomTick(state, world, pos, random))
++            return;
++        // MCCLab - end
+         state.getFluidState().randomTick(world, pos, random);
+     }
+ 
+diff --git a/src/main/java/net/minecraft/world/level/block/MangrovePropaguleBlock.java b/src/main/java/net/minecraft/world/level/block/MangrovePropaguleBlock.java
+index cf240750aecc57d287efc986b471e66a860850ee..1ce0bc341188ac360d2cd89d0ce100e9a53773f4 100644
+--- a/src/main/java/net/minecraft/world/level/block/MangrovePropaguleBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/MangrovePropaguleBlock.java
+@@ -1,6 +1,8 @@
+ package net.minecraft.world.level.block;
+ 
+ import javax.annotation.Nullable;
++
++import de.verdox.mccreativelab.behaviour.BehaviourUtil;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+ import net.minecraft.server.level.ServerLevel;
+@@ -88,6 +90,10 @@ public class MangrovePropaguleBlock extends SaplingBlock implements SimpleWaterl
+ 
+     @Override
+     public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
++        // MCCLab - start
++        if(BehaviourUtil.randomTick(state, world, pos, random))
++            return;
++        // MCCLab - end
+         if (!isHanging(state)) {
+             if (random.nextFloat() < (world.spigotConfig.saplingModifier / (100.0F * 7))) { // Paper
+                 this.advanceTree(world, pos, state, random);
+diff --git a/src/main/java/net/minecraft/world/level/block/MushroomBlock.java b/src/main/java/net/minecraft/world/level/block/MushroomBlock.java
+index 302c5a6401facf192677b89cc0e9190bb35b1229..248eedbbac3bcb19cf1d6cd2a8d6b7e74619316e 100644
+--- a/src/main/java/net/minecraft/world/level/block/MushroomBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/MushroomBlock.java
+@@ -2,6 +2,8 @@ package net.minecraft.world.level.block;
+ 
+ import java.util.Iterator;
+ import java.util.Optional;
++
++import de.verdox.mccreativelab.behaviour.BehaviourUtil;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Holder;
+ import net.minecraft.core.registries.Registries;
+@@ -39,6 +41,10 @@ public class MushroomBlock extends BushBlock implements BonemealableBlock {
+ 
+     @Override
+     public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
++        // MCCLab - start
++        if(BehaviourUtil.randomTick(state, world, pos, random))
++            return;
++        // MCCLab - end
+         if (random.nextFloat() < (world.spigotConfig.mushroomModifier / (100.0f * 25))) { // Spigot - SPIGOT-7159: Better modifier resolution
+             int i = 5;
+             boolean flag = true;
+diff --git a/src/main/java/net/minecraft/world/level/block/NetherPortalBlock.java b/src/main/java/net/minecraft/world/level/block/NetherPortalBlock.java
+index a6ab0d0defc05e56a91084c49897059670a1324b..d11fb435290f2aec80f4e91047f15e599e93403b 100644
+--- a/src/main/java/net/minecraft/world/level/block/NetherPortalBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/NetherPortalBlock.java
+@@ -1,5 +1,6 @@
+ package net.minecraft.world.level.block;
+ 
++import de.verdox.mccreativelab.behaviour.BehaviourUtil;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+ import net.minecraft.core.particles.ParticleTypes;
+@@ -52,6 +53,10 @@ public class NetherPortalBlock extends Block {
+ 
+     @Override
+     public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
++        // MCCLab - start
++        if(BehaviourUtil.randomTick(state, world, pos, random))
++            return;
++        // MCCLab - end
+         if (world.spigotConfig.enableZombiePigmenPortalSpawns && world.dimensionType().natural() && world.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING) && random.nextInt(2000) < world.getDifficulty().getId()) { // Spigot
+             while (world.getBlockState(pos).is((Block) this)) {
+                 pos = pos.below();
+diff --git a/src/main/java/net/minecraft/world/level/block/NetherWartBlock.java b/src/main/java/net/minecraft/world/level/block/NetherWartBlock.java
+index e55720c4d2fbdf6aae526910e87a67c29cf906fd..f01b633e6de0f446ba8bdef8e737e1159aa4148e 100644
+--- a/src/main/java/net/minecraft/world/level/block/NetherWartBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/NetherWartBlock.java
+@@ -1,5 +1,6 @@
+ package net.minecraft.world.level.block;
+ 
++import de.verdox.mccreativelab.behaviour.BehaviourUtil;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.util.RandomSource;
+@@ -37,11 +38,19 @@ public class NetherWartBlock extends BushBlock {
+ 
+     @Override
+     public boolean isRandomlyTicking(BlockState state) {
++        // MCCLab - start
++        if(BehaviourUtil.isRandomTickBehaviourImplemented(state))
++            return BehaviourUtil.isRandomlyTicking(state);
++        // MCCLab - end
+         return (Integer) state.getValue(NetherWartBlock.AGE) < 3;
+     }
+ 
+     @Override
+     public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
++        // MCCLab - start
++        if(BehaviourUtil.randomTick(state, world, pos, random))
++            return;
++        // MCCLab - end
+         int i = (Integer) state.getValue(NetherWartBlock.AGE);
+ 
+         if (i < 3 && random.nextFloat() < (world.spigotConfig.wartModifier / (100.0f * 10))) { // Spigot - SPIGOT-7159: Better modifier resolution
+diff --git a/src/main/java/net/minecraft/world/level/block/NyliumBlock.java b/src/main/java/net/minecraft/world/level/block/NyliumBlock.java
+index 47a3a9e0f0ba4f8a00828874e73d501d18f0ae1c..877c3b073e99736a32bd2c8a80656bc34fae79e2 100644
+--- a/src/main/java/net/minecraft/world/level/block/NyliumBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/NyliumBlock.java
+@@ -1,5 +1,6 @@
+ package net.minecraft.world.level.block;
+ 
++import de.verdox.mccreativelab.behaviour.BehaviourUtil;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+ import net.minecraft.core.Registry;
+@@ -32,6 +33,10 @@ public class NyliumBlock extends Block implements BonemealableBlock {
+ 
+     @Override
+     public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
++        // MCCLab - start
++        if(BehaviourUtil.randomTick(state, world, pos, random))
++            return;
++        // MCCLab - end
+         if (!NyliumBlock.canBeNylium(state, world, pos)) {
+             // CraftBukkit start
+             if (org.bukkit.craftbukkit.event.CraftEventFactory.callBlockFadeEvent(world, pos, Blocks.NETHERRACK.defaultBlockState()).isCancelled()) {
+diff --git a/src/main/java/net/minecraft/world/level/block/PitcherCropBlock.java b/src/main/java/net/minecraft/world/level/block/PitcherCropBlock.java
+index 1641453fd17938bc8fcdba7f89a0515ebeef20c5..c19dc3a481058e3f18d8623822f6d5e71ce1d50b 100644
+--- a/src/main/java/net/minecraft/world/level/block/PitcherCropBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/PitcherCropBlock.java
+@@ -1,6 +1,8 @@
+ package net.minecraft.world.level.block;
+ 
+ import javax.annotation.Nullable;
++
++import de.verdox.mccreativelab.behaviour.BehaviourUtil;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+ import net.minecraft.server.level.ServerLevel;
+@@ -106,11 +108,19 @@ public class PitcherCropBlock extends DoublePlantBlock implements BonemealableBl
+ 
+     @Override
+     public boolean isRandomlyTicking(BlockState state) {
++        // MCCLab - start
++        if(BehaviourUtil.isRandomTickBehaviourImplemented(state))
++            return BehaviourUtil.isRandomlyTicking(state);
++        // MCCLab - end
+         return state.getValue(HALF) == DoubleBlockHalf.LOWER && !this.isMaxAge(state);
+     }
+ 
+     @Override
+     public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
++        // MCCLab - start
++        if(BehaviourUtil.randomTick(state, world, pos, random))
++            return;
++        // MCCLab - end
+         float f = CropBlock.getGrowthSpeed(this, world, pos);
+         boolean bl = random.nextFloat() < (world.spigotConfig.pitcherPlantModifier / (100.0F * (Math.floor(25.0F / f) + 1))); // Paper
+         if (bl) {
+diff --git a/src/main/java/net/minecraft/world/level/block/PointedDripstoneBlock.java b/src/main/java/net/minecraft/world/level/block/PointedDripstoneBlock.java
+index cd943997f11f5ea5c600fdc6db96043fb0fa713c..6e2acd510c4e54b524eb92cd2a443578e6f9e85a 100644
+--- a/src/main/java/net/minecraft/world/level/block/PointedDripstoneBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/PointedDripstoneBlock.java
+@@ -5,6 +5,8 @@ import java.util.Optional;
+ import java.util.function.BiPredicate;
+ import java.util.function.Predicate;
+ import javax.annotation.Nullable;
++
++import de.verdox.mccreativelab.behaviour.BehaviourUtil;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+ import net.minecraft.core.particles.ParticleTypes;
+@@ -177,6 +179,10 @@ public class PointedDripstoneBlock extends Block implements Fallable, SimpleWate
+ 
+     @Override
+     public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
++        // MCCLab - start
++        if(BehaviourUtil.randomTick(state, world, pos, random))
++            return;
++        // MCCLab - end
+         PointedDripstoneBlock.maybeTransferFluid(state, world, pos, random.nextFloat());
+         if (random.nextFloat() < 0.011377778F && PointedDripstoneBlock.isStalactiteStartPos(state, world, pos)) {
+             PointedDripstoneBlock.growStalactiteOrStalagmiteIfPossible(state, world, pos, random);
+diff --git a/src/main/java/net/minecraft/world/level/block/RedStoneOreBlock.java b/src/main/java/net/minecraft/world/level/block/RedStoneOreBlock.java
+index 06760ff3d20bcfdc30f3f3ee65bc2a0d12d28aff..ab8805fee00df79c51c27b38441bcbd52e9dde23 100644
+--- a/src/main/java/net/minecraft/world/level/block/RedStoneOreBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/RedStoneOreBlock.java
+@@ -1,5 +1,6 @@
+ package net.minecraft.world.level.block;
+ 
++import de.verdox.mccreativelab.behaviour.BehaviourUtil;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+ import net.minecraft.core.particles.DustParticleOptions;
+@@ -90,11 +91,19 @@ public class RedStoneOreBlock extends Block {
+ 
+     @Override
+     public boolean isRandomlyTicking(BlockState state) {
++        // MCCLab - start
++        if(BehaviourUtil.isRandomTickBehaviourImplemented(state))
++            return BehaviourUtil.isRandomlyTicking(state);
++        // MCCLab - end
+         return (Boolean) state.getValue(RedStoneOreBlock.LIT);
+     }
+ 
+     @Override
+     public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
++        // MCCLab - start
++        if(BehaviourUtil.randomTick(state, world, pos, random))
++            return;
++        // MCCLab - end
+         if ((Boolean) state.getValue(RedStoneOreBlock.LIT)) {
+             // CraftBukkit start
+             if (CraftEventFactory.callBlockFadeEvent(world, pos, state.setValue(RedStoneOreBlock.LIT, false)).isCancelled()) {
+diff --git a/src/main/java/net/minecraft/world/level/block/SaplingBlock.java b/src/main/java/net/minecraft/world/level/block/SaplingBlock.java
+index 53ac4e618fec3fe384d8a106c521f3eace0b5b35..7ae8988a443795300bc76f6ff457283a28959453 100644
+--- a/src/main/java/net/minecraft/world/level/block/SaplingBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/SaplingBlock.java
+@@ -1,5 +1,6 @@
+ package net.minecraft.world.level.block;
+ 
++import de.verdox.mccreativelab.behaviour.BehaviourUtil;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.util.RandomSource;
+@@ -42,10 +43,13 @@ public class SaplingBlock extends BushBlock implements BonemealableBlock {
+ 
+     @Override
+     public void randomTick(net.minecraft.world.level.block.state.BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
++        // MCCLab - start
++        if(BehaviourUtil.randomTick(state, world, pos, random))
++            return;
++        // MCCLab - end
+         if (world.getMaxLocalRawBrightness(pos.above()) >= 9 && random.nextFloat() < (world.spigotConfig.saplingModifier / (100.0f * 7))) { // Spigot - SPIGOT-7159: Better modifier resolution
+             this.advanceTree(world, pos, state, random);
+         }
+-
+     }
+ 
+     public void advanceTree(ServerLevel world, BlockPos pos, net.minecraft.world.level.block.state.BlockState state, RandomSource random) {
+diff --git a/src/main/java/net/minecraft/world/level/block/SnowLayerBlock.java b/src/main/java/net/minecraft/world/level/block/SnowLayerBlock.java
+index 14e00c7feb1c051d56a3d27cd00dcef072dd771a..1dd24f065b547e2ff84713abc198b6d8ec9adb4a 100644
+--- a/src/main/java/net/minecraft/world/level/block/SnowLayerBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/SnowLayerBlock.java
+@@ -1,6 +1,8 @@
+ package net.minecraft.world.level.block;
+ 
+ import javax.annotation.Nullable;
++
++import de.verdox.mccreativelab.behaviour.BehaviourUtil;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+ import net.minecraft.server.level.ServerLevel;
+@@ -91,6 +93,10 @@ public class SnowLayerBlock extends Block {
+ 
+     @Override
+     public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
++        // MCCLab - start
++        if(BehaviourUtil.randomTick(state, world, pos, random))
++            return;
++        // MCCLab - end
+         if (world.getBrightness(LightLayer.BLOCK, pos) > 11) {
+             // CraftBukkit start
+             if (org.bukkit.craftbukkit.event.CraftEventFactory.callBlockFadeEvent(world, pos, Blocks.AIR.defaultBlockState()).isCancelled()) {
+diff --git a/src/main/java/net/minecraft/world/level/block/SpreadingSnowyDirtBlock.java b/src/main/java/net/minecraft/world/level/block/SpreadingSnowyDirtBlock.java
+index 9bbb9f8e917288bb0d11661a1399a05631ebcce0..ebd0577e562c3ed52f86e5140a0426d6dc9cc44e 100644
+--- a/src/main/java/net/minecraft/world/level/block/SpreadingSnowyDirtBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/SpreadingSnowyDirtBlock.java
+@@ -1,5 +1,6 @@
+ package net.minecraft.world.level.block;
+ 
++import de.verdox.mccreativelab.behaviour.BehaviourUtil;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+ import net.minecraft.server.MinecraftServer;
+@@ -51,6 +52,10 @@ public abstract class SpreadingSnowyDirtBlock extends SnowyDirtBlock {
+ 
+     @Override
+     public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
++        // MCCLab - start
++        if(BehaviourUtil.randomTick(state, world, pos, random))
++            return;
++        // MCCLab - end
+         if (this instanceof GrassBlock && world.paperConfig().tickRates.grassSpread != 1 && (world.paperConfig().tickRates.grassSpread < 1 || (MinecraftServer.currentTick + pos.hashCode()) % world.paperConfig().tickRates.grassSpread != 0)) { return; } // Paper
+         // Paper start
+         net.minecraft.world.level.chunk.ChunkAccess cachedBlockChunk = world.getChunkIfLoaded(pos);
+diff --git a/src/main/java/net/minecraft/world/level/block/StairBlock.java b/src/main/java/net/minecraft/world/level/block/StairBlock.java
+index 827713a332baa6d280cd61d40faf8f6243b3b08c..f426a3a1e8acaa91349ed0470fc496fa1ace5963 100644
+--- a/src/main/java/net/minecraft/world/level/block/StairBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/StairBlock.java
+@@ -1,6 +1,8 @@
+ package net.minecraft.world.level.block;
+ 
+ import java.util.stream.IntStream;
++
++import de.verdox.mccreativelab.behaviour.BehaviourUtil;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+ import net.minecraft.server.level.ServerLevel;
+@@ -144,11 +146,19 @@ public class StairBlock extends Block implements SimpleWaterloggedBlock {
+ 
+     @Override
+     public boolean isRandomlyTicking(BlockState state) {
++        // MCCLab - start
++        if(BehaviourUtil.isRandomTickBehaviourImplemented(state))
++            return BehaviourUtil.isRandomlyTicking(state);
++        // MCCLab - end
+         return this.base.isRandomlyTicking(state);
+     }
+ 
+     @Override
+     public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
++        // MCCLab - start
++        if(BehaviourUtil.randomTick(state, world, pos, random))
++            return;
++        // MCCLab - end
+         this.base.randomTick(state, world, pos, random);
+     }
+ 
+diff --git a/src/main/java/net/minecraft/world/level/block/StemBlock.java b/src/main/java/net/minecraft/world/level/block/StemBlock.java
+index 0d9be3b28ba4957c3f4da5455283fca903836c91..d9d6e0d5495a1167db49aee5d730c38843c50172 100644
+--- a/src/main/java/net/minecraft/world/level/block/StemBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/StemBlock.java
+@@ -1,6 +1,8 @@
+ package net.minecraft.world.level.block;
+ 
+ import java.util.function.Supplier;
++
++import de.verdox.mccreativelab.behaviour.BehaviourUtil;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+ import net.minecraft.server.level.ServerLevel;
+@@ -50,6 +52,10 @@ public class StemBlock extends BushBlock implements BonemealableBlock {
+ 
+     @Override
+     public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
++        // MCCLab - start
++        if(BehaviourUtil.randomTick(state, world, pos, random))
++            return;
++        // MCCLab - end
+         if (world.getRawBrightness(pos, 0) >= 9) {
+             float f = CropBlock.getGrowthSpeed(this, world, pos);
+ 
+diff --git a/src/main/java/net/minecraft/world/level/block/SugarCaneBlock.java b/src/main/java/net/minecraft/world/level/block/SugarCaneBlock.java
+index c3f500580d257e1397f2eb7c47b063a6fe6bb405..2cb9c9dd6f8792b56a54f15b001c10fd831400cb 100644
+--- a/src/main/java/net/minecraft/world/level/block/SugarCaneBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/SugarCaneBlock.java
+@@ -1,6 +1,8 @@
+ package net.minecraft.world.level.block;
+ 
+ import java.util.Iterator;
++
++import de.verdox.mccreativelab.behaviour.BehaviourUtil;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+ import net.minecraft.server.level.ServerLevel;
+@@ -45,6 +47,10 @@ public class SugarCaneBlock extends Block {
+ 
+     @Override
+     public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
++        // MCCLab - start
++        if(BehaviourUtil.randomTick(state, world, pos, random))
++            return;
++        // MCCLab - end
+         if (world.isEmptyBlock(pos.above())) {
+             int i;
+ 
+diff --git a/src/main/java/net/minecraft/world/level/block/SweetBerryBushBlock.java b/src/main/java/net/minecraft/world/level/block/SweetBerryBushBlock.java
+index 34eb7ba1adb51e394bf46a6f643db3529626d9ec..b41de6e418cc35879ced3eb3352029b45f04fae8 100644
+--- a/src/main/java/net/minecraft/world/level/block/SweetBerryBushBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/SweetBerryBushBlock.java
+@@ -1,5 +1,7 @@
+ package net.minecraft.world.level.block;
+ 
++import de.verdox.mccreativelab.behaviour.BehaviourUtil;
++import de.verdox.mccreativelab.behaviour.RandomTickBehaviour;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.sounds.SoundEvents;
+@@ -28,6 +30,8 @@ import net.minecraft.world.phys.shapes.CollisionContext;
+ import net.minecraft.world.phys.shapes.VoxelShape;
+ // CraftBukkit start
+ import java.util.Collections;
++
++import org.bukkit.Material;
+ import org.bukkit.craftbukkit.block.CraftBlock;
+ import org.bukkit.craftbukkit.event.CraftEventFactory;
+ import org.bukkit.craftbukkit.inventory.CraftItemStack;
+@@ -59,11 +63,19 @@ public class SweetBerryBushBlock extends BushBlock implements BonemealableBlock
+ 
+     @Override
+     public boolean isRandomlyTicking(BlockState state) {
++        // MCCLab - start
++        if(BehaviourUtil.isRandomTickBehaviourImplemented(state))
++            return BehaviourUtil.isRandomlyTicking(state);
++        // MCCLab - end
+         return (Integer) state.getValue(SweetBerryBushBlock.AGE) < 3;
+     }
+ 
+     @Override
+     public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
++        // MCCLab - start
++        if(BehaviourUtil.randomTick(state, world, pos, random))
++            return;
++        // MCCLab - end
+         int i = (Integer) state.getValue(SweetBerryBushBlock.AGE);
+ 
+         if (i < 3 && random.nextFloat() < (world.spigotConfig.sweetBerryModifier / (100.0f * 5)) && world.getRawBrightness(pos.above(), 0) >= 9) { // Spigot - SPIGOT-7159: Better modifier resolution
+diff --git a/src/main/java/net/minecraft/world/level/block/TorchflowerCropBlock.java b/src/main/java/net/minecraft/world/level/block/TorchflowerCropBlock.java
+index 092759184adbf27ce942a148169e60d3a28c2cc7..48021dfb75b271a25b27ee6134c2a15fb97daec9 100644
+--- a/src/main/java/net/minecraft/world/level/block/TorchflowerCropBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/TorchflowerCropBlock.java
+@@ -1,5 +1,6 @@
+ package net.minecraft.world.level.block;
+ 
++import de.verdox.mccreativelab.behaviour.BehaviourUtil;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.util.RandomSource;
+@@ -58,6 +59,10 @@ public class TorchflowerCropBlock extends CropBlock {
+ 
+     @Override
+     public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
++        // MCCLab - start
++        if(BehaviourUtil.randomTick(state, world, pos, random))
++            return;
++        // MCCLab - end
+         if (random.nextInt(3) != 0) {
+             super.randomTick(state, world, pos, random);
+         }
+diff --git a/src/main/java/net/minecraft/world/level/block/TurtleEggBlock.java b/src/main/java/net/minecraft/world/level/block/TurtleEggBlock.java
+index 07157822659288e76b2fba34db8d5d566506f33b..129513fe23f8da45c89cf597bd8097c1ef6f622b 100644
+--- a/src/main/java/net/minecraft/world/level/block/TurtleEggBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/TurtleEggBlock.java
+@@ -1,6 +1,8 @@
+ package net.minecraft.world.level.block;
+ 
+ import javax.annotation.Nullable;
++
++import de.verdox.mccreativelab.behaviour.BehaviourUtil;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.sounds.SoundEvents;
+@@ -105,6 +107,10 @@ public class TurtleEggBlock extends Block {
+ 
+     @Override
+     public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
++        // MCCLab - start
++        if(BehaviourUtil.randomTick(state, world, pos, random))
++            return;
++        // MCCLab - end
+         if (this.shouldUpdateHatchLevel(world) && TurtleEggBlock.onSand(world, pos)) {
+             int i = (Integer) state.getValue(TurtleEggBlock.HATCH);
+ 
+diff --git a/src/main/java/net/minecraft/world/level/block/VineBlock.java b/src/main/java/net/minecraft/world/level/block/VineBlock.java
+index 698ef6ee1c8d08bb38e2775804c1333222b0d73d..af9291b4d65546e40213a34d909bc484c11681a1 100644
+--- a/src/main/java/net/minecraft/world/level/block/VineBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/VineBlock.java
+@@ -6,6 +6,8 @@ import java.util.Map;
+ import java.util.function.Function;
+ import java.util.stream.Collectors;
+ import javax.annotation.Nullable;
++
++import de.verdox.mccreativelab.behaviour.BehaviourUtil;
+ import net.minecraft.Util;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+@@ -177,6 +179,10 @@ public class VineBlock extends Block {
+ 
+     @Override
+     public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
++        // MCCLab - start
++        if(BehaviourUtil.randomTick(state, world, pos, random))
++            return;
++        // MCCLab - end
+         if (world.getGameRules().getBoolean(GameRules.RULE_DO_VINES_SPREAD)) {
+             if (random.nextFloat() < (world.spigotConfig.vineModifier / (100.0f * 4))) { // Spigot - SPIGOT-7159: Better modifier resolution
+                 Direction enumdirection = Direction.getRandom(random);
+diff --git a/src/main/java/net/minecraft/world/level/block/WeatheringCopperFullBlock.java b/src/main/java/net/minecraft/world/level/block/WeatheringCopperFullBlock.java
+index 05cccc33e7745eb3a905a804b318aaa6bd440d04..803f26fff7fa764311ad046517a6459352003f19 100644
+--- a/src/main/java/net/minecraft/world/level/block/WeatheringCopperFullBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/WeatheringCopperFullBlock.java
+@@ -1,5 +1,6 @@
+ package net.minecraft.world.level.block;
+ 
++import de.verdox.mccreativelab.behaviour.BehaviourUtil;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.util.RandomSource;
+@@ -16,11 +17,19 @@ public class WeatheringCopperFullBlock extends Block implements WeatheringCopper
+ 
+     @Override
+     public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
++        // MCCLab - start
++        if(BehaviourUtil.randomTick(state, world, pos, random))
++            return;
++        // MCCLab - end
+         this.onRandomTick(state, world, pos, random);
+     }
+ 
+     @Override
+     public boolean isRandomlyTicking(BlockState state) {
++        // MCCLab - start
++        if(BehaviourUtil.isRandomTickBehaviourImplemented(state))
++            return BehaviourUtil.isRandomlyTicking(state);
++        // MCCLab - end
+         return WeatheringCopper.getNext(state.getBlock()).isPresent();
+     }
+ 
+diff --git a/src/main/java/net/minecraft/world/level/block/WeatheringCopperSlabBlock.java b/src/main/java/net/minecraft/world/level/block/WeatheringCopperSlabBlock.java
+index 37d7fb85a05521e4acb6a79997b661c1895bb7ed..80eed473192653b937c3748b1c1c66a484b3190a 100644
+--- a/src/main/java/net/minecraft/world/level/block/WeatheringCopperSlabBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/WeatheringCopperSlabBlock.java
+@@ -1,5 +1,6 @@
+ package net.minecraft.world.level.block;
+ 
++import de.verdox.mccreativelab.behaviour.BehaviourUtil;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.util.RandomSource;
+@@ -16,11 +17,19 @@ public class WeatheringCopperSlabBlock extends SlabBlock implements WeatheringCo
+ 
+     @Override
+     public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
++        // MCCLab - start
++        if(BehaviourUtil.randomTick(state, world, pos, random))
++            return;
++        // MCCLab - end
+         this.onRandomTick(state, world, pos, random);
+     }
+ 
+     @Override
+     public boolean isRandomlyTicking(BlockState state) {
++        // MCCLab - start
++        if(BehaviourUtil.isRandomTickBehaviourImplemented(state))
++            return BehaviourUtil.isRandomlyTicking(state);
++        // MCCLab - end
+         return WeatheringCopper.getNext(state.getBlock()).isPresent();
+     }
+ 
+diff --git a/src/main/java/net/minecraft/world/level/block/WeatheringCopperStairBlock.java b/src/main/java/net/minecraft/world/level/block/WeatheringCopperStairBlock.java
+index 728a607bb28f10955397744970554efe297ea5ca..9ac3ba0ebeaee3588d5f0ecea7c59123d90cd8a5 100644
+--- a/src/main/java/net/minecraft/world/level/block/WeatheringCopperStairBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/WeatheringCopperStairBlock.java
+@@ -1,5 +1,6 @@
+ package net.minecraft.world.level.block;
+ 
++import de.verdox.mccreativelab.behaviour.BehaviourUtil;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.util.RandomSource;
+@@ -16,11 +17,19 @@ public class WeatheringCopperStairBlock extends StairBlock implements Weathering
+ 
+     @Override
+     public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
++        // MCCLab - start
++        if(BehaviourUtil.randomTick(state, world, pos, random))
++            return;
++        // MCCLab - end
+         this.onRandomTick(state, world, pos, random);
+     }
+ 
+     @Override
+     public boolean isRandomlyTicking(BlockState state) {
++        // MCCLab - start
++        if(BehaviourUtil.isRandomTickBehaviourImplemented(state))
++            return BehaviourUtil.isRandomlyTicking(state);
++        // MCCLab - end
+         return WeatheringCopper.getNext(state.getBlock()).isPresent();
+     }
+ 
+diff --git a/src/main/java/net/minecraft/world/level/block/state/BlockBehaviour.java b/src/main/java/net/minecraft/world/level/block/state/BlockBehaviour.java
+index e6a4a5898ffdcb2aa2bc01371a6d7dbc06d610ce..b777a7e9f8250f4a7fa272f54f6977b70a42b39d 100644
+--- a/src/main/java/net/minecraft/world/level/block/state/BlockBehaviour.java
++++ b/src/main/java/net/minecraft/world/level/block/state/BlockBehaviour.java
+@@ -13,6 +13,8 @@ import java.util.function.Predicate;
+ import java.util.function.ToIntFunction;
+ import java.util.stream.Stream;
+ import javax.annotation.Nullable;
++
++import de.verdox.mccreativelab.behaviour.BehaviourUtil;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+ import net.minecraft.core.Holder;
+@@ -349,6 +351,10 @@ public abstract class BlockBehaviour implements FeatureElement {
+     /** @deprecated */
+     @Deprecated
+     public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
++        // MCCLab - start
++        if(BehaviourUtil.randomTick(state, world, pos, random))
++            return;
++        // MCCLab - end
+         this.tick(state, world, pos, random);
+     }
+ 

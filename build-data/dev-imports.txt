@@ -84,3 +84,10 @@ minecraft net.minecraft.world.level.block.GlowLichenBlock
 minecraft net.minecraft.world.level.block.CaveVinesPlantBlock
 minecraft net.minecraft.world.level.block.BigDripleafStemBlock
 minecraft net.minecraft.world.level.block.RootedDirtBlock
+# Hier müssen noch die random Tick Behaviours eingestellt werden
+minecraft net.minecraft.world.level.block.WeatheringCopperStairBlock.java
+minecraft net.minecraft.world.level.block.WeatheringCopperSlabBlock.java
+minecraft net.minecraft.world.level.block.WeatheringCopperFullBlock.java
+minecraft net.minecraft.world.level.block.TorchflowerCropBlock.java
+minecraft net.minecraft.world.level.block.StairBlock.java
+minecraft net.minecraft.world.level.block.BeetrootBlock.java

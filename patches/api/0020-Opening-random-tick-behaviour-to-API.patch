@@ -1,42 +1,9 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
-From: derverdox <lukasjonsson@outlook.de>
-Date: Sat, 18 Nov 2023 22:53:41 +0100
-Subject: [PATCH] Temp saved changes
+From: lukas <lukasjonsson@outlook.de>
+Date: Sun, 19 Nov 2023 14:32:31 +0100
+Subject: [PATCH] Opening random tick behaviour to API
 
 
-diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/BoneMealBehaviour.java b/src/main/java/de/verdox/mccreativelab/behaviour/BoneMealBehaviour.java
-new file mode 100644
-index 0000000000000000000000000000000000000000..336627905ad46f4b536e95d38fb3ae4724d8e2d2
---- /dev/null
-+++ b/src/main/java/de/verdox/mccreativelab/behaviour/BoneMealBehaviour.java
-@@ -0,0 +1,27 @@
-+package de.verdox.mccreativelab.behaviour;
-+
-+import de.verdox.mccreativelab.MultiCustomBehaviour;
-+import de.verdox.mccreativelab.random.VanillaRandomSource;
-+import org.bukkit.Material;
-+import org.bukkit.block.Block;
-+
-+public interface BoneMealBehaviour {
-+    MultiCustomBehaviour<Material, BoneMealBehaviour> BONE_MEAL_BEHAVIOUR = new MultiCustomBehaviour<>("MCCLab - BoneMealBehaviour");
-+    /**
-+     * This method is called every time the server software checks whether a particular block is a valid bonemeal target.
-+     * @param block The Block
-+     * @return true if the block is a valid bonemeal target
-+     */
-+    boolean isValidBonemealTarget(Block block);
-+    /**
-+     * This method is called every time the server software checks whether a particular bonemeal action is successfully.
-+     * @param block The Block
-+     * @return true if the block is a valid bonemeal target
-+     */
-+    boolean isBonemealSuccess(VanillaRandomSource vanillaRandomSource, Block block);
-+    /**
-+     * This method is called every time the server software performs a bonemeal action on a block.
-+     * @param block The Block
-+     */
-+    void performBonemeal(VanillaRandomSource vanillaRandomSource, Block block);
-+}
 diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/RandomTickBehaviour.java b/src/main/java/de/verdox/mccreativelab/behaviour/RandomTickBehaviour.java
 new file mode 100644
 index 0000000000000000000000000000000000000000..56f3b9957d8e768e2b702f7a8db69d54696b11bf

@@ -5,7 +5,7 @@ Subject: [PATCH] Opening fuel burn durations to API
 
 
 diff --git a/src/main/java/net/minecraft/world/level/block/entity/AbstractFurnaceBlockEntity.java b/src/main/java/net/minecraft/world/level/block/entity/AbstractFurnaceBlockEntity.java
-index a18aadbf7ae83713e1f2b21553185d8000bc7699..2f87b5af0d21ef7a2b84250db8986791a88e3a88 100644
+index a18aadbf7ae83713e1f2b21553185d8000bc7699..eacd7eb15d2d2000da20b335af02b89f57f41d99 100644
 --- a/src/main/java/net/minecraft/world/level/block/entity/AbstractFurnaceBlockEntity.java
 +++ b/src/main/java/net/minecraft/world/level/block/entity/AbstractFurnaceBlockEntity.java
 @@ -2,6 +2,7 @@ package net.minecraft.world.level.block.entity;
