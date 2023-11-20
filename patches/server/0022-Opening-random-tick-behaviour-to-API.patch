@@ -3,51 +3,10 @@ From: lukas <lukasjonsson@outlook.de>
 Date: Sun, 19 Nov 2023 14:32:31 +0100
 Subject: [PATCH] Opening random tick behaviour to API
 
-diff --git a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
-index ca3cfc69aa13d2c60627367b860a620300b7d4f6..370438ed22bb8b5b3af0ccc88fb3605c5ed64edd 100644
---- a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
-+++ b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
-@@ -48,6 +48,7 @@ import net.minecraft.util.monitoring.jmx.MinecraftServerStatistics;
- import net.minecraft.world.entity.player.Player;
- import net.minecraft.world.level.GameRules;
- import net.minecraft.world.level.GameType;
-+import net.minecraft.world.level.block.Blocks;
- import net.minecraft.world.level.block.entity.SkullBlockEntity;
- import net.minecraft.world.level.storage.LevelStorageSource;
- import org.slf4j.Logger;
-@@ -275,6 +276,7 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
-         // this.setPlayerList(new DedicatedPlayerList(this, this.registries(), this.playerDataStorage)); // Spigot - moved up
-         server.loadPlugins();
-         server.enablePlugins(org.bukkit.plugin.PluginLoadOrder.STARTUP);
-+        Blocks.rebuildCache();
-         // CraftBukkit end
- 
-         // Paper start
-diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-index b4077b0f4da2ee2e2aaffb1331a86e0580bdee3a..8645ff9fcbe117adf4eb3cb2f493dda56814b0bf 100644
---- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-+++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-@@ -102,6 +102,7 @@ import net.minecraft.world.level.GameType;
- import net.minecraft.world.level.LevelSettings;
- import net.minecraft.world.level.biome.BiomeManager;
- import net.minecraft.world.level.block.Block;
-+import net.minecraft.world.level.block.Blocks;
- import net.minecraft.world.level.dimension.LevelStem;
- import net.minecraft.world.level.levelgen.PatrolSpawner;
- import net.minecraft.world.level.levelgen.PhantomSpawner;
-@@ -1096,6 +1097,7 @@ public final class CraftServer implements Server {
-         io.papermc.paper.plugin.PluginInitializerManager.reload(this.console); // Paper
-         this.loadPlugins();
-         this.enablePlugins(PluginLoadOrder.STARTUP);
-+        Blocks.rebuildCache();
-         this.enablePlugins(PluginLoadOrder.POSTWORLD);
-         this.getPluginManager().callEvent(new ServerLoadEvent(ServerLoadEvent.LoadType.RELOAD));
-         org.spigotmc.WatchdogThread.hasStarted = true; // Paper - Disable watchdog early timeout on reload
-
 
 diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/BehaviourUtil.java b/src/main/java/de/verdox/mccreativelab/behaviour/BehaviourUtil.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..6f692be6d0fc70763e9f900361ed5a5ed961f3e6
+index 0000000000000000000000000000000000000000..c37dd2fd5f2cd41f6d5ec9244918096b54bd6cd7
 --- /dev/null
 +++ b/src/main/java/de/verdox/mccreativelab/behaviour/BehaviourUtil.java
 @@ -0,0 +1,46 @@
@@ -97,6 +56,26 @@ index 0000000000000000000000000000000000000000..6f692be6d0fc70763e9f900361ed5a5e
 +        return material;
 +    }
 +}
+diff --git a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
+index ca3cfc69aa13d2c60627367b860a620300b7d4f6..370438ed22bb8b5b3af0ccc88fb3605c5ed64edd 100644
+--- a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
++++ b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
+@@ -48,6 +48,7 @@ import net.minecraft.util.monitoring.jmx.MinecraftServerStatistics;
+ import net.minecraft.world.entity.player.Player;
+ import net.minecraft.world.level.GameRules;
+ import net.minecraft.world.level.GameType;
++import net.minecraft.world.level.block.Blocks;
+ import net.minecraft.world.level.block.entity.SkullBlockEntity;
+ import net.minecraft.world.level.storage.LevelStorageSource;
+ import org.slf4j.Logger;
+@@ -275,6 +276,7 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
+         // this.setPlayerList(new DedicatedPlayerList(this, this.registries(), this.playerDataStorage)); // Spigot - moved up
+         server.loadPlugins();
+         server.enablePlugins(org.bukkit.plugin.PluginLoadOrder.STARTUP);
++        Blocks.rebuildCache();
+         // CraftBukkit end
+ 
+         // Paper start
 diff --git a/src/main/java/net/minecraft/world/level/block/BambooSaplingBlock.java b/src/main/java/net/minecraft/world/level/block/BambooSaplingBlock.java
 index fd0143944e4fecaf6f1ffa4561702178431575e9..d3cc3fd59feabf92277d9175bcee7f49cdb1be39 100644
 --- a/src/main/java/net/minecraft/world/level/block/BambooSaplingBlock.java
@@ -1101,3 +1080,23 @@ index e6a4a5898ffdcb2aa2bc01371a6d7dbc06d610ce..b777a7e9f8250f4a7fa272f54f6977b7
          this.tick(state, world, pos, random);
      }
  
+diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
+index b4077b0f4da2ee2e2aaffb1331a86e0580bdee3a..8645ff9fcbe117adf4eb3cb2f493dda56814b0bf 100644
+--- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
++++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
+@@ -102,6 +102,7 @@ import net.minecraft.world.level.GameType;
+ import net.minecraft.world.level.LevelSettings;
+ import net.minecraft.world.level.biome.BiomeManager;
+ import net.minecraft.world.level.block.Block;
++import net.minecraft.world.level.block.Blocks;
+ import net.minecraft.world.level.dimension.LevelStem;
+ import net.minecraft.world.level.levelgen.PatrolSpawner;
+ import net.minecraft.world.level.levelgen.PhantomSpawner;
+@@ -1096,6 +1097,7 @@ public final class CraftServer implements Server {
+         io.papermc.paper.plugin.PluginInitializerManager.reload(this.console); // Paper
+         this.loadPlugins();
+         this.enablePlugins(PluginLoadOrder.STARTUP);
++        Blocks.rebuildCache();
+         this.enablePlugins(PluginLoadOrder.POSTWORLD);
+         this.getPluginManager().callEvent(new ServerLoadEvent(ServerLoadEvent.LoadType.RELOAD));
+         org.spigotmc.WatchdogThread.hasStarted = true; // Paper - Disable watchdog early timeout on reload
