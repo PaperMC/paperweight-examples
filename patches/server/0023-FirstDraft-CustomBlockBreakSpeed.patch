@@ -1,0 +1,238 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <lukasjonsson@outlook.de>
+Date: Mon, 20 Nov 2023 01:42:57 +0100
+Subject: [PATCH] FirstDraft CustomBlockBreakSpeed
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/block/CustomBlockBreakSpeed.java b/src/main/java/de/verdox/mccreativelab/block/CustomBlockBreakSpeed.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..d1a0745532c43102a953b1c5967a3cd25374f84e
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/block/CustomBlockBreakSpeed.java
+@@ -0,0 +1,125 @@
++package de.verdox.mccreativelab.block;
++
++import net.minecraft.core.BlockPos;
++import net.minecraft.core.Direction;
++import net.minecraft.network.protocol.game.ClientboundBlockDestructionPacket;
++import net.minecraft.network.protocol.game.ServerboundPlayerActionPacket;
++import net.minecraft.server.level.ServerLevel;
++import net.minecraft.server.level.ServerPlayer;
++import net.minecraft.world.InteractionHand;
++import net.minecraft.world.effect.MobEffects;
++import net.minecraft.world.entity.player.Player;
++import net.minecraft.world.item.ItemStack;
++import net.minecraft.world.item.enchantment.EnchantmentHelper;
++import net.minecraft.world.level.block.Block;
++import net.minecraft.world.level.block.state.BlockState;
++import org.bukkit.craftbukkit.CraftWorld;
++import org.bukkit.potion.PotionEffect;
++import org.bukkit.potion.PotionEffectType;
++
++import java.util.HashMap;
++import java.util.Map;
++
++public class CustomBlockBreakSpeed {
++    private static final Map<Player, BlockBreakProgress> map = new HashMap<>();
++    public static void startBlockBreakAction(ServerPlayer player, BlockPos pos, ServerboundPlayerActionPacket.Action action, Direction direction, int worldHeight) {
++        ServerLevel serverLevel = ((CraftWorld) player.getBukkitEntity().getWorld()).getHandle();
++        Block block = serverLevel.getBlockIfLoaded(pos);
++        System.out.println("Starting block break with hardness: "+block.defaultDestroyTime());
++        map.put(player, new BlockBreakProgress(player, serverLevel, pos, block.defaultDestroyTime()));
++    }
++
++    public static void stopBlockBreakAction(Player player, BlockPos pos, ServerboundPlayerActionPacket.Action action, Direction direction, int worldHeight) {
++        System.out.println("Stopping block break");
++        map.remove(player);
++    }
++
++    public static void stopAllBlockBreakActions(Player player) { //TODO BEIM BREAKEN DES BLOCKS AUCH TRIGGERN
++        System.out.println("Stopping block break");
++        map.remove(player);
++    }
++
++    public static void tick(ServerPlayer player) {
++        if(!map.containsKey(player))
++            return;
++        var data = map.get(player);
++        data.incrementTicks();
++        System.out.println("TICKING");
++    }
++
++    public static class BlockBreakProgress {
++        private final ServerPlayer serverPlayer;
++        private final ServerLevel serverLevel;
++        private final BlockPos blockPos;
++        private final float hardness;
++        private int ticksPassed;
++        private float damageTaken;
++        private int lastStage = -1;
++        private int destructionID;
++
++        public BlockBreakProgress(ServerPlayer serverPlayer, ServerLevel serverLevel, BlockPos blockPos, float hardness){
++            this.serverPlayer = serverPlayer;
++            this.serverLevel = serverLevel;
++            this.blockPos = blockPos;
++            this.hardness = hardness;
++        }
++
++        public void incrementTicks(){
++            ticksPassed++;
++            var totalTimeInTicks = calculateBreakTime();
++            damageTaken += (1f / totalTimeInTicks);
++            serverPlayer.getBukkitEntity().addPotionEffect(new PotionEffect(PotionEffectType.SLOW_DIGGING, 3, -1, false, false, false));
++
++            int stage = (int) (damageTaken * 10) - 1;
++            //if(stage == lastStage + 1) {
++                var packet = new ClientboundBlockDestructionPacket(serverPlayer.getId(), blockPos, stage);
++                serverPlayer.connection.send(packet);
++                lastStage = stage;
++            //}
++
++            if(stage == 9){
++                serverLevel.getWorld().getBlockAt(blockPos.getX(), blockPos.getY(), blockPos.getZ()).breakNaturally(serverPlayer.getBukkitEntity().getInventory().getItemInMainHand(), true, true);
++                stopAllBlockBreakActions(serverPlayer);
++            }
++        }
++
++        public BlockState getBlockState(){
++            return serverLevel.getBlockStateIfLoaded(blockPos);
++        }
++
++        public int calculateBreakTime() {
++            double multiplier = 1.0D;
++            ItemStack hand = serverPlayer.getItemInHand(InteractionHand.MAIN_HAND);
++            BlockState blockState = getBlockState();
++            float breakTime = hand.getDestroySpeed(blockState);
++
++            if(serverPlayer.isInWater() && EnchantmentHelper.hasAquaAffinity(serverPlayer))
++                multiplier /= 5.0D;
++            if(serverPlayer.activeEffects.containsKey(MobEffects.DIG_SPEED))
++                multiplier *= 0.2D * serverPlayer.getEffect(MobEffects.DIG_SPEED).getAmplifier() + 1.0D;
++            if(!serverPlayer.onGround())
++                multiplier /= 5.0D;
++
++
++
++/*            if (this.tools && block.isPreferredTool(hand)) {
++                multiplier = ToolCalc.getToolMultiplier(hand.getType(), block.getType());
++                if (this.efficiency && hand.getEnchantments().containsKey(Enchantment.DIG_SPEED))
++                    multiplier += (((Integer)hand.getEnchantments().get(Enchantment.DIG_SPEED)).intValue() );
++            }
++            if (!this.tools && this.efficiency && hand.getEnchantments().containsKey(Enchantment.DIG_SPEED))
++                multiplier += (((Integer)hand.getEnchantments().get(Enchantment.DIG_SPEED)).intValue() ^ 0x3);
++            if (this.air && !player.isOnGround())
++                multiplier /= 5.0D;
++            double newBreakTime = breakTime / 20.0D * 1.5D;
++            double damage = multiplier / newBreakTime;
++            if (this.tools && block.isPreferredTool(hand)) {
++                damage /= 30.0D;
++            } else {
++                damage /= 100.0D;
++            }*/
++/*            breakTime = (damage > 1.0D) ? 1 : (int)Math.ceil(1.0D / damage);*/
++            return 20 * 10;
++        }
++    }
++}
+diff --git a/src/main/java/net/minecraft/server/level/ServerPlayer.java b/src/main/java/net/minecraft/server/level/ServerPlayer.java
+index d4aec99cac3f83d764e21946cc904c00e084704e..fd6f51acf6505c2d5dcd6a5254c949094d9e497d 100644
+--- a/src/main/java/net/minecraft/server/level/ServerPlayer.java
++++ b/src/main/java/net/minecraft/server/level/ServerPlayer.java
+@@ -18,6 +18,8 @@ import java.util.Optional;
+ import java.util.OptionalInt;
+ import java.util.Set;
+ import javax.annotation.Nullable;
++
++import de.verdox.mccreativelab.block.CustomBlockBreakSpeed;
+ import net.minecraft.BlockUtil;
+ import net.minecraft.ChatFormatting;
+ import net.minecraft.CrashReport;
+@@ -754,6 +756,10 @@ public class ServerPlayer extends Player {
+         this.trackStartFallingPosition();
+         this.trackEnteredOrExitedLavaOnVehicle();
+         this.advancements.flushDirty(this);
++
++        // MCClab - start
++        CustomBlockBreakSpeed.tick(this);
++        // MCClab - end
+     }
+ 
+     public void doTick() {
+diff --git a/src/main/java/net/minecraft/server/level/ServerPlayerGameMode.java b/src/main/java/net/minecraft/server/level/ServerPlayerGameMode.java
+index b2c2bd5ec0afd479973f7237a5c610f21231c505..406f9cb93dd6331db342ea8d05563fc923afce88 100644
+--- a/src/main/java/net/minecraft/server/level/ServerPlayerGameMode.java
++++ b/src/main/java/net/minecraft/server/level/ServerPlayerGameMode.java
+@@ -3,6 +3,8 @@ package net.minecraft.server.level;
+ import com.mojang.logging.LogUtils;
+ import java.util.Objects;
+ import javax.annotation.Nullable;
++
++import de.verdox.mccreativelab.block.CustomBlockBreakSpeed;
+ import net.minecraft.advancements.CriteriaTriggers;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+@@ -31,7 +33,7 @@ import org.slf4j.Logger;
+ 
+ // CraftBukkit start
+ import java.util.ArrayList;
+-import net.minecraft.server.MinecraftServer;
++
+ import net.minecraft.server.network.ServerGamePacketListenerImpl;
+ import net.minecraft.world.level.block.Blocks;
+ import net.minecraft.world.level.block.CakeBlock;
+@@ -266,6 +268,10 @@ public class ServerPlayerGameMode {
+                     return;
+                 }
+ 
++                // MCCLab - start
++                CustomBlockBreakSpeed.startBlockBreakAction(player, pos, action, direction, worldHeight);
++                // MCCLab - end
++
+                 if (blockEvent.getInstaBreak()) {
+                     f = 2.0f;
+                 }
+@@ -308,6 +314,9 @@ public class ServerPlayerGameMode {
+                             this.delayedDestroyPos = pos;
+                             this.delayedTickStart = this.destroyProgressStart;
+                         }
++                        // MCCLab - start
++                        CustomBlockBreakSpeed.stopBlockBreakAction(player, pos, action, direction, worldHeight);
++                        // MCCLab - end
+                     }
+                 }
+ 
+@@ -326,6 +335,9 @@ public class ServerPlayerGameMode {
+                 this.debugLogging(pos, true, sequence, "aborted destroying");
+ 
+                 CraftEventFactory.callBlockDamageAbortEvent(this.player, pos, this.player.getInventory().getSelected()); // CraftBukkit
++                // MCCLab - start
++                CustomBlockBreakSpeed.stopBlockBreakAction(player, pos, action, direction, worldHeight);
++                // MCCLab - end
+             }
+ 
+         }
+diff --git a/src/main/java/net/minecraft/server/players/PlayerList.java b/src/main/java/net/minecraft/server/players/PlayerList.java
+index 48d1444fbad1c57738807d0128b94160a5a17a4d..b4bbf335dca576ed14923770fe12e20f059843bd 100644
+--- a/src/main/java/net/minecraft/server/players/PlayerList.java
++++ b/src/main/java/net/minecraft/server/players/PlayerList.java
+@@ -25,6 +25,8 @@ import java.util.UUID;
+ import java.util.function.Function;
+ import java.util.function.Predicate;
+ import javax.annotation.Nullable;
++
++import de.verdox.mccreativelab.block.CustomBlockBreakSpeed;
+ import net.minecraft.ChatFormatting;
+ import net.minecraft.FileUtil;
+ import net.minecraft.commands.CommandSourceStack;
+@@ -594,6 +596,10 @@ public abstract class PlayerList {
+         this.cserver.getPluginManager().callEvent(playerQuitEvent);
+         entityplayer.getBukkitEntity().disconnect(playerQuitEvent.getQuitMessage());
+ 
++        // MCCLab - start
++        CustomBlockBreakSpeed.stopAllBlockBreakActions(entityplayer);
++        // MCCLab - end
++
+         if (server.isSameThread()) entityplayer.doTick(); // SPIGOT-924 // Paper - don't tick during emergency shutdowns (Watchdog)
+         // CraftBukkit end
+ 

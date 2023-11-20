@@ -32,7 +32,7 @@ index 0000000000000000000000000000000000000000..9a8075af0052264b189c3e4478aa169a
 +     */
 +    void featureBlockGenerationCallback(FeatureType featureType, BlockVector blockPosition, WorldGenChunk worldGenChunk, BlockData generatedBlockData);
 +    record FeatureType(NamespacedKey namespacedKey){
-+        public static final FeatureType TREE_FEATURE = new FeatureType(NamespacedKey.minecraft("TreeFeature"));
-+        public static final FeatureType ORE_FEATURE = new FeatureType(NamespacedKey.minecraft("OreFeature"));
++        public static final FeatureType TREE_FEATURE = new FeatureType(NamespacedKey.minecraft("tree_feature"));
++        public static final FeatureType ORE_FEATURE = new FeatureType(NamespacedKey.minecraft("tree_feature"));
 +    }
 +}

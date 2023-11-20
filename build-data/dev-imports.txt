@@ -91,3 +91,4 @@ minecraft net.minecraft.world.level.block.WeatheringCopperFullBlock.java
 minecraft net.minecraft.world.level.block.TorchflowerCropBlock.java
 minecraft net.minecraft.world.level.block.StairBlock.java
 minecraft net.minecraft.world.level.block.BeetrootBlock.java
+minecraft net.minecraft.world.level.block.Blocks

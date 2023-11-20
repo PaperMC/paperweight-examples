@@ -1,0 +1,19 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <lukasjonsson@outlook.de>
+Date: Mon, 20 Nov 2023 01:48:41 +0100
+Subject: [PATCH] Fixing compilation bug in Blocks file
+
+
+diff --git a/src/main/java/net/minecraft/world/level/block/Blocks.java b/src/main/java/net/minecraft/world/level/block/Blocks.java
+index d5654cfe37bd82f1290b280990a8502432491ae1..2e5ccc9d36dcfcd34b3441a1e3129656503051e2 100644
+--- a/src/main/java/net/minecraft/world/level/block/Blocks.java
++++ b/src/main/java/net/minecraft/world/level/block/Blocks.java
+@@ -1160,7 +1160,7 @@ public class Blocks {
+     }
+ 
+     private static Boolean ocelotOrParrot(BlockState state, BlockGetter world, BlockPos pos, EntityType<?> type) {
+-        return (boolean)type == EntityType.OCELOT || type == EntityType.PARROT;
++        return type == EntityType.OCELOT || type == EntityType.PARROT;
+     }
+ 
+     private static BedBlock bed(DyeColor color) {

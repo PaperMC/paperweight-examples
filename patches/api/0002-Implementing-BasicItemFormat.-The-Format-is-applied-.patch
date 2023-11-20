@@ -39,7 +39,7 @@ index 0000000000000000000000000000000000000000..2df9f41bacaa197fdbadc3953915dfd5
 +    }
 +
 +    String randomSessionID = Integer.toHexString(ThreadLocalRandom.current().nextInt(1000000));
-+    NamespacedKey sessionIDKey = new NamespacedKey("MCCLab","sessionID");
++    NamespacedKey sessionIDKey = new NamespacedKey("mcclab","session_id");
 +    static boolean needsConversion(ItemStack stack){
 +        if(!stack.hasItemMeta())
 +            return true;
