@@ -91,4 +91,20 @@ minecraft net.minecraft.world.level.block.WeatheringCopperFullBlock.java
 minecraft net.minecraft.world.level.block.TorchflowerCropBlock.java
 minecraft net.minecraft.world.level.block.StairBlock.java
 minecraft net.minecraft.world.level.block.BeetrootBlock.java
-minecraft net.minecraft.world.level.block.Blocks
+
+minecraft net.minecraft.world.entity.ai.memory.MemoryModuleType
+
+minecraft net.minecraft.world.level.biome.TheEndBiomeSource.java
+minecraft net.minecraft.world.level.biome.OverworldBiomeBuilder.java
+minecraft net.minecraft.world.level.biome.MultiNoiseBiomeSourceParameterLists.java
+minecraft net.minecraft.world.level.biome.MultiNoiseBiomeSourceParameterList.java
+minecraft net.minecraft.world.level.biome.MultiNoiseBiomeSource.java
+minecraft net.minecraft.world.level.biome.MobSpawnSettings.java
+minecraft net.minecraft.world.level.biome.BiomeSpecialEffects.java
+minecraft net.minecraft.world.level.biome.Biomes.java
+minecraft net.minecraft.world.level.biome.BiomeGenerationSettings.java
+minecraft net.minecraft.world.level.biome.Biome.java
+minecraft net.minecraft.world.level.biome.AmbientParticleSettings.java
+minecraft net.minecraft.world.level.biome.AmbientMoodSettings.java
+minecraft net.minecraft.world.level.biome.AmbientAdditionsSettings.java
+minecraft net.minecraft.sounds.SoundEvent

@@ -1,0 +1,44 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <lukasjonsson@outlook.de>
+Date: Thu, 23 Nov 2023 00:41:02 +0100
+Subject: [PATCH] Adding Utility class for MCCreativeLab
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/CreativeLabImpl.java b/src/main/java/de/verdox/mccreativelab/CreativeLabImpl.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..863d73d799e9838534faea0254d5b37e7f7748cb
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/CreativeLabImpl.java
+@@ -0,0 +1,5 @@
++package de.verdox.mccreativelab;
++
++public final class CreativeLabImpl implements CreativeLab {
++
++}
+diff --git a/src/main/java/net/minecraft/server/Bootstrap.java b/src/main/java/net/minecraft/server/Bootstrap.java
+index df6752b5c77bc88a4fcf1ffe918b24d41cd30ad4..a1f8bf675a4ba45b8e5700c63c5091694ba507a2 100644
+--- a/src/main/java/net/minecraft/server/Bootstrap.java
++++ b/src/main/java/net/minecraft/server/Bootstrap.java
+@@ -33,8 +33,10 @@ import net.minecraft.world.level.block.ComposterBlock;
+ import net.minecraft.world.level.block.FireBlock;
+ import org.slf4j.Logger;
+ 
+-public class Bootstrap {
++import de.verdox.mccreativelab.CreativeLabImpl;
++import de.verdox.mccreativelab.MCCreativeLab;
+ 
++public class Bootstrap {
+     public static final PrintStream STDOUT = System.out;
+     private static volatile boolean isBootstrapped;
+     private static final Logger LOGGER = LogUtils.getLogger();
+@@ -64,6 +66,10 @@ public class Bootstrap {
+             Bootstrap.isBootstrapped = true;
+             Instant instant = Instant.now();
+ 
++            // MCCLab - start
++            MCCreativeLab.setCreativeLab(new CreativeLabImpl());
++            MinecraftServer.LOGGER.info("MCCreativeLab: initialized");
++            // MCCLab - end
+             if (BuiltInRegistries.REGISTRY.keySet().isEmpty()) {
+                 throw new IllegalStateException("Unable to load registries");
+             } else {

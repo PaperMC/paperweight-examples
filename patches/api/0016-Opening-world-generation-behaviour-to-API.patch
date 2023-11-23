@@ -6,7 +6,7 @@ Subject: [PATCH] Opening world generation behaviour to API
 
 diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/WorldGenerationBehaviour.java b/src/main/java/de/verdox/mccreativelab/behaviour/WorldGenerationBehaviour.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..9a8075af0052264b189c3e4478aa169a546f5d92
+index 0000000000000000000000000000000000000000..9faa684aab24020b3017adeb98fd04251c0e777f
 --- /dev/null
 +++ b/src/main/java/de/verdox/mccreativelab/behaviour/WorldGenerationBehaviour.java
 @@ -0,0 +1,26 @@

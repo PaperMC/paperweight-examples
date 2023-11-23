@@ -23,19 +23,19 @@ index 0000000000000000000000000000000000000000..c3a643ffe9fccb3587b7ce7b9a284f52
 +    MultiCustomBehaviour<Material, BlockBreakBehaviour> BLOCK_BREAK_BEHAVIOUR = new MultiCustomBehaviour<>("MCCLab - BlockBreakBehaviour");
 +
 +    /**
-+     * This method is called every time a player starts breaking a block.
-+     * It allows it to implement custom block hardness to customize gameplay.
++     * This method is called everytime a player starts breaking a block.
++     * It makes it able to implement custom block hardness to customize gameplay.
 +     * This method is potentially called very often.
-+     * We suggest you calculate and cache all values for a quick method call.
++     * We suggest you calculate all values and cache them for a quick method call.
 +     * @param player The player attempting to break the block
 +     * @param block The block that is broken
 +     * @return the block hardness
 +     */
 +    float calculateHardness(Player player, Block block);
 +
-+     /**
-+     * The Minecraft server calls this method to ask whether a block requires specific tools to drop from the loot table.
-+     * An example of this is stone needing pickaxes to drop cobblestone.
++    /**
++     * This method is called by the minecraft server to ask whether a certain block data requires specific tools to drop from the loot table.
++     * An example for this is stone needing pickaxes to drop cobblestone.
 +     * This method is not used to determine which tool is used.
 +     * @param blockData The block data
 +     * @return true if it requires special tools
@@ -43,7 +43,7 @@ index 0000000000000000000000000000000000000000..c3a643ffe9fccb3587b7ce7b9a284f52
 +    boolean requiresCorrectToolsForDrops(BlockData blockData);
 +
 +    /**
-+     * The Minecraft server calls this method to check whether a particular item stack is the correct tool for an item drop.
++     * This method is called by the minecraft server to check whether a particular item stack is the correct tool for an item drop.
 +     * @param toolAsItemstack The tool used to break the block
 +     * @param blockData The block data of the broken block
 +     * @return true if the tool is correct.
