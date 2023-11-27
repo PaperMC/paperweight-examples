@@ -14,7 +14,7 @@ index da524a71af74b02515b037f7fe09ba6988e2c8bf..293fdfee1c097c57c55b7fc8b5b9d925
  
 +    // MCCLab - start
 +    /**
-+     * Creates a tree at the given {@link Location} if the {@link BlockData} of the {@link Block} is of type {@link Sapling}
++     * Creates a tree at the given {@link Location} if the {@link BlockData} of the {@link Block} is of type {@link org.bukkit.block.data.type.Sapling}
 +     *
 +     * @param location Location to grow the tree
 +     * @return true if the tree was created successfully, otherwise false

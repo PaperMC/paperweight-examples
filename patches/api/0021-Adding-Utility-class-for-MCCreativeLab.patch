@@ -22,8 +22,8 @@ index 0000000000000000000000000000000000000000..7525b3d9ff338fba2b2c5c0f11bbb0d0
 @@ -0,0 +1,11 @@
 +package de.verdox.mccreativelab;
 +
-+public final class MCCreativeLab implements CreativeLab{
-+    public static CreativeLab creativeLab;
++public final class MCCreativeLab{
++    private static CreativeLab creativeLab;
 +    public static void setCreativeLab(CreativeLab creativeLab) {
 +        if(MCCreativeLab.creativeLab != null)
 +            throw new UnsupportedOperationException("Cannot redefine singleton CreativeLab");

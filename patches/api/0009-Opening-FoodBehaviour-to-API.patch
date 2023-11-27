@@ -60,14 +60,14 @@ index 0000000000000000000000000000000000000000..d0243b2c693413b5bb3db12035e29f1f
 +    int getMinimumFoodToRegenerate(Player player);
 +    /**
 +     * Gets the exhaustion over time rate in ticks
-+     * This is a custom feature. If the method returns <= -1 the feature won't be used.
++     * This is a custom feature. If the method returns an integer less or equal then -1 the feature won't be used.
 +     * @param player The player
 +     * @return the food level
 +     */
 +    int getExhaustionOverTimeRateInTicks(Player player);
 +    /**
 +     * Gets the exhaustion amount over time
-+     * This is a custom feature. If the method returns <= 0 the feature won't be used.
++     * * This is a custom feature. If the method returns an integer less or equal then 0 the feature won't be used.
 +     * @param player The player
 +     * @return the food level
 +     */

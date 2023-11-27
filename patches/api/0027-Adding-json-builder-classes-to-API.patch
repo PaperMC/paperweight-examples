@@ -1,0 +1,329 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <lukasjonsson@outlook.de>
+Date: Mon, 27 Nov 2023 19:21:33 +0100
+Subject: [PATCH] Adding json builder classes to API
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/gson/JsonArrayBuilder.java b/src/main/java/de/verdox/mccreativelab/gson/JsonArrayBuilder.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..ee79a87d51c351c62c103a4f594d4fd903b645c8
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/gson/JsonArrayBuilder.java
+@@ -0,0 +1,76 @@
++package de.verdox.mccreativelab.gson;
++
++import com.google.gson.JsonArray;
++
++import java.util.function.Consumer;
++
++public class JsonArrayBuilder extends JsonElementBuilder<JsonArray> {
++    protected JsonArrayBuilder(JsonArray element) {
++        super(element);
++    }
++
++    public JsonArrayBuilder add(Boolean value) {
++        element.add(value);
++        return this;
++    }
++
++    public JsonArrayBuilder add(Character value) {
++        element.add(value);
++        return this;
++    }
++
++    public JsonArrayBuilder add(Number value) {
++        element.add(value);
++        return this;
++    }
++
++    public JsonArrayBuilder add(String value) {
++        element.add(value);
++        return this;
++    }
++
++    public int length() {
++        return element.size();
++    }
++
++    public JsonArrayBuilder add(JsonElementBuilder<?> value) {
++        element.add(value.element);
++        return this;
++    }
++
++    public JsonArrayBuilder set(int index, JsonElementBuilder<?> value) {
++        element.set(index, value.element);
++        return this;
++    }
++
++    public JsonArrayBuilder remove(int index) {
++        element.remove(index);
++        return this;
++    }
++
++    public JsonArrayBuilder remove(JsonElementBuilder<?> value) {
++        element.remove(value.element);
++        return this;
++    }
++
++    public JsonElementBuilder<?> get(int index, Consumer<JsonElementBuilder<?>> consumer) {
++        consumer.accept(new JsonElementBuilder<>(element.get(index)));
++        return this;
++    }
++
++    public JsonArray build() {
++        return element;
++    }
++
++    public static JsonArrayBuilder create() {
++        return new JsonArrayBuilder(new JsonArray());
++    }
++
++    public static JsonArrayBuilder create(int capacity) {
++        return new JsonArrayBuilder(new JsonArray(capacity));
++    }
++
++    public static JsonArrayBuilder create(JsonArray jsonArray) {
++        return new JsonArrayBuilder(jsonArray);
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/gson/JsonElementBuilder.java b/src/main/java/de/verdox/mccreativelab/gson/JsonElementBuilder.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..ea1aa75f9b6cdd8fca341a6186937d577bdaa8ff
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/gson/JsonElementBuilder.java
+@@ -0,0 +1,23 @@
++package de.verdox.mccreativelab.gson;
++
++import com.google.gson.JsonElement;
++
++public class JsonElementBuilder<T extends JsonElement> {
++    protected final T element;
++
++    protected JsonElementBuilder(T element) {
++        this.element = element;
++    }
++
++    public JsonObjectBuilder getAsJsonObject() {
++        return new JsonObjectBuilder(element.getAsJsonObject());
++    }
++
++    public JsonArrayBuilder getAsJsonArray() {
++        return new JsonArrayBuilder(element.getAsJsonArray());
++    }
++
++    public JsonPrimitiveBuilder getAsJsonPrimitive() {
++        return new JsonPrimitiveBuilder(element.getAsJsonPrimitive());
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/gson/JsonObjectBuilder.java b/src/main/java/de/verdox/mccreativelab/gson/JsonObjectBuilder.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..fdccaec1c92090c0b596d6739b120cce2f4c01a6
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/gson/JsonObjectBuilder.java
+@@ -0,0 +1,109 @@
++package de.verdox.mccreativelab.gson;
++
++import com.google.gson.JsonObject;
++import com.google.gson.JsonPrimitive;
++
++import java.util.function.Consumer;
++import java.util.function.Supplier;
++
++public class JsonObjectBuilder extends JsonElementBuilder<JsonObject> {
++    public JsonObjectBuilder(JsonObject element) {
++        super(element);
++    }
++
++    public JsonObjectBuilder add(String property, JsonElementBuilder<?> builder) {
++        element.add(property, builder.element);
++        return this;
++    }
++
++    public JsonObjectBuilder addProperty(String property, String value) {
++        element.add(property, new JsonPrimitive(value));
++        return this;
++    }
++
++    public JsonObjectBuilder add(String property, String value) {
++        return addProperty(property, value);
++    }
++
++    public JsonObjectBuilder addProperty(String property, Boolean value) {
++        element.add(property, new JsonPrimitive(value));
++        return this;
++    }
++
++    public JsonObjectBuilder add(String property, Boolean value) {
++        return addProperty(property, value);
++    }
++
++    public JsonObjectBuilder addProperty(String property, Number value) {
++        element.add(property, new JsonPrimitive(value));
++        return this;
++    }
++
++    public JsonObjectBuilder add(String property, Number value) {
++        return addProperty(property, value);
++    }
++
++    public JsonObjectBuilder addProperty(String property, Character value) {
++        element.add(property, new JsonPrimitive(value));
++        return this;
++    }
++
++    public JsonObjectBuilder add(String property, Character value) {
++        return addProperty(property, value);
++    }
++
++    public JsonObjectBuilder remove(String property) {
++        element.remove(property);
++        return this;
++    }
++
++    public JsonElementBuilder<?> get(String property, Consumer<JsonElementBuilder<?>> consumer) {
++        consumer.accept(new JsonElementBuilder<>(element.get(property)));
++        return this;
++    }
++
++    public <T extends JsonElementBuilder<?>> T getOrCreate(String property, Supplier<T> supplier, Consumer<T> consumer) {
++        if (!element.has(property))
++            add(property, supplier.get());
++        return (T) get(property, (Consumer<JsonElementBuilder<?>>) consumer);
++    }
++
++    public JsonObjectBuilder getOrCreateArray(String property, Consumer<JsonArrayBuilder> consumer) {
++        if (!element.has(property))
++            add(property, JsonArrayBuilder.create());
++        return getAsJsonArray(property, consumer);
++    }
++
++    public JsonObjectBuilder getAsJsonPrimitive(String property, Consumer<JsonPrimitiveBuilder> consumer) {
++        consumer.accept(new JsonPrimitiveBuilder(element.get(property).getAsJsonPrimitive()));
++        return this;
++    }
++
++    public JsonObjectBuilder getAsJsonArray(String property, Consumer<JsonArrayBuilder> consumer) {
++        consumer.accept(new JsonArrayBuilder(element.get(property).getAsJsonArray()));
++        return this;
++    }
++
++    public JsonObjectBuilder getAsJsonObject(String property, Consumer<JsonObjectBuilder> consumer) {
++        consumer.accept(new JsonObjectBuilder(element.get(property).getAsJsonObject()));
++        return this;
++    }
++
++    public JsonObjectBuilder getOrCreateJsonObject(String property, Consumer<JsonObjectBuilder> consumer) {
++        if (!element.has(property))
++            add(property, JsonObjectBuilder.create());
++        return getAsJsonObject(property, consumer);
++    }
++
++    public JsonObject build() {
++        return element;
++    }
++
++    public static JsonObjectBuilder create() {
++        return new JsonObjectBuilder(new JsonObject());
++    }
++
++    public static JsonObjectBuilder create(JsonObject jsonObject) {
++        return new JsonObjectBuilder(jsonObject);
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/gson/JsonPrimitiveBuilder.java b/src/main/java/de/verdox/mccreativelab/gson/JsonPrimitiveBuilder.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..0aac33d57af59e39929f90953b7006693c3d6e19
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/gson/JsonPrimitiveBuilder.java
+@@ -0,0 +1,25 @@
++package de.verdox.mccreativelab.gson;
++
++import com.google.gson.JsonPrimitive;
++
++public class JsonPrimitiveBuilder extends JsonElementBuilder<JsonPrimitive> {
++    protected JsonPrimitiveBuilder(JsonPrimitive element) {
++        super(element);
++    }
++
++    public static JsonPrimitiveBuilder create(Character character) {
++        return new JsonPrimitiveBuilder(new JsonPrimitive(character));
++    }
++
++    public static JsonPrimitiveBuilder create(Number number) {
++        return new JsonPrimitiveBuilder(new JsonPrimitive(number));
++    }
++
++    public static JsonPrimitiveBuilder create(String value) {
++        return new JsonPrimitiveBuilder(new JsonPrimitive(value));
++    }
++
++    public static JsonPrimitiveBuilder create(Boolean value) {
++        return new JsonPrimitiveBuilder(new JsonPrimitive(value));
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/util/JsonUtil.java b/src/main/java/de/verdox/mccreativelab/util/JsonUtil.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..04d1aea4d899203d7c14edf773912b1efeda5638
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/util/JsonUtil.java
+@@ -0,0 +1,60 @@
++package de.verdox.mccreativelab.util;
++
++import com.google.gson.Gson;
++import com.google.gson.JsonObject;
++
++import java.io.*;
++import java.nio.file.Path;
++import java.util.Objects;
++
++public class JsonUtil {
++    private static final Gson GSON_INSTANCE = new Gson();
++
++    public static JsonObject readJsonFromFile(File file) {
++        Objects.requireNonNull(file);
++        if (!file.exists())
++            return new JsonObject();
++        JsonObject jsonObject;
++        try (Reader reader = new FileReader(file)) {
++            jsonObject = GSON_INSTANCE.fromJson(reader, JsonObject.class);
++        } catch (IOException e) {
++            throw new RuntimeException(e);
++        }
++        return jsonObject;
++    }
++
++    public static JsonObject readJsonInputStream(InputStream inputStream) {
++        Objects.requireNonNull(inputStream);
++        JsonObject jsonObject;
++        try (Reader reader = new InputStreamReader(inputStream)) {
++            jsonObject = GSON_INSTANCE.fromJson(reader, JsonObject.class);
++        } catch (IOException e) {
++            throw new RuntimeException(e);
++        }
++        return jsonObject;
++    }
++
++    public static void createFolderStructure(Path path) {
++        if (path.toFile().getParentFile() != null)
++            path.toFile().getParentFile().mkdirs();
++    }
++
++    public static void writeJsonObjectToFile(JsonObject jsonObject, File file) {
++        Objects.requireNonNull(jsonObject);
++        Objects.requireNonNull(file);
++        if (file.getParentFile() != null)
++            file.getParentFile().mkdirs();
++        try {
++            file.createNewFile();
++        } catch (IOException e) {
++            throw new RuntimeException(e);
++        }
++
++        try (Writer fileWriter = new FileWriter(file)) {
++            GSON_INSTANCE.toJson(jsonObject, fileWriter);
++            fileWriter.flush();
++        } catch (IOException e) {
++            throw new RuntimeException(e);
++        }
++    }
++}

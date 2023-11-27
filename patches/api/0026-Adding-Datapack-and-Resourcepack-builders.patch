@@ -1,0 +1,3983 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <lukasjonsson@outlook.de>
+Date: Mon, 27 Nov 2023 19:20:05 +0100
+Subject: [PATCH] Adding Datapack and Resourcepack builders. Including:  >
+ CustomItemTextureData  > CustomHUD to display textures in player screens
+ using shaders
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/CreativeLab.java b/src/main/java/de/verdox/mccreativelab/CreativeLab.java
+index 23b191be5376ad1dc3cf8ab4f2e82aa471bf98a3..231a30c85c4be0f5b951ec1cd8b91748ccd98339 100644
+--- a/src/main/java/de/verdox/mccreativelab/CreativeLab.java
++++ b/src/main/java/de/verdox/mccreativelab/CreativeLab.java
+@@ -1,4 +1,9 @@
+ package de.verdox.mccreativelab;
+ 
++import de.verdox.mccreativelab.resource.resourcepack.renderer.element.HudRenderer;
++import org.bukkit.datafactory.BukkitDataFactory;
++
+ public interface CreativeLab {
++    HudRenderer getHudRenderer();
++    BukkitDataFactory getDataFactory();
+ }
+diff --git a/src/main/java/de/verdox/mccreativelab/MCCreativeLab.java b/src/main/java/de/verdox/mccreativelab/MCCreativeLab.java
+index 7525b3d9ff338fba2b2c5c0f11bbb0d0a7d9b3e5..a31f6824e7f12e4115de2a1c72216763e191e221 100644
+--- a/src/main/java/de/verdox/mccreativelab/MCCreativeLab.java
++++ b/src/main/java/de/verdox/mccreativelab/MCCreativeLab.java
+@@ -1,4 +1,6 @@
+ package de.verdox.mccreativelab;
++import de.verdox.mccreativelab.resource.resourcepack.renderer.element.HudRenderer;
++import org.bukkit.datafactory.BukkitDataFactory;
+ 
+ public final class MCCreativeLab implements CreativeLab{
+     public static CreativeLab creativeLab;
+@@ -8,4 +10,12 @@ public final class MCCreativeLab implements CreativeLab{
+ 
+         MCCreativeLab.creativeLab = creativeLab;
+     }
++
++    public static HudRenderer getHudRenderer() {
++        return creativeLab.getHudRenderer();
++    }
++
++    public static BukkitDataFactory getDataFactory(){
++        return creativeLab.getDataFactory();
++    }
+ }
+diff --git a/src/main/java/de/verdox/mccreativelab/resource/AbstractResource.java b/src/main/java/de/verdox/mccreativelab/resource/AbstractResource.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..ba6cbf1d93ab1a971a8fec86aec3dc98cf58b97f
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/resource/AbstractResource.java
+@@ -0,0 +1,16 @@
++package de.verdox.mccreativelab.resource;
++
++import org.bukkit.NamespacedKey;
++
++public abstract class AbstractResource<C extends CustomPack<C>> implements Resource<C> {
++    private final NamespacedKey namespacedKey;
++
++    public AbstractResource(NamespacedKey namespacedKey) {
++        this.namespacedKey = namespacedKey;
++    }
++
++    @Override
++    public final NamespacedKey key() {
++        return namespacedKey;
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/resource/Asset.java b/src/main/java/de/verdox/mccreativelab/resource/Asset.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..e380e45fd94f51ae3c1c8b6c4fefb19f707a5bdb
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/resource/Asset.java
+@@ -0,0 +1,72 @@
++package de.verdox.mccreativelab.resource;
++
++import org.bukkit.NamespacedKey;
++
++import javax.annotation.Nullable;
++import java.io.*;
++import java.nio.file.Files;
++import java.nio.file.Path;
++import java.nio.file.StandardCopyOption;
++import java.util.function.Consumer;
++import java.util.function.Supplier;
++
++public record Asset<C extends CustomPack<C>>(Supplier<InputStream> assetInputStream, @Nullable Consumer<File> installationCallback) {
++    public Asset(Supplier<InputStream> assetInputStream) {
++        this(assetInputStream, null);
++    }
++
++    public Asset(File assetFile,  @Nullable Consumer<File> installationCallback) {
++        this(() -> {
++            try {
++                return new FileInputStream(assetFile);
++            } catch (FileNotFoundException e) {
++                throw new RuntimeException(e);
++            }
++        }, installationCallback);
++    }
++
++    public Asset(File assetFile){
++        this(assetFile, null);
++    }
++
++    public Asset<C> withCallback(@org.jetbrains.annotations.Nullable Consumer<File> installCallback) {
++        return new Asset<>(assetInputStream, installCallback);
++    }
++
++    public boolean isInputStreamValid() {
++        if (assetInputStream == null || assetInputStream.get() == null)
++            return false;
++        try (InputStream stream = assetInputStream.get()) {
++            return stream != null;
++        } catch (IOException e) {
++            e.printStackTrace();
++            return false;
++        }
++    }
++
++    public File installAsset(C customPack, NamespacedKey namespacedKey, AssetType<C> assetType, String fileEnding) throws IOException {
++        if(!fileEnding.contains("."))
++            fileEnding = "."+fileEnding;
++        if (!isInputStreamValid())
++            throw new IllegalStateException("InputStream of asset is not valid");
++        try (InputStream stream = assetInputStream.get()) {
++
++            if (stream == null)
++                return null;
++
++            AssetPath savePath = getPathRelativeToPack(customPack, namespacedKey, assetType).withNewParentPath(customPack.getPathToSavePackDataTo());
++            savePath.toPath().getParent().toFile().mkdirs();
++            Files.copy(stream, Path.of(savePath.toPath() + fileEnding), StandardCopyOption.REPLACE_EXISTING);
++            if (installationCallback != null)
++                installationCallback.accept(savePath.toPath().toFile());
++            return Path.of(savePath.toPath() + fileEnding).toFile();
++        }
++    }
++
++    public static<C extends CustomPack<C>> AssetPath getPathRelativeToPack(C customPack, NamespacedKey namespacedKey, AssetType<C> assetType){
++        return AssetPath.buildPath(customPack.mainFolder())
++            .concatPath(namespacedKey.namespace())
++            .concatPath(assetType.resourceTypePath())
++            .concatPath(namespacedKey.getKey());
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/resource/AssetPath.java b/src/main/java/de/verdox/mccreativelab/resource/AssetPath.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..95cf338e5dfeb0e4e0a6c117f15ab6031fdddf23
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/resource/AssetPath.java
+@@ -0,0 +1,81 @@
++package de.verdox.mccreativelab.resource;
++
++import javax.annotation.Nullable;
++import java.io.InputStream;
++import java.nio.file.Path;
++
++public interface AssetPath {
++    /**
++     * Returns the full path of this asset
++     * @return The path
++     */
++    Path toPath();
++
++    /**
++     * Returns the parent path of this asset
++     * @return The parent path
++     */
++    AssetPath getParentPath();
++
++    /**
++     * Returns the path as array of strings
++     * @return The array
++     */
++    String[] getPath();
++
++    /**
++     * Returns the file ending of this asset if one was provided.
++     * @return The file ending if this path points to a file.
++     * If this path points to a directory this method returns null.
++     */
++    @Nullable
++    String getFileEndingIfAvailable();
++
++    /**
++     * Returns a path but with a new parent
++     * @param parentPath The parent
++     * @return The new path
++     */
++    AssetPath withNewParentPath(AssetPath parentPath);
++
++    /**
++     * Returns a path but with a new parent
++     * @param parentPath The parent
++     * @return The new path
++     */
++    default AssetPath withNewParentPath(String... parentPath){
++        return withNewParentPath(buildPath(parentPath));
++    }
++
++    /**
++     * Returns a new path with another path concatenated to its end
++     * @param concat The other path
++     * @return The new path
++     */
++    default AssetPath concatPath(String... concat){
++        return withNewParentPath(buildPath(concat));
++    }
++    /**
++     * Returns a new path with another path concatenated to its end
++     * @param concat The other path
++     * @return The new path
++     */
++    AssetPath concatPath(AssetPath concat);
++
++    /**
++     * Tries to get data from this asset path from the projects resources
++     * @return The InputStream
++     */
++    @Nullable
++    default InputStream asResourceStream() {
++        return getClass().getClassLoader().getResourceAsStream(toPath().toString());
++    }
++
++    static AssetPath buildPath(String... array) {
++        return buildPath(null, array);
++    }
++
++    static AssetPath buildPath(AssetPath parent, String... array) {
++        return new AssetPathImpl(parent, array);
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/resource/AssetPathImpl.java b/src/main/java/de/verdox/mccreativelab/resource/AssetPathImpl.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..7467b53304e605d9f5161fd8e4f9972e4a63854c
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/resource/AssetPathImpl.java
+@@ -0,0 +1,96 @@
++package de.verdox.mccreativelab.resource;
++
++import org.codehaus.plexus.util.FileUtils;
++import org.jetbrains.annotations.Nullable;
++
++import java.io.File;
++import java.nio.file.Path;
++import java.util.ArrayList;
++import java.util.Arrays;
++import java.util.List;
++import java.util.stream.Stream;
++
++public class AssetPathImpl implements AssetPath {
++    private final AssetPath parentPath;
++    private final String[] path;
++    private final String[] fullPath;
++
++    AssetPathImpl(AssetPath parentPath, String... path) {
++        this.parentPath = parentPath;
++        this.path = splitFileSeperators(path);
++        if (this.parentPath != null) {
++            fullPath = Stream.concat(Arrays.stream(parentPath.getPath()), Arrays.stream(this.path))
++                             .toArray(String[]::new);
++        } else
++            fullPath = this.path;
++    }
++
++    @Override
++    public Path toPath() {
++        if (parentPath == null)
++            return Path.of(String.join(File.separator, path));
++        else
++            return Path.of(parentPath.toPath() + File.separator + String.join(File.separator, path));
++    }
++
++    @Override
++    public AssetPath getParentPath() {
++        return parentPath;
++    }
++
++    @Override
++    public String[] getPath() {
++        return Arrays.copyOf(fullPath, fullPath.length);
++    }
++
++    @Nullable
++    @Override
++    public String getFileEndingIfAvailable() {
++        String extension = FileUtils.extension(fullPath[fullPath.length-1]);
++        return extension.equals("") ? null : extension;
++    }
++
++    @Override
++    public String toString() {
++        return toPath().toString();
++    }
++
++    @Override
++    public AssetPath withNewParentPath(AssetPath parentPath) {
++        return new AssetPathImpl(parentPath, fullPath);
++    }
++
++    @Override
++    public AssetPath concatPath(String... concat) {
++        var newPath = Arrays.copyOf(path, path.length + concat.length);
++        if (newPath.length - path.length >= 0)
++            System.arraycopy(concat, 0, newPath, path.length, newPath.length - path.length);
++        return new AssetPathImpl(parentPath, newPath);
++    }
++
++    @Override
++    public AssetPath concatPath(AssetPath concat) {
++        return concatPath(concat.getPath());
++    }
++
++    private static String[] splitFileSeperators(String[] inputArray) {
++        // Neue Liste für das Ergebnis erstellen
++        List<String> resultList = new ArrayList<>();
++
++        // Durch jedes Element im Eingabe-Array iterieren
++        for (String element : inputArray) {
++            // Überprüfen, ob der Dateiseparator im String enthalten ist
++            if (element.contains("/")) {
++                // Wenn ja, den String nach dem Dateiseparator aufteilen und zur Liste hinzufügen
++                String[] parts = element.split("/");
++                resultList.addAll(Arrays.asList(parts));
++            } else {
++                // Andernfalls das Element einfach zur Liste hinzufügen
++                resultList.add(element);
++            }
++        }
++
++        // Liste in ein Array umwandeln und zurückgeben
++        return resultList.toArray(new String[0]);
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/resource/AssetType.java b/src/main/java/de/verdox/mccreativelab/resource/AssetType.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..db068d05fd6292b6bb2f06bfe8a6a06f4f6de190
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/resource/AssetType.java
+@@ -0,0 +1,4 @@
++package de.verdox.mccreativelab.resource;
++
++public record AssetType<C extends CustomPack<C>> (AssetPath resourceTypePath) {
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/resource/CustomPack.java b/src/main/java/de/verdox/mccreativelab/resource/CustomPack.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..71595d1fc72d8739d1ca4faeb7f839c293e3915a
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/resource/CustomPack.java
+@@ -0,0 +1,71 @@
++package de.verdox.mccreativelab.resource;
++
++import java.io.File;
++import java.io.IOException;
++import java.util.HashSet;
++import java.util.Set;
++
++public abstract class CustomPack<C extends CustomPack<C>> {
++    protected final String packName;
++    protected final int packFormat;
++    protected final String description;
++    protected final AssetPath savePath;
++    protected final AssetPath pathToSavePackDataTo;
++    private final Set<Resource<C>> resourceSet = new HashSet<>();
++    private boolean wasModified = false;
++
++    public CustomPack(String packName, int packFormat, String description, AssetPath savePath){
++        this.packName = packName;
++        this.packFormat = packFormat;
++        this.description = description;
++        this.savePath = savePath;
++        this.pathToSavePackDataTo = AssetPath.buildPath(packName).withNewParentPath(savePath);
++    }
++    public void clearResources(){
++        resourceSet.clear();
++    }
++    public File installPack(){
++        createDescriptionFile();
++
++        for (Resource<C> cResource : resourceSet) {
++            try {
++                cResource.installToDataPack((C) this);
++            } catch (IOException e) {
++                throw new RuntimeException(e);
++            }
++        }
++        return pathToSavePackDataTo.toPath().toFile();
++    }
++
++    public boolean wasModified() {
++        return wasModified;
++    }
++
++    public void register(Resource<C> resource){
++        wasModified = true;
++        resourceSet.add(resource);
++    }
++    protected abstract void createDescriptionFile();
++
++    public abstract String mainFolder();
++
++    public String getPackName() {
++        return packName;
++    }
++
++    public int getPackFormat() {
++        return packFormat;
++    }
++
++    public String getDescription() {
++        return description;
++    }
++
++    public AssetPath getSavePath() {
++        return savePath;
++    }
++
++    public AssetPath getPathToSavePackDataTo() {
++        return pathToSavePackDataTo;
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/resource/Resource.java b/src/main/java/de/verdox/mccreativelab/resource/Resource.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..a8cd7dd725593e7f92d13fbde35dd6d31135d6c2
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/resource/Resource.java
+@@ -0,0 +1,19 @@
++package de.verdox.mccreativelab.resource;
++
++import org.bukkit.NamespacedKey;
++
++import java.io.IOException;
++
++/**
++ * Represents a resource in a custom pack.
++ * @param <C> The pack type
++ */
++public interface Resource<C extends CustomPack<C>> {
++    /**
++     * The resource key of this resource
++     * @return The key
++     */
++    NamespacedKey key();
++
++    void installToDataPack(C customPack) throws IOException;
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/resource/datapack/CustomDataPack.java b/src/main/java/de/verdox/mccreativelab/resource/datapack/CustomDataPack.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..589dcb2cfd7fba4d596c6f3e253fc4a82b507522
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/resource/datapack/CustomDataPack.java
+@@ -0,0 +1,20 @@
++package de.verdox.mccreativelab.resource.datapack;
++
++import de.verdox.mccreativelab.resource.CustomPack;
++import de.verdox.mccreativelab.resource.AssetPath;
++
++public class CustomDataPack extends CustomPack<CustomDataPack> {
++    public CustomDataPack(String packName, int packFormat, String description, AssetPath savePath) {
++        super(packName, packFormat, description, savePath);
++    }
++
++    @Override
++    public void createDescriptionFile() {
++
++    }
++
++    @Override
++    public String mainFolder() {
++        return "data";
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/resource/datapack/DataPackResource.java b/src/main/java/de/verdox/mccreativelab/resource/datapack/DataPackResource.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..a567b1e9170c2a013a00f30d70ae7e96c16995c9
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/resource/datapack/DataPackResource.java
+@@ -0,0 +1,10 @@
++package de.verdox.mccreativelab.resource.datapack;
++
++import de.verdox.mccreativelab.resource.AbstractResource;
++import org.bukkit.NamespacedKey;
++
++public abstract class DataPackResource extends AbstractResource<CustomDataPack> {
++    public DataPackResource(NamespacedKey namespacedKey) {
++        super(namespacedKey);
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/resource/resourcepack/CustomResourcePack.java b/src/main/java/de/verdox/mccreativelab/resource/resourcepack/CustomResourcePack.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..55e5b8ff2d0c5757b67bf236fccef98aa12f896f
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/resource/resourcepack/CustomResourcePack.java
+@@ -0,0 +1,33 @@
++package de.verdox.mccreativelab.resource.resourcepack;
++
++import de.verdox.mccreativelab.gson.JsonObjectBuilder;
++import de.verdox.mccreativelab.util.JsonUtil;
++import de.verdox.mccreativelab.resource.CustomPack;
++import de.verdox.mccreativelab.resource.AssetPath;
++
++public class CustomResourcePack extends CustomPack<CustomResourcePack> {
++    public CustomResourcePack(String packName, int packFormat, String description, AssetPath savePath) {
++        super(packName, packFormat, description, savePath);
++    }
++
++    @Override
++    public void createDescriptionFile() {
++        var languagesJson = JsonObjectBuilder.create();
++
++        //TODO Languages
++
++        var mcMetaPreset = JsonObjectBuilder.create().add("language", languagesJson).build();
++
++        JsonObjectBuilder.create(mcMetaPreset).add("pack",
++            JsonObjectBuilder.create()
++                             .add("pack_format", packFormat)
++                             .add("description", description)
++        );
++        JsonUtil.writeJsonObjectToFile(mcMetaPreset, pathToSavePackDataTo.concatPath("pack.mcmeta").toPath().toFile());
++    }
++
++    @Override
++    public String mainFolder() {
++        return "assets";
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/resource/resourcepack/ResourcePackAssetTypes.java b/src/main/java/de/verdox/mccreativelab/resource/resourcepack/ResourcePackAssetTypes.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..a1d8650212dacf41a6b7b51b894dbd0f4a30c9d2
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/resource/resourcepack/ResourcePackAssetTypes.java
+@@ -0,0 +1,44 @@
++package de.verdox.mccreativelab.resource.resourcepack;
++
++import de.verdox.mccreativelab.resource.AssetType;
++import de.verdox.mccreativelab.resource.AssetPath;
++
++public class ResourcePackAssetTypes {
++    /**
++     * Used to define BlockState Textures
++     */
++    public static final AssetType<CustomResourcePack> BLOCK_STATES = new AssetType<>(AssetPath.buildPath("blockstates"));
++    /**
++     * Used to define fonts
++     */
++    public static final AssetType<CustomResourcePack> FONT = new AssetType<>(AssetPath.buildPath("font"));
++    /**
++     * Used to define languages
++     */
++    public static final AssetType<CustomResourcePack> LANG = new AssetType<>(AssetPath.buildPath("lang"));
++    /**
++     * Used to define block and item models
++     */
++    public static final AssetType<CustomResourcePack> MODELS = new AssetType<>(AssetPath.buildPath("models"));
++    /**
++     * Used to store sound files
++     */
++    public static final AssetType<CustomResourcePack> SOUNDS = new AssetType<>(AssetPath.buildPath("sounds"));
++    /**
++     * Used to manipulate minecraft internal shaders
++     * By now you can't add your own shaders
++     */
++    public static final AssetType<CustomResourcePack> SHADERS = new AssetType<>(AssetPath.buildPath("shaders"));
++    /**
++     * Contains end.txt and splahes.txt
++     */
++    public static final AssetType<CustomResourcePack> TEXTS = new AssetType<>(AssetPath.buildPath("texts"));
++    /**
++     * Contains all textures
++     */
++    public static final AssetType<CustomResourcePack> TEXTURES = new AssetType<>(AssetPath.buildPath("textures"));
++    /**
++     * A global sound file for this namespace that defines all sounds included in the pack
++     */
++    public static final AssetType<CustomResourcePack> NAMESPACE_SOUND_FILE = new AssetType<>(AssetPath.buildPath("sounds.json"));
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/resource/resourcepack/ResourcePackResource.java b/src/main/java/de/verdox/mccreativelab/resource/resourcepack/ResourcePackResource.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..3048db2f5a0f4df5bee346362bd4abaf2aa00dfa
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/resource/resourcepack/ResourcePackResource.java
+@@ -0,0 +1,10 @@
++package de.verdox.mccreativelab.resource.resourcepack;
++
++import de.verdox.mccreativelab.resource.AbstractResource;
++import org.bukkit.NamespacedKey;
++
++public abstract class ResourcePackResource extends AbstractResource<CustomResourcePack> {
++    public ResourcePackResource(NamespacedKey namespacedKey) {
++        super(namespacedKey);
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/resource/resourcepack/renderer/ActiveHud.java b/src/main/java/de/verdox/mccreativelab/resource/resourcepack/renderer/ActiveHud.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..e09367fd63a86ae307e7052923356207e31b26a2
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/resource/resourcepack/renderer/ActiveHud.java
+@@ -0,0 +1,98 @@
++package de.verdox.mccreativelab.resource.resourcepack.renderer;
++
++import de.verdox.mccreativelab.MCCreativeLab;
++import de.verdox.mccreativelab.resource.resourcepack.types.CustomHud;
++import net.kyori.adventure.text.Component;
++import org.bukkit.entity.Player;
++
++import java.util.HashMap;
++import java.util.LinkedHashMap;
++import java.util.LinkedList;
++import java.util.Map;
++import java.util.function.Consumer;
++import java.util.function.Function;
++
++public class ActiveHud {
++    private final Map<String, HudElement.Rendered<?>> renderedElements = new LinkedHashMap<>();
++    private final Map<HudElement, HudElement.Rendered<?>> hudElementToRenderedElementMapping = new HashMap<>();
++    private final Player player;
++    private final CustomHud customHud;
++    private Component lastRendered;
++    private boolean needsUpdate = true;
++
++    public ActiveHud(Player player, CustomHud customHud){
++        this.player = player;
++        this.customHud = customHud;
++        customHud.getElements().forEach((s, hudElement) -> registerElement(s, hudElement, hudElement.toRenderedElement()));
++    }
++
++    public void hideAll() {
++        renderedElements.forEach((s, renderedElement) -> renderedElement.setVisible(false));
++        forceUpdate();
++        player.sendActionBar(Component.empty());
++    }
++
++    public void showAll() {
++        renderedElements.forEach((s, renderedElement) -> renderedElement.setVisible(true));
++        forceUpdate();
++    }
++
++    public void forceUpdate() {
++        this.needsUpdate = true;
++        if(player == null)
++            return;
++        if (MCCreativeLab.getHudRenderer().getActiveHud(player, getCustomHud()) != null)
++            MCCreativeLab.getHudRenderer().forceUpdate(player);
++    }
++
++    public CustomHud getCustomHud() {
++        return customHud;
++    }
++
++    public Component render() {
++        if (needsUpdate) {
++            Component component = Component.empty();
++
++            var renderingOrder = new LinkedList<>(renderedElements.values());
++
++            for (HudElement.Rendered<?> element : renderingOrder) {
++                // Last Element does not need any spacing
++                component = component.append(element.render(customHud));
++            }
++
++
++            lastRendered = component;
++            needsUpdate = false;
++        }
++        return lastRendered;
++    }
++
++    public <T extends HudElement.Rendered<?>, R> boolean executeOnElement(String id, Class<? extends T> type, Consumer<T> execution) {
++        var element = renderedElements.getOrDefault(id, null);
++        if (element != null && type.isAssignableFrom(element.getClass())) {
++            element.setVisible(true);
++            execution.accept(type.cast(element));
++            forceUpdate();
++            return true;
++        }
++        return false;
++    }
++
++    public <T extends HudElement.Rendered<?>, R> R readOnElementOrDefault(String id, Class<? extends T> type, Function<T,R> execution, R defaultValue){
++        var element = renderedElements.getOrDefault(id, null);
++        if (element != null && type.isAssignableFrom(element.getClass())) {
++            element.setVisible(true);
++            return execution.apply(type.cast(element));
++        }
++        return defaultValue;
++    }
++
++    private void registerElement(String id, HudElement hudElement, HudElement.Rendered<?> renderedElement) {
++        if (renderedElements.containsKey(id))
++            throw new IllegalArgumentException("Id " + id + " already registered in active hud " + customHud.key());
++        if (hudElementToRenderedElementMapping.containsKey(hudElement))
++            throw new IllegalArgumentException("Hud element " + hudElement + " already registered in active hud for " + customHud.key());
++        this.renderedElements.put(id, renderedElement);
++        this.hudElementToRenderedElementMapping.put(hudElement, renderedElement);
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/resource/resourcepack/renderer/HudElement.java b/src/main/java/de/verdox/mccreativelab/resource/resourcepack/renderer/HudElement.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..93d677ffb93990385b06388de7dd7f122e476533
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/resource/resourcepack/renderer/HudElement.java
+@@ -0,0 +1,40 @@
++package de.verdox.mccreativelab.resource.resourcepack.renderer;
++
++import de.verdox.mccreativelab.resource.resourcepack.types.CustomHud;
++import net.kyori.adventure.text.Component;
++
++public interface HudElement {
++    ScreenPosition screenPosition();
++    Rendered<?> toRenderedElement();
++
++    abstract class Rendered<H extends HudElement> {
++        private boolean visible;
++        private final H hudElement;
++
++        public Rendered(H hudElement){
++            this.hudElement = hudElement;
++        }
++
++        public H getHudElement() {
++            return hudElement;
++        }
++
++        public final Component render(CustomHud customHud) {
++            if (!isVisible())
++                return Component.empty();
++            return doRendering(customHud);
++        }
++
++
++
++        public final void setVisible(boolean visible) {
++            this.visible = visible;
++            onVisibilityChange(visible);
++        }
++        public final boolean isVisible() {
++            return visible;
++        }
++        protected abstract void onVisibilityChange(boolean newVisibility);
++        protected abstract Component doRendering(CustomHud customHud);
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/resource/resourcepack/renderer/MinecraftStandardFontCharacters.java b/src/main/java/de/verdox/mccreativelab/resource/resourcepack/renderer/MinecraftStandardFontCharacters.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..7b0412660da20e756e3dbdf2d93460bff2fa1a63
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/resource/resourcepack/renderer/MinecraftStandardFontCharacters.java
+@@ -0,0 +1,166 @@
++package de.verdox.mccreativelab.resource.resourcepack.renderer;
++
++public class MinecraftStandardFontCharacters {
++    public static final String[] ASCII = new String[]{
++            "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
++            "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
++            " !\"#$%&'()*+,-./",
++            "0123456789:;<=>?",
++            "@ABCDEFGHIJKLMNO",
++            "PQRSTUVWXYZ[\\]^_",
++            "`abcdefghijklmno",
++            "pqrstuvwxyz{|}~\u0000",
++            "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
++            "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000£\u0000\u0000ƒ",
++            "\u0000\u0000\u0000\u0000\u0000\u0000ªº\u0000\u0000¬\u0000\u0000\u0000«»",
++            "░▒▓│┤╡╢╖╕╣║╗╝╜╛┐",
++            "└┴┬├─┼╞╟╚╔╩╦╠═╬╧",
++            "╨╤╥╙╘╒╓╫╪┘┌█▄▌▐▀",
++            "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000∅∈\u0000",
++            "≡±≥≤⌠⌡÷≈°∙\u0000√ⁿ²■\u0000"
++    };
++    public static final String[] ACCENTED = new String[]{
++            "ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏ",
++            "ÐÑÒÓÔÕÖÙÚÛÜÝàáâã",
++            "äåæçìíîïñòóôõöùú",
++            "ûüýÿĀāĂăĄąĆćĈĉĊċ",
++            "ČčĎďĐđĒēĔĕĖėĘęĚě",
++            "ĜĝḠḡĞğĠġĢģĤĥĦħĨĩ",
++            "ĪīĬĭĮįİıĴĵĶķĹĺĻļ",
++            "ĽľĿŀŁłŃńŅņŇňŊŋŌō",
++            "ŎŏŐőŒœŔŕŖŗŘřŚśŜŝ",
++            "ŞşŠšŢţŤťŦŧŨũŪūŬŭ",
++            "ŮůŰűŲųŴŵŶŷŸŹźŻżŽ",
++            "žǼǽǾǿȘșȚțΆΈΉΊΌΎΏ",
++            "ΐΪΫάέήίΰϊϋόύώЀЁЃ",
++            "ЇЌЍЎЙйѐёђѓїћќѝўџ",
++            "ҐґḂḃḊḋḞḟḢḣḰḱṀṁṖṗ",
++            "ṠṡṪṫẀẁẂẃẄẅỲỳèéêë",
++            "ŉǧǫЏḍḥṛṭẒỊịỌọỤụ№",
++            "ȇƔɣʃ⁇ǱǲǳǄǅǆǇǈǊǋǌ",
++            "ℹᵫꜲꜳꜴꜵꜶꜷꜸꜺꜼꜽꝎꝏꝠꝡ",
++            "ﬄﬆᚡᚵƠơƯưẮắẤấẾếốỚ",
++            "ớỨứẰằẦầỀềồỜờỪừẢả",
++            "ẲẳẨẩẺẻổỞỂểỈỉỎỏỔở",
++            "ỦủỬửỶỷẠạẶặẬậẸẹỆệ",
++            "ỘộỢợỰựỴỵỐƕẪẫỖỗữ☞",
++            "☜☮ẴẵẼẽỄễỒỠỡỮỸỹҘҙ",
++            "ҠҡҪҫǶ⚠⓪①②③④⑤⑥⑦⑧⑨",
++            "⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳ⒶⒷⒸⒹⒺ",
++            "ⒻⒼⒽⒾⒿⓀⓁⓂⓃⓄⓅⓆⓇⓈⓉⓊ",
++            "ⓋⓌⓍⓎⓏⓐⓑⓒⓓⓔⓕⓖⓗⓘⓙⓚ",
++            "ⓛⓜⓝⓞⓟⓠⓡⓢⓣⓤⓥⓦⓧⓨⓩ̧",
++            "ʂʐɶǍǎǞǟǺǻȂȃȦȧǠǡḀ",
++            "ḁȀȁḆḇḄḅᵬḈḉḐḑḒḓḎḏ",
++            "ḌᵭḔḕḖḗḘḙḜḝȨȩḚḛȄȅ",
++            "ȆᵮǴǵǦḦḧḨḩḪḫȞȟḤẖḮ",
++            "ḯȊȋǏǐȈȉḬḭǰȷǨǩḲḳḴ",
++            "ḵḺḻḼḽḶḷḸḹⱢḾḿṂṃᵯṄ",
++            "ṅṆṇṊṋǸǹṈṉᵰǬǭȬȭṌṍ",
++            "ṎṏṐṑṒṓȎȏȪȫǑǒȮȯȰȱ",
++            "ȌȍǪṔṕᵱȒȓṘṙṜṝṞṟȐȑ",
++            "ṚᵳᵲṤṥṦṧṢṣṨṩᵴṰṱṮṯ",
++            "ṬẗᵵṲṳṶṷṸṹṺṻǓǔǕǖǗ",
++            "ǘǙǚǛǜṴṵȔȕȖṾṿṼṽẆẇ",
++            "ẈẉẘẌẍẊẋȲȳẎẏẙẔẕẐẑ",
++            "ẓᵶǮǯẛꜾꜿǢǣᵺỻᴂᴔꭣȸʣ",
++            "ʥʤʩʪʫȹʨʦʧꭐꭑ₧Ỻאַאָƀ",
++            "ƂƃƇƈƊƋƌƓǤǥƗƖɩƘƙƝ",
++            "ƤƥɽƦƬƭƫƮȗƱƜƳƴƵƶƢ",
++            "ƣȢȣʭʮʯﬔﬕﬗﬖﬓӐӑӒӓӶ",
++            "ӷҔҕӖӗҼҽҾҿӚӛӜӝӁӂӞ",
++            "ӟӢӣӤӥӦӧӪӫӰӱӮӯӲӳӴ",
++            "ӵӸӹӬӭѶѷӔӺԂꚂꚀꚈԪԬꚄ",
++            "ԄԐӠԆҊӃҞҜԞԚӅԮԒԠԈԔ",
++            "ӍӉԨӇҤԢԊҨԤҦҎԖԌꚐҬꚊ",
++            "ꚌԎҲӼӾԦꚔҴꚎҶӋҸꚒꚖꚆҌ",
++            "ԘԜӕӻԃꚃꚁꚉԫԭꚅԅԑӡԇҋ",
++            "ӄҟҝԟԛӆԯԓԡԉԕӎӊԩӈҥ",
++            "ԣԋҩԥҧҏԗԍꚑҭꚋꚍԏҳӽӿ",
++            "ԧꚕҵꚏҷӌҹꚓꚗꚇҍԙԝἈἀἉ",
++            "ἁἊἂἋἃἌἄἍἅἎἆἏἇᾺὰᾸ",
++            "ᾰᾹᾱΆάᾈᾀᾉᾁᾊᾂᾋᾃᾌᾄᾍ",
++            "ᾅᾎᾆᾏᾇᾼᾴᾶᾷᾲᾳἘἐἙἑἚ",
++            "ἒἛἓἜἔἝἕῈΈὲέἨἠῊὴἩ",
++            "ἡἪἢἫἣἬἤἭἥἮἦἯἧᾘᾐᾙ",
++            "ᾑᾚᾒᾛᾓᾜᾔᾝᾕᾞᾖᾟᾗΉήῌ",
++            "ῃῂῄῆῇῚὶΊίἸἰἹἱἺἲἻ",
++            "ἳἼἴἽἵἾἶἿἷῘῐῙῑῒΐῖ",
++            "ῗῸὸΌόὈὀὉὁὊὂὋὃὌὄὍ",
++            "ὅῬῤῥῪὺΎύὙὑὛὓὝὕὟὗ",
++            "ῨῠῩῡϓϔῢΰῧὐὒὔῦὖῺὼ",
++            "ΏώὨὠὩὡὪὢὫὣὬὤὭὥὮὦ",
++            "Ὧὧᾨᾠᾩᾡᾪᾢᾫᾣᾬᾤᾭᾥᾮᾦ",
++            "ᾯᾧῼῳῲῴῶῷ☯☐☑☒ƍƺⱾȿ",
++            "ⱿɀᶀꟄꞔᶁᶂᶃꞕᶄᶅᶆᶇᶈᶉᶊ",
++            "ᶋᶌᶍꟆᶎᶏᶐᶒᶓᶔᶕᶖᶗᶘᶙᶚ",
++            "ẚ⅒⅘₨₯\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"};
++    public static final String[] NON_LATIN = new String[]{"¡‰­·₴≠¿×ØÞһðøþΑΒ",
++            "ΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣ",
++            "ΤΥΦΧΨΩαβγδεζηθικ",
++            "λμνξοπρςστυφχψωЂ",
++            "ЅІЈЉЊЋАБВГДЕЖЗИК",
++            "ЛМНОПРСТУФХЦЧШЩЪ",
++            "ЫЬЭЮЯабвгдежзикл",
++            "мнопрстуфхцчшщъы",
++            "ьэюяєѕіјљњ–—‘’“”",
++            "„…⁊←↑→↓⇄＋ƏəɛɪҮүӨ",
++            "өʻˌ;ĸẞß₽€ѢѣѴѵӀѲѳ",
++            "⁰¹³⁴⁵⁶⁷⁸⁹⁺⁻⁼⁽⁾ⁱ™",
++            "ʔʕ⧈⚔☠ҚқҒғҰұӘәҖҗҢ",
++            "ңҺאבגדהוזחטיכלמם",
++            "נןסעפףצץקר¢¤¥©®µ",
++            "¶¼½¾·‐‚†‡•‱′″‴‵‶",
++            "‷‹›※‼‽⁂⁈⁉⁋⁎⁏⁑⁒⁗℗",
++            "−∓∞☀☁☈Є☲☵☽♀♂⚥♠♣♥",
++            "♦♩♪♫♬♭♮♯⚀⚁⚂⚃⚄⚅ʬ⚡",
++            "⛏✔❄❌❤⭐⸘⸮⸵⸸⹁⹋⥝ᘔƐ߈",
++            "ϛㄥⱯᗺƆᗡƎℲ⅁ꞰꞀԀꝹᴚ⟘∩",
++            "Ʌ⅄ɐɔǝɟᵷɥᴉɾʞꞁɯɹʇʌ",
++            "ʍʎԱԲԳԴԶԷԹԺԻԼԽԾԿՀ",
++            "ՁՂՃՄՅՆՇՈՉՋՌՍՎՏՐՑ",
++            "ՒՓՔՕՖՙաբգդեզէըթժ",
++            "իլխծկհձղճմյնշոչպ",
++            "ջռսվտրցւփքօֆևשתԸ",
++            "՚՛՜՝՞՟ՠֈ֏¯ſƷʒǷƿȜ",
++            "ȝȤȥ˙Ꝛꝛ‑⅋⏏⏩⏪⏭⏮⏯⏴⏵",
++            "⏶⏷⏸⏹⏺⏻⏼⏽⭘▲▶▼◀●◦◘",
++            "⚓⛨ĲĳǉꜨꜩꜹꜻﬀﬁﬂﬃﬅ�Ե",
++            "Պᚠᚢᚣᚤᚥᚦᚧᚨᚩᚪᚫᚬᚭᚮᚯ",
++            "ᚰᚱᚲᚳᚴᚶᚷᚸᚹᚺᚻᚼᚽᚾᚿᛀ",
++            "ᛁᛂᛃᛄᛅᛆᛇᛈᛉᛊᛋᛌᛍᛎᛏᛐ",
++            "ᛑᛒᛓᛔᛕᛖᛗᛘᛙᛚᛛᛜᛝᛞᛟᛠ",
++            "ᛡᛢᛣᛤᛥᛦᛧᛨᛩᛪ᛫᛬᛭ᛮᛯᛰ",
++            "ᛱᛲᛳᛴᛵᛶᛷᛸ☺☻¦☹ך׳״װ",
++            "ױײ־׃׆´¨ᴀʙᴄᴅᴇꜰɢʜᴊ",
++            "ᴋʟᴍɴᴏᴘꞯʀꜱᴛᴜᴠᴡʏᴢ§",
++            "ɱɳɲʈɖɡʡɕʑɸʝʢɻʁɦʋ",
++            "ɰɬɮʘǀǃǂǁɓɗᶑʄɠʛɧɫ",
++            "ɨʉʊɘɵɤɜɞɑɒɚɝƁƉƑƩ",
++            "ƲႠႡႢႣႤႥႦႧႨႩႪႫႬႭႮ",
++            "ႯႰႱႲႳႴႵႶႷႸႹႺႻႼႽႾ",
++            "ႿჀჁჂჃჄჅჇჍაბგდევზ",
++            "თიკლმნოპჟრსტუფქღ",
++            "ყშჩცძწჭხჯჰჱჲჳჴჵჶ",
++            "ჷჸჹჺ჻ჼჽჾჿתּשׂפֿפּכּײַיִ",
++            "וֹוּבֿבּꜧꜦɺⱱʠʗʖɭɷɿʅʆ",
++            "ʓʚ₪₾֊ⴀⴁⴂⴃⴄⴅⴆⴡⴇⴈⴉ",
++            "ⴊⴋⴌⴢⴍⴎⴏⴐⴑⴒⴣⴓⴔⴕⴖⴗ",
++            "ⴘⴙⴚⴛⴜⴝⴞⴤⴟⴠⴥ⅛⅜⅝⅞⅓",
++            "⅔✉☂☔☄⛄☃⌛⌚⚐✎❣♤♧♡♢",
++            "⛈☰☱☳☴☶☷↔⇒⇏⇔⇵∀∃∄∉",
++            "∋∌⊂⊃⊄⊅∧∨⊻⊼⊽∥≢⋆∑⊤",
++            "⊥⊢⊨≔∁∴∵∛∜∂⋃⊆⊇□△▷",
++            "▽◁◆◇○◎☆★✘₀₁₂₃₄₅₆",
++            "₇₈₉₊₋₌₍₎∫∮∝⌀⌂⌘〒ɼ",
++            "ƄƅẟȽƚƛȠƞƟƧƨƪƸƹƻƼ",
++            "ƽƾȡȴȵȶȺⱥȻȼɆɇȾⱦɁɂ",
++            "ɃɄɈɉɊɋɌɍɎɏẜẝỼỽỾỿ",
++            "Ꞩꞩ𐌰𐌱𐌲𐌳𐌴𐌵𐌶𐌷𐌸𐌹𐌺𐌻𐌼𐌽",
++            "𐌾𐌿𐍀𐍁𐍂𐍃𐍄𐍅𐍆𐍇𐍈𐍉𐍊🌧🔥🌊",
++            "⅐⅑⅕⅖⅗⅙⅚⅟↉🗡🏹🪓🔱🎣🧪⚗",
++            "⯪⯫Ɑ🛡✂🍖🪣🔔⏳⚑₠₡₢₣₤₥",
++            "₦₩₫₭₮₰₱₲₳₵₶₷₸₹₺₻",
++            "₼₿\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"};
++
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/resource/resourcepack/renderer/ScreenPosition.java b/src/main/java/de/verdox/mccreativelab/resource/resourcepack/renderer/ScreenPosition.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..c61ee435fd10a6aa49caf4ec6424b01db87acd77
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/resource/resourcepack/renderer/ScreenPosition.java
+@@ -0,0 +1,54 @@
++package de.verdox.mccreativelab.resource.resourcepack.renderer;
++
++public record ScreenPosition(int x, int y, float xOffset, float yOffset, int layer, TextType textType) {
++    public ScreenPosition(int x, int y, float xOffset, float yOffset, int layer) {
++        this(x, y, xOffset, yOffset, layer, TextType.ACTION_BAR);
++    }
++
++    public ScreenPosition withTextType(TextType type) {
++        return new ScreenPosition(x(), y(), xOffset(), yOffset(), layer(), type);
++    }
++
++    public ScreenPosition addToY(int val) {
++        return new ScreenPosition(x(), y() + val, xOffset(), yOffset(), layer(), textType());
++    }
++
++    public ScreenPosition addToYOffset(float val) {
++        return new ScreenPosition(x(), y(), xOffset(), yOffset() + val, layer(), textType());
++    }
++
++    public ScreenPosition addToXOffset(float val) {
++        return new ScreenPosition(x(), y(), xOffset() + val, yOffset(), layer(), textType());
++    }
++
++    public ScreenPosition withLayer(int val) {
++        return new ScreenPosition(x(), y(), xOffset(), yOffset(), val, textType());
++    }
++
++    public ScreenPosition withX(int val) {
++        return new ScreenPosition(val, y(), xOffset(), yOffset(), layer(), textType());
++    }
++
++    public ScreenPosition withY(int val) {
++        return new ScreenPosition(x(), val, xOffset(), yOffset(), layer(), textType());
++    }
++
++    public ScreenPosition withXOffset(float val) {
++        return new ScreenPosition(x(), y(), val, yOffset(), layer(), textType());
++    }
++
++    public ScreenPosition withYOffset(float val) {
++        return new ScreenPosition(x(), y(), xOffset(), val, layer(), textType());
++    }
++
++    public static ScreenPosition calculateTopLeftCornerOfInventorySlotIndex(int index, TextType textType) {
++        var indexZeroPos = TextType.getTopLeftCorner(textType).addToXOffset(7).addToYOffset(-17);
++
++        var x = index % 9;
++        var y = index / 9;
++
++        return indexZeroPos.addToYOffset(-((y) * 18)).addToXOffset( (x) * 18);
++
++        //return new ScreenPosition(50, 50, -9, +3, 1, textType);
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/resource/resourcepack/renderer/TextType.java b/src/main/java/de/verdox/mccreativelab/resource/resourcepack/renderer/TextType.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..62329a6245700d507ef40b235dc9275ea6a12dc5
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/resource/resourcepack/renderer/TextType.java
+@@ -0,0 +1,148 @@
++package de.verdox.mccreativelab.resource.resourcepack.renderer;
++
++import org.bukkit.event.inventory.InventoryType;
++
++import java.util.HashMap;
++import java.util.Map;
++
++public record TextType(int xOffset, int yOffset) {
++    private static final Map<InventoryType, TextType> invTypes = new HashMap<>();
++    private static final Map<Integer, TextType> chestSizes = new HashMap<>();
++    private static final Map<TextType, ScreenPosition> topLeftCorner = new HashMap<>();
++    public static TextType ACTION_BAR = new TextType(0, 64);
++    // Anvil - Left
++    public static TextType ANVIL = new TextType(28, 70);
++    // Barrel - Left
++    public static TextType BARREL = createChestTextType(3);
++    // Blast_Furnace - Mid
++    public static TextType BLAST_FURNACE = new TextType(0, -72 + 4);
++    // Brewing - Mid
++    public static TextType BREWING = new TextType(0, -70);
++    // Cartography - Left
++    public static TextType CARTOGRAPHY_TABLE = new TextType(-80, -70);
++    // Chest - Left
++    public static TextType CHEST_9x_1 = createChestTextType(1);
++    public static TextType CHEST_9x_2 = createChestTextType(2);
++    public static TextType CHEST_9x_3 = createChestTextType(3);
++    public static TextType CHEST_9x_4 = createChestTextType(4);
++    public static TextType CHEST_9x_5 = createChestTextType(5);
++    public static TextType CHEST_9x_6 = createChestTextType(6);
++    public static TextType CHEST_9x_7 = createChestTextType(7);
++    // Dispenser - Mid
++    public static TextType DISPENSER = new TextType(0, 70);
++    // Dropper - Mid
++    public static TextType DROPPER = new TextType(0, 70);
++    // Enchanting - Left
++    public static TextType ENCHANTING_TABLE = new TextType(-80, -70);
++    // EnderChest - Left
++    public static TextType ENDER_CHEST = CHEST_9x_3;
++    // Furnace - Mid
++    public static TextType FURNACE = BLAST_FURNACE;
++    // Grindstone - Left
++    public static TextType GRIND_STONE = new TextType(-80, -70);
++    // Hopper - Left
++    public static TextType HOPPER = CHEST_9x_1;
++    // Loom - Left
++    public static TextType LOOM = new TextType(-80, -72);
++    // Merchant - Mid
++    public static TextType MERCHANT = new TextType(-10, -70);
++    // Player - Left
++    public static TextType PLAYER = CHEST_9x_3;
++    // ShulkerBox - Left
++    public static TextType SHULKER_BOX = CHEST_9x_3;
++    // Smithing - Left
++    public static TextType SMITHING = new TextType(-28, -70);
++    // Smoker - Mid
++    public static TextType SMOKER = FURNACE;
++    // Stonecutter - Left
++    public static TextType STONE_CUTTER = new TextType(-80, -70);
++    // Workbench - Left
++    public static TextType WORKBENCH = new TextType(40, guiRowHeight(3));
++
++
++    private static TextType createChestTextType(int size) {
++        var type = new TextType(80, guiRowHeight(size));
++        chestSizes.put(size, type);
++        return type;
++    }
++
++    public static TextType getByInventoryType(InventoryType type) {
++        return invTypes.get(type);
++    }
++
++    public static TextType getByChestSize(int size) {
++        return chestSizes.get(size);
++    }
++
++    public static ScreenPosition getTopLeftCorner(TextType type) {
++        if (type == null)
++            return new ScreenPosition(0, 0, 0, 0, 1);
++        return topLeftCorner.get(type);
++    }
++
++    public static ScreenPosition getTopLeftCorner(InventoryType type) {
++        return topLeftCorner.get(getByInventoryType(type));
++    }
++
++    public static ScreenPosition getTopLeftCorner(int size) {
++        return topLeftCorner.get(getByChestSize(size));
++    }
++
++    private static int guiRowHeight(int rows) {
++        return 45 + (9 * rows) - 2;
++    }
++
++    static {
++        invTypes.put(InventoryType.ANVIL, ANVIL);
++        invTypes.put(InventoryType.BARREL, BARREL);
++        invTypes.put(InventoryType.BLAST_FURNACE, BLAST_FURNACE);
++        invTypes.put(InventoryType.BREWING, BREWING);
++        invTypes.put(InventoryType.CARTOGRAPHY, CARTOGRAPHY_TABLE);
++        invTypes.put(InventoryType.CHEST, CHEST_9x_3);
++        invTypes.put(InventoryType.DISPENSER, DISPENSER);
++        invTypes.put(InventoryType.DROPPER, DROPPER);
++        invTypes.put(InventoryType.ENCHANTING, ENCHANTING_TABLE);
++        invTypes.put(InventoryType.ENDER_CHEST, ENDER_CHEST);
++        invTypes.put(InventoryType.GRINDSTONE, GRIND_STONE);
++        invTypes.put(InventoryType.HOPPER, HOPPER);
++        invTypes.put(InventoryType.LOOM, LOOM);
++        invTypes.put(InventoryType.MERCHANT, MERCHANT);
++        invTypes.put(InventoryType.PLAYER, PLAYER);
++        invTypes.put(InventoryType.SHULKER_BOX, SHULKER_BOX);
++        invTypes.put(InventoryType.SMITHING, SMITHING);
++        invTypes.put(InventoryType.SMOKER, SMOKER);
++        invTypes.put(InventoryType.STONECUTTER, STONE_CUTTER);
++        invTypes.put(InventoryType.WORKBENCH, WORKBENCH);
++
++        topLeftCorner.put(CHEST_9x_6, new ScreenPosition(50, 50, -(CHEST_9x_6.xOffset + 8), CHEST_9x_6.yOffset() + 13, 1));
++        topLeftCorner.put(CHEST_9x_5, new ScreenPosition(50, 50, -(CHEST_9x_5.xOffset + 8), CHEST_9x_5.yOffset() + 13, 1));
++        topLeftCorner.put(CHEST_9x_4, new ScreenPosition(50, 50, -(CHEST_9x_4.xOffset + 8), CHEST_9x_4.yOffset() + 13, 1));
++        topLeftCorner.put(CHEST_9x_3, new ScreenPosition(50, 50, -(CHEST_9x_3.xOffset + 8), CHEST_9x_3.yOffset() + 13, 1));
++        topLeftCorner.put(CHEST_9x_2, new ScreenPosition(50, 50, -(CHEST_9x_2.xOffset + 8), CHEST_9x_2.yOffset() + 13, 1));
++        topLeftCorner.put(CHEST_9x_1, new ScreenPosition(50, 50, -(CHEST_9x_1.xOffset + 8), CHEST_9x_1.yOffset() + 13, 1));
++
++
++        topLeftCorner.put(ANVIL, new ScreenPosition(50, 50, -(ANVIL.xOffset + 60), ANVIL.yOffset() + 13, 1));
++        topLeftCorner.put(BARREL, new ScreenPosition(50, 50, -(BARREL.xOffset + 8), BARREL.yOffset() + 13, 1));
++        topLeftCorner.put(BLAST_FURNACE, new ScreenPosition(50, 50, -(BLAST_FURNACE.xOffset + 88), BLAST_FURNACE.yOffset() + 13, 1));
++        topLeftCorner.put(BREWING, new ScreenPosition(50, 50, -(BREWING.xOffset + 88), BREWING.yOffset() + 13, 1));
++        topLeftCorner.put(CARTOGRAPHY_TABLE, new ScreenPosition(50, 50, -(CARTOGRAPHY_TABLE.xOffset + 8), CARTOGRAPHY_TABLE.yOffset() + 13, 1));
++        topLeftCorner.put(DISPENSER, new ScreenPosition(50, 50, -(DISPENSER.xOffset + 88), DISPENSER.yOffset() + 13, 1));
++        topLeftCorner.put(DROPPER, new ScreenPosition(50, 50, -(DROPPER.xOffset + 88), DROPPER.yOffset() + 13, 1));
++        topLeftCorner.put(ENCHANTING_TABLE, new ScreenPosition(50, 50, -(ENCHANTING_TABLE.xOffset + 8), ENCHANTING_TABLE.yOffset() + 13, 1));
++        topLeftCorner.put(ENDER_CHEST, new ScreenPosition(50, 50, -(ENDER_CHEST.xOffset + 8), ENDER_CHEST.yOffset() + 13, 1));
++        topLeftCorner.put(GRIND_STONE, new ScreenPosition(50, 50, -(GRIND_STONE.xOffset + 8), GRIND_STONE.yOffset() + 13, 1));
++        topLeftCorner.put(HOPPER, new ScreenPosition(50, 50, -(HOPPER.xOffset + 8), HOPPER.yOffset() + 13, 1));
++        topLeftCorner.put(LOOM, new ScreenPosition(50, 50, -(LOOM.xOffset + 8), LOOM.yOffset() + 13, 1));
++
++        topLeftCorner.put(MERCHANT, new ScreenPosition(50, 50, -(MERCHANT.xOffset + 88), MERCHANT.yOffset() + 13, 1));
++
++        topLeftCorner.put(PLAYER, new ScreenPosition(50, 50, -(PLAYER.xOffset + 8), PLAYER.yOffset() + 13, 1));
++        topLeftCorner.put(SHULKER_BOX, new ScreenPosition(50, 50, -(SHULKER_BOX.xOffset + 8), SHULKER_BOX.yOffset() + 13, 1));
++
++        topLeftCorner.put(SMITHING, new ScreenPosition(50, 50, -(SMITHING.xOffset + 60), SMITHING.yOffset() + 25, 1));
++
++        topLeftCorner.put(STONE_CUTTER, new ScreenPosition(50, 50, -(STONE_CUTTER.xOffset + 8), STONE_CUTTER.yOffset() + 13, 1));
++        topLeftCorner.put(WORKBENCH, new ScreenPosition(50, 50, -(WORKBENCH.xOffset + 8), WORKBENCH.yOffset() + 13, 1));
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/resource/resourcepack/renderer/element/HudElementGroup.java b/src/main/java/de/verdox/mccreativelab/resource/resourcepack/renderer/element/HudElementGroup.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..682bb1a223325293ecfb75dd4b065eeae007c50a
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/resource/resourcepack/renderer/element/HudElementGroup.java
+@@ -0,0 +1,25 @@
++package de.verdox.mccreativelab.resource.resourcepack.renderer.element;
++
++import de.verdox.mccreativelab.resource.resourcepack.renderer.HudElement;
++
++import java.util.List;
++
++public interface HudElementGroup<H extends SingleHudElement> extends HudElement {
++    RenderedGroup<H, ? extends HudElementGroup<H>, ?> toRenderedElement();
++    abstract class RenderedGroup<I extends SingleHudElement, H extends HudElementGroup<I>, R extends SingleHudElement.RenderedSingle<? extends I>> extends HudElement.Rendered<H>{
++        private final List<R> groupedRenderedElements;
++        public RenderedGroup(H hudElementGroup, List<R> groupedRenderedElements) {
++            super(hudElementGroup);
++            this.groupedRenderedElements = groupedRenderedElements;
++        }
++
++        public List<R> getGroupedRenderedElements() {
++            return groupedRenderedElements;
++        }
++
++        @Override
++        protected final void onVisibilityChange(boolean newVisibility) {
++            groupedRenderedElements.forEach(r -> r.setVisible(newVisibility));
++        }
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/resource/resourcepack/renderer/element/HudRenderer.java b/src/main/java/de/verdox/mccreativelab/resource/resourcepack/renderer/element/HudRenderer.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..a3a855a202d4a5a26a21c4edf4c3ccfa59917266
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/resource/resourcepack/renderer/element/HudRenderer.java
+@@ -0,0 +1,12 @@
++package de.verdox.mccreativelab.resource.resourcepack.renderer.element;
++
++import de.verdox.mccreativelab.resource.resourcepack.renderer.ActiveHud;
++import de.verdox.mccreativelab.resource.resourcepack.types.CustomHud;
++import org.bukkit.entity.Player;
++
++public interface HudRenderer {
++    ActiveHud getActiveHud(Player player, CustomHud customHud);
++    ActiveHud getOrStartActiveHud(Player player, CustomHud customHud);
++    boolean stopActiveHud(Player player, CustomHud customHud);
++    void forceUpdate(Player player);
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/resource/resourcepack/renderer/element/SingleHudElement.java b/src/main/java/de/verdox/mccreativelab/resource/resourcepack/renderer/element/SingleHudElement.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..3a1db5328f0edccf86ebf9afb66acc5910c028f7
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/resource/resourcepack/renderer/element/SingleHudElement.java
+@@ -0,0 +1,13 @@
++package de.verdox.mccreativelab.resource.resourcepack.renderer.element;
++
++import de.verdox.mccreativelab.resource.resourcepack.renderer.HudElement;
++
++public interface SingleHudElement extends HudElement {
++    RenderedSingle<? extends SingleHudElement> toRenderedElement();
++
++    abstract class RenderedSingle<H extends SingleHudElement> extends HudElement.Rendered<H>{
++        public RenderedSingle(H hudElement) {
++            super(hudElement);
++        }
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/resource/resourcepack/renderer/element/group/Button.java b/src/main/java/de/verdox/mccreativelab/resource/resourcepack/renderer/element/group/Button.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..373090f8d905743e4e79a01fcaeaf4cf9f90f1ae
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/resource/resourcepack/renderer/element/group/Button.java
+@@ -0,0 +1,83 @@
++package de.verdox.mccreativelab.resource.resourcepack.renderer.element.group;
++
++import de.verdox.mccreativelab.resource.resourcepack.renderer.element.HudElementGroup;
++import de.verdox.mccreativelab.resource.resourcepack.renderer.ScreenPosition;
++import de.verdox.mccreativelab.resource.resourcepack.renderer.element.SingleHudElement;
++import de.verdox.mccreativelab.resource.resourcepack.renderer.element.single.SingleHudText;
++import de.verdox.mccreativelab.resource.resourcepack.renderer.element.single.SingleHudTexture;
++import de.verdox.mccreativelab.resource.resourcepack.types.CustomHud;
++import net.kyori.adventure.text.Component;
++import org.jetbrains.annotations.Nullable;
++
++import java.util.List;
++
++public record Button(SingleHudText text, @Nullable SingleHudTexture selected, @Nullable SingleHudTexture enabled,
++                     @Nullable SingleHudTexture disabled) implements HudElementGroup<SingleHudElement> {
++    @Override
++    public ScreenPosition screenPosition() {
++        return text.screenPosition();
++    }
++
++    @Override
++    public RenderedButton toRenderedElement() {
++        return new RenderedButton(this, List.of(text.toRenderedElement(), enabled.toRenderedElement(), disabled.toRenderedElement(), selected.toRenderedElement()));
++    }
++
++    public static class RenderedButton extends RenderedGroup<SingleHudElement, Button, SingleHudElement.RenderedSingle<? extends SingleHudElement>> {
++        SingleHudText.RenderedSingleHudText buttonText;
++        SingleHudTexture.RenderedSingleHudTexture buttonEnabled;
++        SingleHudTexture.RenderedSingleHudTexture buttonDisabled;
++        SingleHudTexture.RenderedSingleHudTexture buttonSelected;
++
++        public RenderedButton(Button hudElementGroup, List<SingleHudElement.RenderedSingle<? extends SingleHudElement>> groupedRenderedElements) {
++            super(hudElementGroup, groupedRenderedElements);
++            buttonText = (SingleHudText.RenderedSingleHudText) groupedRenderedElements.get(0);
++            buttonEnabled = (SingleHudTexture.RenderedSingleHudTexture) groupedRenderedElements.get(1);
++            buttonDisabled = (SingleHudTexture.RenderedSingleHudTexture) groupedRenderedElements.get(2);
++            buttonSelected = (SingleHudTexture.RenderedSingleHudTexture) groupedRenderedElements.get(3);
++            enableButton();
++        }
++
++        public void enableButton() {
++            showButtonTextures(false, true, false);
++        }
++
++        public void selectButton() {
++            showButtonTextures(true, false, false);
++        }
++
++        public void disableButton() {
++            showButtonTextures(false, false, true);
++        }
++
++        private void showButtonTextures(boolean selected, boolean enabled, boolean disabled) {
++            if (this.buttonEnabled != null)
++                this.buttonEnabled.setVisible(enabled);
++            if (this.buttonDisabled != null)
++                this.buttonDisabled.setVisible(disabled);
++            if (this.buttonSelected != null)
++                this.buttonSelected.setVisible(selected);
++        }
++        public boolean isEnabled() {
++            return !buttonDisabled.isVisible();
++        }
++        public void setRenderedText(String renderedText) {
++            this.buttonText.setRenderedText(renderedText);
++        }
++        public void clearRenderedText() {
++            this.buttonText.clearRenderedText();
++        }
++
++        private Component renderButtonTextureSafely(CustomHud customHud, SingleHudTexture.RenderedSingleHudTexture texture) {
++            return texture != null ? texture.render(customHud) : Component.empty();
++        }
++
++        @Override
++        protected Component doRendering(CustomHud customHud) {
++            return buttonText.render(customHud)
++                             .append(renderButtonTextureSafely(customHud, buttonEnabled))
++                             .append(renderButtonTextureSafely(customHud, buttonSelected))
++                             .append(renderButtonTextureSafely(customHud, buttonDisabled));
++        }
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/resource/resourcepack/renderer/element/group/HudMultiLineText.java b/src/main/java/de/verdox/mccreativelab/resource/resourcepack/renderer/element/group/HudMultiLineText.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..64fef4f9b8f27fbcfd49a56df97647467ebf45b9
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/resource/resourcepack/renderer/element/group/HudMultiLineText.java
+@@ -0,0 +1,42 @@
++package de.verdox.mccreativelab.resource.resourcepack.renderer.element.group;
++
++import de.verdox.mccreativelab.resource.resourcepack.renderer.element.HudElementGroup;
++import de.verdox.mccreativelab.resource.resourcepack.renderer.ScreenPosition;
++import de.verdox.mccreativelab.resource.resourcepack.renderer.element.single.SingleHudText;
++import de.verdox.mccreativelab.resource.resourcepack.types.CustomHud;
++import de.verdox.mccreativelab.util.StringAlign;
++import net.kyori.adventure.text.Component;
++
++import java.util.List;
++import java.util.stream.Collectors;
++
++public record HudMultiLineText(List<SingleHudText> lines, int charsPerLine,
++                               StringAlign.Alignment alignment) implements HudElementGroup<SingleHudText> {
++    @Override
++    public ScreenPosition screenPosition() {
++        return lines.size() >= 1 ? lines.get(0).screenPosition() : new ScreenPosition(0, 0, 0, 0, 1);
++    }
++
++    @Override
++    public RenderedGroup<SingleHudText, ? extends HudElementGroup<SingleHudText>, ?> toRenderedElement() {
++        return new RenderedGroupMultiLineText(this, lines.stream().map(SingleHudText::toRenderedElement)
++                                                         .map(renderedSingle -> ((SingleHudText.RenderedSingleHudText) renderedSingle))
++                                                         .collect(Collectors.toList()));
++    }
++
++
++    public static class RenderedGroupMultiLineText extends RenderedGroup<SingleHudText, HudMultiLineText, SingleHudText.RenderedSingleHudText> {
++        public RenderedGroupMultiLineText(HudMultiLineText hudElementGroup, List<SingleHudText.RenderedSingleHudText> groupedRenderedElements) {
++            super(hudElementGroup, groupedRenderedElements);
++        }
++
++        @Override
++        protected Component doRendering(CustomHud customHud) {
++            var cmp = Component.text("");
++            for (var renderedElement : getGroupedRenderedElements())
++                cmp = cmp.append(renderedElement.render(customHud));
++            return cmp;
++        }
++    }
++
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/resource/resourcepack/renderer/element/group/PartlyVisibleTexture.java b/src/main/java/de/verdox/mccreativelab/resource/resourcepack/renderer/element/group/PartlyVisibleTexture.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..cd3922dc61ac1c7446d909c4d0ca0be1080fcff7
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/resource/resourcepack/renderer/element/group/PartlyVisibleTexture.java
+@@ -0,0 +1,49 @@
++package de.verdox.mccreativelab.resource.resourcepack.renderer.element.group;
++
++import de.verdox.mccreativelab.resource.resourcepack.renderer.element.HudElementGroup;
++import de.verdox.mccreativelab.resource.resourcepack.renderer.ScreenPosition;
++import de.verdox.mccreativelab.resource.resourcepack.renderer.element.single.SingleHudTexture;
++import de.verdox.mccreativelab.resource.resourcepack.types.CustomHud;
++import net.kyori.adventure.text.Component;
++
++import java.util.List;
++import java.util.stream.Collectors;
++
++public record PartlyVisibleTexture(List<SingleHudTexture> hudTextures) implements HudElementGroup<SingleHudTexture> {
++    @Override
++    public ScreenPosition screenPosition() {
++        return hudTextures.get(0).screenPosition();
++    }
++
++    @Override
++    public RenderedGroup<SingleHudTexture, ? extends HudElementGroup<SingleHudTexture>, ?> toRenderedElement() {
++        return new RenderedPartlyVisibleTexture(this, hudTextures.stream().map(SingleHudTexture::toRenderedElement)
++                                                           .map(renderedSingle -> ((SingleHudTexture.RenderedSingleHudTexture) renderedSingle))
++                                                           .collect(Collectors.toList()));
++    }
++
++    public static class RenderedPartlyVisibleTexture extends RenderedGroup<SingleHudTexture, PartlyVisibleTexture, SingleHudTexture.RenderedSingleHudTexture> {
++        public RenderedPartlyVisibleTexture(PartlyVisibleTexture hudElementGroup, List<SingleHudTexture.RenderedSingleHudTexture> groupedRenderedElements) {
++            super(hudElementGroup, groupedRenderedElements);
++        }
++
++        public void show(int partToShow) {
++            if (partToShow < 0 || partToShow > getGroupedRenderedElements().size())
++                return;
++
++            for (int i = 0; i < getGroupedRenderedElements().size(); i++) {
++                var part = getGroupedRenderedElements().get(i);
++
++
++                part.setVisible(i == partToShow - 1);
++                if(part.getHudElement().height() == 1 && part.getHudElement().width() == 1)
++                    part.setVisible(false);
++            }
++        }
++
++        @Override
++        protected Component doRendering(CustomHud customHud) {
++            return Component.empty();
++        }
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/resource/resourcepack/renderer/element/single/SingleHudText.java b/src/main/java/de/verdox/mccreativelab/resource/resourcepack/renderer/element/single/SingleHudText.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..1ddcdde38bca26cbe2f67c41633f418138bae840
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/resource/resourcepack/renderer/element/single/SingleHudText.java
+@@ -0,0 +1,107 @@
++package de.verdox.mccreativelab.resource.resourcepack.renderer.element.single;
++
++import de.verdox.mccreativelab.resource.resourcepack.renderer.ScreenPosition;
++import de.verdox.mccreativelab.resource.resourcepack.renderer.element.SingleHudElement;
++import de.verdox.mccreativelab.resource.resourcepack.types.font.Font;
++import de.verdox.mccreativelab.resource.resourcepack.types.CustomHud;
++import de.verdox.mccreativelab.util.StringAlign;
++import net.kyori.adventure.key.Key;
++import net.kyori.adventure.text.Component;
++import net.kyori.adventure.text.TextComponent;
++import org.bukkit.ChatColor;
++import org.bukkit.NamespacedKey;
++import org.jetbrains.annotations.Nullable;
++import org.jetbrains.annotations.VisibleForTesting;
++
++/**
++ * @param font           Font that is used
++ * @param screenPosition Position on screen while (0,0) is down left corner
++ * @param alignment      Alignment for the text to use
++ * @param alignmentWidth alignment width in pixels to adjust the alignment
++ */
++public record SingleHudText(Font font, ScreenPosition screenPosition, @Nullable StringAlign.Alignment alignment, int alignmentWidth) implements SingleHudElement {
++
++    @Override
++    public RenderedSingleHudText toRenderedElement() {
++        return new RenderedSingleHudText(this);
++    }
++
++    public static class RenderedSingleHudText extends RenderedSingle<SingleHudText> {
++        private TextComponent renderedText;
++
++        public RenderedSingleHudText(SingleHudText hudElement) {
++            super(hudElement);
++        }
++
++        @Override
++        protected void onVisibilityChange(boolean newVisibility) {
++            if(!newVisibility)
++                this.renderedText = null;
++        }
++
++        public TextComponent getRenderedText() {
++            return renderedText;
++        }
++
++        public void setRenderedText(TextComponent renderedText) {
++            setVisible(true);
++            this.renderedText = renderedText;
++        }
++
++        public void setRenderedText(String text){
++            this.setRenderedText(Component.text(text));
++        }
++
++        public void clearRenderedText() {
++            setVisible(false);
++        }
++
++        @Override
++        protected Component doRendering(CustomHud customHud) {
++            if (renderedText == null || renderedText.content().isEmpty())
++                return Component.text("");
++            SingleHudText hudText = getHudElement();
++
++            if (hudText.alignment() == null)
++                return createTextComponent();
++
++            var textLength = hudText.font().getPixelWidth(ChatColor.stripColor(renderedText.content()));
++
++            return switch (hudText.alignment()) {
++                case LEFT -> createTextComponent();
++                case CENTER -> createNegativeSpacing(textLength / 2).append(createTextComponent())
++                                                                    .append(createSpacing(textLength / 2));
++                case RIGHT -> createNegativeSpacing(textLength).append(createTextComponent())
++                                                               .append(createSpacing(textLength));
++            };
++        }
++
++        @VisibleForTesting
++        public Component createTextComponent() {
++            SingleHudText hudText = getHudElement();
++            NamespacedKey fontKey;
++            fontKey = hudText.font().key();
++
++            var textFont = Key.key(fontKey.toString());
++            if (renderedText == null)
++                return Component.empty();
++
++/*            var alignmentPixels = hudText.alignmentWidth() >= renderedText.length() ? hudText.alignmentWidth() : renderedText.length();*/
++            var textLength = hudText.font().getPixelWidth(ChatColor.stripColor(renderedText.content()));
++
++            TextComponent textToRender = renderedText;
++/*            if(hudText.alignment != null)
++                textToRender = hudText.alignment().align(renderedText, alignmentPixels);*/
++
++            return textToRender.font(textFont).append(createNegativeSpacing(textLength));
++        }
++
++        private Component createNegativeSpacing(int spacing) {
++            return Component.translatable("space.-" + Math.abs(spacing)).font(Key.key("space:default"));
++        }
++
++        private Component createSpacing(int spacing) {
++            return Component.translatable("space." + Math.abs(spacing)).font(Key.key("space:default"));
++        }
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/resource/resourcepack/renderer/element/single/SingleHudTexture.java b/src/main/java/de/verdox/mccreativelab/resource/resourcepack/renderer/element/single/SingleHudTexture.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..459556496c26fa99c72677326f54fa44b41468b2
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/resource/resourcepack/renderer/element/single/SingleHudTexture.java
+@@ -0,0 +1,39 @@
++package de.verdox.mccreativelab.resource.resourcepack.renderer.element.single;
++
++import de.verdox.mccreativelab.resource.resourcepack.renderer.ScreenPosition;
++import de.verdox.mccreativelab.resource.resourcepack.renderer.element.SingleHudElement;
++import de.verdox.mccreativelab.resource.resourcepack.types.font.BitMap;
++import de.verdox.mccreativelab.resource.resourcepack.types.CustomHud;
++import net.kyori.adventure.key.Key;
++import net.kyori.adventure.text.Component;
++import net.kyori.adventure.text.format.TextColor;
++import org.bukkit.NamespacedKey;
++
++public record SingleHudTexture(BitMap bitMap, String character, int width, int height, ScreenPosition screenPosition) implements SingleHudElement {
++
++    @Override
++    public RenderedSingle<? extends SingleHudElement> toRenderedElement() {
++        return new RenderedSingleHudTexture(this);
++    }
++
++    public static class RenderedSingleHudTexture extends RenderedSingle<SingleHudTexture> {
++        public RenderedSingleHudTexture(SingleHudTexture hudElement) {
++            super(hudElement);
++        }
++
++        @Override
++        protected void onVisibilityChange(boolean newVisibility) {}
++
++        @Override
++        protected Component doRendering(CustomHud customHud) {
++            NamespacedKey fontKey;
++            fontKey = customHud.getHudTexturesFont().key();
++
++            //TODO: Texture width aber ohne transparente Pixel. Muss umgeschrieben werden
++            return Component.text(getHudElement().bitMap().character()[0]).color(TextColor.color(0,0,0)).font(Key.key(fontKey.toString()))
++                            .append(Component.translatable("space.-" + ((getHudElement().width() + 1)))
++                                             .font(Key.key("space:default")));
++        }
++    }
++
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/resource/resourcepack/types/CustomHud.java b/src/main/java/de/verdox/mccreativelab/resource/resourcepack/types/CustomHud.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..9dd298d16e48dc1ef8e41120256113e64ee8e0ff
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/resource/resourcepack/types/CustomHud.java
+@@ -0,0 +1,178 @@
++package de.verdox.mccreativelab.resource.resourcepack.types;
++
++import de.verdox.mccreativelab.resource.Asset;
++import de.verdox.mccreativelab.resource.resourcepack.CustomResourcePack;
++import de.verdox.mccreativelab.resource.resourcepack.renderer.HudElement;
++import de.verdox.mccreativelab.resource.resourcepack.renderer.ScreenPosition;
++import de.verdox.mccreativelab.resource.resourcepack.renderer.element.group.Button;
++import de.verdox.mccreativelab.resource.resourcepack.renderer.element.group.HudMultiLineText;
++import de.verdox.mccreativelab.resource.resourcepack.renderer.element.group.PartlyVisibleTexture;
++import de.verdox.mccreativelab.resource.resourcepack.renderer.element.single.SingleHudText;
++import de.verdox.mccreativelab.resource.resourcepack.renderer.element.single.SingleHudTexture;
++import de.verdox.mccreativelab.resource.resourcepack.types.font.BitMap;
++import de.verdox.mccreativelab.resource.resourcepack.types.font.Font;
++import de.verdox.mccreativelab.resource.resourcepack.types.font.Space;
++import de.verdox.mccreativelab.resource.resourcepack.types.font.StandardFontAssets;
++import de.verdox.mccreativelab.util.AssetUtil;
++import de.verdox.mccreativelab.util.BitMapReader;
++import de.verdox.mccreativelab.util.ImageUtil;
++import de.verdox.mccreativelab.util.StringAlign;
++import org.bukkit.NamespacedKey;
++import org.jetbrains.annotations.Nullable;
++
++import java.io.IOException;
++import java.util.*;
++
++public class CustomHud extends ShaderRendered {
++    private static final int ascentRange = 1000;
++    private final Font hudTexturesFont;
++    private char textureChars = '\uEff1';
++    private static int idCounter = 100;
++    private final Map<String, HudElement> elements = new HashMap<>();
++    private final Set<Font> hudTextFonts = new HashSet<>();
++
++    public CustomHud(NamespacedKey namespacedKey) {
++        super(namespacedKey);
++        this.hudTexturesFont = new Font(namespacedKey);
++
++        var map = new HashMap<String, Integer>();
++        //map.put("", 0);
++        map.put(" ", 1);
++
++        for (int i = 1; i <= 10; i++)
++            map.put(drawNextChar() + "", (int) Math.pow(2, i));
++        hudTexturesFont.addSpace(new Space(map));
++    }
++
++    public Map<String, HudElement> getElements() {
++        return elements;
++    }
++
++    @Override
++    public void installToDataPack(CustomResourcePack customPack) throws IOException {
++        hudTexturesFont.installToDataPack(customPack);
++        for (Font hudTextFont : hudTextFonts) {
++            hudTextFont.installToDataPack(customPack);
++        }
++        installShaderFileToPack(customPack);
++    }
++
++    public CustomHud withTexture(String textureName, Asset<CustomResourcePack> textureAsset, ScreenPosition screenPosition) throws IOException {
++        var id = drawNextFreeID();
++        var bitMap = new BitMap(textureAsset, ImageUtil.getPixelHeight(textureAsset.assetInputStream()), calculateAscentID(id), String.valueOf(drawNextChar()));
++
++        hudTexturesFont.addBitMap(bitMap);
++        checkIfIDTaken(textureName);
++
++        var dimensions = new BitMapReader(textureAsset.assetInputStream(), bitMap)
++            .getCharacterDimensions().values()
++            .stream().findFirst()
++            .orElse(new BitMapReader.CharacterDimensions(bitMap.getPixelWidth(),
++                bitMap.getPixelHeight())
++            );
++        registerElement(textureName, new SingleHudTexture(bitMap, bitMap.character()[0], dimensions.width(), dimensions.height(), screenPosition));
++        createGuiSizedShaderInstruction(bitMap.ascent(), screenPosition);
++        return this;
++    }
++    public CustomHud withText(String textID, ScreenPosition screenPosition, StringAlign.Alignment alignment, int pixelAlignmentWidth, float scale) {
++        NamespacedKey textFieldKey = new NamespacedKey(key().namespace(), key().value() + "_" + textID.toLowerCase(Locale.ROOT));
++        Font textFont = new Font(textFieldKey);
++
++        textFont.addSpace(new Space(Map.of(" ", (int) (4 * scale), "\u200c", 0)));
++
++        var ascii = textFont.addBitMap(StandardFontAssets.asciiBitmap.withHeight(8)
++                                                                     .withAscent(calculateAscentID(drawNextFreeID()))
++                                                                     .withScale(scale));
++
++        var accented = textFont.addBitMap(StandardFontAssets.accentedBitMap.withHeight(12)
++                                                                           .withAscent(calculateAscentID(drawNextFreeID()))
++                                                                           .withScale(scale));
++
++        checkIfIDTaken(textID);
++        registerElement(textID, new SingleHudText(textFont, screenPosition, alignment, pixelAlignmentWidth));
++
++        createGuiSizedShaderInstruction(ascii.ascent(), screenPosition);
++        createGuiSizedShaderInstruction(accented.ascent(), screenPosition.addToYOffset((int) (((12 - 8) - 0.3) * scale)));
++
++        hudTextFonts.add(textFont);
++        return this;
++    }
++
++    public CustomHud withButton(String buttonName, StringAlign.Alignment alignment, float textScale, @Nullable Asset<CustomResourcePack> whenSelected, @Nullable Asset<CustomResourcePack> whenEnabled, @Nullable Asset<CustomResourcePack> whenDisabled, ScreenPosition buttonPos, ScreenPosition textPos) throws IOException {
++        checkIfIDTaken(buttonName);
++
++        SingleHudTexture selectedHudTexture = null;
++        SingleHudTexture enabledHudTexture = null;
++        SingleHudTexture disabledHudTexture = null;
++
++        if (whenSelected != null) {
++            withTexture(buttonName + "_selected", whenSelected, buttonPos.addToXOffset(AssetUtil.getPixelWidthIfImage(whenSelected) / 2 * -1));
++            selectedHudTexture = (SingleHudTexture) elements.get(buttonName + "_selected");
++        }
++
++        if (whenEnabled != null) {
++            withTexture(buttonName + "_enabled", whenEnabled, buttonPos.addToXOffset(AssetUtil.getPixelWidthIfImage(whenEnabled) / 2 * -1));
++            enabledHudTexture = (SingleHudTexture) elements.get(buttonName + "_enabled");
++        }
++
++        if (whenDisabled != null) {
++            withTexture(buttonName + "_disabled", whenSelected, buttonPos.addToXOffset(AssetUtil.getPixelWidthIfImage(whenDisabled) / 2 * -1));
++            disabledHudTexture = (SingleHudTexture) elements.get(buttonName + "_disabled");
++        }
++
++        withText(buttonName + "_buttontext", textPos.withLayer(buttonPos.layer() + 1), alignment, 0, textScale);
++        SingleHudText buttonText = (SingleHudText) elements.get(buttonName + "_buttontext");
++
++        registerElement(buttonName, new Button(buttonText, selectedHudTexture, enabledHudTexture, disabledHudTexture));
++        return this;
++    }
++    public CustomHud withMultiLineStandardText(String multiLineID, int lines, int charsPerLine, int pixelsBetweenLines, StringAlign.Alignment alignment, ScreenPosition startPos, float scale) {
++        var textElements = new LinkedList<SingleHudText>();
++        for (int i = 0; i < lines; i++) {
++            var textID = multiLineID.concat("_" + i);
++            withText(textID, startPos.addToYOffset(i * pixelsBetweenLines), alignment, 0, scale);
++            textElements.add((SingleHudText) elements.get(textID));
++        }
++        checkIfIDTaken(multiLineID);
++        registerElement(multiLineID, new HudMultiLineText(textElements, charsPerLine, alignment));
++        return this;
++    }
++
++    public CustomHud withPartlyVisibleTexture(String textureField, ScreenPosition screenPosition, Asset<CustomResourcePack> originalPicture, int parts) throws IOException {
++        var splitImages = AssetUtil.createPartlyVisibleCopys(originalPicture, parts);
++
++        var textureList = new LinkedList<SingleHudTexture>();
++        for (int i = 0; i < splitImages.size(); i++) {
++            var resource = splitImages.get(i);
++            withTexture(textureField + "_" + i, resource, screenPosition);
++            textureList.add((SingleHudTexture) elements.get(textureField + "_" + i));
++        }
++        registerElement(textureField, new PartlyVisibleTexture(textureList));
++        return this;
++    }
++
++    public Font getHudTexturesFont() {
++        return hudTexturesFont;
++    }
++
++    private int calculateAscentID(int id) {
++        return ((id * ascentRange) + 500) * -1;
++    }
++
++    private char drawNextChar() {
++        return textureChars++;
++    }
++
++    private int drawNextFreeID() {
++        return idCounter++;
++    }
++
++    private void registerElement(String key, HudElement element) {
++        this.elements.put(key, element);
++    }
++
++    private void checkIfIDTaken(String id) {
++        if (this.elements.containsKey(id))
++            throw new IllegalArgumentException("Id " + id + " already taken in custom hud " + key());
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/resource/resourcepack/types/ItemTextureData.java b/src/main/java/de/verdox/mccreativelab/resource/resourcepack/types/ItemTextureData.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..ef4524192853f1f5a1cee47d00fb965b4f48e8a7
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/resource/resourcepack/types/ItemTextureData.java
+@@ -0,0 +1,141 @@
++package de.verdox.mccreativelab.resource.resourcepack.types;
++
++import com.google.gson.JsonObject;
++import de.verdox.mccreativelab.resource.Asset;
++import de.verdox.mccreativelab.gson.JsonArrayBuilder;
++import de.verdox.mccreativelab.gson.JsonObjectBuilder;
++import de.verdox.mccreativelab.resource.resourcepack.CustomResourcePack;
++import de.verdox.mccreativelab.resource.resourcepack.ResourcePackResource;
++import de.verdox.mccreativelab.resource.resourcepack.ResourcePackAssetTypes;
++import de.verdox.mccreativelab.util.AssetUtil;
++import org.bukkit.Material;
++import org.bukkit.NamespacedKey;
++import org.jetbrains.annotations.NotNull;
++import org.jetbrains.annotations.Nullable;
++
++import java.io.IOException;
++import java.util.Comparator;
++import java.util.LinkedList;
++import java.util.function.Function;
++
++public class ItemTextureData extends ResourcePackResource {
++    private final Material material;
++    private final int customModelData;
++    private final Asset<CustomResourcePack> pngFile;
++    private final @Nullable ModelType modelType;
++
++    public ItemTextureData(@NotNull NamespacedKey namespacedKey,
++                           @NotNull Material material,
++                           int customModelData,
++                           @Nullable Asset<CustomResourcePack> pngFile,
++                           @Nullable ModelType modelType) {
++        super(namespacedKey);
++        this.material = material;
++        this.customModelData = customModelData;
++        this.pngFile = pngFile;
++        this.modelType = modelType;
++    }
++
++    @Override
++    public void installToDataPack(CustomResourcePack customPack) throws IOException {
++        var hasCustomTexture = pngFile != null;
++
++        if (hasCustomTexture)
++            pngFile.installAsset(customPack, key(), ResourcePackAssetTypes.TEXTURES, "png");
++
++        createModelFile(customPack);
++        createVanillaModelFile(customPack);
++    }
++
++    private void createModelFile(CustomResourcePack customPack) {
++        JsonObject jsonToWriteToFile = createModelJson(key(), modelType);
++
++        AssetUtil.createJsonAssetAndInstall(jsonToWriteToFile, customPack, key(), ResourcePackAssetTypes.MODELS);
++    }
++
++    private void createVanillaModelFile(CustomResourcePack customPack) {
++        if (customModelData == 0)
++            return;
++        NamespacedKey vanillaKey = new NamespacedKey(material.getKey().namespace(), "item/" + material.getKey()
++                                                                                                      .getKey());
++        JsonObject jsonToWriteToFile = createModelJson(vanillaKey, null);
++
++        addCustomModelDataListToVanillaModelFile(jsonToWriteToFile);
++
++        AssetUtil.createJsonAssetAndInstall(jsonToWriteToFile, customPack, vanillaKey, ResourcePackAssetTypes.MODELS);
++    }
++
++    private void addCustomModelDataListToVanillaModelFile(JsonObject jsonToWriteToFile) {
++        var list = new LinkedList<JsonObject>();
++        var builder = JsonObjectBuilder.create(jsonToWriteToFile)
++                                       .getOrCreateArray("overrides", jsonArrayBuilder -> {
++                                           jsonArrayBuilder.add(
++                                               JsonObjectBuilder
++                                                   .create()
++                                                   .add("predicate",
++                                                       JsonObjectBuilder
++                                                           .create()
++                                                           .add("custom_model_data", customModelData))
++                                                   .add("model", key().toString()));
++                                           jsonArrayBuilder.build()
++                                                           .forEach(jsonElement -> list.add(jsonElement.getAsJsonObject()));
++                                       });
++
++        list.sort(Comparator.comparing(jsonElement -> jsonElement.getAsJsonObject().getAsJsonObject("predicate")
++                                                                 .get("custom_model_data").getAsJsonPrimitive()
++                                                                 .getAsInt()));
++
++        var sortedArray = JsonArrayBuilder.create();
++        list.forEach(jsonElement -> {
++            sortedArray.add(JsonObjectBuilder.create(jsonElement));
++        });
++        builder.add("overrides", sortedArray);
++    }
++
++    private JsonObject createModelJson(NamespacedKey key, @Nullable ModelType modelType) {
++        JsonObject jsonToWriteToFile;
++        if (modelType != null)
++            jsonToWriteToFile = modelType.modelCreator().apply(key);
++        else {
++            if (isHandheldItem(material))
++                jsonToWriteToFile = ModelType.HAND_HELD.modelCreator.apply(key);
++            else
++                jsonToWriteToFile = ModelType.GENERATED_ITEM.modelCreator.apply(key);
++        }
++        return jsonToWriteToFile;
++    }
++
++    private boolean isHandheldItem(Material material) {
++        return material.name().contains("SWORD") || material.name().contains("AXE") || material.name()
++                                                                                               .contains("HOE") || material
++            .name().contains("SHOVEL") || material.equals(Material.FISHING_ROD);
++    }
++
++    public record ModelType(String modelName, Function<NamespacedKey, JsonObject> modelCreator) {
++        public static final ModelType GENERATED_ITEM = new ModelType("item/generated", namespacedKey ->
++            JsonObjectBuilder.create().add("parent", "item/generated")
++                             .add("textures", JsonObjectBuilder.create().add("layer0", namespacedKey.toString()))
++                             .build());
++        public static final ModelType HAND_HELD = new ModelType("item/handheld", namespacedKey ->
++            JsonObjectBuilder.create().add("parent", "item/handheld")
++                             .add("textures", JsonObjectBuilder.create().add("layer0", namespacedKey.toString()))
++                             .build());
++        public static final ModelType FAKE_CROP = new ModelType("minecraft:block/crop", namespacedKey ->
++            JsonObjectBuilder.create().add("parent", "minecraft:block/crop")
++                             .add("textures", JsonObjectBuilder.create().add("crop", namespacedKey.toString()))
++                             .build());
++
++        public static final ModelType CLICKABLE_ITEM = new ModelType("clickable_item", namespacedKey ->
++            JsonObjectBuilder.create().add("parent", "item/generated")
++                             .add("textures", JsonObjectBuilder.create().add("layer0", namespacedKey.toString()))
++                             .add("display",
++                                 JsonObjectBuilder.create().add("gui",
++                                     JsonObjectBuilder.create()
++                                                      .add("scale", JsonArrayBuilder
++                                                          .create()
++                                                          .add(1.2f)
++                                                          .add(1)
++                                                          .add(1))))
++                             .build());
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/resource/resourcepack/types/ShaderRendered.java b/src/main/java/de/verdox/mccreativelab/resource/resourcepack/types/ShaderRendered.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..c0cb74a297968d2010c9085e83f30df8cd54aaa6
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/resource/resourcepack/types/ShaderRendered.java
+@@ -0,0 +1,89 @@
++package de.verdox.mccreativelab.resource.resourcepack.types;
++
++import de.verdox.mccreativelab.resource.Asset;
++import de.verdox.mccreativelab.resource.resourcepack.CustomResourcePack;
++import de.verdox.mccreativelab.resource.resourcepack.ResourcePackAssetTypes;
++import de.verdox.mccreativelab.resource.resourcepack.ResourcePackResource;
++import de.verdox.mccreativelab.resource.resourcepack.renderer.ScreenPosition;
++import de.verdox.mccreativelab.resource.resourcepack.renderer.TextType;
++import de.verdox.mccreativelab.resource.resourcepack.types.font.StandardFontAssets;
++import org.bukkit.NamespacedKey;
++
++import java.io.BufferedWriter;
++import java.io.File;
++import java.io.FileWriter;
++import java.io.IOException;
++import java.nio.file.Files;
++import java.util.LinkedList;
++import java.util.List;
++
++public abstract class ShaderRendered extends ResourcePackResource {
++    public static final int ascentRange = 1000;
++    private final List<String> shaderInstructions = new LinkedList<>();
++
++    public ShaderRendered(NamespacedKey namespacedKey) {
++        super(namespacedKey);
++    }
++
++    protected void createGuiSizedShaderInstruction(int ascent, ScreenPosition screenPosition) {
++        var list = new LinkedList<String>();
++
++        float xOnScreen = screenPosition.textType().xOffset() + (screenPosition.xOffset());
++        float yOnScreen = screenPosition.textType().yOffset() + (screenPosition.yOffset()) * -1;
++        // If it is layer 1 (i=0) include own width to correct spacing. Else it is only relative to the upper layer
++        var caseID = (ascent / ascentRange) * -1;
++        String xString = xOnScreen >= 0 ? "-" + Math.abs(xOnScreen) : "+" + Math.abs(xOnScreen);
++        String yString = yOnScreen >= 0 ? "-" + Math.abs(yOnScreen) : "+" + Math.abs(yOnScreen);
++
++        list.add("\t\t\t\tcase " + caseID + ":");
++        list.add("\t\t\t\t\txOffset = int(guiSize.x * (-" + Math.abs(screenPosition.x()) + ".0/100))" + xString + ";");
++        list.add("\t\t\t\t\tyOffset = int(guiSize.y * (" + Math.abs(screenPosition.y()) + ".0/100))" + yString + ";");
++
++        list.add("\t\t\t\t\tpos.x -= (guiSize.x * 0.5);");
++        if (!screenPosition.textType().equals(TextType.ACTION_BAR))
++            list.add("\t\t\t\t\tpos.y += (guiSize.y * 0.5);");
++
++        list.add("\t\t\t\t\tlayer = " + screenPosition.layer() + ";");
++        list.add("\t\t\t\t\tbreak;");
++
++        shaderInstructions.addAll(list);
++    }
++
++    protected void installShaderFileToPack(CustomResourcePack customResourcePack) throws IOException {
++        NamespacedKey shaderKey = new NamespacedKey("minecraft","core/rendertype_text");
++        Asset<CustomResourcePack> shaderInitFileAsset = new Asset<>(() -> StandardFontAssets.class.getResourceAsStream("/resourcepack/shader/rendertype_text.json"));
++        Asset<CustomResourcePack> pixelShaderAsset = new Asset<>(() -> StandardFontAssets.class.getResourceAsStream("/resourcepack/shader/rendertype_text.fsh"));
++        Asset<CustomResourcePack> vertexShaderAsset = new Asset<>(() -> StandardFontAssets.class.getResourceAsStream("/resourcepack/shader/rendertype_text.vsh"));
++
++        shaderInitFileAsset.installAsset(customResourcePack, shaderKey, ResourcePackAssetTypes.SHADERS, "json");
++        pixelShaderAsset.installAsset(customResourcePack, shaderKey, ResourcePackAssetTypes.SHADERS, "fsh");
++        File vertexShaderFile = vertexShaderAsset.installAsset(customResourcePack, shaderKey, ResourcePackAssetTypes.SHADERS, "vsh");
++
++        var vertexShaderFileLines = new LinkedList<>(Files.readAllLines(vertexShaderFile.toPath()));
++
++        var indexToInsert = -1;
++        for (int i = 0; i < vertexShaderFileLines.size(); i++) {
++            var line = vertexShaderFileLines.get(i);
++            if (line.contains("switch (int(id)) {")) {
++                indexToInsert = i + 1;
++                break;
++            }
++        }
++
++        if(indexToInsert == -1)
++            throw new IllegalStateException("vsh shader file is damaged");
++
++        for (int i = 0; i < shaderInstructions.size(); i++) {
++            var instruction = shaderInstructions.get(i);
++            vertexShaderFileLines.add(i + indexToInsert, instruction);
++        }
++
++        try (BufferedWriter writer = new BufferedWriter(new FileWriter(vertexShaderFile))) {
++            for (String shaderFileLine : vertexShaderFileLines) {
++                writer.write(shaderFileLine);
++                writer.newLine();
++            }
++            writer.flush();
++        }
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/resource/resourcepack/types/font/BitMap.java b/src/main/java/de/verdox/mccreativelab/resource/resourcepack/types/font/BitMap.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..f0de37e9d00b00204e65d80b292a617d289a25f3
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/resource/resourcepack/types/font/BitMap.java
+@@ -0,0 +1,67 @@
++package de.verdox.mccreativelab.resource.resourcepack.types.font;
++
++import de.verdox.mccreativelab.gson.JsonArrayBuilder;
++import de.verdox.mccreativelab.gson.JsonObjectBuilder;
++import de.verdox.mccreativelab.resource.Asset;
++import de.verdox.mccreativelab.resource.resourcepack.CustomResourcePack;
++import de.verdox.mccreativelab.util.BitMapReader;
++import org.bukkit.NamespacedKey;
++
++import javax.imageio.ImageIO;
++import java.io.IOException;
++
++public record BitMap(Asset<CustomResourcePack> bitmapImageAsset, int height, int ascent, float scale, BitMapReader bitMapReader, String... character) implements FontElement{
++
++    public BitMap(Asset<CustomResourcePack> bitmapImageAsset, int height, int ascent, String... character) {
++        this(bitmapImageAsset, height, ascent, 1, character);
++    }
++
++    public BitMap(Asset<CustomResourcePack> bitmapImageAsset, int height, int ascent, float scale, String... character) {
++        this(bitmapImageAsset, height, ascent, scale, new BitMapReader(bitmapImageAsset.assetInputStream(), height, character, scale), character);
++    }
++
++    public BitMap(Asset<CustomResourcePack> bitmapImageAsset, int height, int ascent, BitMapReader bitMapReader, String... character) {
++        this(bitmapImageAsset, height, ascent, 1, bitMapReader, character);
++    }
++
++    public BitMap withHeight(int height) {
++        return new BitMap(bitmapImageAsset, height, ascent, character);
++    }
++    public BitMap withAscent(int ascent) {
++        return new BitMap(bitmapImageAsset, height, ascent, bitMapReader, character);
++    }
++    public BitMap withScale(float scale) {
++        return new BitMap(bitmapImageAsset, height, ascent, scale, character);
++    }
++    public int getPixelHeight() throws IOException {
++        if (!bitmapImageAsset.isInputStreamValid())
++            throw new IOException("Asset is not a bitmap image");
++        return ImageIO.read(bitmapImageAsset.assetInputStream().get()).getHeight();
++    }
++    public int getPixelWidth() throws IOException {
++        if (!bitmapImageAsset.isInputStreamValid())
++            throw new IOException("Asset is not a bitmap image");
++        return ImageIO.read(bitmapImageAsset.assetInputStream().get()).getWidth();
++    }
++
++    @Override
++    public void buildToProviders(NamespacedKey namespacedKey, JsonArrayBuilder providers) {
++        if(character.length == 0)
++            return;
++
++        var charArray = JsonArrayBuilder.create();
++
++        for (String s : character) {
++            charArray.add(s);
++        }
++
++        var bitmapDetails = JsonObjectBuilder.create()
++                                             .add("type", "bitmap")
++                                             .add("file", namespacedKey.toString()+".png")
++                                             .add("ascent", ascent)
++                                             .add("height", (int) (height * scale))
++                                             .add("chars", charArray);
++
++        providers.add(bitmapDetails);
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/resource/resourcepack/types/font/Characters.java b/src/main/java/de/verdox/mccreativelab/resource/resourcepack/types/font/Characters.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..70d709dd4f022ea2ff339bcdaf368a5744f57b8b
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/resource/resourcepack/types/font/Characters.java
+@@ -0,0 +1,167 @@
++package de.verdox.mccreativelab.resource.resourcepack.types.font;
++
++public class Characters {
++
++    public static final String[] ASCII = new String[]{
++            "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
++            "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
++            " !\"#$%&'()*+,-./",
++            "0123456789:;<=>?",
++            "@ABCDEFGHIJKLMNO",
++            "PQRSTUVWXYZ[\\]^_",
++            "`abcdefghijklmno",
++            "pqrstuvwxyz{|}~\u0000",
++            "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
++            "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000£\u0000\u0000ƒ",
++            "\u0000\u0000\u0000\u0000\u0000\u0000ªº\u0000\u0000¬\u0000\u0000\u0000«»",
++            "░▒▓│┤╡╢╖╕╣║╗╝╜╛┐",
++            "└┴┬├─┼╞╟╚╔╩╦╠═╬╧",
++            "╨╤╥╙╘╒╓╫╪┘┌█▄▌▐▀",
++            "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000∅∈\u0000",
++            "≡±≥≤⌠⌡÷≈°∙\u0000√ⁿ²■\u0000"
++    };
++    public static final String[] ACCENTED = new String[]{
++            "ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏ",
++            "ÐÑÒÓÔÕÖÙÚÛÜÝàáâã",
++            "äåæçìíîïñòóôõöùú",
++            "ûüýÿĀāĂăĄąĆćĈĉĊċ",
++            "ČčĎďĐđĒēĔĕĖėĘęĚě",
++            "ĜĝḠḡĞğĠġĢģĤĥĦħĨĩ",
++            "ĪīĬĭĮįİıĴĵĶķĹĺĻļ",
++            "ĽľĿŀŁłŃńŅņŇňŊŋŌō",
++            "ŎŏŐőŒœŔŕŖŗŘřŚśŜŝ",
++            "ŞşŠšŢţŤťŦŧŨũŪūŬŭ",
++            "ŮůŰűŲųŴŵŶŷŸŹźŻżŽ",
++            "žǼǽǾǿȘșȚțΆΈΉΊΌΎΏ",
++            "ΐΪΫάέήίΰϊϋόύώЀЁЃ",
++            "ЇЌЍЎЙйѐёђѓїћќѝўџ",
++            "ҐґḂḃḊḋḞḟḢḣḰḱṀṁṖṗ",
++            "ṠṡṪṫẀẁẂẃẄẅỲỳèéêë",
++            "ŉǧǫЏḍḥṛṭẒỊịỌọỤụ№",
++            "ȇƔɣʃ⁇ǱǲǳǄǅǆǇǈǊǋǌ",
++            "ℹᵫꜲꜳꜴꜵꜶꜷꜸꜺꜼꜽꝎꝏꝠꝡ",
++            "ﬄﬆᚡᚵƠơƯưẮắẤấẾếốỚ",
++            "ớỨứẰằẦầỀềồỜờỪừẢả",
++            "ẲẳẨẩẺẻổỞỂểỈỉỎỏỔở",
++            "ỦủỬửỶỷẠạẶặẬậẸẹỆệ",
++            "ỘộỢợỰựỴỵỐƕẪẫỖỗữ☞",
++            "☜☮ẴẵẼẽỄễỒỠỡỮỸỹҘҙ",
++            "ҠҡҪҫǶ⚠⓪①②③④⑤⑥⑦⑧⑨",
++            "⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳ⒶⒷⒸⒹⒺ",
++            "ⒻⒼⒽⒾⒿⓀⓁⓂⓃⓄⓅⓆⓇⓈⓉⓊ",
++            "ⓋⓌⓍⓎⓏⓐⓑⓒⓓⓔⓕⓖⓗⓘⓙⓚ",
++            "ⓛⓜⓝⓞⓟⓠⓡⓢⓣⓤⓥⓦⓧⓨⓩ̧",
++            "ʂʐɶǍǎǞǟǺǻȂȃȦȧǠǡḀ",
++            "ḁȀȁḆḇḄḅᵬḈḉḐḑḒḓḎḏ",
++            "ḌᵭḔḕḖḗḘḙḜḝȨȩḚḛȄȅ",
++            "ȆᵮǴǵǦḦḧḨḩḪḫȞȟḤẖḮ",
++            "ḯȊȋǏǐȈȉḬḭǰȷǨǩḲḳḴ",
++            "ḵḺḻḼḽḶḷḸḹⱢḾḿṂṃᵯṄ",
++            "ṅṆṇṊṋǸǹṈṉᵰǬǭȬȭṌṍ",
++            "ṎṏṐṑṒṓȎȏȪȫǑǒȮȯȰȱ",
++            "ȌȍǪṔṕᵱȒȓṘṙṜṝṞṟȐȑ",
++            "ṚᵳᵲṤṥṦṧṢṣṨṩᵴṰṱṮṯ",
++            "ṬẗᵵṲṳṶṷṸṹṺṻǓǔǕǖǗ",
++            "ǘǙǚǛǜṴṵȔȕȖṾṿṼṽẆẇ",
++            "ẈẉẘẌẍẊẋȲȳẎẏẙẔẕẐẑ",
++            "ẓᵶǮǯẛꜾꜿǢǣᵺỻᴂᴔꭣȸʣ",
++            "ʥʤʩʪʫȹʨʦʧꭐꭑ₧Ỻאַאָƀ",
++            "ƂƃƇƈƊƋƌƓǤǥƗƖɩƘƙƝ",
++            "ƤƥɽƦƬƭƫƮȗƱƜƳƴƵƶƢ",
++            "ƣȢȣʭʮʯﬔﬕﬗﬖﬓӐӑӒӓӶ",
++            "ӷҔҕӖӗҼҽҾҿӚӛӜӝӁӂӞ",
++            "ӟӢӣӤӥӦӧӪӫӰӱӮӯӲӳӴ",
++            "ӵӸӹӬӭѶѷӔӺԂꚂꚀꚈԪԬꚄ",
++            "ԄԐӠԆҊӃҞҜԞԚӅԮԒԠԈԔ",
++            "ӍӉԨӇҤԢԊҨԤҦҎԖԌꚐҬꚊ",
++            "ꚌԎҲӼӾԦꚔҴꚎҶӋҸꚒꚖꚆҌ",
++            "ԘԜӕӻԃꚃꚁꚉԫԭꚅԅԑӡԇҋ",
++            "ӄҟҝԟԛӆԯԓԡԉԕӎӊԩӈҥ",
++            "ԣԋҩԥҧҏԗԍꚑҭꚋꚍԏҳӽӿ",
++            "ԧꚕҵꚏҷӌҹꚓꚗꚇҍԙԝἈἀἉ",
++            "ἁἊἂἋἃἌἄἍἅἎἆἏἇᾺὰᾸ",
++            "ᾰᾹᾱΆάᾈᾀᾉᾁᾊᾂᾋᾃᾌᾄᾍ",
++            "ᾅᾎᾆᾏᾇᾼᾴᾶᾷᾲᾳἘἐἙἑἚ",
++            "ἒἛἓἜἔἝἕῈΈὲέἨἠῊὴἩ",
++            "ἡἪἢἫἣἬἤἭἥἮἦἯἧᾘᾐᾙ",
++            "ᾑᾚᾒᾛᾓᾜᾔᾝᾕᾞᾖᾟᾗΉήῌ",
++            "ῃῂῄῆῇῚὶΊίἸἰἹἱἺἲἻ",
++            "ἳἼἴἽἵἾἶἿἷῘῐῙῑῒΐῖ",
++            "ῗῸὸΌόὈὀὉὁὊὂὋὃὌὄὍ",
++            "ὅῬῤῥῪὺΎύὙὑὛὓὝὕὟὗ",
++            "ῨῠῩῡϓϔῢΰῧὐὒὔῦὖῺὼ",
++            "ΏώὨὠὩὡὪὢὫὣὬὤὭὥὮὦ",
++            "Ὧὧᾨᾠᾩᾡᾪᾢᾫᾣᾬᾤᾭᾥᾮᾦ",
++            "ᾯᾧῼῳῲῴῶῷ☯☐☑☒ƍƺⱾȿ",
++            "ⱿɀᶀꟄꞔᶁᶂᶃꞕᶄᶅᶆᶇᶈᶉᶊ",
++            "ᶋᶌᶍꟆᶎᶏᶐᶒᶓᶔᶕᶖᶗᶘᶙᶚ",
++            "ẚ⅒⅘₨₯\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"};
++    public static final String[] NON_LATIN = new String[]{"¡‰­·₴≠¿×ØÞһðøþΑΒ",
++            "ΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣ",
++            "ΤΥΦΧΨΩαβγδεζηθικ",
++            "λμνξοπρςστυφχψωЂ",
++            "ЅІЈЉЊЋАБВГДЕЖЗИК",
++            "ЛМНОПРСТУФХЦЧШЩЪ",
++            "ЫЬЭЮЯабвгдежзикл",
++            "мнопрстуфхцчшщъы",
++            "ьэюяєѕіјљњ–—‘’“”",
++            "„…⁊←↑→↓⇄＋ƏəɛɪҮүӨ",
++            "өʻˌ;ĸẞß₽€ѢѣѴѵӀѲѳ",
++            "⁰¹³⁴⁵⁶⁷⁸⁹⁺⁻⁼⁽⁾ⁱ™",
++            "ʔʕ⧈⚔☠ҚқҒғҰұӘәҖҗҢ",
++            "ңҺאבגדהוזחטיכלמם",
++            "נןסעפףצץקר¢¤¥©®µ",
++            "¶¼½¾·‐‚†‡•‱′″‴‵‶",
++            "‷‹›※‼‽⁂⁈⁉⁋⁎⁏⁑⁒⁗℗",
++            "−∓∞☀☁☈Є☲☵☽♀♂⚥♠♣♥",
++            "♦♩♪♫♬♭♮♯⚀⚁⚂⚃⚄⚅ʬ⚡",
++            "⛏✔❄❌❤⭐⸘⸮⸵⸸⹁⹋⥝ᘔƐ߈",
++            "ϛㄥⱯᗺƆᗡƎℲ⅁ꞰꞀԀꝹᴚ⟘∩",
++            "Ʌ⅄ɐɔǝɟᵷɥᴉɾʞꞁɯɹʇʌ",
++            "ʍʎԱԲԳԴԶԷԹԺԻԼԽԾԿՀ",
++            "ՁՂՃՄՅՆՇՈՉՋՌՍՎՏՐՑ",
++            "ՒՓՔՕՖՙաբգդեզէըթժ",
++            "իլխծկհձղճմյնշոչպ",
++            "ջռսվտրցւփքօֆևשתԸ",
++            "՚՛՜՝՞՟ՠֈ֏¯ſƷʒǷƿȜ",
++            "ȝȤȥ˙Ꝛꝛ‑⅋⏏⏩⏪⏭⏮⏯⏴⏵",
++            "⏶⏷⏸⏹⏺⏻⏼⏽⭘▲▶▼◀●◦◘",
++            "⚓⛨ĲĳǉꜨꜩꜹꜻﬀﬁﬂﬃﬅ�Ե",
++            "Պᚠᚢᚣᚤᚥᚦᚧᚨᚩᚪᚫᚬᚭᚮᚯ",
++            "ᚰᚱᚲᚳᚴᚶᚷᚸᚹᚺᚻᚼᚽᚾᚿᛀ",
++            "ᛁᛂᛃᛄᛅᛆᛇᛈᛉᛊᛋᛌᛍᛎᛏᛐ",
++            "ᛑᛒᛓᛔᛕᛖᛗᛘᛙᛚᛛᛜᛝᛞᛟᛠ",
++            "ᛡᛢᛣᛤᛥᛦᛧᛨᛩᛪ᛫᛬᛭ᛮᛯᛰ",
++            "ᛱᛲᛳᛴᛵᛶᛷᛸ☺☻¦☹ך׳״װ",
++            "ױײ־׃׆´¨ᴀʙᴄᴅᴇꜰɢʜᴊ",
++            "ᴋʟᴍɴᴏᴘꞯʀꜱᴛᴜᴠᴡʏᴢ§",
++            "ɱɳɲʈɖɡʡɕʑɸʝʢɻʁɦʋ",
++            "ɰɬɮʘǀǃǂǁɓɗᶑʄɠʛɧɫ",
++            "ɨʉʊɘɵɤɜɞɑɒɚɝƁƉƑƩ",
++            "ƲႠႡႢႣႤႥႦႧႨႩႪႫႬႭႮ",
++            "ႯႰႱႲႳႴႵႶႷႸႹႺႻႼႽႾ",
++            "ႿჀჁჂჃჄჅჇჍაბგდევზ",
++            "თიკლმნოპჟრსტუფქღ",
++            "ყშჩცძწჭხჯჰჱჲჳჴჵჶ",
++            "ჷჸჹჺ჻ჼჽჾჿתּשׂפֿפּכּײַיִ",
++            "וֹוּבֿבּꜧꜦɺⱱʠʗʖɭɷɿʅʆ",
++            "ʓʚ₪₾֊ⴀⴁⴂⴃⴄⴅⴆⴡⴇⴈⴉ",
++            "ⴊⴋⴌⴢⴍⴎⴏⴐⴑⴒⴣⴓⴔⴕⴖⴗ",
++            "ⴘⴙⴚⴛⴜⴝⴞⴤⴟⴠⴥ⅛⅜⅝⅞⅓",
++            "⅔✉☂☔☄⛄☃⌛⌚⚐✎❣♤♧♡♢",
++            "⛈☰☱☳☴☶☷↔⇒⇏⇔⇵∀∃∄∉",
++            "∋∌⊂⊃⊄⊅∧∨⊻⊼⊽∥≢⋆∑⊤",
++            "⊥⊢⊨≔∁∴∵∛∜∂⋃⊆⊇□△▷",
++            "▽◁◆◇○◎☆★✘₀₁₂₃₄₅₆",
++            "₇₈₉₊₋₌₍₎∫∮∝⌀⌂⌘〒ɼ",
++            "ƄƅẟȽƚƛȠƞƟƧƨƪƸƹƻƼ",
++            "ƽƾȡȴȵȶȺⱥȻȼɆɇȾⱦɁɂ",
++            "ɃɄɈɉɊɋɌɍɎɏẜẝỼỽỾỿ",
++            "Ꞩꞩ𐌰𐌱𐌲𐌳𐌴𐌵𐌶𐌷𐌸𐌹𐌺𐌻𐌼𐌽",
++            "𐌾𐌿𐍀𐍁𐍂𐍃𐍄𐍅𐍆𐍇𐍈𐍉𐍊🌧🔥🌊",
++            "⅐⅑⅕⅖⅗⅙⅚⅟↉🗡🏹🪓🔱🎣🧪⚗",
++            "⯪⯫Ɑ🛡✂🍖🪣🔔⏳⚑₠₡₢₣₤₥",
++            "₦₩₫₭₮₰₱₲₳₵₶₷₸₹₺₻",
++            "₼₿\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"};
++
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/resource/resourcepack/types/font/Font.java b/src/main/java/de/verdox/mccreativelab/resource/resourcepack/types/font/Font.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..7bcdf2e1d750dff6d1440604c695d7bae4d444ba
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/resource/resourcepack/types/font/Font.java
+@@ -0,0 +1,82 @@
++package de.verdox.mccreativelab.resource.resourcepack.types.font;
++
++import com.google.gson.JsonObject;
++import de.verdox.mccreativelab.gson.JsonArrayBuilder;
++import de.verdox.mccreativelab.gson.JsonObjectBuilder;
++import de.verdox.mccreativelab.resource.resourcepack.CustomResourcePack;
++import de.verdox.mccreativelab.resource.resourcepack.ResourcePackAssetTypes;
++import de.verdox.mccreativelab.resource.resourcepack.ResourcePackResource;
++import de.verdox.mccreativelab.util.AssetUtil;
++import net.kyori.adventure.text.Component;
++import org.bukkit.NamespacedKey;
++
++import java.io.IOException;
++import java.util.LinkedList;
++import java.util.List;
++
++public class Font extends ResourcePackResource {
++    private final List<Space> spaces = new LinkedList<>();
++    private final List<BitMap> bitMaps = new LinkedList<>();
++
++    public Font(NamespacedKey namespacedKey) {
++        super(namespacedKey);
++    }
++
++    public int getPixelWidth(String text) {
++        int width = 0;
++
++        var found = false;
++        for (int codePoint : text.codePoints().toArray()) {
++            for (Space space : spaces) {
++                if (found)
++                    break;
++                if (space.hasCodePoint(codePoint)) {
++                    width += space.getPixelWidth(codePoint);
++                    found = true;
++                }
++            }
++
++            for (BitMap bitMap : bitMaps) {
++                if (found)
++                    break;
++                if (bitMap.bitMapReader().hasCodePoint(codePoint)) {
++                    found = true;
++                    width += bitMap.bitMapReader().getPixelWidth(codePoint, 0) + 1;
++                }
++
++            }
++            found = false;
++        }
++        return width;
++    }
++
++    public void addSpace(Space space) {
++        this.spaces.add(space);
++    }
++
++    public BitMap addBitMap(BitMap bitMap) {
++        this.bitMaps.add(bitMap);
++        return bitMap;
++    }
++
++    public List<BitMap> getBitMaps() {
++        return bitMaps;
++    }
++
++    @Override
++    public void installToDataPack(CustomResourcePack customPack) throws IOException {
++        JsonArrayBuilder providers = JsonArrayBuilder.create();
++
++        for (int i = 0; i < bitMaps.size(); i++) {
++            NamespacedKey bitMapKey = new NamespacedKey(key().namespace(), key().value() + "_bitmap_" + i);
++            BitMap bitMap = bitMaps.get(i);
++            bitMap.bitmapImageAsset().installAsset(customPack, bitMapKey, ResourcePackAssetTypes.TEXTURES, "png");
++            bitMap.buildToProviders(bitMapKey, providers);
++        }
++
++        spaces.forEach(space -> space.buildToProviders(null, providers));
++
++        JsonObject jsonObject = JsonObjectBuilder.create().add("providers", providers).build();
++        AssetUtil.createJsonAssetAndInstall(jsonObject, customPack, key(), ResourcePackAssetTypes.FONT);
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/resource/resourcepack/types/font/FontElement.java b/src/main/java/de/verdox/mccreativelab/resource/resourcepack/types/font/FontElement.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..73fce83f9bd2a58f0bf24ebca7a4b0f40d714461
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/resource/resourcepack/types/font/FontElement.java
+@@ -0,0 +1,8 @@
++package de.verdox.mccreativelab.resource.resourcepack.types.font;
++
++import de.verdox.mccreativelab.gson.JsonArrayBuilder;
++import org.bukkit.NamespacedKey;
++
++public interface FontElement {
++    void buildToProviders(NamespacedKey namespacedKey, JsonArrayBuilder providers);
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/resource/resourcepack/types/font/Space.java b/src/main/java/de/verdox/mccreativelab/resource/resourcepack/types/font/Space.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..adf2ad61ab2888e26dd4a636cc692fee4f64f63a
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/resource/resourcepack/types/font/Space.java
+@@ -0,0 +1,35 @@
++package de.verdox.mccreativelab.resource.resourcepack.types.font;
++
++import de.verdox.mccreativelab.gson.JsonArrayBuilder;
++import de.verdox.mccreativelab.gson.JsonObjectBuilder;
++import org.bukkit.NamespacedKey;
++
++import java.util.Arrays;
++import java.util.Map;
++
++public record Space(Map<String, Integer> advances) implements FontElement {
++    @Override
++    public void buildToProviders(NamespacedKey namespacedKey, JsonArrayBuilder providers) {
++        providers.add(JsonObjectBuilder
++            .create()
++            .add("type", "space")
++            .getOrCreateJsonObject("advances",
++                jsonObjectBuilder -> advances.entrySet()
++                                             .stream()
++                                             .sorted(Map.Entry.comparingByKey())
++                                             .forEach(stringIntegerEntry -> jsonObjectBuilder.add(stringIntegerEntry.getKey(), stringIntegerEntry.getValue()))));
++    }
++
++    public boolean hasCodePoint(int codePoint) {
++        return advances.keySet().stream().flatMapToInt(s -> Arrays.stream(s.codePoints().toArray()))
++                       .anyMatch(value -> value == codePoint);
++    }
++
++    public int getPixelWidth(int codePoint) {
++        if (!hasCodePoint(codePoint))
++            return 0;
++        var found = advances.keySet().stream().filter(s -> s.codePoints().anyMatch(value -> value == codePoint))
++                            .findFirst().orElse(null);
++        return advances.get(found);
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/resource/resourcepack/types/font/StandardFontAssets.java b/src/main/java/de/verdox/mccreativelab/resource/resourcepack/types/font/StandardFontAssets.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..a895606714c9d2f9cf6d990bc39248658052a278
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/resource/resourcepack/types/font/StandardFontAssets.java
+@@ -0,0 +1,12 @@
++package de.verdox.mccreativelab.resource.resourcepack.types.font;
++
++import de.verdox.mccreativelab.resource.Asset;
++import de.verdox.mccreativelab.resource.resourcepack.CustomResourcePack;
++
++public class StandardFontAssets {
++    public static final Asset<CustomResourcePack> nonLatinStandard = new Asset<>(() -> StandardFontAssets.class.getResourceAsStream("/resourcepack/font/nonlatin_european.png"));
++    public static final Asset<CustomResourcePack> ascii = new Asset<>(() -> StandardFontAssets.class.getResourceAsStream("/resourcepack/font/ascii.png"));
++    public static final Asset<CustomResourcePack> accented = new Asset<>(() -> StandardFontAssets.class.getResourceAsStream("/resourcepack/font/accented.png"));
++    public static final BitMap asciiBitmap = new BitMap(ascii,8, 0, Characters.ASCII);
++    public static final BitMap accentedBitMap = new BitMap(accented, 12, 0, Characters.ACCENTED);
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/util/AssetUtil.java b/src/main/java/de/verdox/mccreativelab/util/AssetUtil.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..a04bbfc1a9911418b61be317f2df78f0b5a2f8a8
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/util/AssetUtil.java
+@@ -0,0 +1,82 @@
++package de.verdox.mccreativelab.util;
++
++import com.google.gson.JsonObject;
++import de.verdox.mccreativelab.resource.Asset;
++import de.verdox.mccreativelab.resource.AssetType;
++import de.verdox.mccreativelab.resource.CustomPack;
++import de.verdox.mccreativelab.resource.resourcepack.CustomResourcePack;
++import org.bukkit.Bukkit;
++import org.bukkit.NamespacedKey;
++
++import javax.imageio.ImageIO;
++import java.io.*;
++import java.nio.file.Files;
++import java.util.LinkedList;
++import java.util.List;
++import java.util.UUID;
++import java.util.function.Consumer;
++
++public class AssetUtil {
++    public static<C extends CustomPack<C>> void createJsonAssetAndInstall(JsonObject jsonObject, C customPack, NamespacedKey namespacedKey, AssetType<C> assetType){
++        try {
++            File tempFile = Files.createTempFile(UUID.randomUUID().toString(), "json").toFile();
++            JsonUtil.writeJsonObjectToFile(jsonObject, tempFile);
++
++            Asset<C> modelAsset = new Asset<>(tempFile);
++            modelAsset.installAsset(customPack, namespacedKey, assetType, "json");
++            tempFile.delete();
++        } catch (IOException e) {
++            throw new RuntimeException(e);
++        }
++    }
++
++    public static <C extends CustomPack<C>> void installJsonFileAssetAndEdit(Asset<C> asset, C customPack, NamespacedKey namespacedKey, AssetType<C> assetType, Consumer<JsonObject> editor) throws IOException {
++        File installedFile = asset.installAsset(customPack, namespacedKey, assetType, "json");
++        JsonObject jsonObject = JsonUtil.readJsonFromFile(installedFile);
++        editor.accept(jsonObject);
++        JsonUtil.writeJsonObjectToFile(jsonObject, installedFile);
++    }
++    public static List<Asset<CustomResourcePack>> createPartlyVisibleCopys(Asset<CustomResourcePack> asset, int amountParts) throws IOException {
++        var fileList = new LinkedList<Asset<CustomResourcePack>>();
++
++        try(InputStream stream = asset.assetInputStream().get()){
++            if(stream == null)
++                throw new IOException("InputStream supplier did not contain any InputStream");
++            var split = ImageUtil.splitImage(stream, amountParts);
++
++            for (java.awt.image.BufferedImage partImage : split) {
++                var byteStream = new ByteArrayOutputStream();
++                ImageIO.write(partImage, "png", byteStream);
++
++                Asset<CustomResourcePack> partImageAsset = new Asset<CustomResourcePack>(() -> new ByteArrayInputStream(byteStream.toByteArray()));
++                fileList.add(partImageAsset);
++            }
++            return fileList;
++        }
++    }
++
++    public static int getPixelHeightIfImage(Asset<?> asset) {
++        try {
++            return ImageIO.read(asset.assetInputStream().get()).getHeight();
++        } catch (IOException e) {
++            return -1;
++        }
++    }
++
++    public static boolean isImage(Asset<?> asset) {
++        try {
++            var image = ImageIO.read(asset.assetInputStream().get());
++            return image != null;
++        } catch (IOException e) {
++            return false;
++        }
++    }
++
++    public static int getPixelWidthIfImage(Asset<?> asset) {
++        try {
++            return ImageIO.read(asset.assetInputStream().get()).getHeight();
++        } catch (IOException e) {
++            return -1;
++        }
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/util/BitMapReader.java b/src/main/java/de/verdox/mccreativelab/util/BitMapReader.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..cd0c135840b7e6a3cd5aee82e754505bc80377f8
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/util/BitMapReader.java
+@@ -0,0 +1,152 @@
++package de.verdox.mccreativelab.util;
++
++import de.verdox.mccreativelab.resource.resourcepack.types.font.BitMap;
++
++import javax.imageio.ImageIO;
++import java.awt.*;
++import java.awt.image.BufferedImage;
++import java.io.IOException;
++import java.io.InputStream;
++import java.util.Arrays;
++import java.util.HashMap;
++import java.util.Map;
++import java.util.function.Supplier;
++
++public class BitMapReader {
++    private final BufferedImage bufferedImage;
++    private final int heightOfChar;
++    private final String[] charArray;
++    private final float scale;
++    private final Map<Integer, CharacterDimensions> characterDimensions;
++
++    public BitMapReader(BufferedImage bufferedImage, BitMap bitMap){
++        this(bufferedImage, bitMap.height(), bitMap.character(), bitMap.scale());
++    }
++    public BitMapReader(BufferedImage bufferedImage, int heightOfChar, String[] charArray, float scale) {
++        this.bufferedImage = bufferedImage;
++        this.heightOfChar = heightOfChar;
++        this.charArray = charArray;
++        this.scale = scale;
++        this.characterDimensions = calculateDimensions();
++    }
++
++    public BitMapReader(Supplier<InputStream> supplier, BitMap bitMap){
++        this(supplier, bitMap.height(), bitMap.character(), bitMap.scale());
++    }
++
++    public BitMapReader(Supplier<InputStream> supplier, int heightOfChar, String[] charArray, float scale) {
++
++        try (InputStream stream = supplier.get()) {
++            if (stream == null) {
++                throw new RuntimeException("Could not find file in stream for BitMapReader");
++            }
++            this.bufferedImage = ImageIO.read(stream);
++            this.scale = scale;
++            this.heightOfChar = heightOfChar;
++            this.charArray = charArray;
++            this.characterDimensions = calculateDimensions();
++        } catch (IOException e) {
++            throw new RuntimeException(e);
++        }
++    }
++
++    public boolean hasCodePoint(int codePoint) {
++        return characterDimensions.containsKey(codePoint);
++    }
++
++    public int getPixelWidth(int codePoint, int defaultValue) {
++        var dimension = characterDimensions.getOrDefault(codePoint, null);
++        return dimension != null ? (dimension.width) : defaultValue;
++    }
++
++    public Map<Integer, CharacterDimensions> getCharacterDimensions() {
++        return new HashMap<>(characterDimensions);
++    }
++
++    private Map<Integer, CharacterDimensions> calculateDimensions() {
++        var map = new HashMap<Integer, CharacterDimensions>();
++
++        for (int y = 0; y < charArray.length; y++) {
++
++            var charRow = charArray[y];
++
++            var startPixelY = y * pixelHeightPerChar();
++            var endPixelY = startPixelY + pixelHeightPerChar() - 1;
++
++            var codePointArray = charRow.codePoints().toArray();
++            for (int x = 0; x < codePointArray.length; x++) {
++                var codePointInt = codePointArray[x];
++
++                var startPixelX = x * pixelWidthPerChar();
++                var endPixelX = startPixelX + pixelWidthPerChar() - 1;
++
++                map.put(codePointInt, getDimension(startPixelX, endPixelX, startPixelY, endPixelY));
++            }
++        }
++        return map;
++    }
++
++    private CharacterDimensions getDimension(int startX, int endX, int startY, int endY) {
++        var minX = endX;
++        var maxX = startX;
++
++        var minY = endY;
++        var maxY = startY;
++
++        for (int x = startX; x <= endX; x++) {
++            for (int y = startY; y <= endY; y++) {
++
++                var rgb = bufferedImage.getRGB(x, y);
++                var color = new Color(rgb, true);
++                if (color.getAlpha() < 0.1)
++                    continue;
++                if(color.getRed() == 0 && color.getBlue() == 0 && color.getGreen() == 0)
++                    continue;
++                if (x > maxX)
++                    maxX = x;
++                if (x < minX)
++                    minX = x;
++                if (y > maxY)
++                    maxY = y;
++                if (y < minY)
++                    minY = y;
++            }
++        }
++        return new CharacterDimensions(Math.round((Math.max(1, 1 + maxX - minX) * scale)), Math.round((Math.max(1, 1 + maxY - minY) * scale)));
++    }
++
++    public int pixelWidthPerChar() {
++        return bufferedImage.getWidth() / amountCharsOnXAxis();
++    }
++
++    public int pixelHeightPerChar() {
++        return bufferedImage.getHeight() / amountRows();
++    }
++
++    public int amountCharsOnXAxis() {
++        return charArray[0].length();
++    }
++
++    public int amountRows() {
++        return charArray.length;
++    }
++
++    @Override
++    public String toString() {
++        return "BitMapReader{" +
++                "bufferedImage=" + bufferedImage +
++                ", heightOfChar=" + heightOfChar +
++                ", charArray=" + Arrays.toString(charArray) +
++                ", characterDimensions=" + characterDimensions +
++                '}';
++    }
++
++    public record CharacterDimensions(int width, int height) {
++        @Override
++        public String toString() {
++            return "{" + width +
++                    " - " + height +
++                    '}';
++        }
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/util/ImageUtil.java b/src/main/java/de/verdox/mccreativelab/util/ImageUtil.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..697ce099e4c0bb6c22d92a288455b5e688786182
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/util/ImageUtil.java
+@@ -0,0 +1,247 @@
++package de.verdox.mccreativelab.util;
++
++import javax.imageio.ImageIO;
++import java.awt.*;
++import java.awt.image.BufferedImage;
++import java.io.*;
++import java.util.Arrays;
++import java.util.LinkedList;
++import java.util.List;
++import java.util.function.Supplier;
++
++public class ImageUtil {
++    public static InputStream bufferedImageToInputStream(BufferedImage image) throws IOException {
++        ByteArrayOutputStream os = new ByteArrayOutputStream();
++        ImageIO.write(image, "png", os);
++        return new ByteArrayInputStream(os.toByteArray());
++    }
++
++    public static BufferedImage cropTransparentPixels(InputStream inputStream) {
++        try {
++            return cropTransparentPixels(ImageIO.read(inputStream));
++        } catch (IOException e) {
++            throw new RuntimeException(e);
++        }
++    }
++
++    public static int getPixelHeight(Supplier<InputStream> bitMapFile) throws IOException {
++        return ImageIO.read(bitMapFile.get()).getHeight();
++    }
++
++    public static int getPixelWidth(Supplier<InputStream> bitMapFile) throws IOException {
++        return ImageIO.read(bitMapFile.get()).getWidth();
++    }
++
++    public static BufferedImage cropTransparentPixels(BufferedImage image) {
++        // Get the bounds of the visible content
++        Rectangle bounds = getVisibleBounds(image);
++        if(bounds.getWidth() <= 0 || bounds.getHeight() <= 0)
++            return createTransparentImage(1,1);
++
++        // Create a new image with the dimensions of the visible content
++        BufferedImage croppedImage = new BufferedImage(
++                bounds.width, bounds.height, BufferedImage.TYPE_INT_ARGB);
++
++        // Draw the visible content onto the new image
++        Graphics2D g = croppedImage.createGraphics();
++        g.drawImage(image, 0, 0, bounds.width, bounds.height,
++                bounds.x, bounds.y, bounds.x + bounds.width, bounds.y + bounds.height, null);
++        g.dispose();
++
++        return croppedImage;
++    }
++
++    private static BufferedImage createTransparentImage(int width, int height) {
++        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
++        Graphics2D g = image.createGraphics();
++        g.setColor(Color.black);
++        //g.clearRect(0, 0, width, height);
++        g.dispose();
++        return image;
++    }
++
++    private static Rectangle getVisibleBounds(BufferedImage image) {
++        int width = image.getWidth();
++        int height = image.getHeight();
++
++        int minX = width;
++        int minY = height;
++        int maxX = 0;
++        int maxY = 0;
++
++        // Iterate over each pixel and update the bounds of the visible content
++        for (int y = 0; y < height; y++) {
++            for (int x = 0; x < width; x++) {
++                int pixel = image.getRGB(x, y);
++                if ((pixel >> 24) != 0x00) {  // Check if the pixel is not transparent
++                    minX = Math.min(minX, x);
++                    minY = Math.min(minY, y);
++                    maxX = Math.max(maxX, x);
++                    maxY = Math.max(maxY, y);
++                }
++            }
++        }
++
++        // Calculate the width and height of the visible content
++        int visibleWidth = maxX - minX + 1;
++        int visibleHeight = maxY - minY + 1;
++
++        // Adjust the bounds relative to the top-left corner of the image
++        int adjustedX = Math.max(0, minX);
++        int adjustedY = Math.max(0, minY);
++        int adjustedWidth = Math.min(visibleWidth, width - adjustedX);
++        int adjustedHeight = Math.min(visibleHeight, height - adjustedY);
++
++        return new Rectangle(adjustedX, adjustedY, adjustedWidth, adjustedHeight);
++    }
++
++    public static void brightenImage(File file, int brightness) {
++        brightenImage(file, file, brightness);
++    }
++
++    public static void brightenImage2(File input, File output, int brightness) {
++        try {
++            // Lade das Bild von der Festplatte im ARGB-Format
++            BufferedImage image = ImageIO.read(input);
++
++            // Überprüfe, ob das Bild erfolgreich geladen wurde
++            if (image == null) {
++                System.out.println("Fehler beim Laden des Bildes.");
++                return;
++            }
++
++            // Überprüfe, ob das Bild einen nativen Transparenzkanal hat
++            if (image.getTransparency() != BufferedImage.TRANSLUCENT) {
++                System.out.println("Das Bild hat keinen nativen Transparenzkanal.");
++                return;
++            }
++
++            // Iteriere über jeden Pixel im Bild
++            for (int y = 0; y < image.getHeight(); y++) {
++                for (int x = 0; x < image.getWidth(); x++) {
++                    // Erhalte den ARGB-Farbwert des aktuellen Pixels
++                    int argb = image.getRGB(x, y);
++
++                    // Erhalte den Alpha-Wert des Pixels
++                    int alpha = (argb >> 24) & 0xFF;
++
++                    // Überprüfe, ob der Pixel transparent ist
++                    if (alpha == 0) {
++                        continue; // Überspringe transparente Pixel
++                    }
++
++                    // Erhöhe den Helligkeitswert des Pixels
++                    int red = (argb >> 16) & 0xFF;
++                    int green = (argb >> 8) & 0xFF;
++                    int blue = argb & 0xFF;
++
++                    red += brightness;
++                    green += brightness;
++                    blue += brightness;
++
++                    // Stelle sicher, dass die Helligkeitswerte im gültigen Bereich von 0 bis 255 bleiben
++                    red = Math.min(red, 255);
++                    green = Math.min(green, 255);
++                    blue = Math.min(blue, 255);
++
++                    // Setze den neuen Farbwert für den Pixel
++                    int newArgb = (alpha << 24) | (red << 16) | (green << 8) | blue;
++                    image.setRGB(x, y, newArgb);
++                }
++            }
++
++            // Speichere das modifizierte Bild auf der Festplatte
++            ImageIO.write(image, "png", output);
++
++        } catch (IOException e) {
++            e.printStackTrace();
++        }
++    }
++
++    public static void brightenImage(File file, File output, int brightness) {
++        try {
++            // Lade das Bild von der Festplatte
++            BufferedImage image = ImageIO.read(file);
++
++            // Konvertiere das Bild in einen unterstützten Farbraum
++            image = convertToARGB(image);
++
++            // Iteriere über jeden Pixel im Bild
++            for (int y = 0; y < image.getHeight(); y++) {
++                for (int x = 0; x < image.getWidth(); x++) {
++                    // Erhalte die Farbe des aktuellen Pixels
++                    Color pixelColor = new Color(image.getRGB(x, y));
++
++                    // Überprüfe, ob der Pixel transparent ist
++                    if (pixelColor.getAlpha() == 0 || (pixelColor.getRed() == 0 && pixelColor.getGreen() == 0 && pixelColor.getBlue() == 0))
++                        continue; // Überspringe transparente Pixel
++
++                    // Erhöhe den Helligkeitswert des Pixels
++                    int red = pixelColor.getRed() + brightness;
++                    int green = pixelColor.getGreen() + brightness;
++                    int blue = pixelColor.getBlue() + brightness;
++
++                    // Stelle sicher, dass die Helligkeitswerte im gültigen Bereich von 0 bis 255 bleiben
++                    red = Math.min(red, 255);
++                    green = Math.min(green, 255);
++                    blue = Math.min(blue, 255);
++
++                    // Setze die neue Farbe für den Pixel
++                    Color newColor = new Color(red, green, blue);
++                    image.setRGB(x, y, newColor.getRGB());
++                }
++            }
++
++            // Speichere das modifizierte Bild auf der Festplatte
++            ImageIO.write(image, "png", output);
++        } catch (IOException e) {
++            e.printStackTrace();
++        }
++    }
++
++    private static BufferedImage convertToARGB(BufferedImage image) {
++        BufferedImage convertedImage = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_ARGB);
++
++        Graphics2D g = convertedImage.createGraphics();
++        g.drawImage(image, 0, 0, null);
++        g.dispose();
++
++        return convertedImage;
++    }
++
++    public static List<BufferedImage> splitImage(InputStream inputStream, int parts) throws IOException {
++        BufferedImage originalImage = ImageIO.read(inputStream);
++        int width = originalImage.getWidth();
++        int height = originalImage.getHeight();
++        int[] originalPixels = originalImage.getRGB(0, 0, width, height, null, 0, width);
++        var imageList = new LinkedList<BufferedImage>();
++
++        int[] outputPixels = new int[originalPixels.length];
++        Arrays.fill(outputPixels, 0, outputPixels.length, 0x00000000);
++        for (int i = 1; i <= parts; i++) {
++            int startX = (i - 1) * width / parts;
++            int endX = i * width / parts;
++            for (int y = 0; y < height; y++) {
++                for (int x = startX; x < endX; x++) {
++                    int pixelIndex = y * width + x;
++                    outputPixels[pixelIndex] = originalPixels[pixelIndex];
++                }
++            }
++            BufferedImage outputImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
++            outputImage.setRGB(0, 0, width, height, outputPixels, 0, width);
++            imageList.add(outputImage);
++/*            File outputfile = new File("output" + i + ".png");
++            ImageIO.write(outputImage, "png", outputfile);*/
++        }
++        return imageList;
++    }
++
++
++    public enum Direction {
++        RIGHT,
++        LEFT,
++        UP,
++        DOWN
++    }
++
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/util/StringAlign.java b/src/main/java/de/verdox/mccreativelab/util/StringAlign.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..27f9e51753146c4bbd20cadaeec5135cd5dc61c3
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/util/StringAlign.java
+@@ -0,0 +1,203 @@
++package de.verdox.mccreativelab.util;
++
++import org.apache.commons.lang3.StringUtils;
++
++import java.util.Arrays;
++import java.util.LinkedList;
++import java.util.List;
++
++public class StringAlign {
++    public static final String LOREM_IPSUM = "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.";
++
++    public static List<String> justifyText (String text, int length) {
++        int end = length, extraSpacesPerWord = 0, spillOverSpace = 0;
++        String[] words;
++
++        var builder = new StringBuilder();
++        var list = new LinkedList<String>();
++
++        while (end < text.length()) {
++
++            end = text.lastIndexOf(" ", length);
++            words = text.substring(0, end).split(" ");
++            extraSpacesPerWord = (length - end) / words.length;
++            spillOverSpace = length - end + (extraSpacesPerWord * words.length);
++
++            for (String word : words) {
++                builder.append(word).append(" ");
++                builder.append((extraSpacesPerWord-- > 0) ? " " : "");
++                builder.append((spillOverSpace-- > 0) ? " " : "");
++            }
++            list.add(builder.toString());
++            builder = new StringBuilder();
++            text = text.substring(end + 1);
++
++        }
++        return list;
++    }
++
++        public static List<String> createLines(String input, int maxCharsPerLine) {
++        var result = new LinkedList<String>();
++
++        var charCounter = 0;
++        var words = input.split(" ");
++        var lineBuilder = new StringBuilder();
++        var forceBreakLine = false;
++        for (String word : words) {
++            if (word.length() + charCounter > maxCharsPerLine || forceBreakLine) {
++                result.add(lineBuilder.toString());
++                lineBuilder = new StringBuilder();
++                charCounter = 0;
++                forceBreakLine = false;
++            }
++            if (word.contains("\n")) {
++                forceBreakLine = true;
++                charCounter -= "\n".length();
++            }
++            lineBuilder.append(word.replace("\n", "")).append(" ");
++            charCounter += word.length();
++        }
++        result.add(lineBuilder.toString());
++        return result;
++    }
++
++    public static List<String> format2(String input, int maxChars, Alignment alignment) {
++        var output = new LinkedList<String>();
++        var words = input.split(" ");
++        var charCounter = 0;
++        var builder = new StringBuilder();
++
++        for (int i = 0; i < words.length; i++) {
++            var word = words[i];
++
++            var willCreateNewLine = charCounter + word.length() > maxChars;
++
++            if (willCreateNewLine) {
++                output.add(alignment.align(builder.toString(), maxChars));
++                builder = new StringBuilder();
++                charCounter = 0;
++            }
++
++            charCounter += word.length();
++            builder.append(word);
++            if (!willCreateNewLine && i != words.length - 1)
++                builder.append(" ");
++
++        }
++
++        var content = builder.toString();
++        if (!content.isEmpty())
++            output.add(alignment.align(builder.toString(), maxChars));
++
++        return output;
++    }
++
++    public static List<String> format(String input, int maxChars, Alignment alignment) {
++        List<String> strings = splitInputString(input, maxChars);
++
++        var where = new StringBuffer();
++        where = new StringBuffer();
++
++        System.out.println(strings);
++
++        for (String wanted : strings) {
++
++            //Get the spaces in the right place.
++            switch (alignment) {
++                case RIGHT -> {
++                    pad(where, maxChars - wanted.length());
++                    where.append(wanted);
++                }
++                case CENTER -> {
++                    int toAdd = maxChars - wanted.length();
++                    pad(where, toAdd / 2);
++                    where.append(wanted);
++                    pad(where, toAdd - toAdd / 2);
++                }
++                case LEFT -> {
++                    where.append(wanted);
++                    pad(where, maxChars - wanted.length());
++                }
++            }
++            //list.add(where.toString());
++        }
++
++        return Arrays.stream(where.toString().split("\n")).toList();
++    }
++
++    protected static void pad(StringBuffer to, int howMany) {
++        to.append(" ".repeat(Math.max(0, howMany)));
++    }
++
++    private static List<String> splitInputString(String str, int maxChars) {
++        List<String> list = new LinkedList<>();
++        if (str == null)
++            return list;
++        for (int i = 0; i < str.length(); i = i + maxChars) {
++            int endindex = Math.min(i + maxChars, str.length());
++            list.add(str.substring(i, endindex));
++        }
++        return list;
++    }
++
++    public static String formatiereZeile(String zeile, int maxCharactersPerLine) {
++        if (zeile.length() <= maxCharactersPerLine) {
++            return zeile; // Die Zeile passt bereits in das Zeilenlimit
++        } else {
++            String[] worte = zeile.trim().split("\\s+");
++            int anzahlWorte = worte.length;
++            int anzahlLeerzeichen = maxCharactersPerLine - zeile.length() + anzahlWorte - 1;
++
++            int leerzeichenProWort = anzahlLeerzeichen / (anzahlWorte - 1);
++            int zusätzlicheLeerzeichen = anzahlLeerzeichen % (anzahlWorte - 1);
++
++            StringBuilder sb = new StringBuilder();
++            for (int i = 0; i < anzahlWorte; i++) {
++                sb.append(worte[i]);
++
++                if (i < anzahlWorte - 1) {
++                    sb.append(" ".repeat(Math.max(0, leerzeichenProWort)));
++
++                    if (zusätzlicheLeerzeichen > 0) {
++                        sb.append(" ");
++                        zusätzlicheLeerzeichen--;
++                    }
++                }
++            }
++
++            return sb.toString();
++        }
++    }
++
++    public enum Alignment {
++        LEFT {
++            @Override
++            public String align(String text, int maxCharsPerLine) {
++                return StringUtils.rightPad(text, maxCharsPerLine);
++            }
++        },
++        CENTER {
++            @Override
++            public String align(String text, int maxCharsPerLine) {
++                if (maxCharsPerLine > text.length())
++                    return StringUtils.center(text, maxCharsPerLine);
++                else
++                    return text.concat(" ".repeat(text.length() / 2));
++            }
++        }, RIGHT {
++            @Override
++            public String align(String text, int maxCharsPerLine) {
++                if (maxCharsPerLine > text.length())
++                    return StringUtils.leftPad(text, maxCharsPerLine);
++                else
++                    return text.concat(" ".repeat(text.length()));
++            }
++        },
++        ;
++
++        Alignment() {
++        }
++
++        public abstract String align(String text, int maxCharsPerLine);
++    }
++}
+diff --git a/src/main/java/org/bukkit/NamespacedKey.java b/src/main/java/org/bukkit/NamespacedKey.java
+index 1416918d1924b362a688635823484f16e6adf125..bdefde448e1769bd35b25fb5f941d6e3f3a16d53 100644
+--- a/src/main/java/org/bukkit/NamespacedKey.java
++++ b/src/main/java/org/bukkit/NamespacedKey.java
+@@ -41,7 +41,7 @@ public final class NamespacedKey implements net.kyori.adventure.key.Key, com.des
+         return isValidNamespaceChar(c) || c == '/';
+     }
+ 
+-    private static boolean isValidNamespace(String namespace) {
++    public static boolean isValidNamespace(String namespace) {
+         int len = namespace.length();
+         if (len == 0) {
+             return false;
+@@ -56,7 +56,7 @@ public final class NamespacedKey implements net.kyori.adventure.key.Key, com.des
+         return true;
+     }
+ 
+-    private static boolean isValidKey(String key) {
++    public static boolean isValidKey(String key) {
+         int len = key.length();
+         if (len == 0) {
+             return false;
+diff --git a/src/main/java/org/bukkit/datafactory/BukkitDataFactory.java b/src/main/java/org/bukkit/datafactory/BukkitDataFactory.java
+index 51d448064bb349b211512d4d6c5f18266faf41ef..c185eab29083bce2dddf4a32badaebda1514090b 100644
+--- a/src/main/java/org/bukkit/datafactory/BukkitDataFactory.java
++++ b/src/main/java/org/bukkit/datafactory/BukkitDataFactory.java
+@@ -1,5 +1,6 @@
+ package org.bukkit.datafactory;
+ 
++import de.verdox.mccreativelab.resource.resourcepack.CustomResourcePack;
+ import org.bukkit.Keyed;
+ import org.bukkit.NamespacedKey;
+ import org.bukkit.datafactory.builder.AttributeBuilder;
+@@ -13,4 +14,5 @@ public interface BukkitDataFactory {
+     interface ElementBuilder<B extends Keyed> {
+         B build(NamespacedKey namespacedKey);
+     }
++    CustomResourcePack getCustomResourcePackCreator();
+ }
+diff --git a/src/main/resources/resourcepack/font/accented.png b/src/main/resources/resourcepack/font/accented.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..75d9cc85e83d9122ba5bfe03f69ba14686096a53
+GIT binary patch
+literal 23260
+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
+Z!oSXQ0Lld%_yqs}002ovPDHLkV1gPUhTQ-F
+
+literal 0
+HcmV?d00001
+
+diff --git a/src/main/resources/resourcepack/font/ascii.png b/src/main/resources/resourcepack/font/ascii.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..9494c65023d7848d3fb68c29ead47750a31f7785
+GIT binary patch
+literal 2480
+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
+Jtp^F&{{$;09jgEU
+
+literal 0
+HcmV?d00001
+
+diff --git a/src/main/resources/resourcepack/font/nonlatin_european.png b/src/main/resources/resourcepack/font/nonlatin_european.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..cdfba8a7dd208e0f23f05d7333b64401c1fc4914
+GIT binary patch
+literal 14440
+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
+Za=TJjjHRXE4Z<yfr%)$Z|N8bn{~M7*rGEeb
+
+literal 0
+HcmV?d00001
+
+diff --git a/src/main/resources/resourcepack/shader/rendertype_text.fsh b/src/main/resources/resourcepack/shader/rendertype_text.fsh
+new file mode 100644
+index 0000000000000000000000000000000000000000..f799b4a45c63d7a12c222ba5e8962d3d97055fab
+--- /dev/null
++++ b/src/main/resources/resourcepack/shader/rendertype_text.fsh
+@@ -0,0 +1,26 @@
++#version 110
++
++#moj_import <fog.glsl>
++
++uniform sampler2D Sampler0;
++
++uniform vec4 ColorModulator;
++uniform float FogStart;
++uniform float FogEnd;
++uniform vec4 FogColor;
++
++in float vertexDistance;
++in vec4 vertexColor;
++in vec2 texCoord0;
++
++out vec4 fragColor;
++
++void main() {
++    vec4 color = texture(Sampler0, texCoord0) * vertexColor * ColorModulator;
++    
++    if (color.a < 0.1) {
++        discard;
++    }
++
++    fragColor = linear_fog(color, vertexDistance, FogStart, FogEnd, FogColor);
++}
+diff --git a/src/main/resources/resourcepack/shader/rendertype_text.json b/src/main/resources/resourcepack/shader/rendertype_text.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..1dc63fb39cb718b41ccea3d23756f1e44ba0eda8
+--- /dev/null
++++ b/src/main/resources/resourcepack/shader/rendertype_text.json
+@@ -0,0 +1,29 @@
++{
++    "blend": {
++        "func": "add",
++        "srcrgb": "srcalpha",
++        "dstrgb": "1-srcalpha"
++    },
++    "vertex": "rendertype_text",
++    "fragment": "rendertype_text",
++    "attributes": [
++        "Position",
++        "Color",
++        "UV0",
++        "UV2"
++    ],
++    "samplers": [
++        { "name": "Sampler0" }
++    ],
++    "uniforms": [
++        { "name": "ModelViewMat", "type": "matrix4x4", "count": 16, "values": [ 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0 ] },
++        { "name": "ProjMat", "type": "matrix4x4", "count": 16, "values": [ 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0 ] },
++        { "name": "IViewRotMat", "type": "matrix3x3", "count": 9, "values": [ 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0 ] },
++        { "name": "ColorModulator", "type": "float", "count": 4, "values": [ 1.0, 1.0, 1.0, 1.0 ] },
++        { "name": "FogStart", "type": "float", "count": 1, "values": [ 0.0 ] },
++        { "name": "FogEnd", "type": "float", "count": 1, "values": [ 1.0 ] },
++        { "name": "FogColor", "type": "float", "count": 4, "values": [ 0.0, 0.0, 0.0, 0.0 ] },
++        { "name": "FogShape", "type": "int", "count": 1, "values": [ 0 ] },
++		{ "name": "ScreenSize", "type": "float", "count": 2,  "values": [ 1.0, 1.0 ] }
++    ]
++}
+diff --git a/src/main/resources/resourcepack/shader/rendertype_text.vsh b/src/main/resources/resourcepack/shader/rendertype_text.vsh
+new file mode 100644
+index 0000000000000000000000000000000000000000..8ac3e8076db8378f6d7b457a7143b70b646b730a
+--- /dev/null
++++ b/src/main/resources/resourcepack/shader/rendertype_text.vsh
+@@ -0,0 +1,71 @@
++#version 110
++
++#moj_import <fog.glsl>
++#moj_import <light.glsl>
++
++in vec3 Position;
++in vec4 Color;
++in vec2 UV0;
++in ivec2 UV2;
++
++uniform sampler2D Sampler0;
++
++uniform mat4 ModelViewMat;
++uniform mat4 ProjMat;
++uniform mat3 IViewRotMat;
++uniform int FogShape;
++uniform vec2 ScreenSize;
++
++out float vertexDistance;
++out vec4 vertexColor;
++out vec2 texCoord0;
++
++
++#define ACTIONBAR_OFFSET 64
++
++// Function to convert a vertical ascent into a ID.
++float get_id(float offset) {
++    if (offset <= 0)
++    return 0;
++    return trunc(offset/1000);
++}
++
++void main() {
++    vec3 pos = Position;
++
++    vertexDistance = fog_distance(ModelViewMat, IViewRotMat * Position, FogShape);
++    vertexColor = Color;
++    texCoord0 = UV0;
++
++    vec2 pixel = vec2(ProjMat[0][0], ProjMat[1][1]) / 2.0;
++    int guiScale = int(round(pixel.x / (1 / ScreenSize.x)));
++    vec2 guiSize = ScreenSize / guiScale;
++
++    float id = get_id((round(guiSize.y - Position.y)) * -1);
++
++    // Detect if GUI text.
++    if (id > 99 && Color.a != 0.0) {
++        float yOffset = 0;
++        float xOffset = 0;
++        int layer = 0;
++        int type = 0;
++
++        //if (Position.z != 0.0) {
++
++        switch (int(id)) {
++
++        }
++
++        pos.y -= (id*1000) + 500;
++
++        //pos.x -= (guiSize.x * 0.5);
++        //if(Position.z == 0.0) {
++        //    pos.y += (guiSize.y * 0.5);
++        //}
++        pos -= vec3(xOffset, yOffset, 0.0);
++        pos.z += layer;
++        //}
++    }
++
++    gl_Position = ProjMat * ModelViewMat * vec4(pos, 1);
++}

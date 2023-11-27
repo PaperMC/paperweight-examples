@@ -8,10 +8,10 @@ Subject: [PATCH] Adding bootstrap method to JavaPlugin to open
 
 diff --git a/src/main/java/org/bukkit/datafactory/BukkitDataFactory.java b/src/main/java/org/bukkit/datafactory/BukkitDataFactory.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..53802d4ada7a848f663a8e699a62ef6db8a97cb0
+index 0000000000000000000000000000000000000000..8cbb87204ef9e7c46b2e22274412dd8932e3f3f3
 --- /dev/null
 +++ b/src/main/java/org/bukkit/datafactory/BukkitDataFactory.java
-@@ -0,0 +1,14 @@
+@@ -0,0 +1,12 @@
 +package org.bukkit.datafactory;
 +
 +import org.bukkit.Keyed;
@@ -20,8 +20,6 @@ index 0000000000000000000000000000000000000000..53802d4ada7a848f663a8e699a62ef6d
 +import org.bukkit.datafactory.builder.VillagerProfessionBuilder;
 +
 +public interface BukkitDataFactory {
-+    AttributeBuilder attributeBuilder();
-+    VillagerProfessionBuilder professionBuilder();
 +    interface ElementBuilder<B extends Keyed> {
 +        B build(NamespacedKey namespacedKey);
 +    }

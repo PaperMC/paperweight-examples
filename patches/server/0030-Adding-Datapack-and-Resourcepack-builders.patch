@@ -1,0 +1,1550 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <lukasjonsson@outlook.de>
+Date: Mon, 27 Nov 2023 19:20:05 +0100
+Subject: [PATCH] Adding Datapack and Resourcepack builders. Including:  >
+ CustomItemTextureData  > CustomHUD to display textures in player screens
+ using shaders
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/CreativeLabImpl.java b/src/main/java/de/verdox/mccreativelab/CreativeLabImpl.java
+index 863d73d799e9838534faea0254d5b37e7f7748cb..2c71e9670b8a605a1e407ace092602a48697a483 100644
+--- a/src/main/java/de/verdox/mccreativelab/CreativeLabImpl.java
++++ b/src/main/java/de/verdox/mccreativelab/CreativeLabImpl.java
+@@ -1,5 +1,49 @@
+ package de.verdox.mccreativelab;
+ 
++import de.verdox.mccreativelab.resource.resourcepack.renderer.element.HudRenderer;
++import de.verdox.mccreativelab.resource.resourcepack.rendering.CraftHudRenderer;
++import net.minecraft.server.MinecraftServer;
++import org.bukkit.craftbukkit.datafactory.CraftDataFactory;
++import org.bukkit.datafactory.BukkitDataFactory;
++
++import java.io.File;
++
+ public final class CreativeLabImpl implements CreativeLab {
++    public static CreativeLabImpl instance;
++
++    public static CreativeLabImpl getInstance() {
++        return instance;
++    }
++
++    private final CraftHudRenderer hudRenderer;
++    private final CraftDataFactory bukkitDataFactory;
++    public CreativeLabImpl(){
++        this.hudRenderer = new CraftHudRenderer();
++        this.bukkitDataFactory = new CraftDataFactory();
++        instance = this;
++    }
++
++    @Override
++    public HudRenderer getHudRenderer() {
++        return hudRenderer;
++    }
++
++    @Override
++    public BukkitDataFactory getDataFactory() {
++        return bukkitDataFactory;
++    }
++
++    public void installDataPackToServer(){
++        if(!this.getDataFactory().getCustomResourcePackCreator().wasModified())
++            return;
++        File file = this.getDataFactory().getCustomResourcePackCreator().installPack();
++        MinecraftServer.LOGGER.info("MCCreativeLab: Creating resource pack at "+ file.toPath());
++        //TODO: Zip resource pack
++        //TODO: Write it to server.properties
++    }
+ 
++    public void startHudRenderer(){
++        MinecraftServer.LOGGER.info("MCCreativeLab: Starting HudRenderer");
++        this.hudRenderer.start();
++    }
+ }
+diff --git a/src/main/java/de/verdox/mccreativelab/resource/resourcepack/rendering/CraftHudRenderer.java b/src/main/java/de/verdox/mccreativelab/resource/resourcepack/rendering/CraftHudRenderer.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..3284e509de084c801c43fdb008a807fe6633fdc0
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/resource/resourcepack/rendering/CraftHudRenderer.java
+@@ -0,0 +1,83 @@
++package de.verdox.mccreativelab.resource.resourcepack.rendering;
++
++import de.verdox.mccreativelab.resource.resourcepack.renderer.ActiveHud;
++import de.verdox.mccreativelab.resource.resourcepack.renderer.element.HudRenderer;
++import de.verdox.mccreativelab.resource.resourcepack.types.CustomHud;
++import net.minecraft.server.level.ServerPlayer;
++import org.bukkit.craftbukkit.entity.CraftPlayer;
++import org.bukkit.entity.Player;
++
++import java.util.List;
++import java.util.Map;
++import java.util.Set;
++import java.util.concurrent.ConcurrentHashMap;
++import java.util.concurrent.LinkedBlockingQueue;
++
++public class CraftHudRenderer extends Thread implements HudRenderer {
++    private final Map<CraftPlayer, PlayerHudRendererData> renderingDataCache = new ConcurrentHashMap<>();
++    private final LinkedBlockingQueue<TickData> ticksToProcess = new LinkedBlockingQueue<>();
++    private boolean isRunning = true;
++
++    public CraftHudRenderer() {
++        super(null, null, "HudRendererThread");
++    }
++
++    @Override
++    public ActiveHud getActiveHud(Player player, CustomHud customHud) {
++        PlayerHudRendererData playerHudRendererData = getRendererData((CraftPlayer) player);
++        return playerHudRendererData.getActiveHud(customHud);
++    }
++
++    @Override
++    public ActiveHud getOrStartActiveHud(Player player, CustomHud customHud) {
++        PlayerHudRendererData playerHudRendererData = getRendererData((CraftPlayer) player);
++        return playerHudRendererData.getOrStartActiveHud(customHud);
++    }
++
++    public boolean stopActiveHud(Player player, CustomHud customHud) {
++        return getRendererData((CraftPlayer) player).removeFromRendering(customHud);
++    }
++
++    @Override
++    public void forceUpdate(Player player) {
++        getRendererData((CraftPlayer) player).forceUpdate();
++    }
++
++    public void addTickToRenderQueue(List<ServerPlayer> serverPlayers) {
++        ticksToProcess.offer(new TickData(Set.copyOf(serverPlayers)));
++    }
++
++    private ActiveHud createActiveHud(CraftPlayer player, CustomHud customHud) {
++        return new ActiveHud(player, customHud);
++    }
++
++    private PlayerHudRendererData getRendererData(CraftPlayer player) {
++        return renderingDataCache.computeIfAbsent(player, player1 -> new PlayerHudRendererData(player));
++    }
++
++    @Override
++    public void interrupt() {
++        isRunning = false;
++        super.interrupt();
++    }
++
++    @Override
++    public void run() {
++        while(isRunning){
++            try {
++                var list = ticksToProcess.take().serverPlayers;
++                for (ServerPlayer serverPlayer : list) {
++                    getRendererData(serverPlayer.getBukkitEntity()).sendUpdate();
++                }
++                for (CraftPlayer player : renderingDataCache.keySet()) {
++                    if(!list.contains(player.getHandle()))
++                        renderingDataCache.remove(player);
++                }
++            } catch (InterruptedException ignored) {}
++        }
++    }
++
++    public record TickData(Set<ServerPlayer> serverPlayers) {
++
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/resource/resourcepack/rendering/PlayerHudRendererData.java b/src/main/java/de/verdox/mccreativelab/resource/resourcepack/rendering/PlayerHudRendererData.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..c0524d0c6ab65010dc23c03ef302fd48c113b3ac
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/resource/resourcepack/rendering/PlayerHudRendererData.java
+@@ -0,0 +1,80 @@
++package de.verdox.mccreativelab.resource.resourcepack.rendering;
++
++import de.verdox.mccreativelab.resource.resourcepack.renderer.ActiveHud;
++import de.verdox.mccreativelab.resource.resourcepack.types.CustomHud;
++import net.kyori.adventure.text.Component;
++import net.minecraft.server.MinecraftServer;
++import org.bukkit.NamespacedKey;
++import org.bukkit.craftbukkit.entity.CraftPlayer;
++import org.jetbrains.annotations.NotNull;
++import org.jetbrains.annotations.Nullable;
++
++import java.util.Map;
++import java.util.Objects;
++import java.util.concurrent.ConcurrentHashMap;
++import java.util.concurrent.atomic.AtomicBoolean;
++
++public class PlayerHudRendererData {
++    private final Map<NamespacedKey, ActiveHud> cache = new ConcurrentHashMap<>();
++    private final AtomicBoolean needsUpdate = new AtomicBoolean(true);
++    private Component lastRendered;
++    private final CraftPlayer player;
++    public PlayerHudRendererData(CraftPlayer player) {
++        this.player = player;
++    }
++
++    @Nullable
++    public ActiveHud getActiveHud(CustomHud customHud) {
++        return cache.getOrDefault(customHud.key(), null);
++    }
++
++    @NotNull
++    public ActiveHud getOrStartActiveHud(CustomHud customHud) {
++        addToRendering(customHud);
++        return Objects.requireNonNull(getActiveHud(customHud));
++    }
++
++    public void forceUpdate() {
++        this.needsUpdate.set(true);
++    }
++
++    public void addToRendering(CustomHud customHud) {
++        var activeHud = new ActiveHud(player, customHud);
++        if (cache.containsKey(activeHud.getCustomHud().key()))
++            return;
++        cache.put(activeHud.getCustomHud().key(), activeHud);
++        this.needsUpdate.set(true);
++    }
++
++    public synchronized void sendUpdate() {
++        var component = buildRendering();
++        if (component == null)
++            return;
++        player.sendActionBar(component);
++        this.needsUpdate.set(false);
++    }
++
++    public boolean removeFromRendering(CustomHud customHud) {
++        if (!cache.containsKey(customHud.key()))
++            return false;
++        cache.remove(customHud.key());
++        this.needsUpdate.set(true);
++        return true;
++    }
++
++    public Component buildRendering() {
++        if (this.needsUpdate.get()) {
++            Component component = null;
++            for (ActiveHud value : cache.values()) {
++                var rendering = value.render();
++                if (component == null)
++                    component = rendering;
++                else
++                    component = component.append(rendering);
++            }
++            lastRendered = component;
++            this.needsUpdate.set(false);
++        }
++        return lastRendered;
++    }
++}
+diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
+index c71bf70984f000e4e10ec7c458815417616a5a60..483b4b5d263507af74e3419145b450563939c848 100644
+--- a/src/main/java/net/minecraft/server/MinecraftServer.java
++++ b/src/main/java/net/minecraft/server/MinecraftServer.java
+@@ -14,6 +14,9 @@ import com.mojang.authlib.GameProfileRepository;
+ import com.mojang.authlib.minecraft.MinecraftSessionService;
+ import com.mojang.datafixers.DataFixer;
+ import com.mojang.logging.LogUtils;
++import de.verdox.mccreativelab.CreativeLabImpl;
++import de.verdox.mccreativelab.MCCreativeLab;
++import de.verdox.mccreativelab.resource.resourcepack.rendering.CraftHudRenderer;
+ import it.unimi.dsi.fastutil.longs.LongIterator;
+ import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+ import java.awt.image.BufferedImage;
+@@ -627,6 +630,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+         this.server.enablePlugins(org.bukkit.plugin.PluginLoadOrder.POSTWORLD);
+         this.server.getPluginManager().callEvent(new ServerLoadEvent(ServerLoadEvent.LoadType.STARTUP));
+         this.connection.acceptConnections();
++        CreativeLabImpl.getInstance().startHudRenderer();
+     }
+ 
+     public void initWorld(ServerLevel worldserver, ServerLevelData iworlddataserver, WorldData saveData, WorldOptions worldoptions) {
+@@ -1010,8 +1014,10 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+         if (isDebugging()) io.papermc.paper.util.TraceUtil.dumpTraceForThread("Server stopped"); // Paper
+         // Paper end
+         this.running = false;
++        ((CraftHudRenderer) MCCreativeLab.getHudRenderer()).interrupt();
+         if (waitForShutdown) {
+             try {
++                ((CraftHudRenderer) MCCreativeLab.getHudRenderer()).join();
+                 this.serverThread.join();
+             } catch (InterruptedException interruptedexception) {
+                 MinecraftServer.LOGGER.error("Error while shutting down", interruptedexception);
+@@ -1160,6 +1166,9 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+                 this.waitUntilNextTick();
+                 this.profiler.pop();
+                 this.endMetricsRecordingTick();
++
++                ((CraftHudRenderer)MCCreativeLab.getHudRenderer()).addTickToRenderQueue(List.copyOf(playerList.players));
++
+                 this.isReady = true;
+                 JvmProfiler.INSTANCE.onServerTick(this.averageTickTime);
+             }
+diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
+index 710203006cf9812954ddaddff4de74f759bc2872..45243de8a4a46b2f785c6843d18395899292584e 100644
+--- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
++++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
+@@ -15,6 +15,8 @@ import com.mojang.brigadier.tree.LiteralCommandNode;
+ import com.mojang.datafixers.util.Pair;
+ import com.mojang.serialization.DynamicOps;
+ import com.mojang.serialization.Lifecycle;
++import de.verdox.mccreativelab.CreativeLabImpl;
++import de.verdox.mccreativelab.MCCreativeLab;
+ import de.verdox.mccreativelab.RegistryUtil;
+ import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
+ import java.awt.image.BufferedImage;
+@@ -513,6 +515,7 @@ public final class CraftServer implements Server {
+     public void loadPlugins() {
+         RegistryUtil.unfreezeAllRegistries();
+         io.papermc.paper.plugin.entrypoint.LaunchEntryPointHandler.INSTANCE.enter(io.papermc.paper.plugin.entrypoint.Entrypoint.PLUGIN); // Paper - replace implementation
++        CreativeLabImpl.getInstance().installDataPackToServer();
+         RegistryUtil.freezeAllRegistries();
+     }
+ 
+diff --git a/src/main/java/org/bukkit/craftbukkit/datafactory/CraftDataFactory.java b/src/main/java/org/bukkit/craftbukkit/datafactory/CraftDataFactory.java
+index ad3561efcb7f2ca0c36bc1b89facd1b6273709ed..962e6d38eafa2fdf7aa81898addfb31273b4ac3c 100644
+--- a/src/main/java/org/bukkit/craftbukkit/datafactory/CraftDataFactory.java
++++ b/src/main/java/org/bukkit/craftbukkit/datafactory/CraftDataFactory.java
+@@ -1,5 +1,7 @@
+ package org.bukkit.craftbukkit.datafactory;
+ 
++import de.verdox.mccreativelab.resource.AssetPath;
++import de.verdox.mccreativelab.resource.resourcepack.CustomResourcePack;
+ import org.bukkit.craftbukkit.datafactory.builder.CraftAttributeBuilder;
+ import org.bukkit.craftbukkit.datafactory.builder.CraftVillagerProfessionBuilder;
+ import org.bukkit.datafactory.BukkitDataFactory;
+@@ -21,4 +23,10 @@ public class CraftDataFactory implements BukkitDataFactory {
+     public PoiTypeBuilder poiTypeBuilder() {
+         return new CraftPoiTypeBuilder();
+     }
++
++    private final CustomResourcePack customResourcePack = new CustomResourcePack("MCCreativeLabResourcePack",18, "The resource pack generated by the MCCreativeLab Minecraft Server Software.", AssetPath.buildPath("resoucepacks"));
++    @Override
++    public CustomResourcePack getCustomResourcePackCreator() {
++        return customResourcePack;
++    }
+ }
+diff --git a/src/main/java/org/bukkit/craftbukkit/entity/memory/CraftMemoryMapper.java b/src/main/java/org/bukkit/craftbukkit/entity/memory/CraftMemoryMapper.java
+index ad42f2bf5d2bf2d1e340d1ad34ae912422c2ba5d..1b8608a2a3cc82af4aba04a15ddb3229f43233d2 100644
+--- a/src/main/java/org/bukkit/craftbukkit/entity/memory/CraftMemoryMapper.java
++++ b/src/main/java/org/bukkit/craftbukkit/entity/memory/CraftMemoryMapper.java
+@@ -1,16 +1,22 @@
+ package org.bukkit.craftbukkit.entity.memory;
+ 
+-import java.util.UUID;
++import java.util.*;
++import com.mojang.serialization.Codec;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.GlobalPos;
++import net.minecraft.core.UUIDUtil;
++import net.minecraft.world.entity.LivingEntity;
++import net.minecraft.world.entity.player.Player;
+ import org.bukkit.Bukkit;
+ import org.bukkit.Location;
+ import org.bukkit.craftbukkit.CraftServer;
+ import org.bukkit.craftbukkit.CraftWorld;
++import org.bukkit.craftbukkit.entity.CraftLivingEntity;
+ 
+ public final class CraftMemoryMapper {
+ 
+-    private CraftMemoryMapper() {}
++    private CraftMemoryMapper() {
++    }
+ 
+     public static Object fromNms(Object object) {
+         if (object instanceof GlobalPos) {
+@@ -24,8 +30,15 @@ public final class CraftMemoryMapper {
+         } else if (object instanceof Integer) {
+             return (Integer) object;
+         }
++        try {
++            if (object instanceof List<?> list)
++                return list.stream().map(o -> definedMappersNMSLink.get(o.getClass()).fromNMSBlank(o)).toList();
+ 
+-        throw new UnsupportedOperationException("Do not know how to map " + object);
++            return definedMappersNMSLink.get(object.getClass()).fromNMSBlank(object);
++        } catch (Throwable e) {
++            e.printStackTrace();
++            throw new UnsupportedOperationException("Do not know how to map " + object);
++        }
+     }
+ 
+     public static Object toNms(Object object) {
+@@ -42,15 +55,148 @@ public final class CraftMemoryMapper {
+         } else if (object instanceof Integer) {
+             return (Integer) object;
+         }
+-
+-        throw new UnsupportedOperationException("Do not know how to map " + object);
++        try {
++            if (object instanceof List<?> list)
++                return list.stream().map(o -> definedMappersBukkitLink.get(o.getClass()).toNMSBlank(o)).toList();
++            return definedMappersBukkitLink.get(object.getClass()).toNMSBlank(object);
++        } catch (Throwable e) {
++            e.printStackTrace();
++            throw new UnsupportedOperationException("Do not know how to map " + object);
++        }
+     }
+ 
+     public static Location fromNms(GlobalPos globalPos) {
+-        return new org.bukkit.Location(((CraftServer) Bukkit.getServer()).getServer().getLevel(globalPos.dimension()).getWorld(), globalPos.pos().getX(), globalPos.pos().getY(), globalPos.pos().getZ());
++        return new org.bukkit.Location(((CraftServer) Bukkit.getServer()).getServer().getLevel(globalPos.dimension())
++                                                                         .getWorld(), globalPos.pos().getX(), globalPos
++            .pos().getY(), globalPos.pos().getZ());
+     }
+ 
+     public static GlobalPos toNms(Location location) {
+-        return GlobalPos.of(((CraftWorld) location.getWorld()).getHandle().dimension(), BlockPos.containing(location.getX(), location.getY(), location.getZ()));
++        return GlobalPos.of(((CraftWorld) location.getWorld()).getHandle()
++                                                              .dimension(), BlockPos.containing(location.getX(), location.getY(), location.getZ()));
++    }
++
++    private static final Map<Class<?>, MemoryMapper<?, ?>> definedMappersBukkitLink = new HashMap<>();
++    private static final Map<Class<?>, MemoryMapper<?, ?>> definedMappersNMSLink = new HashMap<>();
++
++    private static <V, C> MemoryMapper<V, C> register(Class<? extends V> vanillaType, Class<? extends C> bukkitType, MemoryMapper<V, C> memoryMapper) {
++        definedMappersBukkitLink.put(bukkitType, memoryMapper);
++        definedMappersNMSLink.put(vanillaType, memoryMapper);
++        return memoryMapper;
++    }
++
++    public static boolean isBukkitTypeAllowed(Class<?> bukkitType) {
++        return definedMappersBukkitLink.containsKey(bukkitType);
++    }
++
++    public static MemoryMapper<?,?> getMapperForBukkitType(Class<?> bukkitType){
++        return definedMappersBukkitLink.get(bukkitType);
++    }
++
++    private static <V> JavaMapper<V> register(Class<? extends V> javaType, JavaMapper<V> memoryMapper) {
++        definedMappersBukkitLink.put(javaType, memoryMapper);
++        definedMappersNMSLink.put(javaType, memoryMapper);
++        return memoryMapper;
++    }
++
++    public interface MemoryMapper<V, C> {
++        C fromNMS(V data);
++
++        V toNMS(C data);
++
++        Codec<V> codec();
++
++        default Object fromNMSBlank(Object data) {
++            return fromNMS((V) data);
++        }
++
++        default Object toNMSBlank(Object data) {
++            return toNMS((C) data);
++        }
++
++        JavaMapper<Long> LONG = register(Long.class, new JavaMapper<>(Codec.LONG));
++        JavaMapper<UUID> UUID = register(UUID.class, new JavaMapper<>(UUIDUtil.CODEC));
++        JavaMapper<Boolean> BOOLEAN = register(Boolean.class, new JavaMapper<>(Codec.BOOL));
++        JavaMapper<Integer> INTEGER = register(Integer.class, new JavaMapper<>(Codec.INT));
++        MemoryMapper<GlobalPos, Location> LOCATION = register(GlobalPos.class, Location.class, new MemoryMapper<>() {
++            @Override
++            public Location fromNMS(GlobalPos data) {
++                return CraftMemoryMapper.fromNms(data);
++            }
++
++            @Override
++            public GlobalPos toNMS(Location data) {
++                return CraftMemoryMapper.toNms(data);
++            }
++
++            @Override
++            public Codec<GlobalPos> codec() {
++                return null;
++            }
++        });
++        MemoryMapper<LivingEntity, org.bukkit.entity.LivingEntity> LIVING_ENTITY = register(LivingEntity.class, org.bukkit.entity.LivingEntity.class, new MemoryMapper<>() {
++            @Override
++            public org.bukkit.entity.LivingEntity fromNMS(LivingEntity data) {
++                return data.getBukkitLivingEntity();
++            }
++
++            @Override
++            public LivingEntity toNMS(org.bukkit.entity.LivingEntity data) {
++                return ((CraftLivingEntity) data).getHandle();
++            }
++
++            @Override
++            public Codec<LivingEntity> codec() {
++                return null;
++            }
++        });
++
++        MemoryMapper<Player, org.bukkit.entity.Player> PLAYER = register(Player.class, org.bukkit.entity.Player.class, new MemoryMapper<>() {
++            @Override
++            public org.bukkit.entity.Player fromNMS(Player data) {
++                return (org.bukkit.entity.Player) data.getBukkitEntity();
++            }
++
++            @Override
++            public Player toNMS(org.bukkit.entity.Player data) {
++                return (Player) ((CraftLivingEntity) data).getHandle();
++            }
++
++            @Override
++            public Codec<Player> codec() {
++                return null;
++            }
++        });
++    }
++
++    public record ListMapper<V, C>(MemoryMapper<V, C> memoryMapper) implements MemoryMapper<List<V>, List<C>> {
++        @Override
++        public List<C> fromNMS(List<V> data) {
++            return data.stream().map(memoryMapper::fromNMS).toList();
++        }
++
++        @Override
++        public List<V> toNMS(List<C> data) {
++            return data.stream().map(memoryMapper::toNMS).toList();
++        }
++
++        @Override
++        public Codec<List<V>> codec() {
++            if(memoryMapper.codec() == null)
++                return null;
++            return Codec.list(memoryMapper.codec());
++        }
++    }
++
++    public record JavaMapper<T>(Codec<T> codec) implements MemoryMapper<T, T> {
++        @Override
++        public T fromNMS(T data) {
++            return data;
++        }
++
++        @Override
++        public T toNMS(T data) {
++            return data;
++        }
+     }
+ }
+diff --git a/src/test/java/de/verdox/mccreativelab/ResourceTest.java b/src/test/java/de/verdox/mccreativelab/ResourceTest.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..177cae860f8c9ee2d0011bd2215f84c38b7c5e9d
+--- /dev/null
++++ b/src/test/java/de/verdox/mccreativelab/ResourceTest.java
+@@ -0,0 +1,135 @@
++package de.verdox.mccreativelab;
++
++import de.verdox.mccreativelab.resource.Asset;
++import de.verdox.mccreativelab.resource.AssetPath;
++import de.verdox.mccreativelab.resource.resourcepack.CustomResourcePack;
++import de.verdox.mccreativelab.resource.resourcepack.renderer.ActiveHud;
++import de.verdox.mccreativelab.resource.resourcepack.renderer.ScreenPosition;
++import de.verdox.mccreativelab.resource.resourcepack.renderer.element.single.SingleHudText;
++import de.verdox.mccreativelab.resource.resourcepack.types.CustomHud;
++import de.verdox.mccreativelab.resource.resourcepack.types.ItemTextureData;
++import de.verdox.mccreativelab.util.StringAlign;
++import io.papermc.paper.adventure.PaperAdventure;
++import net.kyori.adventure.text.TextComponent;
++import org.bukkit.Material;
++import org.bukkit.NamespacedKey;
++import org.bukkit.craftbukkit.entity.CraftPlayer;
++import org.bukkit.support.AbstractTestingBase;
++import org.codehaus.plexus.util.FileUtils;
++import org.junit.jupiter.api.AfterEach;
++import org.junit.jupiter.api.BeforeAll;
++import org.junit.jupiter.api.Test;
++
++import java.io.File;
++import java.io.IOException;
++import java.util.Arrays;
++
++import static org.junit.jupiter.api.Assertions.assertEquals;
++import static org.junit.jupiter.api.Assertions.assertTrue;
++
++public class ResourceTest extends AbstractTestingBase {
++    private static final String testPackFolderName = "testpacks123";
++    private static final String testPackName = "TestPack";
++
++    private static Asset<CustomResourcePack> testResourcePackAsset;
++    private static CustomResourcePack customResourcePack;
++
++    @BeforeAll
++    public static void setup() throws IOException {
++        customResourcePack = new CustomResourcePack(testPackName, 20, "TestPack description", AssetPath.buildPath(testPackFolderName));
++        testResourcePackAsset = new Asset<>(() -> ResourceTest.class.getResourceAsStream("/amethyst_sword.png"));
++        FileUtils.deleteDirectory(new File(testPackFolderName));
++    }
++
++
++    @AfterEach
++    public void cleanup() throws IOException {
++        customResourcePack.clearResources();
++        //FileUtils.deleteDirectory(new File(testPackFolderName));
++    }
++
++    @Test
++    public void testAssetPathGetPathMethod() {
++        AssetPath assetPath = AssetPath.buildPath("test", "path", "test123");
++        assertEquals(Arrays.toString(new String[]{"test", "path", "test123"}), Arrays.toString(assetPath.getPath()));
++    }
++
++    @Test
++    public void testAssetPathGetPathMethodWithSlashes() {
++        AssetPath assetPath = AssetPath.buildPath("test/abc", "path", "test123");
++        assertEquals(Arrays.toString(new String[]{"test", "abc", "path", "test123"}), Arrays.toString(assetPath.getPath()));
++    }
++
++    @Test
++    public void testAssetPathWithNewParent() {
++        AssetPath assetPath = AssetPath.buildPath("test", "path", "test123");
++        AssetPath withNewParentPath = assetPath.withNewParentPath("parent1", "parent2", "parent3");
++        assertEquals(Arrays.toString(new String[]{"parent1", "parent2", "parent3", "test", "path", "test123"}), Arrays.toString(withNewParentPath.getPath()));
++    }
++
++/*    @Test
++    public void testCreateResourcePackResourceWitWrongFileEnding() {
++        assertThrows(IllegalArgumentException.class, () -> new ResourcePackResource(new NamespacedKey("test", "custom/test_sword_texture"), ResourcePackResourceTypes.TEXTURES));
++    }
++
++    @Test
++    public void testCreateDataPathNormalKey() {
++        ResourcePackResource resource = new ResourcePackResource(new NamespacedKey("test", "test_sword_texture"), ResourcePackResourceTypes.TEXTURES);
++        assertEquals(Arrays.toString(new String[]{"assets", "test", "textures", "test_sword_texture"}), Arrays.toString(resource
++            .getPathRelativeToPack().getPath()));
++    }
++
++    @Test
++    public void testCreateDataPathWithSlashesInKeys() {
++        ResourcePackResource resource = new ResourcePackResource(new NamespacedKey("test", "custom/test_sword_texture"), ResourcePackResourceTypes.TEXTURES);
++        assertEquals(Arrays.toString(new String[]{"assets", "test", "textures", "custom", "test_sword_texture"}), Arrays.toString(resource
++            .getPathRelativeToPack().getPath()));
++    }*/
++
++    @Test
++    public void testCustomItemAssetInstallation() {
++        NamespacedKey testAssetKey = new NamespacedKey("test", "item/test_sword");
++        ItemTextureData itemTextureData = new ItemTextureData(testAssetKey, Material.IRON_SWORD, 1, testResourcePackAsset, ItemTextureData.ModelType.HAND_HELD);
++        customResourcePack.register(itemTextureData);
++        customResourcePack.installPack();
++        assertTrue(new File(testPackFolderName + "/" + testPackName + "/assets/" + testAssetKey.namespace() + "/textures/" + testAssetKey.getKey() + ".png").exists());
++        assertTrue(new File(testPackFolderName + "/" + testPackName + "/assets/" + testAssetKey.namespace() + "/models/" + testAssetKey.getKey() + ".json").exists());
++        assertTrue(new File(testPackFolderName + "/" + testPackName + "/assets/minecraft/models/item/" + Material.IRON_SWORD
++            .getKey().value() + ".json").exists());
++    }
++
++    @Test
++    public void testCustomHudInstallation() {
++        NamespacedKey customHudKey = new NamespacedKey("test", "hud/test_hud");
++        CustomHud customHud = new CustomHud(customHudKey);
++        customHud.withText("test_text", new ScreenPosition(0, 0, 50, 50, 1), StringAlign.Alignment.LEFT, 10, 1);
++        customResourcePack.register(customHud);
++        customResourcePack.installPack();
++    }
++
++    @Test
++    public void testCustomHudCharacters() {
++        CustomHud customHud = new CustomHud(new NamespacedKey("test", "custom_hud"));
++        customHud.withText("test_text1",new ScreenPosition(50,50,0,0,1), StringAlign.Alignment.RIGHT, 0, 1);
++        customHud.withText("test_text2",new ScreenPosition(50,50,0,0,1), StringAlign.Alignment.RIGHT, 0, 1);
++        customHud.withText("test_text3",new ScreenPosition(50,50,0,0,1), StringAlign.Alignment.RIGHT, 0, 1);
++        customResourcePack.register(customHud);
++        customResourcePack.installPack();
++
++
++        ActiveHud activeHud = new ActiveHud(null, customHud);
++        activeHud.executeOnElement("test_text1", SingleHudText.RenderedSingleHudText.class, renderedSingleHudText -> {
++            renderedSingleHudText.setRenderedText("AAA");
++        });
++        activeHud.executeOnElement("test_text2", SingleHudText.RenderedSingleHudText.class, renderedSingleHudText -> {
++            renderedSingleHudText.setRenderedText("AAA");
++        });
++        activeHud.executeOnElement("test_text3", SingleHudText.RenderedSingleHudText.class, renderedSingleHudText -> {
++            renderedSingleHudText.setRenderedText("AAA");
++        });
++
++        var vanillaComponent = PaperAdventure.asVanilla(activeHud.render().compact());
++
++        System.out.println(vanillaComponent.getString());
++    }
++}
+diff --git a/src/test/resources/amethyst_sword.png b/src/test/resources/amethyst_sword.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..b044dcc6844bb3bdcf8b0fbdfc38395aff2d5a9b
+GIT binary patch
+literal 1283
+zcmeAS@N?(olHy`uVBq!ia0vp^0wB!61|;P_|4(FKU=qs=i71Ki^|4CM&(%vz$xlkv
+ztH><?$}=$7*jE%JCTFLXC?ut(XXe=|z2CiGNg*@ERw>-n*TA>HIW;5GqpB!1xXLdi
+zxhgx^GDXSWj?1RP3TQxXYDuC(MQ%=Bu~mhw64+cTAR8pCucQE0Qj%?}6yY17;GAES
+zs$i;Ts%M~N$E9FXl#*r@<l+X^4CL7=Wt5Z@Sn2DRmzV368|&p4rRy77T3YHG80i}s
+z=>k>g7FXt#Bv$C=6)S^`fSBQuTAW;zSx}OhpQivaGchT@w8U0P2`H}sH9WBt=r*X~
+zdBsrQ1H(Z-wIVZ3-%!s$AE-hfSqDhMH3F_FIkO;9FRK8d9$9TkW*WlnD8_?iz{Z1>
+z1MRT#NzE&Ux(#B5m3v}tZlbM{p`pGhSQS(lq|i4%B{c`C8f27}XKrG8Do`f9B*Rw8
+z!~(1yArYRL0u|Q>g|9v|fPpck505G!2Oim}dB7Mh0!HPoU&fOe7#N!}ot*=UgWR1I
+zJYAj53@y#fbdB^385lGsmQLL5&Fm=9Za=x>Q8PzW#1adawIL>58OakLa9>ffJQzNC
+z&Q2GPM}^{o8%1-Nxfb=Vclyti%bM*NAmaFjCEHb+_xT)km5!OI>HGh_J+r}@Th4TC
+zs!qIl$|g%=BdMUYwC7V+rE7f*bd+zLktR9$qTtj`-wM?yCYjImTl=Z-f7IKgLzfmT
+zimLE1J~QXTj1Nb$&J|Qd@9^|KD%R@XYVEUg!H2brkH^*(TD<%;{qQm=&gSKg5uVcu
+z_OxuBGE;Ec^vkn6*JteiUKkfN{e+);YVJhI14@T96h)3ns`=R4@^rmlK3O4l(_){x
+z@BaTpPET6hX&!MnrBg+-sH9_;(pBM2uNJANEQu`s^?&>NY4@Z{R$p&j@ag2X`?nTk
+zadTDP{%5o0?IFPm`G-o;XX5P|8p|(!c3oR4|3|u@Eb_`D>w<lpXZhXE^!)XRn<*FD
+zeqDIQ{MKXHD`u8gf2%(C(RRh_Pod!(cC)_~dLRFTExaxLezD-|rNB(dS>O>_%)r2R
+z1cVu<YV%10qlneh#WBR9H#tRt`G#l7KXrHcn9oV;|Nj@S{`-IZ8R;+cJ44Q{bW7#=
+zEoY;4|C!5L_k!CeFWpJ_G~I31TNSJSi`&=Db$R}uZSwvK)5R={EVk>}biDzJTc4a_
+zVDsnO6vuhqvl2g^4QSgv|GJ@2N#3Gsi~pb6<M?0N=ifj6(0gtd&POc1=vT&c`096S
+z$t|pRIdAnSCaPcj89yg_`opK!PxJWipQrL7N5s?Lc;o+1LUVX_f0s7)D4uO>U|=9%
+z(!v_KdGSJp!&iFyCFPt<{-h@)G)R7tpRTC0@YL;pAT=Ew=}sp5e;hk;;6Ou;_CFV9
+r?#!ZMiPNXoPnV3V+w0R8#|8onlE$-na<sjBL1mYxtDnm{r-UW|pT_kz
+
+literal 0
+HcmV?d00001
+
+diff --git a/src/test/resources/resourcepack/font/accented.png b/src/test/resources/resourcepack/font/accented.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..75d9cc85e83d9122ba5bfe03f69ba14686096a53
+GIT binary patch
+literal 23260
+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
+Z!oSXQ0Lld%_yqs}002ovPDHLkV1gPUhTQ-F
+
+literal 0
+HcmV?d00001
+
+diff --git a/src/test/resources/resourcepack/font/ascii.png b/src/test/resources/resourcepack/font/ascii.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..9494c65023d7848d3fb68c29ead47750a31f7785
+GIT binary patch
+literal 2480
+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
+Jtp^F&{{$;09jgEU
+
+literal 0
+HcmV?d00001
+
+diff --git a/src/test/resources/resourcepack/font/nonlatin_european.png b/src/test/resources/resourcepack/font/nonlatin_european.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..cdfba8a7dd208e0f23f05d7333b64401c1fc4914
+GIT binary patch
+literal 14440
+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
+Za=TJjjHRXE4Z<yfr%)$Z|N8bn{~M7*rGEeb
+
+literal 0
+HcmV?d00001
+
+diff --git a/src/test/resources/resourcepack/shader/rendertype_text.fsh b/src/test/resources/resourcepack/shader/rendertype_text.fsh
+new file mode 100644
+index 0000000000000000000000000000000000000000..f799b4a45c63d7a12c222ba5e8962d3d97055fab
+--- /dev/null
++++ b/src/test/resources/resourcepack/shader/rendertype_text.fsh
+@@ -0,0 +1,26 @@
++#version 110
++
++#moj_import <fog.glsl>
++
++uniform sampler2D Sampler0;
++
++uniform vec4 ColorModulator;
++uniform float FogStart;
++uniform float FogEnd;
++uniform vec4 FogColor;
++
++in float vertexDistance;
++in vec4 vertexColor;
++in vec2 texCoord0;
++
++out vec4 fragColor;
++
++void main() {
++    vec4 color = texture(Sampler0, texCoord0) * vertexColor * ColorModulator;
++    
++    if (color.a < 0.1) {
++        discard;
++    }
++
++    fragColor = linear_fog(color, vertexDistance, FogStart, FogEnd, FogColor);
++}
+diff --git a/src/test/resources/resourcepack/shader/rendertype_text.json b/src/test/resources/resourcepack/shader/rendertype_text.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..1dc63fb39cb718b41ccea3d23756f1e44ba0eda8
+--- /dev/null
++++ b/src/test/resources/resourcepack/shader/rendertype_text.json
+@@ -0,0 +1,29 @@
++{
++    "blend": {
++        "func": "add",
++        "srcrgb": "srcalpha",
++        "dstrgb": "1-srcalpha"
++    },
++    "vertex": "rendertype_text",
++    "fragment": "rendertype_text",
++    "attributes": [
++        "Position",
++        "Color",
++        "UV0",
++        "UV2"
++    ],
++    "samplers": [
++        { "name": "Sampler0" }
++    ],
++    "uniforms": [
++        { "name": "ModelViewMat", "type": "matrix4x4", "count": 16, "values": [ 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0 ] },
++        { "name": "ProjMat", "type": "matrix4x4", "count": 16, "values": [ 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0 ] },
++        { "name": "IViewRotMat", "type": "matrix3x3", "count": 9, "values": [ 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0 ] },
++        { "name": "ColorModulator", "type": "float", "count": 4, "values": [ 1.0, 1.0, 1.0, 1.0 ] },
++        { "name": "FogStart", "type": "float", "count": 1, "values": [ 0.0 ] },
++        { "name": "FogEnd", "type": "float", "count": 1, "values": [ 1.0 ] },
++        { "name": "FogColor", "type": "float", "count": 4, "values": [ 0.0, 0.0, 0.0, 0.0 ] },
++        { "name": "FogShape", "type": "int", "count": 1, "values": [ 0 ] },
++		{ "name": "ScreenSize", "type": "float", "count": 2,  "values": [ 1.0, 1.0 ] }
++    ]
++}
+diff --git a/src/test/resources/resourcepack/shader/rendertype_text.vsh b/src/test/resources/resourcepack/shader/rendertype_text.vsh
+new file mode 100644
+index 0000000000000000000000000000000000000000..8ac3e8076db8378f6d7b457a7143b70b646b730a
+--- /dev/null
++++ b/src/test/resources/resourcepack/shader/rendertype_text.vsh
+@@ -0,0 +1,71 @@
++#version 110
++
++#moj_import <fog.glsl>
++#moj_import <light.glsl>
++
++in vec3 Position;
++in vec4 Color;
++in vec2 UV0;
++in ivec2 UV2;
++
++uniform sampler2D Sampler0;
++
++uniform mat4 ModelViewMat;
++uniform mat4 ProjMat;
++uniform mat3 IViewRotMat;
++uniform int FogShape;
++uniform vec2 ScreenSize;
++
++out float vertexDistance;
++out vec4 vertexColor;
++out vec2 texCoord0;
++
++
++#define ACTIONBAR_OFFSET 64
++
++// Function to convert a vertical ascent into a ID.
++float get_id(float offset) {
++    if (offset <= 0)
++    return 0;
++    return trunc(offset/1000);
++}
++
++void main() {
++    vec3 pos = Position;
++
++    vertexDistance = fog_distance(ModelViewMat, IViewRotMat * Position, FogShape);
++    vertexColor = Color;
++    texCoord0 = UV0;
++
++    vec2 pixel = vec2(ProjMat[0][0], ProjMat[1][1]) / 2.0;
++    int guiScale = int(round(pixel.x / (1 / ScreenSize.x)));
++    vec2 guiSize = ScreenSize / guiScale;
++
++    float id = get_id((round(guiSize.y - Position.y)) * -1);
++
++    // Detect if GUI text.
++    if (id > 99 && Color.a != 0.0) {
++        float yOffset = 0;
++        float xOffset = 0;
++        int layer = 0;
++        int type = 0;
++
++        //if (Position.z != 0.0) {
++
++        switch (int(id)) {
++
++        }
++
++        pos.y -= (id*1000) + 500;
++
++        //pos.x -= (guiSize.x * 0.5);
++        //if(Position.z == 0.0) {
++        //    pos.y += (guiSize.y * 0.5);
++        //}
++        pos -= vec3(xOffset, yOffset, 0.0);
++        pos.z += layer;
++        //}
++    }
++
++    gl_Position = ProjMat * ModelViewMat * vec4(pos, 1);
++}

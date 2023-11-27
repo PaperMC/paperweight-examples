@@ -108,10 +108,10 @@ index 8645ff9fcbe117adf4eb3cb2f493dda56814b0bf..710203006cf9812954ddaddff4de74f7
      // Paper start
 diff --git a/src/main/java/org/bukkit/craftbukkit/datafactory/CraftDataFactory.java b/src/main/java/org/bukkit/craftbukkit/datafactory/CraftDataFactory.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..e76f9bb759ecc8fdbb75196e003d72c174570dab
+index 0000000000000000000000000000000000000000..9769c9bb1244bbd188460be93091d02d4ed0508d
 --- /dev/null
 +++ b/src/main/java/org/bukkit/craftbukkit/datafactory/CraftDataFactory.java
-@@ -0,0 +1,19 @@
+@@ -0,0 +1,10 @@
 +package org.bukkit.craftbukkit.datafactory;
 +
 +import org.bukkit.craftbukkit.datafactory.builder.CraftAttributeBuilder;
@@ -121,15 +121,6 @@ index 0000000000000000000000000000000000000000..e76f9bb759ecc8fdbb75196e003d72c1
 +import org.bukkit.datafactory.builder.VillagerProfessionBuilder;
 +
 +public class CraftDataFactory implements BukkitDataFactory {
-+    @Override
-+    public AttributeBuilder attributeBuilder() {
-+        return new CraftAttributeBuilder();
-+    }
-+
-+    @Override
-+    public VillagerProfessionBuilder professionBuilder() {
-+        return new CraftVillagerProfessionBuilder();
-+    }
 +}
 diff --git a/src/main/java/org/bukkit/craftbukkit/datafactory/CraftElementBuilder.java b/src/main/java/org/bukkit/craftbukkit/datafactory/CraftElementBuilder.java
 new file mode 100644
