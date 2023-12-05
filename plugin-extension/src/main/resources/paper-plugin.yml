@@ -1,0 +1,7 @@
+name: MCCreativeLabExtension
+version: '1.0'
+main: de.verdox.mccreativelab.MCCreativeLabExtension
+description: MCCreativeLab Plugin Extension
+api-version: '1.20'
+bootstrapper: de.verdox.mccreativelab.PluginBootstrap
+loader: de.verdox.mccreativelab.PluginLoader

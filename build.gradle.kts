@@ -35,6 +35,7 @@ allprojects {
     }
 }
 
+
 subprojects {
     tasks.withType<JavaCompile> {
         options.encoding = Charsets.UTF_8.name()
@@ -75,7 +76,7 @@ paperweight {
 //
 
 tasks.generateDevelopmentBundle {
-    apiCoordinates.set("com.example.paperfork:forktest-api")
+    apiCoordinates.set("de.verdox.mccreativelab:mccreativelab-api")
     mojangApiCoordinates.set("io.papermc.paper:paper-mojangapi")
     libraryRepositories.set(
         listOf(
