@@ -6,10 +6,10 @@ Subject: [PATCH] Removing legacy component conversion because it causes item
 
 
 diff --git a/src/main/java/net/minecraft/world/item/ItemStack.java b/src/main/java/net/minecraft/world/item/ItemStack.java
-index 86a86ca0b8e7c5d0f51d69889a4367738196b954..fb7bb3280a38e20bbef88c3f3e3b038d77a7e5fa 100644
+index 40bfcb1fe51a8713a8d2c0ffa4bb1291ffd1afca..c057c0138cad7c3ee221b3a30d8713231ccd03ab 100644
 --- a/src/main/java/net/minecraft/world/item/ItemStack.java
 +++ b/src/main/java/net/minecraft/world/item/ItemStack.java
-@@ -208,7 +208,7 @@ public final class ItemStack {
+@@ -206,7 +206,7 @@ public final class ItemStack {
          Component component = Component.Serializer.fromJson(json);
          if (component.getContents() instanceof net.minecraft.network.chat.contents.LiteralContents literalContents && literalContents.text().contains("\u00A7") && component.getSiblings().isEmpty()) {
              // Only convert if the root component is a single comp with legacy in it, don't convert already normal components

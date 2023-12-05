@@ -5,7 +5,7 @@ Subject: [PATCH] Adding isRainingAt method to World.java
 
 
 diff --git a/src/main/java/org/bukkit/World.java b/src/main/java/org/bukkit/World.java
-index 293fdfee1c097c57c55b7fc8b5b9d925921cb1a4..81535600385c23d1af837ea2e61617ab6d115eb7 100644
+index 5654fa6be22156134eec96ca387bc35867a1c688..472c6284e97a390fb2e614b94b70ec9311af169b 100644
 --- a/src/main/java/org/bukkit/World.java
 +++ b/src/main/java/org/bukkit/World.java
 @@ -50,6 +50,14 @@ import org.jetbrains.annotations.Nullable;
@@ -21,5 +21,5 @@ index 293fdfee1c097c57c55b7fc8b5b9d925921cb1a4..81535600385c23d1af837ea2e61617ab
 +    boolean isRainingAt(Location location);
 +
      /**
-      * Creates a tree at the given {@link Location} if the {@link BlockData} of the {@link Block} is of type {@link Sapling}
+      * Creates a tree at the given {@link Location} if the {@link BlockData} of the {@link Block} is of type {@link org.bukkit.block.data.type.Sapling}
       *

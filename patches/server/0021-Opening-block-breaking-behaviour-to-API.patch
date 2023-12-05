@@ -1,0 +1,32 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <lukasjonsson@outlook.de>
+Date: Mon, 20 Nov 2023 18:15:19 +0100
+Subject: [PATCH] Opening block breaking behaviour to API
+
+
+diff --git a/src/main/java/net/minecraft/world/item/ItemStack.java b/src/main/java/net/minecraft/world/item/ItemStack.java
+index c057c0138cad7c3ee221b3a30d8713231ccd03ab..fb27b9972c4618812729212f88db3782d196aa03 100644
+--- a/src/main/java/net/minecraft/world/item/ItemStack.java
++++ b/src/main/java/net/minecraft/world/item/ItemStack.java
+@@ -722,6 +722,8 @@ public final class ItemStack {
+     }
+ 
+     public boolean isCorrectToolForDrops(net.minecraft.world.level.block.state.BlockState state) {
++        if(de.verdox.mccreativelab.behaviour.BlockBreakBehaviour.BLOCK_BREAK_BEHAVIOUR.isImplemented(getBukkitStack().getType()))
++            return de.verdox.mccreativelab.behaviour.BlockBreakBehaviour.BLOCK_BREAK_BEHAVIOUR.getBehaviour(getBukkitStack().getType()).isCorrectToolMaterialForDrops(getBukkitStack(), state.createCraftBlockData());
+         return this.getItem().isCorrectToolForDrops(state);
+     }
+ 
+diff --git a/src/main/java/net/minecraft/world/level/block/state/BlockBehaviour.java b/src/main/java/net/minecraft/world/level/block/state/BlockBehaviour.java
+index 3c8e09b76407d0782109b172765a97454ba9a7d3..7266e2b6139a238ceb61c708e3712d1de07d5a1e 100644
+--- a/src/main/java/net/minecraft/world/level/block/state/BlockBehaviour.java
++++ b/src/main/java/net/minecraft/world/level/block/state/BlockBehaviour.java
+@@ -1342,6 +1342,8 @@ public abstract class BlockBehaviour implements FeatureElement {
+         protected abstract BlockState asState();
+ 
+         public boolean requiresCorrectToolForDrops() {
++            if(de.verdox.mccreativelab.behaviour.BlockBreakBehaviour.BLOCK_BREAK_BEHAVIOUR.isImplemented(asState().getBukkitMaterial()))
++                return de.verdox.mccreativelab.behaviour.BlockBreakBehaviour.BLOCK_BREAK_BEHAVIOUR.getBehaviour(asState().getBukkitMaterial()).requiresCorrectToolsForDrops(createCraftBlockData());
+             return this.requiresCorrectToolForDrops;
+         }
+ 

@@ -6,7 +6,7 @@ Subject: [PATCH] Opening fuel burn durations to API
 
 diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/FuelBurnBehaviour.java b/src/main/java/de/verdox/mccreativelab/behaviour/FuelBurnBehaviour.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..ea73f2de1d35b49300c5b4cce3d8f4c4ebcdf783
+index 0000000000000000000000000000000000000000..20d98e9dc38bca4da7f82f118376c21912586158
 --- /dev/null
 +++ b/src/main/java/de/verdox/mccreativelab/behaviour/FuelBurnBehaviour.java
 @@ -0,0 +1,26 @@
@@ -34,5 +34,5 @@ index 0000000000000000000000000000000000000000..ea73f2de1d35b49300c5b4cce3d8f4c4
 +     * @param fuel The Fuel ItemStack
 +     * @return The calculated burn duration
 +     */
-+    int calculateBlastFurnaceDuration(ItemStack fuel);
++    int calculateBlastFurnaceBurnDuration(ItemStack fuel);
 +}

@@ -85,7 +85,7 @@ index 26b92e27de1f079ab8440538c65377ed80e8b6ef..8b1c5ab243cf1b67f5f0d7e009155d4b
      private List<Holder.Reference<T>> holdersInOrder;
      private int nextId;
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-index 8645ff9fcbe117adf4eb3cb2f493dda56814b0bf..710203006cf9812954ddaddff4de74f759bc2872 100644
+index 3f11183fe7d6ceb365895e83b18ec4dcc5863518..ee5e901d71e0f4e266106e49f54078709271d8b5 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
 @@ -15,6 +15,7 @@ import com.mojang.brigadier.tree.LiteralCommandNode;
@@ -96,7 +96,7 @@ index 8645ff9fcbe117adf4eb3cb2f493dda56814b0bf..710203006cf9812954ddaddff4de74f7
  import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
  import java.awt.image.BufferedImage;
  import java.io.ByteArrayOutputStream;
-@@ -510,7 +511,9 @@ public final class CraftServer implements Server {
+@@ -509,7 +510,9 @@ public final class CraftServer implements Server {
      }
  
      public void loadPlugins() {

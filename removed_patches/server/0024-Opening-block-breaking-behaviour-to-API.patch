@@ -194,23 +194,11 @@ diff --git a/src/main/java/net/minecraft/server/level/ServerPlayer.java b/src/ma
 index d4aec99cac3f83d764e21946cc904c00e084704e..fd6f51acf6505c2d5dcd6a5254c949094d9e497d 100644
 --- a/src/main/java/net/minecraft/server/level/ServerPlayer.java
 +++ b/src/main/java/net/minecraft/server/level/ServerPlayer.java
-@@ -18,6 +18,8 @@ import java.util.Optional;
- import java.util.OptionalInt;
- import java.util.Set;
- import javax.annotation.Nullable;
-+
-+import de.verdox.mccreativelab.block.CustomBlockBreakSpeed;
- import net.minecraft.BlockUtil;
- import net.minecraft.ChatFormatting;
- import net.minecraft.CrashReport;
-@@ -754,6 +756,10 @@ public class ServerPlayer extends Player {
+@@ -754,6 +756,7 @@ public class ServerPlayer extends Player {
          this.trackStartFallingPosition();
          this.trackEnteredOrExitedLavaOnVehicle();
          this.advancements.flushDirty(this);
-+
-+        // MCClab - start
-+        CustomBlockBreakSpeed.tick(this);
-+        // MCClab - end
++        de.verdox.mccreativelab.block.CustomBlockBreakSpeed.tick(this);
      }
  
      public void doTick() {
@@ -218,52 +206,27 @@ diff --git a/src/main/java/net/minecraft/server/level/ServerPlayerGameMode.java 
 index b2c2bd5ec0afd479973f7237a5c610f21231c505..406f9cb93dd6331db342ea8d05563fc923afce88 100644
 --- a/src/main/java/net/minecraft/server/level/ServerPlayerGameMode.java
 +++ b/src/main/java/net/minecraft/server/level/ServerPlayerGameMode.java
-@@ -3,6 +3,8 @@ package net.minecraft.server.level;
- import com.mojang.logging.LogUtils;
- import java.util.Objects;
- import javax.annotation.Nullable;
-+
-+import de.verdox.mccreativelab.block.CustomBlockBreakSpeed;
- import net.minecraft.advancements.CriteriaTriggers;
- import net.minecraft.core.BlockPos;
- import net.minecraft.core.Direction;
-@@ -31,7 +33,7 @@ import org.slf4j.Logger;
- 
- // CraftBukkit start
- import java.util.ArrayList;
--import net.minecraft.server.MinecraftServer;
-+
- import net.minecraft.server.network.ServerGamePacketListenerImpl;
- import net.minecraft.world.level.block.Blocks;
- import net.minecraft.world.level.block.CakeBlock;
-@@ -266,6 +268,10 @@ public class ServerPlayerGameMode {
+@@ -266,6 +268,7 @@ public class ServerPlayerGameMode {
                      return;
                  }
  
-+                // MCCLab - start
-+                CustomBlockBreakSpeed.startBlockBreakAction(player, pos, action, direction, worldHeight);
-+                // MCCLab - end
-+
++                de.verdox.mccreativelab.block.CustomBlockBreakSpeed.startBlockBreakAction(player, pos, action, direction, worldHeight); //MCCLab
                  if (blockEvent.getInstaBreak()) {
                      f = 2.0f;
                  }
-@@ -308,6 +314,9 @@ public class ServerPlayerGameMode {
+@@ -308,6 +314,7 @@ public class ServerPlayerGameMode {
                              this.delayedDestroyPos = pos;
                              this.delayedTickStart = this.destroyProgressStart;
                          }
-+                        // MCCLab - start
-+                        CustomBlockBreakSpeed.stopBlockBreakAction(player, pos, action, direction, worldHeight);
-+                        // MCCLab - end
++                        de.verdox.mccreativelab.block.CustomBlockBreakSpeed.stopBlockBreakAction(player, pos, action, direction, worldHeight); //MCCLab
                      }
                  }
  
-@@ -326,6 +335,9 @@ public class ServerPlayerGameMode {
+@@ -326,6 +335,7 @@ public class ServerPlayerGameMode {
                  this.debugLogging(pos, true, sequence, "aborted destroying");
  
                  CraftEventFactory.callBlockDamageAbortEvent(this.player, pos, this.player.getInventory().getSelected()); // CraftBukkit
-+                // MCCLab - start
-+                CustomBlockBreakSpeed.stopBlockBreakAction(player, pos, action, direction, worldHeight);
-+                // MCCLab - end
++                de.verdox.mccreativelab.block.CustomBlockBreakSpeed.stopBlockBreakAction(player, pos, action, direction, worldHeight); //MCCLab
              }
  
          }
@@ -271,23 +234,11 @@ diff --git a/src/main/java/net/minecraft/server/players/PlayerList.java b/src/ma
 index 48d1444fbad1c57738807d0128b94160a5a17a4d..b4bbf335dca576ed14923770fe12e20f059843bd 100644
 --- a/src/main/java/net/minecraft/server/players/PlayerList.java
 +++ b/src/main/java/net/minecraft/server/players/PlayerList.java
-@@ -25,6 +25,8 @@ import java.util.UUID;
- import java.util.function.Function;
- import java.util.function.Predicate;
- import javax.annotation.Nullable;
-+
-+import de.verdox.mccreativelab.block.CustomBlockBreakSpeed;
- import net.minecraft.ChatFormatting;
- import net.minecraft.FileUtil;
- import net.minecraft.commands.CommandSourceStack;
-@@ -594,6 +596,10 @@ public abstract class PlayerList {
+@@ -594,6 +596,7 @@ public abstract class PlayerList {
          this.cserver.getPluginManager().callEvent(playerQuitEvent);
          entityplayer.getBukkitEntity().disconnect(playerQuitEvent.getQuitMessage());
  
-+        // MCCLab - start
-+        CustomBlockBreakSpeed.stopAllBlockBreakActions(entityplayer);
-+        // MCCLab - end
-+
++        de.verdox.mccreativelab.block.CustomBlockBreakSpeed.stopAllBlockBreakActions(entityplayer); //MCCLab
          if (server.isSameThread()) entityplayer.doTick(); // SPIGOT-924 // Paper - don't tick during emergency shutdowns (Watchdog)
          // CraftBukkit end
  
@@ -295,20 +246,12 @@ diff --git a/src/main/java/net/minecraft/world/item/ItemStack.java b/src/main/ja
 index fb7bb3280a38e20bbef88c3f3e3b038d77a7e5fa..5981581103dd53434a576eda0d093525161998a5 100644
 --- a/src/main/java/net/minecraft/world/item/ItemStack.java
 +++ b/src/main/java/net/minecraft/world/item/ItemStack.java
-@@ -22,6 +22,7 @@ import java.util.stream.Collectors;
- import java.util.stream.Stream;
- import javax.annotation.Nullable;
- 
-+import de.verdox.mccreativelab.behaviour.BlockBreakBehaviour;
- import de.verdox.mccreativelab.item.ItemFormatUtil;
- import net.minecraft.ChatFormatting;
- import net.minecraft.Util;
 @@ -724,6 +725,8 @@ public final class ItemStack {
      }
  
      public boolean isCorrectToolForDrops(net.minecraft.world.level.block.state.BlockState state) {
-+        if(BlockBreakBehaviour.BLOCK_BREAK_BEHAVIOUR.isImplemented(getBukkitStack().getType()))
-+            return BlockBreakBehaviour.BLOCK_BREAK_BEHAVIOUR.getBehaviour(getBukkitStack().getType()).isCorrectToolMaterialForDrops(getBukkitStack(), state.createCraftBlockData());
++        if(de.verdox.mccreativelab.behaviour.BlockBreakBehaviour.BLOCK_BREAK_BEHAVIOUR.isImplemented(getBukkitStack().getType()))
++            return de.verdox.mccreativelab.behaviour.BlockBreakBehaviour.BLOCK_BREAK_BEHAVIOUR.getBehaviour(getBukkitStack().getType()).isCorrectToolMaterialForDrops(getBukkitStack(), state.createCraftBlockData());
          return this.getItem().isCorrectToolForDrops(state);
      }
  
@@ -316,29 +259,12 @@ diff --git a/src/main/java/net/minecraft/world/level/block/state/BlockBehaviour.
 index b777a7e9f8250f4a7fa272f54f6977b70a42b39d..ea4abd1fcd9dc7c0f4eaf170624034c199af3d5b 100644
 --- a/src/main/java/net/minecraft/world/level/block/state/BlockBehaviour.java
 +++ b/src/main/java/net/minecraft/world/level/block/state/BlockBehaviour.java
-@@ -15,6 +15,7 @@ import java.util.stream.Stream;
- import javax.annotation.Nullable;
- 
- import de.verdox.mccreativelab.behaviour.BehaviourUtil;
-+import de.verdox.mccreativelab.behaviour.BlockBreakBehaviour;
- import net.minecraft.core.BlockPos;
- import net.minecraft.core.Direction;
- import net.minecraft.core.Holder;
-@@ -78,6 +79,7 @@ import net.minecraft.world.phys.Vec3;
- import net.minecraft.world.phys.shapes.CollisionContext;
- import net.minecraft.world.phys.shapes.Shapes;
- import net.minecraft.world.phys.shapes.VoxelShape;
-+import org.bukkit.Material;
- 
- public abstract class BlockBehaviour implements FeatureElement {
- 
-@@ -1344,6 +1346,9 @@ public abstract class BlockBehaviour implements FeatureElement {
+@@ -1344,6 +1346,8 @@ public abstract class BlockBehaviour implements FeatureElement {
          protected abstract BlockState asState();
  
          public boolean requiresCorrectToolForDrops() {
-+            Material bukkitMaterial = asState().getBukkitMaterial();
-+            if(BlockBreakBehaviour.BLOCK_BREAK_BEHAVIOUR.isImplemented(bukkitMaterial))
-+                return BlockBreakBehaviour.BLOCK_BREAK_BEHAVIOUR.getBehaviour(bukkitMaterial).requiresCorrectToolsForDrops(createCraftBlockData());
++            if(de.verdox.mccreativelab.behaviour.BlockBreakBehaviour.BLOCK_BREAK_BEHAVIOUR.isImplemented(asState().getBukkitMaterial()))
++                return de.verdox.mccreativelab.behaviour.BlockBreakBehaviour.BLOCK_BREAK_BEHAVIOUR.getBehaviour(asState().getBukkitMaterial()).requiresCorrectToolsForDrops(createCraftBlockData());
              return this.requiresCorrectToolForDrops;
          }
  

@@ -27,25 +27,6 @@ index 9769c9bb1244bbd188460be93091d02d4ed0508d..ad3561efcb7f2ca0c36bc1b89facd1b6
 +        return new CraftPoiTypeBuilder();
 +    }
  }
-diff --git a/src/main/java/org/bukkit/craftbukkit/datafactory/CraftRegistryBootstrapManipulator.java b/src/main/java/org/bukkit/craftbukkit/datafactory/CraftRegistryBootstrapManipulator.java
-index b3a8e209e2a3b2b19c86a55bc510605bbf389f09..3ccd0b430f85194c85aaf3a9d93695118a46208b 100644
---- a/src/main/java/org/bukkit/craftbukkit/datafactory/CraftRegistryBootstrapManipulator.java
-+++ b/src/main/java/org/bukkit/craftbukkit/datafactory/CraftRegistryBootstrapManipulator.java
-@@ -1,5 +1,6 @@
- package org.bukkit.craftbukkit.datafactory;
- 
-+import de.verdox.mccreativelab.MCCreativeLab;
- import net.minecraft.core.Registry;
- import net.minecraft.resources.ResourceKey;
- import net.minecraft.server.MinecraftServer;
-@@ -23,6 +24,6 @@ public class CraftRegistryBootstrapManipulator implements RegistryBootstrapManip
- 
-     @Override
-     public BukkitDataFactory factory() {
--        return new CraftDataFactory();
-+        return MCCreativeLab.getDataFactory();
-     }
- }
 diff --git a/src/main/java/org/bukkit/craftbukkit/datafactory/builder/CraftAttributeBuilder.java b/src/main/java/org/bukkit/craftbukkit/datafactory/builder/CraftAttributeBuilder.java
 new file mode 100644
 index 0000000000000000000000000000000000000000..944854c9973e0b30fbe32c8858daf044c8c48d59

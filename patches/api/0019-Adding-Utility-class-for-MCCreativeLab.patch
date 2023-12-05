@@ -16,7 +16,7 @@ index 0000000000000000000000000000000000000000..23b191be5376ad1dc3cf8ab4f2e82aa4
 +}
 diff --git a/src/main/java/de/verdox/mccreativelab/MCCreativeLab.java b/src/main/java/de/verdox/mccreativelab/MCCreativeLab.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..7525b3d9ff338fba2b2c5c0f11bbb0d0a7d9b3e5
+index 0000000000000000000000000000000000000000..67b250ac2ae34d11c634d9ea0d9044308826b472
 --- /dev/null
 +++ b/src/main/java/de/verdox/mccreativelab/MCCreativeLab.java
 @@ -0,0 +1,11 @@

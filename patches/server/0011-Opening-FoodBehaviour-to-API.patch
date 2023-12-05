@@ -1,28 +1,14 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
-From: derverdox <lukasjonsson@outlook.de>
-Date: Fri, 17 Nov 2023 19:02:24 +0100
+From: derverdox <mail.ysp@web.de>
+Date: Sun, 3 Dec 2023 15:32:51 +0100
 Subject: [PATCH] Opening FoodBehaviour to API
 
 
 diff --git a/src/main/java/net/minecraft/world/food/FoodData.java b/src/main/java/net/minecraft/world/food/FoodData.java
-index 2038df72f8d7d33d4105de8129628daf21de6f0f..be694af09f714305df9e5903134b18ccc1ae0e01 100644
+index 2038df72f8d7d33d4105de8129628daf21de6f0f..b130a06ea984dde1704d650645d59385334e4b65 100644
 --- a/src/main/java/net/minecraft/world/food/FoodData.java
 +++ b/src/main/java/net/minecraft/world/food/FoodData.java
-@@ -8,8 +8,13 @@ import net.minecraft.world.entity.player.Player;
- import net.minecraft.world.item.Item;
- import net.minecraft.world.item.ItemStack;
- import net.minecraft.world.level.GameRules;
-+import de.verdox.mccreativelab.behaviour.FoodBehaviour;
-+import org.bukkit.event.entity.EntityExhaustionEvent;
- 
- public class FoodData {
-+    // MCCLab - start
-+    private int exhaustionOverTimeTimer;
-+    // MCCLab - end
- 
-     public int foodLevel = 20;
-     public float saturationLevel = 5.0F;
-@@ -80,7 +85,7 @@ public class FoodData {
+@@ -80,7 +80,7 @@ public class FoodData {
  
          if (flag && this.saturationLevel > 0.0F && player.isHurt() && this.foodLevel >= 20) {
              ++this.tickTimer;
@@ -31,7 +17,7 @@ index 2038df72f8d7d33d4105de8129628daf21de6f0f..be694af09f714305df9e5903134b18cc
                  float f = Math.min(this.saturationLevel, 6.0F);
  
                  player.heal(f / 6.0F, org.bukkit.event.entity.EntityRegainHealthEvent.RegainReason.SATIATED, true); // CraftBukkit - added RegainReason // Paper - This is fast regen
-@@ -88,17 +93,17 @@ public class FoodData {
+@@ -88,17 +88,17 @@ public class FoodData {
                  player.causeFoodExhaustion(f, org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.REGEN); // CraftBukkit - EntityExhaustionEvent
                  this.tickTimer = 0;
              }
@@ -53,95 +39,51 @@ index 2038df72f8d7d33d4105de8129628daf21de6f0f..be694af09f714305df9e5903134b18cc
                  if (player.getHealth() > 10.0F || enumdifficulty == Difficulty.HARD || player.getHealth() > 1.0F && enumdifficulty == Difficulty.NORMAL) {
                      player.hurt(player.damageSources().starve(), 1.0F);
                  }
-@@ -108,7 +113,9 @@ public class FoodData {
-         } else {
-             this.tickTimer = 0;
-         }
--
-+        //MCCLab - start
-+        causeOverTimeExhaustion();
-+        //MCCLab - end
-     }
- 
-     public void readAdditionalSaveData(CompoundTag nbt) {
-@@ -117,6 +124,9 @@ public class FoodData {
-             this.tickTimer = nbt.getInt("foodTickTimer");
-             this.saturationLevel = nbt.getFloat("foodSaturationLevel");
-             this.exhaustionLevel = nbt.getFloat("foodExhaustionLevel");
-+            // MCCLab - start
-+            this.exhaustionOverTimeTimer = nbt.getInt("exhaustionOverTimeTimer");
-+            // MCCLab - end
-         }
- 
-     }
-@@ -126,6 +136,9 @@ public class FoodData {
-         nbt.putInt("foodTickTimer", this.tickTimer);
-         nbt.putFloat("foodSaturationLevel", this.saturationLevel);
-         nbt.putFloat("foodExhaustionLevel", this.exhaustionLevel);
-+        // MCCLab - start
-+        nbt.putInt("exhaustionOverTimeTimer", this.exhaustionOverTimeTimer);
-+        // MCCLab - end
-     }
- 
-     public int getFoodLevel() {
-@@ -163,4 +176,60 @@ public class FoodData {
+@@ -163,4 +163,47 @@ public class FoodData {
      public void setExhaustion(float exhaustion) {
          this.exhaustionLevel = exhaustion;
      }
-+
 +    // MCCLab - start
 +    public int getSaturatedRegenRate() {
-+        if(FoodBehaviour.FOOD_BEHAVIOUR.isImplemented())
-+            return FoodBehaviour.FOOD_BEHAVIOUR.getBehaviour().getSaturatedRegenRate((org.bukkit.entity.Player) entityhuman.getBukkitEntity());
++        if(de.verdox.mccreativelab.behaviour.FoodBehaviour.FOOD_BEHAVIOUR.isImplemented())
++            return de.verdox.mccreativelab.behaviour.FoodBehaviour.FOOD_BEHAVIOUR.getBehaviour().getSaturatedRegenRate((org.bukkit.entity.Player) entityhuman.getBukkitEntity());
 +        return saturatedRegenRate;
 +    }
 +
 +    public int getStarvationRate() {
-+        if(FoodBehaviour.FOOD_BEHAVIOUR.isImplemented())
-+            return FoodBehaviour.FOOD_BEHAVIOUR.getBehaviour().getStarvationRate((org.bukkit.entity.Player) entityhuman.getBukkitEntity());
++        if(de.verdox.mccreativelab.behaviour.FoodBehaviour.FOOD_BEHAVIOUR.isImplemented())
++            return de.verdox.mccreativelab.behaviour.FoodBehaviour.FOOD_BEHAVIOUR.getBehaviour().getStarvationRate((org.bukkit.entity.Player) entityhuman.getBukkitEntity());
 +        return starvationRate;
 +    }
 +
 +    public int getUnsaturatedRegenRate() {
-+        if(FoodBehaviour.FOOD_BEHAVIOUR.isImplemented())
-+            return FoodBehaviour.FOOD_BEHAVIOUR.getBehaviour().getUnsaturatedRegenRate((org.bukkit.entity.Player) entityhuman.getBukkitEntity());
++        if(de.verdox.mccreativelab.behaviour.FoodBehaviour.FOOD_BEHAVIOUR.isImplemented())
++            return de.verdox.mccreativelab.behaviour.FoodBehaviour.FOOD_BEHAVIOUR.getBehaviour().getUnsaturatedRegenRate((org.bukkit.entity.Player) entityhuman.getBukkitEntity());
 +        return unsaturatedRegenRate;
 +    }
 +
 +    public int getStarvationFoodLimit(){
-+        if(FoodBehaviour.FOOD_BEHAVIOUR.isImplemented())
-+            return FoodBehaviour.FOOD_BEHAVIOUR.getBehaviour().getStarvationFoodLimit((org.bukkit.entity.Player) entityhuman.getBukkitEntity());
++        if(de.verdox.mccreativelab.behaviour.FoodBehaviour.FOOD_BEHAVIOUR.isImplemented())
++            return de.verdox.mccreativelab.behaviour.FoodBehaviour.FOOD_BEHAVIOUR.getBehaviour().getStarvationFoodLimit((org.bukkit.entity.Player) entityhuman.getBukkitEntity());
 +        return 0;
 +    }
 +
 +    public int getMinimumFoodToRegenerate(){
-+        if(FoodBehaviour.FOOD_BEHAVIOUR.isImplemented())
-+            return FoodBehaviour.FOOD_BEHAVIOUR.getBehaviour().getMinimumFoodToRegenerate((org.bukkit.entity.Player) entityhuman.getBukkitEntity());
++        if(de.verdox.mccreativelab.behaviour.FoodBehaviour.FOOD_BEHAVIOUR.isImplemented())
++            return de.verdox.mccreativelab.behaviour.FoodBehaviour.FOOD_BEHAVIOUR.getBehaviour().getMinimumFoodToRegenerate((org.bukkit.entity.Player) entityhuman.getBukkitEntity());
 +        return 18;
 +    }
 +
 +    public int getExhaustionOverTimeRateInTicks(){
-+        if(FoodBehaviour.FOOD_BEHAVIOUR.isImplemented())
-+            return FoodBehaviour.FOOD_BEHAVIOUR.getBehaviour().getExhaustionOverTimeRateInTicks((org.bukkit.entity.Player) entityhuman.getBukkitEntity());
++        if(de.verdox.mccreativelab.behaviour.FoodBehaviour.FOOD_BEHAVIOUR.isImplemented())
++            return de.verdox.mccreativelab.behaviour.FoodBehaviour.FOOD_BEHAVIOUR.getBehaviour().getExhaustionOverTimeRateInTicks((org.bukkit.entity.Player) entityhuman.getBukkitEntity());
 +        return -1;
 +    }
 +
 +    public int getExhaustionOverTimeAmount(){
-+        if(FoodBehaviour.FOOD_BEHAVIOUR.isImplemented())
-+            return FoodBehaviour.FOOD_BEHAVIOUR.getBehaviour().getExhaustionOverTimeAmount((org.bukkit.entity.Player) entityhuman.getBukkitEntity());
++        if(de.verdox.mccreativelab.behaviour.FoodBehaviour.FOOD_BEHAVIOUR.isImplemented())
++            return de.verdox.mccreativelab.behaviour.FoodBehaviour.FOOD_BEHAVIOUR.getBehaviour().getExhaustionOverTimeAmount((org.bukkit.entity.Player) entityhuman.getBukkitEntity());
 +        return 0;
 +    }
-+
-+    private void causeOverTimeExhaustion(){
-+        int exhaustionOverTimeRate = getExhaustionOverTimeRateInTicks();
-+        int getExhaustionOverTimeAmount = getExhaustionOverTimeAmount();
-+        if(exhaustionOverTimeRate <= -1 || getExhaustionOverTimeAmount <= 0)
-+            return;
-+        if(this.exhaustionOverTimeTimer >= 200){
-+            this.exhaustionOverTimeTimer = 0;
-+            entityhuman.causeFoodExhaustion(getExhaustionOverTimeAmount, EntityExhaustionEvent.ExhaustionReason.UNKNOWN);
-+        }
-+        ++exhaustionOverTimeTimer;
-+    }
-+    // MCCLab - end
++    // MCCLab end
  }

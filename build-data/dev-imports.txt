@@ -108,3 +108,5 @@ minecraft net.minecraft.world.level.biome.AmbientParticleSettings.java
 minecraft net.minecraft.world.level.biome.AmbientMoodSettings.java
 minecraft net.minecraft.world.level.biome.AmbientAdditionsSettings.java
 minecraft net.minecraft.sounds.SoundEvent
+
+minecraft net.minecraft.world.entity.ai.attributes.DefaultAttributes

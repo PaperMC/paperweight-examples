@@ -1,12 +1,12 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
-From: derverdox <lukasjonsson@outlook.de>
-Date: Fri, 17 Nov 2023 18:53:31 +0100
+From: derverdox <mail.ysp@web.de>
+Date: Sun, 3 Dec 2023 15:32:52 +0100
 Subject: [PATCH] Opening FoodBehaviour to API
 
 
 diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/FoodBehaviour.java b/src/main/java/de/verdox/mccreativelab/behaviour/FoodBehaviour.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..d0243b2c693413b5bb3db12035e29f1f43998421
+index 0000000000000000000000000000000000000000..de2cb5e6bb1993f81e2c8ae6cb9e871fade83525
 --- /dev/null
 +++ b/src/main/java/de/verdox/mccreativelab/behaviour/FoodBehaviour.java
 @@ -0,0 +1,63 @@

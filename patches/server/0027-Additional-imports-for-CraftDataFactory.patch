@@ -5,12 +5,12 @@ Subject: [PATCH] Additional imports for CraftDataFactory
 
 
 diff --git a/src/main/java/org/bukkit/craftbukkit/datafactory/CraftDataFactory.java b/src/main/java/org/bukkit/craftbukkit/datafactory/CraftDataFactory.java
-index 962e6d38eafa2fdf7aa81898addfb31273b4ac3c..7ee5e63d8dd785c18d937801f8590475835f9c82 100644
+index ad3561efcb7f2ca0c36bc1b89facd1b6273709ed..0fb6960738089c26d1654c6cd960d11ec5ce4249 100644
 --- a/src/main/java/org/bukkit/craftbukkit/datafactory/CraftDataFactory.java
 +++ b/src/main/java/org/bukkit/craftbukkit/datafactory/CraftDataFactory.java
-@@ -3,9 +3,11 @@ package org.bukkit.craftbukkit.datafactory;
- import de.verdox.mccreativelab.resource.AssetPath;
- import de.verdox.mccreativelab.resource.resourcepack.CustomResourcePack;
+@@ -1,9 +1,11 @@
+ package org.bukkit.craftbukkit.datafactory;
+ 
  import org.bukkit.craftbukkit.datafactory.builder.CraftAttributeBuilder;
 +import org.bukkit.craftbukkit.datafactory.builder.CraftPoiTypeBuilder;
  import org.bukkit.craftbukkit.datafactory.builder.CraftVillagerProfessionBuilder;
