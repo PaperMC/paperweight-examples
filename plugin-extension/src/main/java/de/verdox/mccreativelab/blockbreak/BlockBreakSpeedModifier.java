@@ -1,7 +1,11 @@
 package de.verdox.mccreativelab.blockbreak;
 
 import com.destroystokyo.paper.event.server.ServerTickEndEvent;
+import de.verdox.mccreativelab.block.FakeBlock;
+import de.verdox.mccreativelab.block.FakeBlockSoundManager;
+import de.verdox.mccreativelab.block.FakeBlockStorage;
 import org.bukkit.Bukkit;
+import org.bukkit.Effect;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
@@ -18,6 +22,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
+import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
@@ -32,10 +37,21 @@ public class BlockBreakSpeedModifier implements Listener {
             stopBlockBreakAction(player);
 
         Material bukkitMaterial = e.getBlock().getType();
-        if (!BlockBreakSpeedSettings.hasCustomBlockHardness(bukkitMaterial))
+        FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockStateOrThrow(e.getBlock()
+                                                                                             .getLocation(), false);
+        float customBlockHardness = -1;
+
+        if (fakeBlockState != null)
+            customBlockHardness = fakeBlockState.getProperties().getHardness();
+        else if (BlockBreakSpeedSettings.hasCustomBlockHardness(bukkitMaterial))
+            customBlockHardness = BlockBreakSpeedSettings.getCustomBlockHardness(e.getBlock().getType());
+        else if(FakeBlockSoundManager.isBlockWithoutStandardSound(e.getBlock()))
+            customBlockHardness = e.getBlock().getType().getHardness();
+
+        if (customBlockHardness == -1)
             return;
-        map.put(player, new BlockBreakProgress(player, e.getBlock(), BlockBreakSpeedSettings.getCustomBlockHardness(e
-                .getBlock().getType())));
+
+        map.put(player, new BlockBreakProgress(player, e.getBlock(), customBlockHardness, fakeBlockState));
     }
 
     @EventHandler
@@ -44,12 +60,12 @@ public class BlockBreakSpeedModifier implements Listener {
     }
 
     @EventHandler
-    public void stopDiggingOnQuit(PlayerQuitEvent e){
+    public void stopDiggingOnQuit(PlayerQuitEvent e) {
         stopBlockBreakAction(e.getPlayer());
     }
 
     @EventHandler
-    public void tickPlayers(ServerTickEndEvent e){
+    public void tickPlayers(ServerTickEndEvent e) {
         Bukkit.getOnlinePlayers().forEach(BlockBreakSpeedModifier::tick);
     }
 
@@ -70,14 +86,17 @@ public class BlockBreakSpeedModifier implements Listener {
         private final Player player;
         private final Block block;
         private final float hardness;
+        @Nullable
+        private final FakeBlock.FakeBlockState fakeBlockState;
         private float damageTaken;
         private int lastStage = -1;
         private final int[] idsPerStage = new int[10];
 
-        public BlockBreakProgress(Player player, Block block, float hardness) {
+        public BlockBreakProgress(Player player, Block block, float hardness, @Nullable FakeBlock.FakeBlockState fakeBlockState) {
             this.player = player;
             this.block = block;
             this.hardness = hardness;
+            this.fakeBlockState = fakeBlockState;
         }
 
         public void incrementTicks() {
@@ -101,9 +120,24 @@ public class BlockBreakSpeedModifier implements Listener {
                 lastStage = stage;
             }
 
+
             if (stage == 9) {
-                block.breakNaturally(player.getActiveItem(), true, true);
+                if (block.getType().equals(Material.FIRE))
+                    block.getWorld().playEffect(block.getLocation(), Effect.EXTINGUISH, block.getBlockData());
+                else
+                    block.getWorld().playEffect(block.getLocation(), Effect.STEP_SOUND, block.getBlockData());
+
+                if(FakeBlockSoundManager.isBlockWithoutStandardSound(block))
+                    FakeBlockSoundManager.simulateBreakSound(player, block, fakeBlockState);
+
+                player.breakBlock(block);
                 stopBlockBreakAction(player);
+                //block.breakNaturally(player.getActiveItem(), true, true);
+                //TODO: Play Block break sound
+                //TODO: Spawn Block break particle
+
+            } else if (FakeBlockSoundManager.isBlockWithoutStandardSound(block)) {
+                FakeBlockSoundManager.simulateDiggingSound(player, block, fakeBlockState);
             }
         }
 
@@ -120,7 +154,11 @@ public class BlockBreakSpeedModifier implements Listener {
         }
 
         private void sendBlockDamage(int stage, int entityId) {
-            player.sendBlockDamage(block.getLocation(), stage, entityId);
+            float progress;
+            if (stage == -1)
+                progress = 0;
+            else
+                progress = stage * (1f / 9);
 
             for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
 
@@ -128,13 +166,15 @@ public class BlockBreakSpeedModifier implements Listener {
                     continue;
                 if (!onlinePlayer.getWorld().equals(block.getWorld()))
                     continue;
+
                 double xDistance = (double) block.getX() - onlinePlayer.getX();
                 double yDistance = (double) block.getY() - onlinePlayer.getY();
                 double zDistance = (double) block.getZ() - onlinePlayer.getZ();
 
                 if (xDistance * xDistance + yDistance * yDistance + zDistance * zDistance >= 1024.0D)
                     continue;
-                player.sendBlockDamage(block.getLocation(), stage, entityId);
+
+                player.sendBlockDamage(block.getLocation(), progress, entityId);
             }
         }
 

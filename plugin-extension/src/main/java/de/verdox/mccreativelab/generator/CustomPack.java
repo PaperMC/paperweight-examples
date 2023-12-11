@@ -1,5 +1,8 @@
 package de.verdox.mccreativelab.generator;
 
+import org.bukkit.Bukkit;
+import org.codehaus.plexus.util.FileUtils;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.HashSet;
@@ -25,11 +28,17 @@ public abstract class CustomPack<C extends CustomPack<C>> {
         resourceSet.clear();
     }
     public File installPack(){
+        try {
+            FileUtils.deleteDirectory(pathToSavePackDataTo.toPath().toFile());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         createDescriptionFile();
         includeThirdPartyFiles();
 
         for (Resource<C> cResource : resourceSet) {
             try {
+                //Bukkit.getLogger().info("Installing "+cResource.getClass().getSimpleName()+" resource "+cResource.key());
                 cResource.installToDataPack((C) this);
             } catch (IOException e) {
                 throw new RuntimeException(e);

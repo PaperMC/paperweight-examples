@@ -1,5 +1,7 @@
 package de.verdox.mccreativelab.generator;
 
+import de.verdox.mccreativelab.generator.resourcepack.ResourcePackAssetTypes;
+import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
 
 import javax.annotation.Nullable;
@@ -53,6 +55,7 @@ public record Asset<C extends CustomPack<C>>(Supplier<InputStream> assetInputStr
 
             if (stream == null)
                 return null;
+
 
             AssetPath savePath = getPathRelativeToPack(customPack, namespacedKey, assetType).withNewParentPath(customPack.getPathToSavePackDataTo());
             savePath.toPath().getParent().toFile().mkdirs();

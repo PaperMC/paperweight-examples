@@ -5,11 +5,14 @@ import de.verdox.mccreativelab.generator.Asset;
 import de.verdox.mccreativelab.generator.resourcepack.CustomResourcePack;
 import de.verdox.mccreativelab.generator.resourcepack.ResourcePackAssetTypes;
 import de.verdox.mccreativelab.generator.resourcepack.ResourcePackResource;
+import de.verdox.mccreativelab.recipe.CustomItemData;
 import de.verdox.mccreativelab.util.gson.JsonArrayBuilder;
 import de.verdox.mccreativelab.util.gson.JsonObjectBuilder;
 import de.verdox.mccreativelab.util.io.AssetUtil;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.block.data.BlockData;
+import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -34,6 +37,10 @@ public class ItemTextureData extends ResourcePackResource {
         this.customModelData = customModelData;
         this.pngFile = pngFile;
         this.modelType = modelType;
+    }
+
+    public ItemStack createItem(){
+        return new CustomItemData(material, customModelData).createStack();
     }
 
     @Override
@@ -123,6 +130,11 @@ public class ItemTextureData extends ResourcePackResource {
         public static final ModelType FAKE_CROP = new ModelType("minecraft:block/crop", namespacedKey ->
             JsonObjectBuilder.create().add("parent", "minecraft:block/crop")
                              .add("textures", JsonObjectBuilder.create().add("crop", namespacedKey.toString()))
+                             .build());
+
+        public static final ModelType CUBE_ALL = new ModelType("minecraft:block/cube_all", namespacedKey ->
+            JsonObjectBuilder.create().add("parent", "minecraft:block/cube_all")
+                             .add("textures", JsonObjectBuilder.create().add("all", namespacedKey.toString()))
                              .build());
 
         public static final ModelType CLICKABLE_ITEM = new ModelType("clickable_item", namespacedKey ->

@@ -1,0 +1,28 @@
+{
+  "variants": {
+    "age=0": {
+      "model": "minecraft:block/empty"
+    },
+    "age=1": {
+      "model": "minecraft:block/empty"
+    },
+    "age=2": {
+      "model": "minecraft:block/empty"
+    },
+    "age=3": {
+      "model": "minecraft:block/empty"
+    },
+    "age=4": {
+      "model": "minecraft:block/empty"
+    },
+    "age=5": {
+      "model": "minecraft:block/empty"
+    },
+    "age=6": {
+      "model": "minecraft:block/empty"
+    },
+    "age=7": {
+      "model": "minecraft:block/empty"
+    }
+  }
+}

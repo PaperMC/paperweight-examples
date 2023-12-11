@@ -12,6 +12,7 @@ import org.bukkit.event.player.PlayerKickEvent;
 import org.bukkit.event.player.PlayerResourcePackStatusEvent;
 import org.bukkit.event.server.ServerLoadEvent;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
 
@@ -25,61 +26,16 @@ public class ResourcePackListener implements Listener {
 
     @EventHandler
     public void applyRequiredResourcePackOnJoin(PlayerJoinEvent e) {
-        sendDefaultResourcePackToPlayer(e.getPlayer());
+        MCCreativeLabExtension.getInstance().getResourcePackFileHoster().sendDefaultResourcePackToPlayer(e.getPlayer());
     }
 
     @EventHandler
     public void buildPackOnServerLoad(ServerLoadEvent e) {
-        if (!buildPackAndZipFiles()) return;
-
-        if (!e.getType().equals(ServerLoadEvent.LoadType.RELOAD))
-            return;
-        sendDefaultResourcePackToPlayers(Bukkit.getOnlinePlayers());
+        MCCreativeLabExtension.getInstance().onServerLoad(e.getType());
     }
 
     @EventHandler
-    public void onPluginReload(MCCreativeLabReloadEvent e){
-        if (!buildPackAndZipFiles()){
-            Bukkit.shutdown();
-            return;
-        }
-        sendDefaultResourcePackToPlayers(Bukkit.getOnlinePlayers());
-    }
-
-    private boolean buildPackAndZipFiles() {
-        try {
-            MCCreativeLabExtension.getInstance().getCustomResourcePack().installPack();
-            MCCreativeLabExtension.getInstance().getResourcePackFileHoster().createResourcePackZipFiles();
-        } catch (IOException ex) {
-            ex.printStackTrace();
-            return false;
-        }
-        return true;
-    }
-    private void sendDefaultResourcePackToPlayer(Player player) {
-        ResourcePackFileHoster.ResourcePackInfo resourcePackInfo = getDefaultResourcePackInfo();
-        if (resourcePackInfo == null)
-            return;
-        sendResourcePackToPlayer(player, resourcePackInfo);
-    }
-
-    private void sendDefaultResourcePackToPlayers(Collection<? extends Player> players) {
-        ResourcePackFileHoster.ResourcePackInfo resourcePackInfo = getDefaultResourcePackInfo();
-        if (resourcePackInfo == null)
-            return;
-        players.forEach(player -> sendResourcePackToPlayer(player, resourcePackInfo));
-    }
-
-    private void sendResourcePackToPlayer(Player player, ResourcePackFileHoster.ResourcePackInfo packInfo) {
-        String downloadURL = MCCreativeLabExtension.getInstance().getResourcePackFileHoster()
-                                                   .createDownloadUrl(packInfo.hash());
-
-        player.setResourcePack(downloadURL, packInfo.hash().getBytes(), true);
-    }
-
-    private ResourcePackFileHoster.ResourcePackInfo getDefaultResourcePackInfo() {
-        return MCCreativeLabExtension.getInstance()
-                                     .getResourcePackFileHoster()
-                                     .getRequiredResourcePack();
+    public void onPluginReload(MCCreativeLabReloadEvent ignored){
+        MCCreativeLabExtension.getInstance().onServerLoad(ServerLoadEvent.LoadType.RELOAD);
     }
 }

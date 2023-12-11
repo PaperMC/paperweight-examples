@@ -5,6 +5,10 @@ import de.verdox.mccreativelab.generator.AssetType;
 
 public class ResourcePackAssetTypes {
     /**
+     * Used as path for the sounds.json file of a namespace
+     */
+    public static final AssetType<CustomResourcePack> SOUND_FILE = new AssetType<>(AssetPath.buildPath(""));
+    /**
      * Used to define BlockState Textures
      */
     public static final AssetType<CustomResourcePack> BLOCK_STATES = new AssetType<>(AssetPath.buildPath("blockstates"));

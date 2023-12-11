@@ -1,14 +1,15 @@
 package de.verdox.mccreativelab.generator;
 
+import de.verdox.mccreativelab.MCCreativeLabExtension;
 import de.verdox.mccreativelab.generator.resourcepack.CustomResourcePack;
 import de.verdox.mccreativelab.util.io.ZipUtil;
-import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerRequest;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
 import org.codehaus.plexus.util.FileUtils;
 import org.jetbrains.annotations.Nullable;
 
@@ -20,6 +21,7 @@ import java.nio.file.Path;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -40,7 +42,7 @@ public class ResourcePackFileHoster implements Handler<HttpServerRequest> {
     }
 
     public void closeAndWait() throws InterruptedException {
-        Future.await(this.httpServer.close());
+        this.httpServer.close();
     }
 
     @Override
@@ -65,17 +67,20 @@ public class ResourcePackFileHoster implements Handler<HttpServerRequest> {
                 return;
             File resourcePackParentFolder = path.toFile();
             String resourcePackName = resourcePackParentFolder.getName();
-            boolean required = resourcePackName.equals("MCCreativeLabResourcePack");
+            boolean required = resourcePackName.equals("MCCreativeLab");
             File zipFile = Path.of(resourcePackParentFolder.getPath() + ".zip").toFile();
 
             ZipUtil.zipFolder(resourcePackParentFolder.toPath(), Path.of(resourcePackParentFolder.getPath() + ".zip"));
             try {
-                String hash = calculateSHA1(zipFile.getPath());
-                ResourcePackInfo resourcePackInfo = new ResourcePackInfo(resourcePackName, zipFile, createDownloadUrl(hash), hash, required, null);
+                String hash = calculateSHA1String(zipFile.getPath());
+                byte[] hashBytes = calculateSHA1(zipFile.getPath());
+                ResourcePackInfo resourcePackInfo = new ResourcePackInfo(resourcePackName, zipFile, createDownloadUrl(hash), hash, hashBytes, required, null);
                 availableResourcePacks.put(hash, resourcePackInfo);
-                if(required)
-                    requiredResourcePack = resourcePackInfo;
                 Bukkit.getLogger().info("MCCreativeLab: Found ResourcePack " + zipFile.getName());
+                if(required) {
+                    requiredResourcePack = resourcePackInfo;
+                    Bukkit.getLogger().info("ResourcePack " + zipFile.getName()+" is required");
+                }
             } catch (IOException | NoSuchAlgorithmException e) {
                 throw new RuntimeException(e);
             }
@@ -97,7 +102,18 @@ public class ResourcePackFileHoster implements Handler<HttpServerRequest> {
         });
     }
 
-    private String calculateSHA1(String filePath) throws IOException, NoSuchAlgorithmException {
+    private String calculateSHA1String(String filePath) throws IOException, NoSuchAlgorithmException {
+        // Konvertiere den Hash zu einem Hex-String
+        byte[] hashBytes = calculateSHA1(filePath);
+        StringBuilder hexStringBuilder = new StringBuilder();
+        for (byte hashByte : hashBytes) {
+            hexStringBuilder.append(String.format("%02x", hashByte));
+        }
+
+        return hexStringBuilder.toString();
+    }
+
+    private byte[] calculateSHA1(String filePath) throws IOException, NoSuchAlgorithmException {
         MessageDigest digest = MessageDigest.getInstance("SHA-1");
 
         try (FileInputStream fis = new FileInputStream(filePath);
@@ -110,19 +126,40 @@ public class ResourcePackFileHoster implements Handler<HttpServerRequest> {
         }
 
         // Konvertiere den Hash zu einem Hex-String
-        byte[] hashBytes = digest.digest();
-        StringBuilder hexStringBuilder = new StringBuilder();
-        for (byte hashByte : hashBytes) {
-            hexStringBuilder.append(String.format("%02x", hashByte));
-        }
-
-        return hexStringBuilder.toString();
+        return digest.digest();
     }
 
-    public record ResourcePackInfo(String resourcePackName, File file, String url, String hash, boolean isRequired, @javax.annotation.Nullable Component prompt) {
+    public record ResourcePackInfo(String resourcePackName, File file, String url, String hash, byte[] hashBytes, boolean isRequired, @javax.annotation.Nullable Component prompt) {
     }
 
     public @Nullable ResourcePackInfo getRequiredResourcePack() {
         return requiredResourcePack;
+    }
+
+    public void sendDefaultResourcePackToPlayer(Player player) {
+        ResourcePackFileHoster.ResourcePackInfo resourcePackInfo = getDefaultResourcePackInfo();
+        if (resourcePackInfo == null)
+            return;
+        sendResourcePackToPlayer(player, resourcePackInfo);
+    }
+
+    public void sendDefaultResourcePackToPlayers(Collection<? extends Player> players) {
+        ResourcePackFileHoster.ResourcePackInfo resourcePackInfo = getDefaultResourcePackInfo();
+        if (resourcePackInfo == null)
+            return;
+        players.forEach(player -> sendResourcePackToPlayer(player, resourcePackInfo));
+    }
+
+    public void sendResourcePackToPlayer(Player player, ResourcePackFileHoster.ResourcePackInfo packInfo) {
+        String downloadURL = MCCreativeLabExtension.getInstance().getResourcePackFileHoster()
+                                                   .createDownloadUrl(packInfo.hash());
+
+        player.setResourcePack(downloadURL, packInfo.hashBytes(), true);
+    }
+
+    public ResourcePackFileHoster.ResourcePackInfo getDefaultResourcePackInfo() {
+        return MCCreativeLabExtension.getInstance()
+                                     .getResourcePackFileHoster()
+                                     .getRequiredResourcePack();
     }
 }

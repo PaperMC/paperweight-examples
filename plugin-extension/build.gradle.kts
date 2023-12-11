@@ -8,19 +8,25 @@ version = "1.20.2-R0.1-SNAPSHOT"
 dependencies {
     compileOnly(project(":mccreativelab-api"))
     implementation("io.vertx:vertx-core:4.5.0")
+
+    testImplementation("org.junit.jupiter:junit-jupiter:5.10.0")
+    testImplementation("org.hamcrest:hamcrest:2.2")
 }
 
+tasks.test {
+    useJUnitPlatform()
+}
 
 tasks{
-    val copyResult by registering(Copy::class){
-        doLast{
-            from(jar)
-            into(file("../run/plugins"))
-        }
+
+    val copyTask = register<Copy>("copyToTestServer") {
+    println("Copying plugin jar to testserver")
+    from(jar)
+    into(file("../run/plugins"))
     }
 
     build {
-        dependsOn(copyResult);
+        finalizedBy(copyTask)
     }
 }
 

@@ -65,7 +65,7 @@ public class AssetPathImpl implements AssetPath {
         var newPath = Arrays.copyOf(path, path.length + concat.length);
         if (newPath.length - path.length >= 0)
             System.arraycopy(concat, 0, newPath, path.length, newPath.length - path.length);
-        return new AssetPathImpl(parentPath, newPath);
+        return AssetPath.buildPath(parentPath, newPath);
     }
 
     @Override

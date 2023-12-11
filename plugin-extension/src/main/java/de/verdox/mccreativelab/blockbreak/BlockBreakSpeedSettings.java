@@ -7,11 +7,6 @@ import java.util.Map;
 
 public class BlockBreakSpeedSettings {
     private static final Map<Material, Float> customHardness = new HashMap<>();
-
-    static {
-        customHardness.put(Material.STONE, 20f);
-        customHardness.put(Material.GRASS, 20f);
-    }
     public static boolean hasCustomBlockHardness(Material material){
         return customHardness.containsKey(material);
     }
