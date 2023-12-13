@@ -1,0 +1,113 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <mail.ysp@web.de>
+Date: Wed, 13 Dec 2023 23:26:36 +0100
+Subject: [PATCH] Adding BehaviourResult and BehaviourUtil
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/BehaviourResult.java b/src/main/java/de/verdox/mccreativelab/behaviour/BehaviourResult.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..637c1869ce9ba16953410b0dd4fd01184ebe9f1f
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/behaviour/BehaviourResult.java
+@@ -0,0 +1,101 @@
++package de.verdox.mccreativelab.behaviour;
++
++import java.util.function.Supplier;
++
++/**
++ *
++ * @param <T> The actual return value of a behaviour that was run.
++ * @param <R> The Result Type
++ */
++public abstract class BehaviourResult<T,R extends Enum<?>> {
++    private final T value;
++    private final R result;
++
++    BehaviourResult(T value, R result){
++        this.value = value;
++        this.result = result;
++    }
++
++    public T getValue() {
++        return value;
++    }
++
++    public R getResult() {
++        return result;
++    }
++
++    public static class Callback extends BehaviourResult<java.lang.Void, Callback.Type>{
++        public static final Callback DEFAULT_INSTANCE = new Callback();
++        Callback() {
++            super(null, Type.NONE);
++        }
++
++        public enum Type{
++            NONE,
++        }
++    }
++    public static class Void extends BehaviourResult<java.lang.Void, Void.Type> {
++        public static final Void DEFAULT_INSTANCE = new Void(Void.Type.EXECUTE_VANILLA_LOGIC);
++        public Void(Type result) {
++            super(null, result);
++        }
++
++        public boolean replaceVanillaLogic(){
++            return Type.REPLACE_VANILLA_LOGIC.equals(getResult());
++        }
++
++        public enum Type{
++            REPLACE_VANILLA_LOGIC,
++            EXECUTE_VANILLA_LOGIC
++        }
++    }
++    public static class Bool extends BehaviourResult<Boolean, Bool.Type> {
++        public static final Bool DEFAULT_INSTANCE = new Bool(false, Type.ONLY_VANILLA);
++        public Bool(Boolean value, Type result) {
++            super(value, result);
++        }
++
++        public boolean evaluate(boolean vanillaValue){
++            return switch (getResult()){
++                case AND -> vanillaValue && getValue();
++                case OR -> vanillaValue || getValue();
++                case XOR -> vanillaValue ^ getValue();
++                case REPLACE_VANILLA -> getValue();
++                case ONLY_VANILLA -> vanillaValue;
++            };
++        }
++
++        public boolean evaluate(Supplier<Boolean> vanillaFunction){
++            if(getResult().equals(Type.REPLACE_VANILLA))
++                return getValue();
++            return evaluate(vanillaFunction.get());
++        }
++
++        public enum Type{
++            AND,
++            OR,
++            XOR,
++            REPLACE_VANILLA,
++            ONLY_VANILLA,
++        }
++    }
++
++    public static class Object<T> extends BehaviourResult<T, Object.Type>{
++        public static final Object DEFAULT_INSTANCE = new Object(null, Type.USE_VANILLA);
++        public Object(T value, Type result) {
++            super(value, result);
++        }
++
++        public T returnRightValue(T vanillaValue){
++            return switch (getResult()){
++                case REPLACE_VANILLA -> getValue();
++                case USE_VANILLA -> vanillaValue;
++            };
++        }
++
++        public enum Type{
++            REPLACE_VANILLA,
++            USE_VANILLA
++        }
++    }
++}

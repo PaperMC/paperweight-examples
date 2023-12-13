@@ -1,0 +1,40 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <mail.ysp@web.de>
+Date: Wed, 13 Dec 2023 23:26:35 +0100
+Subject: [PATCH] Adding BehaviourResult and BehaviourUtil
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/BehaviourUtil.java b/src/main/java/de/verdox/mccreativelab/behaviour/BehaviourUtil.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..1621278706f54458882135243ce2d1eb9311921d
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/behaviour/BehaviourUtil.java
+@@ -0,0 +1,28 @@
++package de.verdox.mccreativelab.behaviour;
++
++import de.verdox.mccreativelab.CustomBehaviour;
++import de.verdox.mccreativelab.MultiCustomBehaviour;
++import org.jetbrains.annotations.NotNull;
++
++import java.util.function.Function;
++import java.util.function.Supplier;
++
++public class BehaviourUtil {
++    public static <T extends BehaviourResult<?, ?>, K, V> T evaluate(@NotNull T defaultValue, @NotNull MultiCustomBehaviour<K, V> multiCustomBehaviour, @NotNull K key, @NotNull Function<V, T> logicFunction) {
++        if (!multiCustomBehaviour.isImplemented(key))
++            return defaultValue;
++        return logicFunction.apply(multiCustomBehaviour.getBehaviour(key));
++    }
++
++    public static <K, V> boolean evaluateBoolean(@NotNull MultiCustomBehaviour<K, V> multiCustomBehaviour, @NotNull K key, @NotNull Function<V, BehaviourResult.Bool> logicFunction, Supplier<Boolean> vanillaLogic) {
++        if (!multiCustomBehaviour.isImplemented(key))
++            return vanillaLogic.get();
++        return logicFunction.apply(multiCustomBehaviour.getBehaviour(key)).evaluate(vanillaLogic);
++    }
++
++    public static <T extends BehaviourResult<?, ?>, V> T evaluate(@NotNull T defaultValue, @NotNull CustomBehaviour<V> customBehaviour, @NotNull Function<V, T> logicFunction) {
++        if (!customBehaviour.isImplemented())
++            return defaultValue;
++        return logicFunction.apply(customBehaviour.getBehaviour());
++    }
++}

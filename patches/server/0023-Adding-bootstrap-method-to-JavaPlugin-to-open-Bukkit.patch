@@ -85,7 +85,7 @@ index 26b92e27de1f079ab8440538c65377ed80e8b6ef..8b1c5ab243cf1b67f5f0d7e009155d4b
      private List<Holder.Reference<T>> holdersInOrder;
      private int nextId;
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-index 3f11183fe7d6ceb365895e83b18ec4dcc5863518..ee5e901d71e0f4e266106e49f54078709271d8b5 100644
+index b4077b0f4da2ee2e2aaffb1331a86e0580bdee3a..fbbced3e47263c2cb24cb26681ea3098ec0bb4cc 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
 @@ -15,6 +15,7 @@ import com.mojang.brigadier.tree.LiteralCommandNode;
