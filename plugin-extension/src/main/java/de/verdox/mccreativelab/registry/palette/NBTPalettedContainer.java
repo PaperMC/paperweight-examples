@@ -30,26 +30,35 @@ public class NBTPalettedContainer<T> {
         data = new int[xSize * ySize * zSize];
     }
 
-    public final void setData(T data, int x, int y, int z) {
+    public final void setData(@Nullable T data, int x, int y, int z) {
         int index = getIndex(x, y, z);
         checkInputs(x, y, z);
         try {
             T currentData = getData(x, y, z);
 
             // If state was not really changed to nothing
-            if (data.equals(currentData))
+            if(Objects.equals(data, currentData))
                 return;
-            // Remove old state to index mapping
-            if (dataToIndicesMapping.containsKey(currentData))
-                dataToIndicesMapping.get(currentData).remove(index);
-            // Cleanup mapping if it is empty
-            cleanup(data);
+            if(currentData != null){
+                // Remove old state to index mapping
+                if (dataToIndicesMapping.containsKey(currentData))
+                    dataToIndicesMapping.get(currentData).remove(index);
+                // Cleanup mapping if it is empty
+                cleanup(currentData);
+            }
         } catch (PaletteValueUnknownException ignored) {
             // Block state was never saved before, so we are ignoring the upper cleanup code
         }
-        int blockStateID = idMap.getId(data);
+        int blockStateID = 0;
+        if(data != null){
+            blockStateID = idMap.getId(data);
+            dataToIndicesMapping.computeIfAbsent(data, fakeBlockState -> new HashSet<>()).add(index);
+        }
         this.data[index] = blockStateID;
-        dataToIndicesMapping.computeIfAbsent(data, fakeBlockState -> new HashSet<>()).add(index);
+    }
+
+    public final void removeData(int x, int y, int z){
+        setData(null, x, y, z);
     }
 
     public final @Nullable T getData(int x, int y, int z) throws PaletteValueUnknownException {

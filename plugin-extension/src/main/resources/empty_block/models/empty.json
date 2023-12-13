@@ -1,6 +1,7 @@
 {
+  "parent": "minecraft:block/cube_all",
   "ambientocclusion": false,
   "textures": {
-    "particle": "minecraft:block/empty"
+    "all": "minecraft:block/empty"
   }
 }

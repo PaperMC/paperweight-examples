@@ -1,26 +1,33 @@
 package de.verdox.mccreativelab.blockbreak;
 
 import com.destroystokyo.paper.event.server.ServerTickEndEvent;
+import de.verdox.mccreativelab.MCCreativeLabExtension;
 import de.verdox.mccreativelab.block.FakeBlock;
 import de.verdox.mccreativelab.block.FakeBlockSoundManager;
 import de.verdox.mccreativelab.block.FakeBlockStorage;
-import org.bukkit.Bukkit;
-import org.bukkit.Effect;
-import org.bukkit.Material;
+import de.verdox.mccreativelab.block.FakeBlockUtil;
+import de.verdox.mccreativelab.util.EntityMetadataPredicate;
+import org.bukkit.*;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockDamageAbortEvent;
 import org.bukkit.event.block.BlockDamageEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
+import org.bukkit.util.RayTraceResult;
+import org.bukkit.util.Vector;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;
@@ -28,6 +35,7 @@ import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class BlockBreakSpeedModifier implements Listener {
+    private static final EntityMetadataPredicate.TickDelay DELAY_BETWEEN_BREAK_PARTICLES = new EntityMetadataPredicate.TickDelay("DiggingParticlesDelay", 2);
     private static final Map<Player, BlockBreakProgress> map = new HashMap<>();
 
     @EventHandler
@@ -45,17 +53,27 @@ public class BlockBreakSpeedModifier implements Listener {
             customBlockHardness = fakeBlockState.getProperties().getHardness();
         else if (BlockBreakSpeedSettings.hasCustomBlockHardness(bukkitMaterial))
             customBlockHardness = BlockBreakSpeedSettings.getCustomBlockHardness(e.getBlock().getType());
-        else if(FakeBlockSoundManager.isBlockWithoutStandardSound(e.getBlock()))
+        else if (FakeBlockSoundManager.isBlockWithoutStandardSound(e.getBlock()))
             customBlockHardness = e.getBlock().getType().getHardness();
 
-        if (customBlockHardness == -1)
+        if (customBlockHardness == -1) {
+            player.setMetadata("isBreakingNormalBlock", new FixedMetadataValue(MCCreativeLabExtension.getInstance(), true));
             return;
+        }
 
-        map.put(player, new BlockBreakProgress(player, e.getBlock(), customBlockHardness, fakeBlockState));
+        e.setCancelled(true);
+        // If the vanilla hardness is lower the client will predict the block break speed and show the destroy stage
+        // We send a block update to cancel this behaviour.
+        map.put(player, new BlockBreakProgress(player, e.getBlock(), customBlockHardness, e.getBlockFace(), fakeBlockState));
     }
 
     @EventHandler
     public void onStopDigging(BlockDamageAbortEvent e) {
+        stopBlockBreakAction(e.getPlayer());
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
+    public void onBlockBreak(BlockBreakEvent e){
         stopBlockBreakAction(e.getPlayer());
     }
 
@@ -70,12 +88,15 @@ public class BlockBreakSpeedModifier implements Listener {
     }
 
     public static void stopBlockBreakAction(Player player) {
+        player.removeMetadata("isBreakingNormalBlock", MCCreativeLabExtension.getInstance());
         if (!map.containsKey(player))
             return;
         map.remove(player).resetBlockDamage();
     }
 
     public static void tick(Player player) {
+        if (!player.hasMetadata("isBreakingNormalBlock"))
+            player.addPotionEffect(new PotionEffect(PotionEffectType.SLOW_DIGGING, 1, -1, false, false, false));
         if (!map.containsKey(player))
             return;
         var data = map.get(player);
@@ -86,16 +107,18 @@ public class BlockBreakSpeedModifier implements Listener {
         private final Player player;
         private final Block block;
         private final float hardness;
+        private BlockFace blockFace;
         @Nullable
         private final FakeBlock.FakeBlockState fakeBlockState;
         private float damageTaken;
         private int lastStage = -1;
         private final int[] idsPerStage = new int[10];
 
-        public BlockBreakProgress(Player player, Block block, float hardness, @Nullable FakeBlock.FakeBlockState fakeBlockState) {
+        public BlockBreakProgress(Player player, Block block, float hardness, BlockFace blockFace, @Nullable FakeBlock.FakeBlockState fakeBlockState) {
             this.player = player;
             this.block = block;
             this.hardness = hardness;
+            this.blockFace = blockFace;
             this.fakeBlockState = fakeBlockState;
         }
 
@@ -103,7 +126,7 @@ public class BlockBreakSpeedModifier implements Listener {
             var totalTimeInTicks = calculateBreakTime();
             damageTaken += (1f / totalTimeInTicks);
             damageTaken = Math.min(1, damageTaken);
-            player.addPotionEffect(new PotionEffect(PotionEffectType.SLOW_DIGGING, 3, -1, false, false, false));
+            player.addPotionEffect(new PotionEffect(PotionEffectType.SLOW_DIGGING, 5, -1, false, false, false));
 
             int stage = (int) (damageTaken * 10) - 1;
 
@@ -122,22 +145,22 @@ public class BlockBreakSpeedModifier implements Listener {
 
 
             if (stage == 9) {
-                if (block.getType().equals(Material.FIRE))
-                    block.getWorld().playEffect(block.getLocation(), Effect.EXTINGUISH, block.getBlockData());
-                else
-                    block.getWorld().playEffect(block.getLocation(), Effect.STEP_SOUND, block.getBlockData());
-
-                if(FakeBlockSoundManager.isBlockWithoutStandardSound(block))
-                    FakeBlockSoundManager.simulateBreakSound(player, block, fakeBlockState);
-
+                FakeBlockUtil.simulateBlockBreakWithParticlesAndSound(fakeBlockState, block);
                 player.breakBlock(block);
                 stopBlockBreakAction(player);
-                //block.breakNaturally(player.getActiveItem(), true, true);
-                //TODO: Play Block break sound
-                //TODO: Spawn Block break particle
-
             } else if (FakeBlockSoundManager.isBlockWithoutStandardSound(block)) {
                 FakeBlockSoundManager.simulateDiggingSound(player, block, fakeBlockState);
+                if (fakeBlockState != null && DELAY_BETWEEN_BREAK_PARTICLES.isAllowed(player)) {
+
+                    RayTraceResult rayTraceResult = player.rayTraceBlocks(7);
+                    BlockFace faceToSpawnParticles = this.blockFace;
+                    if (rayTraceResult != null && block.equals(rayTraceResult.getHitBlock()) && rayTraceResult.getHitBlockFace() != null)
+                        faceToSpawnParticles = rayTraceResult.getHitBlockFace();
+                    Vector normalOfBlockFace = faceToSpawnParticles.getDirection();
+
+                    FakeBlockUtil.spawnDiggingParticles(block, fakeBlockState, normalOfBlockFace);
+                    DELAY_BETWEEN_BREAK_PARTICLES.reset(player);
+                }
             }
         }
 
@@ -164,15 +187,7 @@ public class BlockBreakSpeedModifier implements Listener {
 
                 if (onlinePlayer.getEntityId() == entityId)
                     continue;
-                if (!onlinePlayer.getWorld().equals(block.getWorld()))
-                    continue;
-
-                double xDistance = (double) block.getX() - onlinePlayer.getX();
-                double yDistance = (double) block.getY() - onlinePlayer.getY();
-                double zDistance = (double) block.getZ() - onlinePlayer.getZ();
-
-                if (xDistance * xDistance + yDistance * yDistance + zDistance * zDistance >= 1024.0D)
-                    continue;
+                if (FakeBlockUtil.playerNotInEffectRange(onlinePlayer, block)) continue;
 
                 player.sendBlockDamage(block.getLocation(), progress, entityId);
             }

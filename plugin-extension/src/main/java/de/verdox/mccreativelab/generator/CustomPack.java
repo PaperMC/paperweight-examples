@@ -54,6 +54,7 @@ public abstract class CustomPack<C extends CustomPack<C>> {
     public void register(Resource<C> resource){
         wasModified = true;
         resourceSet.add(resource);
+        resource.onRegister((C) this);
     }
     protected abstract void createDescriptionFile();
     protected void includeThirdPartyFiles(){}

@@ -39,7 +39,7 @@ public class ItemTextureData extends ResourcePackResource {
         this.modelType = modelType;
     }
 
-    public ItemStack createItem(){
+    public ItemStack createItem() {
         return new CustomItemData(material, customModelData).createStack();
     }
 
@@ -119,6 +119,12 @@ public class ItemTextureData extends ResourcePackResource {
     }
 
     public record ModelType(String modelName, Function<NamespacedKey, JsonObject> modelCreator) {
+        public static ModelType createModelForBlockItem(String modelName, NamespacedKey blockModel) {
+            return new ModelType(modelName, namespacedKey ->
+                JsonObjectBuilder.create().add("parent", blockModel.toString())
+                                 .build());
+        }
+
         public static final ModelType GENERATED_ITEM = new ModelType("item/generated", namespacedKey ->
             JsonObjectBuilder.create().add("parent", "item/generated")
                              .add("textures", JsonObjectBuilder.create().add("layer0", namespacedKey.toString()))

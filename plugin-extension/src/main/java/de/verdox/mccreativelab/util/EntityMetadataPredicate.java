@@ -11,9 +11,10 @@ import javax.annotation.Nullable;
 public abstract class EntityMetadataPredicate<T> {
     private final String key;
 
-    public EntityMetadataPredicate(String key){
+    public EntityMetadataPredicate(String key) {
         this.key = key;
     }
+
     public boolean isAllowed(Entity entity) {
         T storedValue = getValue(entity);
         T currentValue = getCurrentValue(entity);
@@ -33,10 +34,12 @@ public abstract class EntityMetadataPredicate<T> {
     }
 
     protected abstract T getCurrentValue(Entity entity);
+
     protected abstract boolean test(T storedValue, T currentValue);
 
     public static class TickDelay extends EntityMetadataPredicate<Integer> {
         private final int tickDelay;
+
         public TickDelay(String key, int tickDelay) {
             super(key);
             this.tickDelay = tickDelay;
@@ -50,6 +53,11 @@ public abstract class EntityMetadataPredicate<T> {
         @Override
         protected boolean test(Integer storedValue, Integer currentValue) {
             return currentValue - storedValue >= tickDelay;
+        }
+
+        @Override
+        public void reset(Entity entity) {
+            super.reset(entity);
         }
     }
 
@@ -71,5 +79,4 @@ public abstract class EntityMetadataPredicate<T> {
             return storedValue.distanceSquared(currentValue) >= minDistance;
         }
     }
-
 }

@@ -10,6 +10,11 @@ public abstract class AbstractResource<C extends CustomPack<C>> implements Resou
     }
 
     @Override
+    public void onRegister(C customPack) {
+
+    }
+
+    @Override
     public final NamespacedKey key() {
         return namespacedKey;
     }

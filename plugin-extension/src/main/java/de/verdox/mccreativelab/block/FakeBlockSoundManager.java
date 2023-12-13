@@ -1,22 +1,26 @@
 package de.verdox.mccreativelab.block;
 
-import de.verdox.mccreativelab.MCCreativeLabExtension;
+import com.destroystokyo.paper.event.player.PlayerJumpEvent;
 import de.verdox.mccreativelab.util.EntityMetadataPredicate;
 import io.papermc.paper.event.entity.EntityMoveEvent;
+import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
 import org.bukkit.block.Block;
-import org.bukkit.entity.*;
+import org.bukkit.entity.Enemy;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
-import org.bukkit.metadata.FixedMetadataValue;
 
 public class FakeBlockSoundManager implements Listener {
-
+    //TODO: Abstrahieren, sodass man theoretisch für jede Block Gruppe sowas machen kann
     private static final EntityMetadataPredicate.TickDelay DIGGING_SOUND_DELAY = new EntityMetadataPredicate.TickDelay("DiggingSoundDelay", 4);
-    private static final EntityMetadataPredicate.DistanceTravelled STEP_DISTANCE_SOUND_DELAY = new EntityMetadataPredicate.DistanceTravelled("StepSoundDelay", 2);
+    private static final EntityMetadataPredicate.DistanceTravelled STEP_DISTANCE_SOUND_DELAY = new EntityMetadataPredicate.DistanceTravelled("StepSoundDelay", 2.2);
 
     /**
      * This method is used to determine whether a block has no sound due to resource pack patching.
@@ -38,25 +42,73 @@ public class FakeBlockSoundManager implements Listener {
         simulateWalkSound(e.getPlayer(), e.getFrom(), e.getTo());
     }
 
+    @EventHandler
+    public void simulateFakeBlockWalkSound(PlayerJumpEvent e){
+        simulateWalkSound(e.getPlayer(), e.getFrom(), e.getTo(), false);
+    }
+
+    @EventHandler
+    public void resetDiggingDelayOnBlockBreak(BlockBreakEvent e) {
+        DIGGING_SOUND_DELAY.reset(e.getPlayer());
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void simulateBlockBreakWhenCreative(BlockBreakEvent e) {
+        if (!isBlockWithoutStandardSound(e.getBlock()))
+            return;
+        if (!e.getPlayer().getGameMode().equals(GameMode.CREATIVE))
+            return;
+        FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockStateOrThrow(e.getPlayer()
+                                                                                             .getLocation(), false);
+        simulateBreakSound(e.getBlock(), fakeBlockState);
+    }
+
     public static void simulateDiggingSound(Player player, Block block, FakeBlock.FakeBlockState fakeBlockState) {
-        if(!DIGGING_SOUND_DELAY.isAllowed(player))
+        if (!DIGGING_SOUND_DELAY.isAllowed(player))
             return;
         if (fakeBlockState != null) {
-            //TODO: Play custom digging sound
+            FakeBlock.FakeBlockSoundGroup fakeBlockSoundGroup = fakeBlockState.getFakeBlockSoundGroup();
+            String soundToPlayKey = fakeBlockSoundGroup != null ? fakeBlockSoundGroup.getDigSound().key().toString() : Sound.BLOCK_STONE_STEP.getKey().toString();
+            block.getWorld().playSound(block.getLocation(), soundToPlayKey, SoundCategory.BLOCKS, 0.25f, 0.5f);
         } else
             block.getWorld().playSound(block.getLocation(), Sound.BLOCK_STONE_STEP, SoundCategory.BLOCKS, 0.25f, 0.5f);
         DIGGING_SOUND_DELAY.reset(player);
     }
 
-    public static void simulateBreakSound(Player player, Block block, FakeBlock.FakeBlockState fakeBlockState) {
+    public static void simulateBreakSound(Block block, FakeBlock.FakeBlockState fakeBlockState) {
         if (fakeBlockState != null) {
-            //TODO: Play custom break sound
+            FakeBlock.FakeBlockSoundGroup fakeBlockSoundGroup = fakeBlockState.getFakeBlockSoundGroup();
+            String soundToPlayKey = fakeBlockSoundGroup != null ? fakeBlockSoundGroup.getBreakSound().key()
+                                                                                     .toString() : Sound.BLOCK_STONE_BREAK
+                .getKey().toString();
+            block.getWorld()
+                 .playSound(block.getLocation(), soundToPlayKey, SoundCategory.BLOCKS, block
+                     .getBlockSoundGroup().getVolume(), block.getBlockSoundGroup().getPitch());
         } else
-            block.getWorld().playSound(block.getLocation(), Sound.BLOCK_STONE_BREAK, SoundCategory.BLOCKS, 0.25f, 0.7f);
+            block.getWorld()
+                 .playSound(block.getLocation(), "minecraft:block.glass.custom.break", SoundCategory.BLOCKS, block
+                     .getBlockSoundGroup().getVolume(), block.getBlockSoundGroup().getPitch());
     }
 
-    private void simulateWalkSound(Entity walkingEntity, Location from, Location walkingTo) {
-        if(!STEP_DISTANCE_SOUND_DELAY.isAllowed(walkingEntity))
+    public static void simulateBlockPlaceSound(Player player, Block block, FakeBlock.FakeBlockState fakeBlockState) {
+        if (fakeBlockState != null) {
+            FakeBlock.FakeBlockSoundGroup fakeBlockSoundGroup = fakeBlockState.getFakeBlockSoundGroup();
+            String soundToPlayKey = fakeBlockSoundGroup != null ? fakeBlockSoundGroup.getPlaceSound().key()
+                                                                                     .toString() : Sound.BLOCK_STONE_PLACE
+                .getKey().toString();
+            block.getWorld()
+                 .playSound(block.getLocation(), soundToPlayKey, SoundCategory.BLOCKS, block.getBlockSoundGroup()
+                                                                                            .getVolume(), 0.7f);
+        } else
+            block.getWorld().playSound(block.getLocation(), Sound.BLOCK_STONE_PLACE, SoundCategory.BLOCKS, block
+                .getBlockSoundGroup().getVolume(), 0.7f);
+    }
+
+    private void simulateWalkSound(Entity walkingEntity, Location from, Location walkingTo){
+        simulateWalkSound(walkingEntity, from, walkingTo, true);
+    }
+    private void simulateWalkSound(Entity walkingEntity, Location from, Location walkingTo, boolean checkForDelay) {
+        if (!STEP_DISTANCE_SOUND_DELAY.isAllowed(walkingEntity) && checkForDelay)
             return;
         Block block = from.clone().add(0, -1, 0).getBlock();
 
@@ -68,15 +120,16 @@ public class FakeBlockSoundManager implements Listener {
 
         SoundCategory soundCategory = walkingEntity instanceof Player ? SoundCategory.PLAYERS : walkingEntity instanceof Enemy ? SoundCategory.HOSTILE : SoundCategory.NEUTRAL;
         float pitch = walkingEntity instanceof Player ? 1 : 0.5f;
-
-        if (walkingEntity instanceof Player player) {
-            System.out.println(walkingEntity.getLocation().getX() + " " + walkingEntity.getLocation()
-                                                                                       .getY() + " " + walkingEntity
-                .getLocation().getZ());
-        }
         if (isBlockWithoutStandardSound(block) && walkingEntity.getLocation().getY() == walkingEntity.getLocation()
                                                                                                      .blockY() && !(walkingEntity instanceof Player player && player.isSneaking())) {
-            walkingTo.getWorld().playSound(walkingTo, Sound.BLOCK_STONE_STEP, soundCategory, 0.25f, pitch);
+
+            FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockStateOrThrow(block.getLocation(), false);
+            if (fakeBlockState != null) {
+                FakeBlock.FakeBlockSoundGroup fakeBlockSoundGroup = fakeBlockState.getFakeBlockSoundGroup();
+                String soundToPlayKey = fakeBlockSoundGroup != null ? fakeBlockSoundGroup.getPlaceSound().key().toString() : Sound.BLOCK_STONE_STEP.getKey().toString();
+                walkingTo.getWorld().playSound(walkingTo, soundToPlayKey, soundCategory, 0.25f, pitch);
+            } else
+                walkingTo.getWorld().playSound(walkingTo, Sound.BLOCK_STONE_STEP, soundCategory, 0.25f, pitch);
         }
         STEP_DISTANCE_SOUND_DELAY.reset(walkingEntity);
     }

@@ -16,4 +16,5 @@ public interface Resource<C extends CustomPack<C>> {
     NamespacedKey key();
 
     void installToDataPack(C customPack) throws IOException;
+    void onRegister(C customPack);
 }

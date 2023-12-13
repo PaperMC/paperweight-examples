@@ -5,20 +5,21 @@ import de.verdox.mccreativelab.generator.resourcepack.CustomResourcePack;
 import de.verdox.mccreativelab.generator.resourcepack.ResourcePackAssetTypes;
 import de.verdox.mccreativelab.generator.resourcepack.ResourcePackResource;
 import de.verdox.mccreativelab.generator.resourcepack.types.ItemTextureData;
+import de.verdox.mccreativelab.generator.resourcepack.types.sound.SoundData;
 import de.verdox.mccreativelab.random.VanillaRandomSource;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.block.Block;
+import org.bukkit.block.PistonMoveReaction;
 import org.bukkit.block.data.Ageable;
 import org.bukkit.block.data.BlockData;
-import org.bukkit.block.data.Waterlogged;
-import org.bukkit.block.data.type.Slab;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -55,16 +56,14 @@ public class FakeBlock {
         return fakeBlockStates[blockStateID];
     }
 
-    public void animateTick(FakeBlockState fakeBlockState, Block block, VanillaRandomSource vanillaRandomSource) {
+    public PistonMoveReaction getPistonMoveReaction(){
+        return PistonMoveReaction.MOVE;
     }
 
-    public void randomTick(FakeBlockState fakeBlockState, Block block, VanillaRandomSource vanillaRandomSource) {
-    }
+    public void randomTick(FakeBlockState fakeBlockState, Block block, VanillaRandomSource vanillaRandomSource) {}
 
     public void tick(FakeBlockState fakeBlockState, Block block, VanillaRandomSource vanillaRandomSource) {
-    }
 
-    public void destroy(FakeBlockState fakeBlockState, Block block) {
     }
 
     /**
@@ -72,10 +71,6 @@ public class FakeBlock {
      * {@link org.bukkit.event.entity.EntitySpawnEvent}
      */
     public void popExperience(FakeBlockState fakeBlockState, Block block, Player player) {
-
-    }
-
-    public void stepOn(FakeBlockState fakeBlockState, Block block, Entity entity) {
 
     }
 
@@ -121,14 +116,20 @@ public class FakeBlock {
         private FakeBlock fakeBlock;
         private final FakeBlockProperties properties;
         private final FakeBlockDisplay fakeBlockDisplay;
+        private final FakeBlockSoundGroup fakeBlockSoundGroup;
 
-        FakeBlockState(FakeBlockProperties properties, FakeBlockDisplay fakeBlockDisplay) {
+        FakeBlockState(FakeBlockProperties properties, FakeBlockDisplay fakeBlockDisplay, FakeBlockSoundGroup fakeBlockSoundGroup) {
             this.properties = properties;
             this.fakeBlockDisplay = fakeBlockDisplay;
+            this.fakeBlockSoundGroup = fakeBlockSoundGroup;
         }
 
         public FakeBlockDisplay getFakeBlockDisplay() {
             return fakeBlockDisplay;
+        }
+
+        public FakeBlockSoundGroup getFakeBlockSoundGroup() {
+            return fakeBlockSoundGroup;
         }
 
         public FakeBlockProperties getProperties() {
@@ -146,6 +147,7 @@ public class FakeBlock {
         public static class Builder {
             private FakeBlockProperties fakeBlockProperties = new FakeBlockProperties();
             private FakeBlockDisplay fakeBlockDisplay;
+            private FakeBlockSoundGroup fakeBlockSoundGroup;
             private final NamespacedKey namespacedKey;
 
             Builder(NamespacedKey namespacedKey){
@@ -155,6 +157,11 @@ public class FakeBlock {
             public Builder withBlockProperties(Consumer<FakeBlockProperties> fakeBlockPropertiesConsumer){
                 this.fakeBlockProperties = new FakeBlockProperties();
                 fakeBlockPropertiesConsumer.accept(this.fakeBlockProperties);
+                return this;
+            }
+
+            public Builder withSoundGroup(@NotNull SoundData digSound, @NotNull SoundData stepSound, @NotNull SoundData breakSound, @NotNull SoundData placeSound){
+                this.fakeBlockSoundGroup = new FakeBlockSoundGroup(namespacedKey, digSound, stepSound, breakSound, placeSound);
                 return this;
             }
 
@@ -170,7 +177,7 @@ public class FakeBlock {
 
             FakeBlockState build(){
                 Objects.requireNonNull(fakeBlockDisplay, namespacedKey.asString()+" must set a block display");
-                return new FakeBlockState(fakeBlockProperties, fakeBlockDisplay);
+                return new FakeBlockState(fakeBlockProperties, fakeBlockDisplay, fakeBlockSoundGroup);
             }
         }
     }
@@ -225,11 +232,56 @@ public class FakeBlock {
             return itemDisplay;
         }
     }
+    public static class FakeBlockSoundGroup extends ResourcePackResource {
+        private final SoundData digSound;
+        private final SoundData stepSound;
+        private final SoundData breakSound;
+        private final SoundData placeSound;
+
+        public FakeBlockSoundGroup(NamespacedKey namespacedKey, @NotNull SoundData digSound, @NotNull SoundData stepSound, @NotNull SoundData breakSound, @NotNull SoundData placeSound) {
+            super(namespacedKey);
+            Objects.requireNonNull(digSound);
+            Objects.requireNonNull(stepSound);
+            Objects.requireNonNull(breakSound);
+            Objects.requireNonNull(placeSound);
+            this.digSound = digSound;
+            this.stepSound = stepSound;
+            this.breakSound = breakSound;
+            this.placeSound = placeSound;
+        }
+
+        @Override
+        public void onRegister(CustomResourcePack customPack) {
+            customPack.register(digSound);
+            customPack.register(stepSound);
+            customPack.register(breakSound);
+            customPack.register(placeSound);
+        }
+
+        public SoundData getStepSound() {
+            return stepSound;
+        }
+
+        public SoundData getBreakSound() {
+            return breakSound;
+        }
+
+        public SoundData getDigSound() {
+            return digSound;
+        }
+
+        public SoundData getPlaceSound() {
+            return placeSound;
+        }
+
+        @Override
+        public void installToDataPack(CustomResourcePack customPack) throws IOException {
+
+        }
+    }
 
     public enum FakeBlockHitbox {
-        FULL_BLOCK(Bukkit.createBlockData(Material.PETRIFIED_OAK_SLAB, blockData -> ((Slab) blockData).setType(Slab.Type.DOUBLE))),
-        SLAB(Bukkit.createBlockData(Material.PETRIFIED_OAK_SLAB, blockData -> ((Slab) blockData).setType(Slab.Type.BOTTOM))),
-        SLAB_TOP(Bukkit.createBlockData(Material.PETRIFIED_OAK_SLAB, blockData -> ((Slab) blockData).setType(Slab.Type.TOP))),
+        FULL_BLOCK(Bukkit.createBlockData(Material.PURPLE_STAINED_GLASS, blockData -> {})),
         CROP_AGE_0(Bukkit.createBlockData(Material.WHEAT, blockData -> ((Ageable) blockData).setAge(0))),
         CROP_AGE_1(Bukkit.createBlockData(Material.WHEAT, blockData -> ((Ageable) blockData).setAge(1))),
         CROP_AGE_2(Bukkit.createBlockData(Material.WHEAT, blockData -> ((Ageable) blockData).setAge(2))),
@@ -251,14 +303,19 @@ public class FakeBlock {
             Asset<CustomResourcePack> emptyBlockModel = new Asset<>(() -> CustomResourcePack.class.getResourceAsStream("/empty_block/models/empty.json"));
             emptyBlockModel.installAsset(customResourcePack, new NamespacedKey("minecraft","block/empty"), ResourcePackAssetTypes.MODELS, "json");
 
-            Asset<CustomResourcePack> emptySlabModel = new Asset<>(() -> CustomResourcePack.class.getResourceAsStream("/empty_block/models/empty_slab.json"));
+/*            Asset<CustomResourcePack> emptySlabModel = new Asset<>(() -> CustomResourcePack.class.getResourceAsStream("/empty_block/models/empty_slab.json"));
             emptySlabModel.installAsset(customResourcePack, new NamespacedKey("minecraft","block/empty_slab"), ResourcePackAssetTypes.MODELS, "json");
             Asset<CustomResourcePack> emptySlabModelTop = new Asset<>(() -> CustomResourcePack.class.getResourceAsStream("/empty_block/models/empty_slab_top.json"));
-            emptySlabModelTop.installAsset(customResourcePack, new NamespacedKey("minecraft","block/empty_slab_top"), ResourcePackAssetTypes.MODELS, "json");
+            emptySlabModelTop.installAsset(customResourcePack, new NamespacedKey("minecraft","block/empty_slab_top"), ResourcePackAssetTypes.MODELS, "json");*/
 
 
+/*
             Asset<CustomResourcePack> petrifiedOakSlabBlockStates = new Asset<>(() -> CustomResourcePack.class.getResourceAsStream("/empty_block/blockstates/petrified_oak_slab.json"));
             petrifiedOakSlabBlockStates.installAsset(customResourcePack, new NamespacedKey("minecraft","petrified_oak_slab"), ResourcePackAssetTypes.BLOCK_STATES, "json");
+*/
+
+            Asset<CustomResourcePack> purpleStainedGlassModel = new Asset<>(() -> CustomResourcePack.class.getResourceAsStream("/empty_block/blockstates/purple_stained_glass.json"));
+            purpleStainedGlassModel.installAsset(customResourcePack, new NamespacedKey("minecraft","purple_stained_glass"), ResourcePackAssetTypes.BLOCK_STATES, "json");
 
             Asset<CustomResourcePack> wheatBlockStatesModified = new Asset<>(() -> CustomResourcePack.class.getResourceAsStream("/empty_block/blockstates/wheat.json"));
             wheatBlockStatesModified.installAsset(customResourcePack, new NamespacedKey("minecraft","wheat"), ResourcePackAssetTypes.BLOCK_STATES, "json");
