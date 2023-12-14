@@ -1,15 +1,33 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: derverdox <mail.ysp@web.de>
-Date: Wed, 13 Dec 2023 23:31:06 +0100
+Date: Thu, 14 Dec 2023 01:13:42 +0100
 Subject: [PATCH] Adding BlockBehaviour
 
 
+diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/BehaviourResult.java b/src/main/java/de/verdox/mccreativelab/behaviour/BehaviourResult.java
+index 637c1869ce9ba16953410b0dd4fd01184ebe9f1f..80fa2f2b3c206fe15c99ea0272d291417efd449b 100644
+--- a/src/main/java/de/verdox/mccreativelab/behaviour/BehaviourResult.java
++++ b/src/main/java/de/verdox/mccreativelab/behaviour/BehaviourResult.java
+@@ -93,6 +93,13 @@ public abstract class BehaviourResult<T,R extends Enum<?>> {
+             };
+         }
+ 
++        public T returnRightValue(Supplier<T> vanillaLogic){
++            return switch (getResult()){
++                case REPLACE_VANILLA -> getValue();
++                case USE_VANILLA -> vanillaLogic.get();
++            };
++        }
++
+         public enum Type{
+             REPLACE_VANILLA,
+             USE_VANILLA
 diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/BlockBehaviour.java b/src/main/java/de/verdox/mccreativelab/behaviour/BlockBehaviour.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..c967515f0eccda4b663ecc142721d6c9a408b5f5
+index 0000000000000000000000000000000000000000..8090d68cf4f998afbc87347c2655060ceb20eacb
 --- /dev/null
 +++ b/src/main/java/de/verdox/mccreativelab/behaviour/BlockBehaviour.java
-@@ -0,0 +1,125 @@
+@@ -0,0 +1,130 @@
 +package de.verdox.mccreativelab.behaviour;
 +
 +import de.verdox.mccreativelab.MultiCustomBehaviour;
@@ -18,6 +36,7 @@ index 0000000000000000000000000000000000000000..c967515f0eccda4b663ecc142721d6c9
 +import org.bukkit.Material;
 +import org.bukkit.World;
 +import org.bukkit.block.Block;
++import org.bukkit.block.BlockFace;
 +import org.bukkit.block.data.BlockData;
 +import org.bukkit.entity.Entity;
 +import org.bukkit.entity.Player;
@@ -34,6 +53,10 @@ index 0000000000000000000000000000000000000000..c967515f0eccda4b663ecc142721d6c9
 +     * @return float result
 +     */
 +    default BehaviourResult.Object<Float> getExplosionResistance(Block block, BlockData blockData){
++        return BehaviourResult.Object.DEFAULT_INSTANCE;
++    }
++
++    default BehaviourResult.Object<BlockData> blockUpdate(Location location, BlockData blockData, BlockFace direction, BlockData neighbourBlockData, Location neighbourLocation){
 +        return BehaviourResult.Object.DEFAULT_INSTANCE;
 +    }
 +

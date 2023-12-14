@@ -1,19 +1,20 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: derverdox <mail.ysp@web.de>
-Date: Wed, 13 Dec 2023 23:31:06 +0100
+Date: Thu, 14 Dec 2023 01:13:42 +0100
 Subject: [PATCH] Adding BlockBehaviour
 
 
 diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/BehaviourUtil.java b/src/main/java/de/verdox/mccreativelab/behaviour/BehaviourUtil.java
-index 1621278706f54458882135243ce2d1eb9311921d..d505b9bed5388f28869022e0d285a76b08c0eb14 100644
+index 1621278706f54458882135243ce2d1eb9311921d..9a6f4b1d5c90275ac4fef1b74a364d0cbfdc78ce 100644
 --- a/src/main/java/de/verdox/mccreativelab/behaviour/BehaviourUtil.java
 +++ b/src/main/java/de/verdox/mccreativelab/behaviour/BehaviourUtil.java
-@@ -2,8 +2,30 @@ package de.verdox.mccreativelab.behaviour;
+@@ -2,12 +2,42 @@ package de.verdox.mccreativelab.behaviour;
  
  import de.verdox.mccreativelab.CustomBehaviour;
  import de.verdox.mccreativelab.MultiCustomBehaviour;
 +import de.verdox.mccreativelab.random.CraftVanillaRandomSource;
 +import net.minecraft.core.BlockPos;
++import net.minecraft.core.Direction;
 +import net.minecraft.core.registries.BuiltInRegistries;
 +import net.minecraft.server.MinecraftServer;
 +import net.minecraft.server.level.ServerLevel;
@@ -23,13 +24,17 @@ index 1621278706f54458882135243ce2d1eb9311921d..d505b9bed5388f28869022e0d285a76b
 +import net.minecraft.world.entity.player.Player;
 +import net.minecraft.world.level.BlockGetter;
 +import net.minecraft.world.level.Level;
++import net.minecraft.world.level.LevelAccessor;
 +import net.minecraft.world.level.LevelReader;
 +import net.minecraft.world.level.block.state.BlockState;
 +import net.minecraft.world.phys.BlockHitResult;
++import org.bukkit.Bukkit;
 +import org.bukkit.Location;
 +import org.bukkit.Material;
 +import org.bukkit.block.Block;
 +import org.bukkit.block.BlockFace;
++import org.bukkit.block.data.BlockData;
++import org.bukkit.craftbukkit.block.data.CraftBlockData;
 +import org.bukkit.inventory.EquipmentSlot;
 +import org.bukkit.util.RayTraceResult;
 +import org.bukkit.util.Vector;
@@ -39,7 +44,14 @@ index 1621278706f54458882135243ce2d1eb9311921d..d505b9bed5388f28869022e0d285a76b
  import java.util.function.Function;
  import java.util.function.Supplier;
  
-@@ -25,4 +47,97 @@ public class BehaviourUtil {
+ public class BehaviourUtil {
++
++    public static final BehaviourResult.Object<Float> FLOAT_DEFAULT = new BehaviourResult.Object<>(0f, BehaviourResult.Object.Type.USE_VANILLA);
++
+     public static <T extends BehaviourResult<?, ?>, K, V> T evaluate(@NotNull T defaultValue, @NotNull MultiCustomBehaviour<K, V> multiCustomBehaviour, @NotNull K key, @NotNull Function<V, T> logicFunction) {
+         if (!multiCustomBehaviour.isImplemented(key))
+             return defaultValue;
+@@ -25,4 +55,121 @@ public class BehaviourUtil {
              return defaultValue;
          return logicFunction.apply(customBehaviour.getBehaviour());
      }
@@ -94,13 +106,33 @@ index 1621278706f54458882135243ce2d1eb9311921d..d505b9bed5388f28869022e0d285a76b
 +    }
 +
 +    public static float getExplosionResistance(BlockGetter world, BlockPos pos, BlockState blockState, float vanillaValue){
-+        return BehaviourUtil.evaluate(new BehaviourResult.Object<Float>(0f, BehaviourResult.Object.Type.USE_VANILLA), BlockBehaviour.BLOCK_BEHAVIOUR, getMaterial(blockState), blockBehaviour -> {
++        return BehaviourUtil.evaluate(FLOAT_DEFAULT, BlockBehaviour.BLOCK_BEHAVIOUR, getMaterial(blockState), blockBehaviour -> {
 +            if(!(world instanceof ServerLevel serverLevel))
-+                return new BehaviourResult.Object<>(0f, BehaviourResult.Object.Type.USE_VANILLA);
++                return FLOAT_DEFAULT;
 +            Block block = ((ServerLevel) world).getWorld().getBlockAt(pos.getX(), pos.getY(), pos.getZ());
 +
 +            return blockBehaviour.getExplosionResistance(block, blockState.createCraftBlockData());
 +        }).returnRightValue(vanillaValue);
++    }
++
++    public static BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos, BlockState vanillaValue){
++        CraftBlockData blockData = (CraftBlockData) BehaviourUtil.evaluate(BehaviourResult.Object.DEFAULT_INSTANCE, BlockBehaviour.BLOCK_BEHAVIOUR, getMaterial(state), blockBehaviour -> {
++            if(!(world instanceof ServerLevel serverLevel))
++                return BehaviourResult.Object.DEFAULT_INSTANCE;
++            BlockFace blockFace = toBukkitBlockFace(direction);
++            return blockBehaviour.blockUpdate(new Location(serverLevel.getWorld(), pos.getX(), pos.getY(), pos.getZ()), state.createCraftBlockData(), blockFace, neighborState.createCraftBlockData(), new Location(serverLevel.getWorld(), neighborPos.getX(), neighborPos.getY(), neighborPos.getZ()));
++        }).returnRightValue(vanillaValue.createCraftBlockData());
++        return blockData.getState();
++    }
++
++    public static BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos, Supplier<BlockState> vanillaLogic){
++        CraftBlockData blockData = (CraftBlockData) BehaviourUtil.evaluate(BehaviourResult.Object.DEFAULT_INSTANCE, BlockBehaviour.BLOCK_BEHAVIOUR, getMaterial(state), blockBehaviour -> {
++            if(!(world instanceof ServerLevel serverLevel))
++                return BehaviourResult.Object.DEFAULT_INSTANCE;
++            BlockFace blockFace = toBukkitBlockFace(direction);
++            return blockBehaviour.blockUpdate(new Location(serverLevel.getWorld(), pos.getX(), pos.getY(), pos.getZ()), state.createCraftBlockData(), blockFace, neighborState.createCraftBlockData(), new Location(serverLevel.getWorld(), neighborPos.getX(), neighborPos.getY(), neighborPos.getZ()));
++        }).returnRightValue(() -> vanillaLogic.get().createCraftBlockData());
++        return blockData.getState();
 +    }
 +
 +    public static void onRemoveCallback(BlockState state, Level world, BlockPos pos, BlockState newState, boolean moved) {
@@ -111,20 +143,24 @@ index 1621278706f54458882135243ce2d1eb9311921d..d505b9bed5388f28869022e0d285a76b
 +    public static void onUseCallback(BlockState state, Level world, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
 +        BehaviourUtil.evaluate(BehaviourResult.Callback.DEFAULT_INSTANCE, BlockBehaviour.BLOCK_BEHAVIOUR, getMaterial(state), blockBehaviour -> {
 +            Block block = world.getWorld().getBlockAt(pos.getX(), pos.getY(), pos.getZ());
-+            BlockFace blockFace = switch (hit.getDirection()) {
-+                case DOWN -> BlockFace.DOWN;
-+                case UP -> BlockFace.UP;
-+                case NORTH -> BlockFace.NORTH;
-+                case SOUTH -> BlockFace.SOUTH;
-+                case WEST -> BlockFace.WEST;
-+                case EAST -> BlockFace.EAST;
-+            };
++            BlockFace blockFace = toBukkitBlockFace(hit.getDirection());
 +            EquipmentSlot equipmentSlot = hand.equals(InteractionHand.MAIN_HAND) ? EquipmentSlot.HAND : EquipmentSlot.OFF_HAND;
 +            RayTraceResult rayTraceResult = new RayTraceResult(new Vector(hit.getLocation().x(), hit.getLocation()
 +                                                                                                    .y(), hit
 +                .getLocation().z()), block, blockFace);
 +            return blockBehaviour.onUse(block, (org.bukkit.entity.Player) player.getBukkitEntity(), equipmentSlot, rayTraceResult);
 +        });
++    }
++
++    private static BlockFace toBukkitBlockFace(Direction direction){
++        return switch (direction) {
++            case DOWN -> BlockFace.DOWN;
++            case UP -> BlockFace.UP;
++            case NORTH -> BlockFace.NORTH;
++            case SOUTH -> BlockFace.SOUTH;
++            case WEST -> BlockFace.WEST;
++            case EAST -> BlockFace.EAST;
++        };
 +    }
 +
 +    private static Material getMaterial(BlockState blockState) {
@@ -179,7 +215,7 @@ index 01b4cf48901aaac897b8def284bf3e2c1cea3570..552b88ee374c1b3fa42f06bf78d4083c
  
      @Override
 diff --git a/src/main/java/net/minecraft/world/level/block/BambooSaplingBlock.java b/src/main/java/net/minecraft/world/level/block/BambooSaplingBlock.java
-index fd0143944e4fecaf6f1ffa4561702178431575e9..83c25d366728e5dc46f2e2990473eb1e653078d7 100644
+index fd0143944e4fecaf6f1ffa4561702178431575e9..80d5abc5c49181aab7ec2a2ac13a5cc5bcabef4e 100644
 --- a/src/main/java/net/minecraft/world/level/block/BambooSaplingBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/BambooSaplingBlock.java
 @@ -38,6 +38,7 @@ public class BambooSaplingBlock extends Block implements BonemealableBlock {
@@ -190,7 +226,7 @@ index fd0143944e4fecaf6f1ffa4561702178431575e9..83c25d366728e5dc46f2e2990473eb1e
          if (random.nextFloat() < (world.spigotConfig.bambooModifier / (100.0f * 3)) && world.isEmptyBlock(pos.above()) && world.getRawBrightness(pos.above(), 0) >= 9) { // Spigot - SPIGOT-7159: Better modifier resolution
              this.growBamboo(world, pos);
          }
-@@ -46,7 +47,9 @@ public class BambooSaplingBlock extends Block implements BonemealableBlock {
+@@ -46,11 +47,14 @@ public class BambooSaplingBlock extends Block implements BonemealableBlock {
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
@@ -200,8 +236,21 @@ index fd0143944e4fecaf6f1ffa4561702178431575e9..83c25d366728e5dc46f2e2990473eb1e
      }
  
      @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         if (!state.canSurvive(world, pos)) {
+             return Blocks.AIR.defaultBlockState();
+         } else {
+@@ -60,6 +64,7 @@ public class BambooSaplingBlock extends Block implements BonemealableBlock {
+ 
+             return super.updateShape(state, direction, neighborState, world, pos, neighborPos);
+         }
++        }); // MCCLab - Add BlockBehaviour
+     }
+ 
+     @Override
 diff --git a/src/main/java/net/minecraft/world/level/block/BambooStalkBlock.java b/src/main/java/net/minecraft/world/level/block/BambooStalkBlock.java
-index 05a508cb457b67078ccb08bd2228a59e73701cf3..3205767f4902146ba3f70fbddffb7cf034564de5 100644
+index 05a508cb457b67078ccb08bd2228a59e73701cf3..a49681b49801498e192fe1be59a167b75f36ccb6 100644
 --- a/src/main/java/net/minecraft/world/level/block/BambooStalkBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/BambooStalkBlock.java
 @@ -1,6 +1,7 @@
@@ -228,7 +277,7 @@ index 05a508cb457b67078ccb08bd2228a59e73701cf3..3205767f4902146ba3f70fbddffb7cf0
          if ((Integer) state.getValue(BambooStalkBlock.STAGE) == 0) {
              if (random.nextFloat() < (world.spigotConfig.bambooModifier / (100.0f * 3)) && world.isEmptyBlock(pos.above()) && world.getRawBrightness(pos.above(), 0) >= 9) { // Spigot - SPIGOT-7159: Better modifier resolution
                  int i = this.getHeightBelowUpToMax(world, pos) + 1;
-@@ -140,7 +143,9 @@ public class BambooStalkBlock extends Block implements BonemealableBlock {
+@@ -140,11 +143,14 @@ public class BambooStalkBlock extends Block implements BonemealableBlock {
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
@@ -238,8 +287,21 @@ index 05a508cb457b67078ccb08bd2228a59e73701cf3..3205767f4902146ba3f70fbddffb7cf0
      }
  
      @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         if (!state.canSurvive(world, pos)) {
+             world.scheduleTick(pos, (Block) this, 1);
+         }
+@@ -154,6 +160,7 @@ public class BambooStalkBlock extends Block implements BonemealableBlock {
+         }
+ 
+         return super.updateShape(state, direction, neighborState, world, pos, neighborPos);
++        }); // MCCLab - Add BlockBehaviour
+     }
+ 
+     @Override
 diff --git a/src/main/java/net/minecraft/world/level/block/BannerBlock.java b/src/main/java/net/minecraft/world/level/block/BannerBlock.java
-index 09451bc19b65e09c85389d597625dcc2b6f715c5..b7784536306d83132d94765238baa7c23ffd3bc9 100644
+index 09451bc19b65e09c85389d597625dcc2b6f715c5..3a8eb6e5cf9a253c0bd8a5269b9bfb64b89ce0b8 100644
 --- a/src/main/java/net/minecraft/world/level/block/BannerBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/BannerBlock.java
 @@ -31,7 +31,9 @@ public class BannerBlock extends AbstractBannerBlock {
@@ -252,11 +314,35 @@ index 09451bc19b65e09c85389d597625dcc2b6f715c5..b7784536306d83132d94765238baa7c2
      }
  
      @Override
+@@ -46,8 +48,10 @@ public class BannerBlock extends AbstractBannerBlock {
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         return direction == Direction.DOWN && !state.canSurvive(world, pos) ? Blocks.AIR.defaultBlockState() : super.updateShape(state, direction, neighborState, world, pos, neighborPos);
+-    }
++        }); // MCCLab - Add BlockBehaviour
++        }
+ 
+     @Override
+     public BlockState rotate(BlockState state, Rotation rotation) {
 diff --git a/src/main/java/net/minecraft/world/level/block/BaseCoralPlantTypeBlock.java b/src/main/java/net/minecraft/world/level/block/BaseCoralPlantTypeBlock.java
-index 3d2b34c5a7c9b00c1164b4f89c2cbff81fc460eb..a8b059db1ae7b19ecc6f4b1cb8a56fe10e630812 100644
+index 3d2b34c5a7c9b00c1164b4f89c2cbff81fc460eb..d5190478b3f44ece5397d9604a5b2055c1de6a12 100644
 --- a/src/main/java/net/minecraft/world/level/block/BaseCoralPlantTypeBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/BaseCoralPlantTypeBlock.java
-@@ -71,8 +71,10 @@ public class BaseCoralPlantTypeBlock extends Block implements SimpleWaterloggedB
+@@ -62,17 +62,21 @@ public class BaseCoralPlantTypeBlock extends Block implements SimpleWaterloggedB
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         if (state.getValue(WATERLOGGED)) {
+             world.scheduleTick(pos, Fluids.WATER, Fluids.WATER.getTickDelay(world));
+         }
+ 
+         return direction == Direction.DOWN && !this.canSurvive(state, world, pos) ? Blocks.AIR.defaultBlockState() : super.updateShape(state, direction, neighborState, world, pos, neighborPos);
+-    }
++        }); // MCCLab - Add BlockBehaviour
++        }
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
@@ -268,10 +354,22 @@ index 3d2b34c5a7c9b00c1164b4f89c2cbff81fc460eb..a8b059db1ae7b19ecc6f4b1cb8a56fe1
  
      @Override
 diff --git a/src/main/java/net/minecraft/world/level/block/BaseCoralWallFanBlock.java b/src/main/java/net/minecraft/world/level/block/BaseCoralWallFanBlock.java
-index 94e7a53fb6792d490246c7f2aec8a7f47f2ef493..acbbb13941c25149bd97189ae35fc750d3192218 100644
+index 94e7a53fb6792d490246c7f2aec8a7f47f2ef493..46f8bf2a73684f1dd22d60d988bce77c8751a517 100644
 --- a/src/main/java/net/minecraft/world/level/block/BaseCoralWallFanBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/BaseCoralWallFanBlock.java
-@@ -58,10 +58,12 @@ public class BaseCoralWallFanBlock extends BaseCoralFanBlock {
+@@ -49,19 +49,23 @@ public class BaseCoralWallFanBlock extends BaseCoralFanBlock {
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         if (state.getValue(WATERLOGGED)) {
+             world.scheduleTick(pos, Fluids.WATER, Fluids.WATER.getTickDelay(world));
+         }
+ 
+         return direction.getOpposite() == state.getValue(FACING) && !state.canSurvive(world, pos) ? Blocks.AIR.defaultBlockState() : state;
+-    }
++        }); // MCCLab - Add BlockBehaviour
++        }
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
@@ -285,10 +383,18 @@ index 94e7a53fb6792d490246c7f2aec8a7f47f2ef493..acbbb13941c25149bd97189ae35fc750
  
      @Nullable
 diff --git a/src/main/java/net/minecraft/world/level/block/BasePressurePlateBlock.java b/src/main/java/net/minecraft/world/level/block/BasePressurePlateBlock.java
-index ee4b3ac212483995bb8ae990bebfb8aa2fbe86a5..cc8994a6b0592aca4dfd19aa7c202f6544f85582 100644
+index ee4b3ac212483995bb8ae990bebfb8aa2fbe86a5..390eff67ee30a3a0ffa9e0c4cc8edebc60e04282 100644
 --- a/src/main/java/net/minecraft/world/level/block/BasePressurePlateBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/BasePressurePlateBlock.java
-@@ -55,13 +55,16 @@ public abstract class BasePressurePlateBlock extends Block {
+@@ -50,18 +50,23 @@ public abstract class BasePressurePlateBlock extends Block {
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         return direction == Direction.DOWN && !state.canSurvive(world, pos) ? Blocks.AIR.defaultBlockState() : super.updateShape(state, direction, neighborState, world, pos, neighborPos);
+-    }
++        }); // MCCLab - Add BlockBehaviour
++        }
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
@@ -306,7 +412,7 @@ index ee4b3ac212483995bb8ae990bebfb8aa2fbe86a5..cc8994a6b0592aca4dfd19aa7c202f65
  
          if (i > 0) {
 diff --git a/src/main/java/net/minecraft/world/level/block/BaseRailBlock.java b/src/main/java/net/minecraft/world/level/block/BaseRailBlock.java
-index 547d09c3a1cd0c5401aacb78886896365ba192e7..4600c2a75614d3bda8dd3ee81caefc2cf7e09a9e 100644
+index 547d09c3a1cd0c5401aacb78886896365ba192e7..607d7675b59fbb0e1c8e48317d46647d01d3fcd5 100644
 --- a/src/main/java/net/minecraft/world/level/block/BaseRailBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/BaseRailBlock.java
 @@ -50,7 +50,9 @@ public abstract class BaseRailBlock extends Block implements SimpleWaterloggedBl
@@ -319,6 +425,36 @@ index 547d09c3a1cd0c5401aacb78886896365ba192e7..4600c2a75614d3bda8dd3ee81caefc2c
      }
  
      @Override
+@@ -145,11 +147,13 @@ public abstract class BaseRailBlock extends Block implements SimpleWaterloggedBl
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         if (state.getValue(WATERLOGGED)) {
+             world.scheduleTick(pos, Fluids.WATER, Fluids.WATER.getTickDelay(world));
+         }
+ 
+         return super.updateShape(state, direction, neighborState, world, pos, neighborPos);
++        }); // MCCLab - Add BlockBehaviour
+     }
+ 
+     @Override
+diff --git a/src/main/java/net/minecraft/world/level/block/BedBlock.java b/src/main/java/net/minecraft/world/level/block/BedBlock.java
+index d40500f9a807cab0b2fb6fa9032f33f4fb74c895..c2261f527d7d3cbff2670a0540ec7e4cd53beebb 100644
+--- a/src/main/java/net/minecraft/world/level/block/BedBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/BedBlock.java
+@@ -199,8 +199,10 @@ public class BedBlock extends HorizontalDirectionalBlock implements EntityBlock
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         return direction == BedBlock.getNeighbourDirection((BedPart) state.getValue(BedBlock.PART), (Direction) state.getValue(BedBlock.FACING)) ? (neighborState.is((Block) this) && neighborState.getValue(BedBlock.PART) != state.getValue(BedBlock.PART) ? (BlockState) state.setValue(BedBlock.OCCUPIED, (Boolean) neighborState.getValue(BedBlock.OCCUPIED)) : Blocks.AIR.defaultBlockState()) : super.updateShape(state, direction, neighborState, world, pos, neighborPos);
+-    }
++        }); // MCCLab - Add BlockBehaviour
++        }
+ 
+     private static Direction getNeighbourDirection(BedPart part, Direction direction) {
+         return part == BedPart.FOOT ? direction : direction.getOpposite();
 diff --git a/src/main/java/net/minecraft/world/level/block/BeetrootBlock.java b/src/main/java/net/minecraft/world/level/block/BeetrootBlock.java
 index 2bd714466fb86d4013bd3bceddecba19ce98df08..b64f43291f5aaf637579ca3f4b4f7d9a7b6c0768 100644
 --- a/src/main/java/net/minecraft/world/level/block/BeetrootBlock.java
@@ -332,10 +468,23 @@ index 2bd714466fb86d4013bd3bceddecba19ce98df08..b64f43291f5aaf637579ca3f4b4f7d9a
              super.randomTick(state, world, pos, random);
          }
 diff --git a/src/main/java/net/minecraft/world/level/block/BellBlock.java b/src/main/java/net/minecraft/world/level/block/BellBlock.java
-index 2774c32bd62255e8902d23e986c8d3e13ccddc7f..6f86470ddb900c4b882c29a9c10d147a7f64d047 100644
+index 2774c32bd62255e8902d23e986c8d3e13ccddc7f..11f0354ee2e804a26a883501c2ed9847fb1fc49e 100644
 --- a/src/main/java/net/minecraft/world/level/block/BellBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/BellBlock.java
-@@ -230,10 +230,12 @@ public class BellBlock extends BaseEntityBlock {
+@@ -208,6 +208,7 @@ public class BellBlock extends BaseEntityBlock {
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         BellAttachType blockpropertybellattach = (BellAttachType) state.getValue(BellBlock.ATTACHMENT);
+         Direction enumdirection1 = BellBlock.getConnectedDirection(state).getOpposite();
+ 
+@@ -226,14 +227,17 @@ public class BellBlock extends BaseEntityBlock {
+ 
+             return super.updateShape(state, direction, neighborState, world, pos, neighborPos);
+         }
++        }); // MCCLab - Add BlockBehaviour
+     }
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
@@ -350,10 +499,10 @@ index 2774c32bd62255e8902d23e986c8d3e13ccddc7f..6f86470ddb900c4b882c29a9c10d147a
      private static Direction getConnectedDirection(BlockState state) {
          switch ((BellAttachType) state.getValue(BellBlock.ATTACHMENT)) {
 diff --git a/src/main/java/net/minecraft/world/level/block/BigDripleafBlock.java b/src/main/java/net/minecraft/world/level/block/BigDripleafBlock.java
-index 54cf35b0c48d96ecfb27ff13cd685c16a1cd616b..49562046a12914a84533bb1629b4a27a52cb3e9a 100644
+index 54cf35b0c48d96ecfb27ff13cd685c16a1cd616b..abbedae000e10edd4539fcf01a6f1114805a7959 100644
 --- a/src/main/java/net/minecraft/world/level/block/BigDripleafBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/BigDripleafBlock.java
-@@ -123,11 +123,13 @@ public class BigDripleafBlock extends HorizontalDirectionalBlock implements Bone
+@@ -123,14 +123,17 @@ public class BigDripleafBlock extends HorizontalDirectionalBlock implements Bone
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
@@ -368,7 +517,19 @@ index 54cf35b0c48d96ecfb27ff13cd685c16a1cd616b..49562046a12914a84533bb1629b4a27a
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-@@ -194,6 +196,7 @@ public class BigDripleafBlock extends HorizontalDirectionalBlock implements Bone
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         if (direction == Direction.DOWN && !state.canSurvive(world, pos)) {
+             return Blocks.AIR.defaultBlockState();
+         } else {
+@@ -140,6 +143,7 @@ public class BigDripleafBlock extends HorizontalDirectionalBlock implements Bone
+ 
+             return direction == Direction.UP && neighborState.is((Block) this) ? Blocks.BIG_DRIPLEAF_STEM.withPropertiesOf(state) : super.updateShape(state, direction, neighborState, world, pos, neighborPos);
+         }
++        }); // MCCLab - Add BlockBehaviour
+     }
+ 
+     @Override
+@@ -194,6 +198,7 @@ public class BigDripleafBlock extends HorizontalDirectionalBlock implements Bone
  
      @Override
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
@@ -377,7 +538,7 @@ index 54cf35b0c48d96ecfb27ff13cd685c16a1cd616b..49562046a12914a84533bb1629b4a27a
              BigDripleafBlock.resetTilt(state, world, pos);
          } else {
 diff --git a/src/main/java/net/minecraft/world/level/block/BigDripleafStemBlock.java b/src/main/java/net/minecraft/world/level/block/BigDripleafStemBlock.java
-index 06f353e28ef6a9e7efc4c2fe383284fd651e0486..2472151ebe951f512f45ad80c2d207cd1c5f7e72 100644
+index 06f353e28ef6a9e7efc4c2fe383284fd651e0486..e29eb30481831dfb10b98f60c1ad60da2ed8fe12 100644
 --- a/src/main/java/net/minecraft/world/level/block/BigDripleafStemBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/BigDripleafStemBlock.java
 @@ -62,11 +62,13 @@ public class BigDripleafStemBlock extends HorizontalDirectionalBlock implements
@@ -395,7 +556,20 @@ index 06f353e28ef6a9e7efc4c2fe383284fd651e0486..2472151ebe951f512f45ad80c2d207cd
  
      protected static boolean place(LevelAccessor world, BlockPos pos, FluidState fluidState, Direction direction) {
          BlockState blockState = Blocks.BIG_DRIPLEAF_STEM.defaultBlockState().setValue(WATERLOGGED, Boolean.valueOf(fluidState.isSourceOfType(Fluids.WATER))).setValue(FACING, direction);
-@@ -88,6 +90,7 @@ public class BigDripleafStemBlock extends HorizontalDirectionalBlock implements
+@@ -75,6 +77,7 @@ public class BigDripleafStemBlock extends HorizontalDirectionalBlock implements
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         if ((direction == Direction.DOWN || direction == Direction.UP) && !state.canSurvive(world, pos)) {
+             world.scheduleTick(pos, this, 1);
+         }
+@@ -84,10 +87,12 @@ public class BigDripleafStemBlock extends HorizontalDirectionalBlock implements
+         }
+ 
+         return super.updateShape(state, direction, neighborState, world, pos, neighborPos);
++        }); // MCCLab - Add BlockBehaviour
+     }
  
      @Override
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
@@ -431,7 +605,7 @@ index d4cbff18adb62073a1dceb189043789620af6877..3f56251c3e7f7c3ea6e8b44895a8dbe8
      @Nullable
      public BlockState getStateForPlacement(BlockPlaceContext ctx) {
 diff --git a/src/main/java/net/minecraft/world/level/block/BubbleColumnBlock.java b/src/main/java/net/minecraft/world/level/block/BubbleColumnBlock.java
-index ed36a378b79f62c3dce3da637a337595415f14ac..a27c546cf04978085d5be93e8421949d4a6b8b7c 100644
+index ed36a378b79f62c3dce3da637a337595415f14ac..49df6ef30af2a00bd10c03f47438cbf31e0b2cc6 100644
 --- a/src/main/java/net/minecraft/world/level/block/BubbleColumnBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/BubbleColumnBlock.java
 @@ -60,6 +60,7 @@ public class BubbleColumnBlock extends Block implements BucketPickup {
@@ -442,7 +616,19 @@ index ed36a378b79f62c3dce3da637a337595415f14ac..a27c546cf04978085d5be93e8421949d
          updateColumn(world, pos, state, world.getBlockState(pos.below()));
      }
  
-@@ -135,9 +136,11 @@ public class BubbleColumnBlock extends Block implements BucketPickup {
+@@ -125,19 +126,23 @@ public class BubbleColumnBlock extends Block implements BucketPickup {
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         world.scheduleTick(pos, Fluids.WATER, Fluids.WATER.getTickDelay(world));
+         if (!state.canSurvive(world, pos) || direction == Direction.DOWN || direction == Direction.UP && !neighborState.is(Blocks.BUBBLE_COLUMN) && canExistIn(neighborState)) {
+             world.scheduleTick(pos, this, 5);
+         }
+ 
+         return super.updateShape(state, direction, neighborState, world, pos, neighborPos);
++        }); // MCCLab - Add BlockBehaviour
+     }
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
@@ -450,7 +636,7 @@ index ed36a378b79f62c3dce3da637a337595415f14ac..a27c546cf04978085d5be93e8421949d
          BlockState blockState = world.getBlockState(pos.below());
          return blockState.is(Blocks.BUBBLE_COLUMN) || blockState.is(Blocks.MAGMA_BLOCK) || blockState.is(Blocks.SOUL_SAND);
 -    }
-+        });
++        }); // MCCLab - Add BlockBehaviour
 +        }
  
      @Override
@@ -468,10 +654,23 @@ index 2548244c089dff583c8c424dcaa5504caedf3f10..f8fabad3dac609677a9e28f39ece8f82
              Direction enumdirection = BuddingAmethystBlock.DIRECTIONS[random.nextInt(BuddingAmethystBlock.DIRECTIONS.length)];
              BlockPos blockposition1 = pos.relative(enumdirection);
 diff --git a/src/main/java/net/minecraft/world/level/block/BushBlock.java b/src/main/java/net/minecraft/world/level/block/BushBlock.java
-index 03fde6e47c4a347c62fe9b4a3351769aedf874f6..96c787655a9ec0f3d070d60d24e54c9f5b5f3c89 100644
+index 03fde6e47c4a347c62fe9b4a3351769aedf874f6..5d213c9f8696d40c27508c6d386c6c359d967709 100644
 --- a/src/main/java/net/minecraft/world/level/block/BushBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/BushBlock.java
-@@ -34,9 +34,11 @@ public class BushBlock extends Block {
+@@ -22,6 +22,7 @@ public class BushBlock extends Block {
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         // CraftBukkit start
+         if (!state.canSurvive(world, pos)) {
+             if (!(world instanceof net.minecraft.server.level.ServerLevel && ((net.minecraft.server.level.ServerLevel) world).hasPhysicsEvent) || !org.bukkit.craftbukkit.event.CraftEventFactory.callBlockPhysicsEvent(world, pos).isCancelled()) { // Paper
+@@ -30,13 +31,16 @@ public class BushBlock extends Block {
+         }
+         return super.updateShape(state, direction, neighborState, world, pos, neighborPos);
+         // CraftBukkit end
++        }); // MCCLab - Add BlockBehaviour
+     }
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
@@ -498,7 +697,7 @@ index 3e792514d042f05ff6848b7d6506472ace67b67a..7a63fe7687279bab5d45b67174ae865a
              this.checkPressed(state, world, pos);
          }
 diff --git a/src/main/java/net/minecraft/world/level/block/CactusBlock.java b/src/main/java/net/minecraft/world/level/block/CactusBlock.java
-index 0003fb51ae3a6575575e10b4c86719f3061e2577..e55b30ecf2e96be647317e62ceccdd8d8662bea6 100644
+index 0003fb51ae3a6575575e10b4c86719f3061e2577..96c23c4a44d1d19f9c6781e6e6ef3e79c4e82018 100644
 --- a/src/main/java/net/minecraft/world/level/block/CactusBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/CactusBlock.java
 @@ -37,6 +37,7 @@ public class CactusBlock extends Block {
@@ -517,7 +716,18 @@ index 0003fb51ae3a6575575e10b4c86719f3061e2577..e55b30ecf2e96be647317e62ceccdd8d
          BlockPos blockposition1 = pos.above();
  
          if (world.isEmptyBlock(blockposition1)) {
-@@ -93,6 +95,7 @@ public class CactusBlock extends Block {
+@@ -84,15 +86,18 @@ public class CactusBlock extends Block {
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         if (!state.canSurvive(world, pos)) {
+             world.scheduleTick(pos, (Block) this, 1);
+         }
+ 
+         return super.updateShape(state, direction, neighborState, world, pos, neighborPos);
++        }); // MCCLab - Add BlockBehaviour
+     }
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
@@ -525,7 +735,7 @@ index 0003fb51ae3a6575575e10b4c86719f3061e2577..e55b30ecf2e96be647317e62ceccdd8d
          Iterator iterator = Direction.Plane.HORIZONTAL.iterator();
  
          Direction enumdirection;
-@@ -110,6 +113,7 @@ public class CactusBlock extends Block {
+@@ -110,6 +115,7 @@ public class CactusBlock extends Block {
          } while (!iblockdata1.isSolid() && !world.getFluidState(pos.relative(enumdirection)).is(FluidTags.LAVA));
  
          return false;
@@ -534,10 +744,18 @@ index 0003fb51ae3a6575575e10b4c86719f3061e2577..e55b30ecf2e96be647317e62ceccdd8d
  
      @Override
 diff --git a/src/main/java/net/minecraft/world/level/block/CakeBlock.java b/src/main/java/net/minecraft/world/level/block/CakeBlock.java
-index 397b8945bd0c2f413b17ba95cfb31befca252595..9272240377299d11e32a07d450f33ec503b386d4 100644
+index 397b8945bd0c2f413b17ba95cfb31befca252595..47ce5c9c0fbbb32e7978f0421c1ca3b46b98f968 100644
 --- a/src/main/java/net/minecraft/world/level/block/CakeBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/CakeBlock.java
-@@ -118,8 +118,10 @@ public class CakeBlock extends Block {
+@@ -113,13 +113,17 @@ public class CakeBlock extends Block {
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         return direction == Direction.DOWN && !state.canSurvive(world, pos) ? Blocks.AIR.defaultBlockState() : super.updateShape(state, direction, neighborState, world, pos, neighborPos);
+-    }
++        }); // MCCLab - Add BlockBehaviour
++        }
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
@@ -549,11 +767,45 @@ index 397b8945bd0c2f413b17ba95cfb31befca252595..9272240377299d11e32a07d450f33ec5
  
      @Override
      protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
+diff --git a/src/main/java/net/minecraft/world/level/block/CampfireBlock.java b/src/main/java/net/minecraft/world/level/block/CampfireBlock.java
+index 7700461b8cd0bde1bf6c0d5e4b73184bed1adc4e..75c828bcd0900e18f135c5705c594095f794fe28 100644
+--- a/src/main/java/net/minecraft/world/level/block/CampfireBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/CampfireBlock.java
+@@ -128,12 +128,14 @@ public class CampfireBlock extends BaseEntityBlock implements SimpleWaterloggedB
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         if ((Boolean) state.getValue(CampfireBlock.WATERLOGGED)) {
+             world.scheduleTick(pos, (Fluid) Fluids.WATER, Fluids.WATER.getTickDelay(world));
+         }
+ 
+         return direction == Direction.DOWN ? (BlockState) state.setValue(CampfireBlock.SIGNAL_FIRE, this.isSmokeSource(neighborState)) : super.updateShape(state, direction, neighborState, world, pos, neighborPos);
+-    }
++        }); // MCCLab - Add BlockBehaviour
++        }
+ 
+     private boolean isSmokeSource(BlockState state) {
+         return state.is(Blocks.HAY_BLOCK);
 diff --git a/src/main/java/net/minecraft/world/level/block/CandleBlock.java b/src/main/java/net/minecraft/world/level/block/CandleBlock.java
-index ff575d3d369340f4ec0d61cc4dea144432ea3690..6d8fec885878ee6dfdac25da7ec0c448f169e099 100644
+index ff575d3d369340f4ec0d61cc4dea144432ea3690..b3bf1d1a7c402c911f66080a35734d6d1380bff0 100644
 --- a/src/main/java/net/minecraft/world/level/block/CandleBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/CandleBlock.java
-@@ -155,6 +155,8 @@ public class CandleBlock extends AbstractCandleBlock implements SimpleWaterlogge
+@@ -88,11 +88,13 @@ public class CandleBlock extends AbstractCandleBlock implements SimpleWaterlogge
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         if (state.getValue(WATERLOGGED)) {
+             world.scheduleTick(pos, Fluids.WATER, Fluids.WATER.getTickDelay(world));
+         }
+ 
+         return super.updateShape(state, direction, neighborState, world, pos, neighborPos);
++        }); // MCCLab - Add BlockBehaviour
+     }
+ 
+     @Override
+@@ -155,6 +157,8 @@ public class CandleBlock extends AbstractCandleBlock implements SimpleWaterlogge
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
@@ -563,10 +815,18 @@ index ff575d3d369340f4ec0d61cc4dea144432ea3690..6d8fec885878ee6dfdac25da7ec0c448
      }
  }
 diff --git a/src/main/java/net/minecraft/world/level/block/CandleCakeBlock.java b/src/main/java/net/minecraft/world/level/block/CandleCakeBlock.java
-index 29cf6571ef738823e52d7e18400fcb9f51308114..b0afa088b6e7f90f6b07748092b7bc51de2e9913 100644
+index 29cf6571ef738823e52d7e18400fcb9f51308114..9b9477f7c9113143467c7497d7cef4b304ebed92 100644
 --- a/src/main/java/net/minecraft/world/level/block/CandleCakeBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/CandleCakeBlock.java
-@@ -92,7 +92,9 @@ public class CandleCakeBlock extends AbstractCandleBlock {
+@@ -87,12 +87,16 @@ public class CandleCakeBlock extends AbstractCandleBlock {
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         return direction == Direction.DOWN && !state.canSurvive(world, pos) ? Blocks.AIR.defaultBlockState() : super.updateShape(state, direction, neighborState, world, pos, neighborPos);
+-    }
++        }); // MCCLab - Add BlockBehaviour
++        }
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
@@ -577,10 +837,18 @@ index 29cf6571ef738823e52d7e18400fcb9f51308114..b0afa088b6e7f90f6b07748092b7bc51
  
      @Override
 diff --git a/src/main/java/net/minecraft/world/level/block/CarpetBlock.java b/src/main/java/net/minecraft/world/level/block/CarpetBlock.java
-index db687aff597df22913b8764ec2cd28976b66e061..b74b71b3a19f489428033172cd90ba829522822d 100644
+index db687aff597df22913b8764ec2cd28976b66e061..cae5190b7db56c5468a9f60be94d8fcb1eae7ca9 100644
 --- a/src/main/java/net/minecraft/world/level/block/CarpetBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/CarpetBlock.java
-@@ -29,6 +29,8 @@ public class CarpetBlock extends Block {
+@@ -24,11 +24,15 @@ public class CarpetBlock extends Block {
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         return !state.canSurvive(world, pos) ? Blocks.AIR.defaultBlockState() : super.updateShape(state, direction, neighborState, world, pos, neighborPos);
+-    }
++        }); // MCCLab - Add BlockBehaviour
++        }
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
@@ -590,7 +858,7 @@ index db687aff597df22913b8764ec2cd28976b66e061..b74b71b3a19f489428033172cd90ba82
      }
  }
 diff --git a/src/main/java/net/minecraft/world/level/block/CeilingHangingSignBlock.java b/src/main/java/net/minecraft/world/level/block/CeilingHangingSignBlock.java
-index 0bd8ea3143b2e9755d492af4596622d1dca1afaf..4f3b6f2513df0c41e495c754dfd25f790e0ce764 100644
+index 0bd8ea3143b2e9755d492af4596622d1dca1afaf..d5c19c36ae4ef50142ded9a7520c2541cc449baf 100644
 --- a/src/main/java/net/minecraft/world/level/block/CeilingHangingSignBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/CeilingHangingSignBlock.java
 @@ -70,8 +70,10 @@ public class CeilingHangingSignBlock extends SignBlock {
@@ -605,11 +873,39 @@ index 0bd8ea3143b2e9755d492af4596622d1dca1afaf..4f3b6f2513df0c41e495c754dfd25f79
  
      @Override
      public BlockState getStateForPlacement(BlockPlaceContext ctx) {
+@@ -113,8 +115,10 @@ public class CeilingHangingSignBlock extends SignBlock {
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         return direction == Direction.UP && !this.canSurvive(state, world, pos) ? Blocks.AIR.defaultBlockState() : super.updateShape(state, direction, neighborState, world, pos, neighborPos);
+-    }
++        }); // MCCLab - Add BlockBehaviour
++        }
+ 
+     @Override
+     public float getYRotationDegrees(BlockState state) {
 diff --git a/src/main/java/net/minecraft/world/level/block/ChestBlock.java b/src/main/java/net/minecraft/world/level/block/ChestBlock.java
-index 5e22d175b1048a58802cdf64ac70a8b56329e915..63758e9c3bc4aaa27e57871b6baa479a9fa45ea2 100644
+index 5e22d175b1048a58802cdf64ac70a8b56329e915..4a1b49707625161d4bb0c1165839984a00c949ee 100644
 --- a/src/main/java/net/minecraft/world/level/block/ChestBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/ChestBlock.java
-@@ -415,6 +415,7 @@ public class ChestBlock extends AbstractChestBlock<ChestBlockEntity> implements
+@@ -150,6 +150,7 @@ public class ChestBlock extends AbstractChestBlock<ChestBlockEntity> implements
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         if ((Boolean) state.getValue(ChestBlock.WATERLOGGED)) {
+             world.scheduleTick(pos, (Fluid) Fluids.WATER, Fluids.WATER.getTickDelay(world));
+         }
+@@ -165,6 +166,7 @@ public class ChestBlock extends AbstractChestBlock<ChestBlockEntity> implements
+         }
+ 
+         return super.updateShape(state, direction, neighborState, world, pos, neighborPos);
++        }); // MCCLab - Add BlockBehaviour
+     }
+ 
+     @Override
+@@ -415,6 +417,7 @@ public class ChestBlock extends AbstractChestBlock<ChestBlockEntity> implements
  
      @Override
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
@@ -618,7 +914,7 @@ index 5e22d175b1048a58802cdf64ac70a8b56329e915..63758e9c3bc4aaa27e57871b6baa479a
  
          if (tileentity instanceof ChestBlockEntity) {
 diff --git a/src/main/java/net/minecraft/world/level/block/ChorusFlowerBlock.java b/src/main/java/net/minecraft/world/level/block/ChorusFlowerBlock.java
-index e9beebedf1d60e06e16c442b64d28d022a3e3164..3e5916340cb03bdf1d8046607aa710ca89b51661 100644
+index e9beebedf1d60e06e16c442b64d28d022a3e3164..03d0109d4f8b4fd08374cade4c48f03c48485fa6 100644
 --- a/src/main/java/net/minecraft/world/level/block/ChorusFlowerBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/ChorusFlowerBlock.java
 @@ -37,6 +37,7 @@ public class ChorusFlowerBlock extends Block {
@@ -637,7 +933,18 @@ index e9beebedf1d60e06e16c442b64d28d022a3e3164..3e5916340cb03bdf1d8046607aa710ca
          BlockPos blockposition1 = pos.above();
  
          if (world.isEmptyBlock(blockposition1) && blockposition1.getY() < world.getMaxBuildHeight()) {
-@@ -178,6 +180,7 @@ public class ChorusFlowerBlock extends Block {
+@@ -169,15 +171,18 @@ public class ChorusFlowerBlock extends Block {
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         if (direction != Direction.UP && !state.canSurvive(world, pos)) {
+             world.scheduleTick(pos, (Block) this, 1);
+         }
+ 
+         return super.updateShape(state, direction, neighborState, world, pos, neighborPos);
++        }); // MCCLab - Add BlockBehaviour
+     }
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
@@ -645,7 +952,7 @@ index e9beebedf1d60e06e16c442b64d28d022a3e3164..3e5916340cb03bdf1d8046607aa710ca
          BlockState iblockdata1 = world.getBlockState(pos.below());
  
          if (!iblockdata1.is((Block) this.plant) && !iblockdata1.is(Blocks.END_STONE)) {
-@@ -207,6 +210,7 @@ public class ChorusFlowerBlock extends Block {
+@@ -207,6 +212,7 @@ public class ChorusFlowerBlock extends Block {
          } else {
              return true;
          }
@@ -654,10 +961,24 @@ index e9beebedf1d60e06e16c442b64d28d022a3e3164..3e5916340cb03bdf1d8046607aa710ca
  
      @Override
 diff --git a/src/main/java/net/minecraft/world/level/block/ChorusPlantBlock.java b/src/main/java/net/minecraft/world/level/block/ChorusPlantBlock.java
-index 2e8bf4463b8da8da50cd14d3f84aba5e930e5710..cf9ee483f00e9df83a7a543eff273983a140dfa2 100644
+index 2e8bf4463b8da8da50cd14d3f84aba5e930e5710..35c11ea1725045618568ab3909826e3df6e952f4 100644
 --- a/src/main/java/net/minecraft/world/level/block/ChorusPlantBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/ChorusPlantBlock.java
-@@ -49,6 +49,7 @@ public class ChorusPlantBlock extends PipeBlock {
+@@ -37,6 +37,7 @@ public class ChorusPlantBlock extends PipeBlock {
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         if (io.papermc.paper.configuration.GlobalConfiguration.get().blockUpdates.disableChorusPlantUpdates) return state; // Paper - add option to disable block updates
+         if (!state.canSurvive(world, pos)) {
+             world.scheduleTick(pos, this, 1);
+@@ -45,10 +46,12 @@ public class ChorusPlantBlock extends PipeBlock {
+             boolean bl = neighborState.is(this) || neighborState.is(Blocks.CHORUS_FLOWER) || direction == Direction.DOWN && neighborState.is(Blocks.END_STONE);
+             return state.setValue(PROPERTY_BY_DIRECTION.get(direction), Boolean.valueOf(bl));
+         }
+-    }
++        }); // MCCLab - Add BlockBehaviour
++        }
  
      @Override
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
@@ -665,7 +986,7 @@ index 2e8bf4463b8da8da50cd14d3f84aba5e930e5710..cf9ee483f00e9df83a7a543eff273983
          if (io.papermc.paper.configuration.GlobalConfiguration.get().blockUpdates.disableChorusPlantUpdates) return; // Paper - add option to disable block updates
          if (!state.canSurvive(world, pos)) {
              world.destroyBlock(pos, true);
-@@ -58,26 +59,29 @@ public class ChorusPlantBlock extends PipeBlock {
+@@ -58,26 +61,29 @@ public class ChorusPlantBlock extends PipeBlock {
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
@@ -711,7 +1032,7 @@ index 2e8bf4463b8da8da50cd14d3f84aba5e930e5710..cf9ee483f00e9df83a7a543eff273983
  
      @Override
 diff --git a/src/main/java/net/minecraft/world/level/block/CocoaBlock.java b/src/main/java/net/minecraft/world/level/block/CocoaBlock.java
-index f5c42fee3ec68a7a9260f01d19c7a1d7533bad9c..96b625e9fcee4759c1da87605de84035ff944fb6 100644
+index f5c42fee3ec68a7a9260f01d19c7a1d7533bad9c..a4eb4d0939a26037e0f5afef84b0bb28c5b6709d 100644
 --- a/src/main/java/net/minecraft/world/level/block/CocoaBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/CocoaBlock.java
 @@ -51,6 +51,7 @@ public class CocoaBlock extends HorizontalDirectionalBlock implements Bonemealab
@@ -734,6 +1055,18 @@ index f5c42fee3ec68a7a9260f01d19c7a1d7533bad9c..96b625e9fcee4759c1da87605de84035
      }
  
      @Override
+@@ -110,8 +113,10 @@ public class CocoaBlock extends HorizontalDirectionalBlock implements Bonemealab
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         return direction == state.getValue(CocoaBlock.FACING) && !state.canSurvive(world, pos) ? Blocks.AIR.defaultBlockState() : super.updateShape(state, direction, neighborState, world, pos, neighborPos);
+-    }
++        }); // MCCLab - Add BlockBehaviour
++        }
+ 
+     @Override
+     public boolean isValidBonemealTarget(LevelReader world, BlockPos pos, BlockState state) {
 diff --git a/src/main/java/net/minecraft/world/level/block/CommandBlock.java b/src/main/java/net/minecraft/world/level/block/CommandBlock.java
 index 2e7c03b00bc941b86df6a7f1b2b188c9f0aede22..651b4d0bab4f663308afa4d4fd2284cca99f46b3 100644
 --- a/src/main/java/net/minecraft/world/level/block/CommandBlock.java
@@ -747,10 +1080,22 @@ index 2e7c03b00bc941b86df6a7f1b2b188c9f0aede22..651b4d0bab4f663308afa4d4fd2284cc
  
          if (tileentity instanceof CommandBlockEntity) {
 diff --git a/src/main/java/net/minecraft/world/level/block/ComparatorBlock.java b/src/main/java/net/minecraft/world/level/block/ComparatorBlock.java
-index 16174c573b1acd1e1a75dba9305994ed37fe6c72..5ac48d74be182675acae3aee1d499eac05354aaf 100644
+index 16174c573b1acd1e1a75dba9305994ed37fe6c72..9d8850ec7b973e8b4052b86799576b27b33a9ac5 100644
 --- a/src/main/java/net/minecraft/world/level/block/ComparatorBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/ComparatorBlock.java
-@@ -182,6 +182,7 @@ public class ComparatorBlock extends DiodeBlock implements EntityBlock {
+@@ -44,8 +44,10 @@ public class ComparatorBlock extends DiodeBlock implements EntityBlock {
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         return direction == Direction.DOWN && !this.canSurviveOn(world, neighborPos, neighborState) ? Blocks.AIR.defaultBlockState() : super.updateShape(state, direction, neighborState, world, pos, neighborPos);
+-    }
++        }); // MCCLab - Add BlockBehaviour
++        }
+ 
+     @Override
+     protected int getOutputSignal(BlockGetter world, BlockPos pos, BlockState state) {
+@@ -182,6 +184,7 @@ public class ComparatorBlock extends DiodeBlock implements EntityBlock {
  
      @Override
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
@@ -770,8 +1115,28 @@ index 10d3912ef043eefdf89105332e29b0d2bf4a5539..fac4a6aa77078869c89f29658c1d66d4
          if ((Integer) state.getValue(ComposterBlock.LEVEL) == 7) {
              world.setBlock(pos, (BlockState) state.cycle(ComposterBlock.LEVEL), 3);
              world.playSound((Player) null, pos, SoundEvents.COMPOSTER_READY, SoundSource.BLOCKS, 1.0F, 1.0F);
+diff --git a/src/main/java/net/minecraft/world/level/block/ConcretePowderBlock.java b/src/main/java/net/minecraft/world/level/block/ConcretePowderBlock.java
+index 065525e8ce46c12cdfa1d5d06fb96ea4654e95a3..6dbef50029fc515e4b8a007cc9a634e65c08d14c 100644
+--- a/src/main/java/net/minecraft/world/level/block/ConcretePowderBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/ConcretePowderBlock.java
+@@ -92,6 +92,7 @@ public class ConcretePowderBlock extends FallingBlock {
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         // CraftBukkit start
+         if (ConcretePowderBlock.touchesLiquid(world, pos)) {
+             // Suppress during worldgen
+@@ -111,6 +112,7 @@ public class ConcretePowderBlock extends FallingBlock {
+ 
+         return super.updateShape(state, direction, neighborState, world, pos, neighborPos);
+         // CraftBukkit end
++        }); // MCCLab - Add BlockBehaviour
+     }
+ 
+     @Override
 diff --git a/src/main/java/net/minecraft/world/level/block/CoralBlock.java b/src/main/java/net/minecraft/world/level/block/CoralBlock.java
-index 88faea00be60a519f56f975a5311df5e1eb3e6b8..b622a6ecf16ed506cb1d8dbd17484febac6f61f8 100644
+index 88faea00be60a519f56f975a5311df5e1eb3e6b8..430e7a84f39bf6406f2e460463f7f8ffb4931488 100644
 --- a/src/main/java/net/minecraft/world/level/block/CoralBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/CoralBlock.java
 @@ -24,6 +24,7 @@ public class CoralBlock extends Block {
@@ -782,8 +1147,22 @@ index 88faea00be60a519f56f975a5311df5e1eb3e6b8..b622a6ecf16ed506cb1d8dbd17484feb
          if (!this.scanForWater(world, pos)) {
              // CraftBukkit start
              if (org.bukkit.craftbukkit.event.CraftEventFactory.callBlockFadeEvent(world, pos, this.deadBlock.defaultBlockState()).isCancelled()) {
+@@ -37,11 +38,13 @@ public class CoralBlock extends Block {
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         if (!this.scanForWater(world, pos)) {
+             world.scheduleTick(pos, (Block) this, 60 + world.getRandom().nextInt(40));
+         }
+ 
+         return super.updateShape(state, direction, neighborState, world, pos, neighborPos);
++        }); // MCCLab - Add BlockBehaviour
+     }
+ 
+     protected boolean scanForWater(BlockGetter world, BlockPos pos) {
 diff --git a/src/main/java/net/minecraft/world/level/block/CoralFanBlock.java b/src/main/java/net/minecraft/world/level/block/CoralFanBlock.java
-index 86e58786c8a4caa965ea63aff50a13ae61da8c1c..a34affd33c1ab5bfa94091d851ec93fb14431386 100644
+index 86e58786c8a4caa965ea63aff50a13ae61da8c1c..b44a1a7ad568a31665b00d6c03344037f765c006 100644
 --- a/src/main/java/net/minecraft/world/level/block/CoralFanBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/CoralFanBlock.java
 @@ -27,6 +27,7 @@ public class CoralFanBlock extends BaseCoralFanBlock {
@@ -794,8 +1173,23 @@ index 86e58786c8a4caa965ea63aff50a13ae61da8c1c..a34affd33c1ab5bfa94091d851ec93fb
          if (!scanForWater(state, world, pos)) {
              // CraftBukkit start
              if (org.bukkit.craftbukkit.event.CraftEventFactory.callBlockFadeEvent(world, pos, this.deadBlock.defaultBlockState().setValue(CoralFanBlock.WATERLOGGED, false)).isCancelled()) {
+@@ -40,6 +41,7 @@ public class CoralFanBlock extends BaseCoralFanBlock {
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         if (direction == Direction.DOWN && !state.canSurvive(world, pos)) {
+             return Blocks.AIR.defaultBlockState();
+         } else {
+@@ -50,5 +52,6 @@ public class CoralFanBlock extends BaseCoralFanBlock {
+ 
+             return super.updateShape(state, direction, neighborState, world, pos, neighborPos);
+         }
++        }); // MCCLab - Add BlockBehaviour
+     }
+ }
 diff --git a/src/main/java/net/minecraft/world/level/block/CoralPlantBlock.java b/src/main/java/net/minecraft/world/level/block/CoralPlantBlock.java
-index f980e31c4b6ba396be6ef317cffe027004a090e0..9ba6f6750bdfc6372768de0dfa643dfa7653fd7a 100644
+index f980e31c4b6ba396be6ef317cffe027004a090e0..7bb39d0b9c493f30b5da094f18daebfc09447cc6 100644
 --- a/src/main/java/net/minecraft/world/level/block/CoralPlantBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/CoralPlantBlock.java
 @@ -32,6 +32,7 @@ public class CoralPlantBlock extends BaseCoralPlantTypeBlock {
@@ -806,8 +1200,24 @@ index f980e31c4b6ba396be6ef317cffe027004a090e0..9ba6f6750bdfc6372768de0dfa643dfa
          if (!scanForWater(state, world, pos)) {
              // CraftBukkit start
              if (org.bukkit.craftbukkit.event.CraftEventFactory.callBlockFadeEvent(world, pos, this.deadBlock.defaultBlockState().setValue(CoralPlantBlock.WATERLOGGED, false)).isCancelled()) {
+@@ -45,6 +46,7 @@ public class CoralPlantBlock extends BaseCoralPlantTypeBlock {
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         if (direction == Direction.DOWN && !state.canSurvive(world, pos)) {
+             return Blocks.AIR.defaultBlockState();
+         } else {
+@@ -55,6 +57,7 @@ public class CoralPlantBlock extends BaseCoralPlantTypeBlock {
+ 
+             return super.updateShape(state, direction, neighborState, world, pos, neighborPos);
+         }
++        }); // MCCLab - Add BlockBehaviour
+     }
+ 
+     @Override
 diff --git a/src/main/java/net/minecraft/world/level/block/CoralWallFanBlock.java b/src/main/java/net/minecraft/world/level/block/CoralWallFanBlock.java
-index f759ad7b49244a91aca4d36db2980267d46e1c23..673181e7bc4f90fdb89d942c3e686d0ab92bdb1e 100644
+index f759ad7b49244a91aca4d36db2980267d46e1c23..0532ed0b32c58edfeb1fabaf0f869dba1ba834cb 100644
 --- a/src/main/java/net/minecraft/world/level/block/CoralWallFanBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/CoralWallFanBlock.java
 @@ -27,6 +27,7 @@ public class CoralWallFanBlock extends BaseCoralWallFanBlock {
@@ -818,6 +1228,21 @@ index f759ad7b49244a91aca4d36db2980267d46e1c23..673181e7bc4f90fdb89d942c3e686d0a
          if (!scanForWater(state, world, pos)) {
              // CraftBukkit start
              if (org.bukkit.craftbukkit.event.CraftEventFactory.callBlockFadeEvent(world, pos, this.deadBlock.defaultBlockState().setValue(CoralWallFanBlock.WATERLOGGED, false).setValue(CoralWallFanBlock.FACING, state.getValue(CoralWallFanBlock.FACING))).isCancelled()) {
+@@ -40,6 +41,7 @@ public class CoralWallFanBlock extends BaseCoralWallFanBlock {
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         if (direction.getOpposite() == state.getValue(CoralWallFanBlock.FACING) && !state.canSurvive(world, pos)) {
+             return Blocks.AIR.defaultBlockState();
+         } else {
+@@ -50,5 +52,6 @@ public class CoralWallFanBlock extends BaseCoralWallFanBlock {
+             this.tryScheduleDieTick(state, world, pos);
+             return super.updateShape(state, direction, neighborState, world, pos, neighborPos);
+         }
++        }); // MCCLab - Add BlockBehaviour
+     }
+ }
 diff --git a/src/main/java/net/minecraft/world/level/block/CropBlock.java b/src/main/java/net/minecraft/world/level/block/CropBlock.java
 index 6365ddea0c23bc5d4009d98915f2b39aed2a0328..6a5928d736ee098c422801dc068610e4c840ab38 100644
 --- a/src/main/java/net/minecraft/world/level/block/CropBlock.java
@@ -877,10 +1302,25 @@ index 0f513bc36ed62a8eff1be874de61f47888739ec8..cfdb93e6aac1da54eb22e57379265b52
              boolean flag = (Boolean) state.getValue(DiodeBlock.POWERED);
              boolean flag1 = this.shouldTurnOn(world, pos, state);
 diff --git a/src/main/java/net/minecraft/world/level/block/DirtPathBlock.java b/src/main/java/net/minecraft/world/level/block/DirtPathBlock.java
-index 1ec9bad118dee4ad072242c1b47c82ad74760aca..59c758a03af44c238e82ecb2419042826ec4e105 100644
+index 1ec9bad118dee4ad072242c1b47c82ad74760aca..d9d243b3b678cde06139272f13ba6fd0f5966c06 100644
 --- a/src/main/java/net/minecraft/world/level/block/DirtPathBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/DirtPathBlock.java
-@@ -44,6 +44,7 @@ public class DirtPathBlock extends Block {
+@@ -35,15 +35,18 @@ public class DirtPathBlock extends Block {
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
+-        if (direction == Direction.UP && !state.canSurvive(world, pos)) {
+-            world.scheduleTick(pos, (Block) this, 1);
+-        }
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++            if (direction == Direction.UP && !state.canSurvive(world, pos)) {
++                world.scheduleTick(pos, (Block) this, 1);
++            }
+ 
+-        return super.updateShape(state, direction, neighborState, world, pos, neighborPos);
++            return super.updateShape(state, direction, neighborState, world, pos, neighborPos);
++        }); // MCCLab - Add BlockBehaviour
+     }
  
      @Override
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
@@ -888,7 +1328,7 @@ index 1ec9bad118dee4ad072242c1b47c82ad74760aca..59c758a03af44c238e82ecb241904282
          // CraftBukkit start - do not fade if the block is valid here
          if (state.canSurvive(world, pos)) {
              return;
-@@ -54,9 +55,11 @@ public class DirtPathBlock extends Block {
+@@ -54,9 +57,11 @@ public class DirtPathBlock extends Block {
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
@@ -913,10 +1353,24 @@ index 9b1e51c1d95da885c80c6d05000d83436b7bcfb4..cec180976bdf93fcaf6262153b054acd
      }
  
 diff --git a/src/main/java/net/minecraft/world/level/block/DoorBlock.java b/src/main/java/net/minecraft/world/level/block/DoorBlock.java
-index c028a7158e41a0754abb8e24dcd647633fbf3fe8..3017b990ccce3f8e77d5f4225158fcffaeeeca24 100644
+index c028a7158e41a0754abb8e24dcd647633fbf3fe8..767c13a357d079b06848535850e9423b3524141f 100644
 --- a/src/main/java/net/minecraft/world/level/block/DoorBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/DoorBlock.java
-@@ -220,11 +220,13 @@ public class DoorBlock extends Block {
+@@ -79,10 +79,12 @@ public class DoorBlock extends Block {
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         DoubleBlockHalf blockpropertydoubleblockhalf = (DoubleBlockHalf) state.getValue(DoorBlock.HALF);
+ 
+         return direction.getAxis() == Direction.Axis.Y && blockpropertydoubleblockhalf == DoubleBlockHalf.LOWER == (direction == Direction.UP) ? (neighborState.is((Block) this) && neighborState.getValue(DoorBlock.HALF) != blockpropertydoubleblockhalf ? (BlockState) ((BlockState) ((BlockState) ((BlockState) state.setValue(DoorBlock.FACING, (Direction) neighborState.getValue(DoorBlock.FACING))).setValue(DoorBlock.OPEN, (Boolean) neighborState.getValue(DoorBlock.OPEN))).setValue(DoorBlock.HINGE, (DoorHingeSide) neighborState.getValue(DoorBlock.HINGE))).setValue(DoorBlock.POWERED, (Boolean) neighborState.getValue(DoorBlock.POWERED)) : Blocks.AIR.defaultBlockState()) : (blockpropertydoubleblockhalf == DoubleBlockHalf.LOWER && direction == Direction.DOWN && !state.canSurvive(world, pos) ? Blocks.AIR.defaultBlockState() : super.updateShape(state, direction, neighborState, world, pos, neighborPos));
+-    }
++        }); // MCCLab - Add BlockBehaviour
++        }
+ 
+     @Override
+     public void playerWillDestroy(Level world, BlockPos pos, BlockState state, Player player) {
+@@ -220,11 +222,13 @@ public class DoorBlock extends Block {
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
@@ -932,10 +1386,24 @@ index c028a7158e41a0754abb8e24dcd647633fbf3fe8..3017b990ccce3f8e77d5f4225158fcff
      private void playSound(@Nullable Entity entity, Level world, BlockPos pos, boolean open) {
          world.playSound(entity, pos, open ? this.type.doorOpen() : this.type.doorClose(), SoundSource.BLOCKS, 1.0F, world.getRandom().nextFloat() * 0.1F + 0.9F);
 diff --git a/src/main/java/net/minecraft/world/level/block/DoublePlantBlock.java b/src/main/java/net/minecraft/world/level/block/DoublePlantBlock.java
-index 030b38d5d5d2578d6ef482a239ef58787efa3b08..ab4a84bf8fb9b994f94dbca4dc4f2f6dcafd2dc3 100644
+index 030b38d5d5d2578d6ef482a239ef58787efa3b08..c9b823f5805ac163e2714336903be2fda99054db 100644
 --- a/src/main/java/net/minecraft/world/level/block/DoublePlantBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/DoublePlantBlock.java
-@@ -55,6 +55,7 @@ public class DoublePlantBlock extends BushBlock {
+@@ -32,10 +32,12 @@ public class DoublePlantBlock extends BushBlock {
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         DoubleBlockHalf blockpropertydoubleblockhalf = (DoubleBlockHalf) state.getValue(DoublePlantBlock.HALF);
+ 
+         return direction.getAxis() == Direction.Axis.Y && blockpropertydoubleblockhalf == DoubleBlockHalf.LOWER == (direction == Direction.UP) && (!neighborState.is((Block) this) || neighborState.getValue(DoublePlantBlock.HALF) == blockpropertydoubleblockhalf) ? Blocks.AIR.defaultBlockState() : (blockpropertydoubleblockhalf == DoubleBlockHalf.LOWER && direction == Direction.DOWN && !state.canSurvive(world, pos) ? Blocks.AIR.defaultBlockState() : super.updateShape(state, direction, neighborState, world, pos, neighborPos));
+-    }
++        }); // MCCLab - Add BlockBehaviour
++        }
+ 
+     @Nullable
+     @Override
+@@ -55,6 +57,7 @@ public class DoublePlantBlock extends BushBlock {
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
@@ -943,7 +1411,7 @@ index 030b38d5d5d2578d6ef482a239ef58787efa3b08..ab4a84bf8fb9b994f94dbca4dc4f2f6d
          if (state.getValue(DoublePlantBlock.HALF) != DoubleBlockHalf.UPPER) {
              return super.canSurvive(state, world, pos);
          } else {
-@@ -62,6 +63,7 @@ public class DoublePlantBlock extends BushBlock {
+@@ -62,6 +65,7 @@ public class DoublePlantBlock extends BushBlock {
  
              return iblockdata1.is((Block) this) && iblockdata1.getValue(DoublePlantBlock.HALF) == DoubleBlockHalf.LOWER;
          }
@@ -952,7 +1420,7 @@ index 030b38d5d5d2578d6ef482a239ef58787efa3b08..ab4a84bf8fb9b994f94dbca4dc4f2f6d
  
      public static void placeAt(LevelAccessor world, BlockState state, BlockPos pos, int flags) {
 diff --git a/src/main/java/net/minecraft/world/level/block/FaceAttachedHorizontalDirectionalBlock.java b/src/main/java/net/minecraft/world/level/block/FaceAttachedHorizontalDirectionalBlock.java
-index 9d889080be6d5b4b679fa9a2bd46ad8fd2ad1e77..66a1ce8515fa3c6f7ad51307ebc0fda6e0077123 100644
+index 9d889080be6d5b4b679fa9a2bd46ad8fd2ad1e77..83947b238bc909c517cf04761d9bd4df95d211a7 100644
 --- a/src/main/java/net/minecraft/world/level/block/FaceAttachedHorizontalDirectionalBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/FaceAttachedHorizontalDirectionalBlock.java
 @@ -21,8 +21,10 @@ public class FaceAttachedHorizontalDirectionalBlock extends HorizontalDirectiona
@@ -967,11 +1435,55 @@ index 9d889080be6d5b4b679fa9a2bd46ad8fd2ad1e77..66a1ce8515fa3c6f7ad51307ebc0fda6
  
      public static boolean canAttach(LevelReader world, BlockPos pos, Direction direction) {
          BlockPos blockPos = pos.relative(direction);
+@@ -50,8 +52,10 @@ public class FaceAttachedHorizontalDirectionalBlock extends HorizontalDirectiona
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         return getConnectedDirection(state).getOpposite() == direction && !state.canSurvive(world, pos) ? Blocks.AIR.defaultBlockState() : super.updateShape(state, direction, neighborState, world, pos, neighborPos);
+-    }
++        }); // MCCLab - Add BlockBehaviour
++        }
+ 
+     protected static Direction getConnectedDirection(BlockState state) {
+         switch ((AttachFace)state.getValue(FACE)) {
+diff --git a/src/main/java/net/minecraft/world/level/block/FallingBlock.java b/src/main/java/net/minecraft/world/level/block/FallingBlock.java
+index 631ac128aebcd6388482adb3b1f03673281eaf95..c36ca46a35953d344fdc71a3eb4674e1b0782ac1 100644
+--- a/src/main/java/net/minecraft/world/level/block/FallingBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/FallingBlock.java
+@@ -27,12 +27,15 @@ public class FallingBlock extends Block implements Fallable {
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
+-        world.scheduleTick(pos, this, this.getDelayAfterPlace());
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++            world.scheduleTick(pos, this, this.getDelayAfterPlace());
+         return super.updateShape(state, direction, neighborState, world, pos, neighborPos);
++        }); // MCCLab - Add BlockBehaviour
+     }
+ 
+     @Override
+     public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
++        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
+         if (isFree(world.getBlockState(pos.below())) && pos.getY() >= world.getMinBuildHeight()) {
+             FallingBlockEntity fallingBlockEntity = FallingBlockEntity.fall(world, pos, state);
+             this.falling(fallingBlockEntity);
 diff --git a/src/main/java/net/minecraft/world/level/block/FarmBlock.java b/src/main/java/net/minecraft/world/level/block/FarmBlock.java
-index 5946f06f63b5694034bd027984a4925b0831d439..1c74e5196dea93f42fe5137ecc785da0c40d1cdd 100644
+index 5946f06f63b5694034bd027984a4925b0831d439..f50153a58b14d8afe80e2f3dd0b1da28ee0bc79d 100644
 --- a/src/main/java/net/minecraft/world/level/block/FarmBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/FarmBlock.java
-@@ -54,10 +54,12 @@ public class FarmBlock extends Block {
+@@ -45,19 +45,23 @@ public class FarmBlock extends Block {
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         if (direction == Direction.UP && !state.canSurvive(world, pos)) {
+             world.scheduleTick(pos, (Block) this, 1);
+         }
+ 
+         return super.updateShape(state, direction, neighborState, world, pos, neighborPos);
++        }); // MCCLab - Add BlockBehaviour
+     }
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
@@ -985,7 +1497,7 @@ index 5946f06f63b5694034bd027984a4925b0831d439..1c74e5196dea93f42fe5137ecc785da0
  
      @Override
      public BlockState getStateForPlacement(BlockPlaceContext ctx) {
-@@ -76,6 +78,7 @@ public class FarmBlock extends Block {
+@@ -76,6 +80,7 @@ public class FarmBlock extends Block {
  
      @Override
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
@@ -993,7 +1505,7 @@ index 5946f06f63b5694034bd027984a4925b0831d439..1c74e5196dea93f42fe5137ecc785da0
          if (!state.canSurvive(world, pos)) {
              FarmBlock.turnToDirt((Entity) null, state, world, pos);
          }
-@@ -84,6 +87,7 @@ public class FarmBlock extends Block {
+@@ -84,6 +89,7 @@ public class FarmBlock extends Block {
  
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
@@ -1001,11 +1513,47 @@ index 5946f06f63b5694034bd027984a4925b0831d439..1c74e5196dea93f42fe5137ecc785da0
          int i = (Integer) state.getValue(FarmBlock.MOISTURE);
  
          if (!FarmBlock.isNearWater(world, pos) && !world.isRainingAt(pos.above())) {
+diff --git a/src/main/java/net/minecraft/world/level/block/FenceGateBlock.java b/src/main/java/net/minecraft/world/level/block/FenceGateBlock.java
+index baaf648f65042a9c6bf41eaba595dce2aa6bb187..882a34319c966d1c7ea9b162ca13a8fb34551bdd 100644
+--- a/src/main/java/net/minecraft/world/level/block/FenceGateBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/FenceGateBlock.java
+@@ -57,6 +57,7 @@ public class FenceGateBlock extends HorizontalDirectionalBlock {
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         Direction.Axis enumdirection_enumaxis = direction.getAxis();
+ 
+         if (((Direction) state.getValue(FenceGateBlock.FACING)).getClockWise().getAxis() != enumdirection_enumaxis) {
+@@ -66,6 +67,7 @@ public class FenceGateBlock extends HorizontalDirectionalBlock {
+ 
+             return (BlockState) state.setValue(FenceGateBlock.IN_WALL, flag);
+         }
++        }); // MCCLab - Add BlockBehaviour
+     }
+ 
+     @Override
 diff --git a/src/main/java/net/minecraft/world/level/block/FireBlock.java b/src/main/java/net/minecraft/world/level/block/FireBlock.java
-index 4002e0fffb60556e7af1aeff71b4be244f02b0f5..043e95c0aeba74b92cdeeea23270b79b1212e4d4 100644
+index 4002e0fffb60556e7af1aeff71b4be244f02b0f5..8c439e4c25481cebad93d3c68974bd5146d2696d 100644
 --- a/src/main/java/net/minecraft/world/level/block/FireBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/FireBlock.java
-@@ -158,13 +158,16 @@ public class FireBlock extends BaseFireBlock {
+@@ -101,6 +101,7 @@ public class FireBlock extends BaseFireBlock {
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         // CraftBukkit start
+         if (!(world instanceof ServerLevel)) return this.canSurvive(state, world, pos) ? (BlockState) this.getStateWithAge(world, pos, (Integer) state.getValue(FireBlock.AGE)) : Blocks.AIR.defaultBlockState(); // Paper - don't fire events in world generation
+         if (!this.canSurvive(state, world, pos)) {
+@@ -120,6 +121,7 @@ public class FireBlock extends BaseFireBlock {
+         }
+         return this.getStateWithAge(world, pos, (Integer) state.getValue(FireBlock.AGE)); // Paper - diff on change, see "don't fire events in world generation"
+         // CraftBukkit end
++        }); // MCCLab - Add BlockBehaviour
+     }
+ 
+     @Override
+@@ -158,13 +160,16 @@ public class FireBlock extends BaseFireBlock {
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
@@ -1023,8 +1571,24 @@ index 4002e0fffb60556e7af1aeff71b4be244f02b0f5..043e95c0aeba74b92cdeeea23270b79b
          world.scheduleTick(pos, (Block) this, FireBlock.getFireTickDelay(world)); // Paper
          if (world.getGameRules().getBoolean(GameRules.RULE_DOFIRETICK)) {
              if (!state.canSurvive(world, pos)) {
+diff --git a/src/main/java/net/minecraft/world/level/block/FlowerPotBlock.java b/src/main/java/net/minecraft/world/level/block/FlowerPotBlock.java
+index db05c1ea847d60ad45d33cd798cb34ad3f5cfd75..24d73df6f8c67a8576145fe93b9babbeca34a6fc 100644
+--- a/src/main/java/net/minecraft/world/level/block/FlowerPotBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/FlowerPotBlock.java
+@@ -107,8 +107,10 @@ public class FlowerPotBlock extends Block {
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         return direction == Direction.DOWN && !state.canSurvive(world, pos) ? Blocks.AIR.defaultBlockState() : super.updateShape(state, direction, neighborState, world, pos, neighborPos);
+-    }
++        }); // MCCLab - Add BlockBehaviour
++        }
+ 
+     public Block getContent() {
+         return this.content;
 diff --git a/src/main/java/net/minecraft/world/level/block/FrogspawnBlock.java b/src/main/java/net/minecraft/world/level/block/FrogspawnBlock.java
-index bebcdc70c4cb01764428836fff76f03b94f2eae8..a30a065eb3f92461ca040e24a490b1d514689303 100644
+index bebcdc70c4cb01764428836fff76f03b94f2eae8..cd577af4bbf8b6a1f89522db390c7d6209d1365a 100644
 --- a/src/main/java/net/minecraft/world/level/block/FrogspawnBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/FrogspawnBlock.java
 @@ -43,8 +43,10 @@ public class FrogspawnBlock extends Block {
@@ -1039,7 +1603,15 @@ index bebcdc70c4cb01764428836fff76f03b94f2eae8..a30a065eb3f92461ca040e24a490b1d5
  
      @Override
      public void onPlace(BlockState state, Level world, BlockPos pos, BlockState oldState, boolean notify) {
-@@ -62,6 +64,7 @@ public class FrogspawnBlock extends Block {
+@@ -57,11 +59,14 @@ public class FrogspawnBlock extends Block {
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         return !this.canSurvive(state, world, pos) ? Blocks.AIR.defaultBlockState() : super.updateShape(state, direction, neighborState, world, pos, neighborPos);
+-    }
++        }); // MCCLab - Add BlockBehaviour
++        }
  
      @Override
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
@@ -1104,7 +1676,7 @@ index bac57e5234182315a66c9726490a233cb9d99181..c10d24dd40b4affb93f5e1cc4ce6fc70
      @Override
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
 diff --git a/src/main/java/net/minecraft/world/level/block/GrowingPlantHeadBlock.java b/src/main/java/net/minecraft/world/level/block/GrowingPlantHeadBlock.java
-index b325fdec8eb99ce57152a5c0fefa5059685276e4..32c434defac892d5205669a485d0ac85279d73c7 100644
+index b325fdec8eb99ce57152a5c0fefa5059685276e4..fd68df9466ce54bd51c0e7af5b6abada234edbe3 100644
 --- a/src/main/java/net/minecraft/world/level/block/GrowingPlantHeadBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/GrowingPlantHeadBlock.java
 @@ -40,6 +40,7 @@ public abstract class GrowingPlantHeadBlock extends GrowingPlantBlock implements
@@ -1115,8 +1687,24 @@ index b325fdec8eb99ce57152a5c0fefa5059685276e4..32c434defac892d5205669a485d0ac85
          // Spigot start
          int modifier;
          if (this == Blocks.KELP) {
+@@ -86,6 +87,7 @@ public abstract class GrowingPlantHeadBlock extends GrowingPlantBlock implements
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         if (direction == this.growthDirection.getOpposite() && !state.canSurvive(world, pos)) {
+             world.scheduleTick(pos, (Block) this, 1);
+         }
+@@ -99,6 +101,7 @@ public abstract class GrowingPlantHeadBlock extends GrowingPlantBlock implements
+ 
+             return super.updateShape(state, direction, neighborState, world, pos, neighborPos);
+         }
++        }); // MCCLab - Add BlockBehaviour
+     }
+ 
+     @Override
 diff --git a/src/main/java/net/minecraft/world/level/block/HangingRootsBlock.java b/src/main/java/net/minecraft/world/level/block/HangingRootsBlock.java
-index 664ff099fd6f44b4bc2e23d06afe8006931f1aa6..39e5e15f3202c930155d3ca8b5dc61e0a9b5099a 100644
+index 664ff099fd6f44b4bc2e23d06afe8006931f1aa6..22cdd70421993db7bff45468f459e13d55c9413a 100644
 --- a/src/main/java/net/minecraft/world/level/block/HangingRootsBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/HangingRootsBlock.java
 @@ -50,10 +50,12 @@ public class HangingRootsBlock extends Block implements SimpleWaterloggedBlock {
@@ -1133,6 +1721,38 @@ index 664ff099fd6f44b4bc2e23d06afe8006931f1aa6..39e5e15f3202c930155d3ca8b5dc61e0
  
      @Override
      public VoxelShape getShape(BlockState state, BlockGetter world, BlockPos pos, CollisionContext context) {
+@@ -62,6 +64,7 @@ public class HangingRootsBlock extends Block implements SimpleWaterloggedBlock {
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         if (direction == Direction.UP && !this.canSurvive(state, world, pos)) {
+             return Blocks.AIR.defaultBlockState();
+         } else {
+@@ -71,5 +74,6 @@ public class HangingRootsBlock extends Block implements SimpleWaterloggedBlock {
+ 
+             return super.updateShape(state, direction, neighborState, world, pos, neighborPos);
+         }
++        }); // MCCLab - Add BlockBehaviour
+     }
+ }
+diff --git a/src/main/java/net/minecraft/world/level/block/HugeMushroomBlock.java b/src/main/java/net/minecraft/world/level/block/HugeMushroomBlock.java
+index 1dd44eb0ab977093660e8fe6f49338e7f5ef7b28..13f88c9dbe0d0af0b76595863dff21703998d7c1 100644
+--- a/src/main/java/net/minecraft/world/level/block/HugeMushroomBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/HugeMushroomBlock.java
+@@ -35,9 +35,11 @@ public class HugeMushroomBlock extends Block {
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         if (io.papermc.paper.configuration.GlobalConfiguration.get().blockUpdates.disableMushroomBlockUpdates) return state; // Paper - add option to disable block updates
+         return neighborState.is(this) ? state.setValue(PROPERTY_BY_DIRECTION.get(direction), Boolean.valueOf(false)) : super.updateShape(state, direction, neighborState, world, pos, neighborPos);
+-    }
++        }); // MCCLab - Add BlockBehaviour
++        }
+ 
+     @Override
+     public BlockState rotate(BlockState state, Rotation rotation) {
 diff --git a/src/main/java/net/minecraft/world/level/block/IceBlock.java b/src/main/java/net/minecraft/world/level/block/IceBlock.java
 index 04089e6f7d6e3d532b00585870283922b6be5246..cba69f8fe89406b03536806e179b46cb97fc1308 100644
 --- a/src/main/java/net/minecraft/world/level/block/IceBlock.java
@@ -1146,10 +1766,10 @@ index 04089e6f7d6e3d532b00585870283922b6be5246..cba69f8fe89406b03536806e179b46cb
              this.melt(state, world, pos);
          }
 diff --git a/src/main/java/net/minecraft/world/level/block/LadderBlock.java b/src/main/java/net/minecraft/world/level/block/LadderBlock.java
-index 6bcc83245e8046518921b82d948d45900ae0c8db..c7624727cfcb07002f85d015295db1a1ef0e42a8 100644
+index 6bcc83245e8046518921b82d948d45900ae0c8db..77a1e8da5465e19b9c4f650a4303c980618e1584 100644
 --- a/src/main/java/net/minecraft/world/level/block/LadderBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/LadderBlock.java
-@@ -54,9 +54,11 @@ public class LadderBlock extends Block implements SimpleWaterloggedBlock {
+@@ -54,12 +54,15 @@ public class LadderBlock extends Block implements SimpleWaterloggedBlock {
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
@@ -1162,8 +1782,20 @@ index 6bcc83245e8046518921b82d948d45900ae0c8db..c7624727cfcb07002f85d015295db1a1
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         if (direction.getOpposite() == state.getValue(FACING) && !state.canSurvive(world, pos)) {
+             return Blocks.AIR.defaultBlockState();
+         } else {
+@@ -69,6 +72,7 @@ public class LadderBlock extends Block implements SimpleWaterloggedBlock {
+ 
+             return super.updateShape(state, direction, neighborState, world, pos, neighborPos);
+         }
++        }); // MCCLab - Add BlockBehaviour
+     }
+ 
+     @Nullable
 diff --git a/src/main/java/net/minecraft/world/level/block/LanternBlock.java b/src/main/java/net/minecraft/world/level/block/LanternBlock.java
-index da143e1d162855e99e7c1bc8db55a8c217f3a3dc..8ace80a4c67dbf7e888006214444c5e970e1b011 100644
+index da143e1d162855e99e7c1bc8db55a8c217f3a3dc..4eed89beaa18f3933e8470a36a724e1a068fa2b9 100644
 --- a/src/main/java/net/minecraft/world/level/block/LanternBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/LanternBlock.java
 @@ -59,8 +59,10 @@ public class LanternBlock extends Block implements SimpleWaterloggedBlock {
@@ -1177,8 +1809,24 @@ index da143e1d162855e99e7c1bc8db55a8c217f3a3dc..8ace80a4c67dbf7e888006214444c5e9
      }
  
      protected static Direction getConnectedDirection(BlockState state) {
+@@ -69,12 +71,14 @@ public class LanternBlock extends Block implements SimpleWaterloggedBlock {
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         if (state.getValue(WATERLOGGED)) {
+             world.scheduleTick(pos, Fluids.WATER, Fluids.WATER.getTickDelay(world));
+         }
+ 
+         return getConnectedDirection(state).getOpposite() == direction && !state.canSurvive(world, pos) ? Blocks.AIR.defaultBlockState() : super.updateShape(state, direction, neighborState, world, pos, neighborPos);
+-    }
++        }); // MCCLab - Add BlockBehaviour
++        }
+ 
+     @Override
+     public FluidState getFluidState(BlockState state) {
 diff --git a/src/main/java/net/minecraft/world/level/block/LeavesBlock.java b/src/main/java/net/minecraft/world/level/block/LeavesBlock.java
-index ebee1dfdb1d75381de847834262a66b45fd9f0ce..675ab46fb914e79a66772a054963d1b62e6f4af1 100644
+index ebee1dfdb1d75381de847834262a66b45fd9f0ce..d87ea95580bc88cc5bd8c931a73d3ea6d16f5dfe 100644
 --- a/src/main/java/net/minecraft/world/level/block/LeavesBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/LeavesBlock.java
 @@ -50,6 +50,7 @@ public class LeavesBlock extends Block implements SimpleWaterloggedBlock {
@@ -1197,6 +1845,22 @@ index ebee1dfdb1d75381de847834262a66b45fd9f0ce..675ab46fb914e79a66772a054963d1b6
          world.setBlock(pos, LeavesBlock.updateDistance(state, world, pos), 3);
      }
  
+@@ -81,6 +83,7 @@ public class LeavesBlock extends Block implements SimpleWaterloggedBlock {
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         if ((Boolean) state.getValue(LeavesBlock.WATERLOGGED)) {
+             world.scheduleTick(pos, (Fluid) Fluids.WATER, Fluids.WATER.getTickDelay(world));
+         }
+@@ -92,6 +95,7 @@ public class LeavesBlock extends Block implements SimpleWaterloggedBlock {
+         }
+ 
+         return state;
++        }); // MCCLab - Add BlockBehaviour
+     }
+ 
+     private static BlockState updateDistance(BlockState state, LevelAccessor world, BlockPos pos) {
 diff --git a/src/main/java/net/minecraft/world/level/block/LecternBlock.java b/src/main/java/net/minecraft/world/level/block/LecternBlock.java
 index 2da67bd990b3f3762dfe089bf543cebac66378db..bb2d89a96a4befbaddb90b3c0b007fae72e1a347 100644
 --- a/src/main/java/net/minecraft/world/level/block/LecternBlock.java
@@ -1209,6 +1873,24 @@ index 2da67bd990b3f3762dfe089bf543cebac66378db..bb2d89a96a4befbaddb90b3c0b007fae
          LecternBlock.changePowered(world, pos, state, false);
      }
  
+diff --git a/src/main/java/net/minecraft/world/level/block/LightBlock.java b/src/main/java/net/minecraft/world/level/block/LightBlock.java
+index 6eec44c484763f877aece6d9676ffc166bc10395..d71ef3b211c6d322533f80b0b08c93b73342b64e 100644
+--- a/src/main/java/net/minecraft/world/level/block/LightBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/LightBlock.java
+@@ -76,11 +76,13 @@ public class LightBlock extends Block implements SimpleWaterloggedBlock {
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         if (state.getValue(WATERLOGGED)) {
+             world.scheduleTick(pos, Fluids.WATER, Fluids.WATER.getTickDelay(world));
+         }
+ 
+         return super.updateShape(state, direction, neighborState, world, pos, neighborPos);
++        }); // MCCLab - Add BlockBehaviour
+     }
+ 
+     @Override
 diff --git a/src/main/java/net/minecraft/world/level/block/LightningRodBlock.java b/src/main/java/net/minecraft/world/level/block/LightningRodBlock.java
 index da3b301a42a93c891d083a6e02d1be8ed35adf1d..f3fc3ca1d537d020870bfa0ab34ded977ce43ffb 100644
 --- a/src/main/java/net/minecraft/world/level/block/LightningRodBlock.java
@@ -1222,7 +1904,7 @@ index da3b301a42a93c891d083a6e02d1be8ed35adf1d..f3fc3ca1d537d020870bfa0ab34ded97
          this.updateNeighbours(state, world, pos);
      }
 diff --git a/src/main/java/net/minecraft/world/level/block/LiquidBlock.java b/src/main/java/net/minecraft/world/level/block/LiquidBlock.java
-index 4a1830f85f47014da63e4584f411d13f0f0cd8b3..b76645f5a7eb75e6a7f1f5e6f8d93a5e1f77895c 100644
+index 4a1830f85f47014da63e4584f411d13f0f0cd8b3..16b05ab57d5f42e7aaa23aff43b4989620d6e992 100644
 --- a/src/main/java/net/minecraft/world/level/block/LiquidBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/LiquidBlock.java
 @@ -65,6 +65,7 @@ public class LiquidBlock extends Block implements BucketPickup {
@@ -1233,8 +1915,22 @@ index 4a1830f85f47014da63e4584f411d13f0f0cd8b3..b76645f5a7eb75e6a7f1f5e6f8d93a5e
          state.getFluidState().randomTick(world, pos, random);
      }
  
+@@ -135,11 +136,13 @@ public class LiquidBlock extends Block implements BucketPickup {
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         if (state.getFluidState().isSource() || neighborState.getFluidState().isSource()) {
+             world.scheduleTick(pos, state.getFluidState().getType(), this.fluid.getTickDelay(world));
+         }
+ 
+         return super.updateShape(state, direction, neighborState, world, pos, neighborPos);
++        }); // MCCLab - Add BlockBehaviour
+     }
+ 
+     @Override
 diff --git a/src/main/java/net/minecraft/world/level/block/MagmaBlock.java b/src/main/java/net/minecraft/world/level/block/MagmaBlock.java
-index 1b766045687e4dcded5cbcc50b746c55b9a34e22..0769ff9b75a22a039868852e1bc8e1d31b476201 100644
+index 1b766045687e4dcded5cbcc50b746c55b9a34e22..525f2c8ea60775a9ef841455d7de8ecd590d5e91 100644
 --- a/src/main/java/net/minecraft/world/level/block/MagmaBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/MagmaBlock.java
 @@ -22,6 +22,7 @@ public class MagmaBlock extends Block {
@@ -1245,7 +1941,7 @@ index 1b766045687e4dcded5cbcc50b746c55b9a34e22..0769ff9b75a22a039868852e1bc8e1d3
          if (!entity.isSteppingCarefully() && entity instanceof LivingEntity && !EnchantmentHelper.hasFrostWalker((LivingEntity) entity)) {
              org.bukkit.craftbukkit.event.CraftEventFactory.blockDamage = world.getWorld().getBlockAt(pos.getX(), pos.getY(), pos.getZ()); // CraftBukkit
              entity.hurt(world.damageSources().hotFloor(), 1.0F);
-@@ -33,6 +34,7 @@ public class MagmaBlock extends Block {
+@@ -33,20 +34,24 @@ public class MagmaBlock extends Block {
  
      @Override
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
@@ -1253,7 +1949,17 @@ index 1b766045687e4dcded5cbcc50b746c55b9a34e22..0769ff9b75a22a039868852e1bc8e1d3
          BubbleColumnBlock.updateColumn(world, pos.above(), state);
      }
  
-@@ -48,5 +50,6 @@ public class MagmaBlock extends Block {
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         if (direction == Direction.UP && neighborState.is(Blocks.WATER)) {
+             world.scheduleTick(pos, (Block) this, 20);
+         }
+ 
+         return super.updateShape(state, direction, neighborState, world, pos, neighborPos);
++        }); // MCCLab - Add BlockBehaviour
+     }
+ 
      @Override
      public void onPlace(BlockState state, Level world, BlockPos pos, BlockState oldState, boolean notify) {
          world.scheduleTick(pos, (Block) this, 20);
@@ -1261,10 +1967,10 @@ index 1b766045687e4dcded5cbcc50b746c55b9a34e22..0769ff9b75a22a039868852e1bc8e1d3
      }
  }
 diff --git a/src/main/java/net/minecraft/world/level/block/MangrovePropaguleBlock.java b/src/main/java/net/minecraft/world/level/block/MangrovePropaguleBlock.java
-index cf240750aecc57d287efc986b471e66a860850ee..e564320478486314f1ff6697f1c20327e4a7dfcf 100644
+index cf240750aecc57d287efc986b471e66a860850ee..6c827bf6d4e47483f89b68857005740850a4814c 100644
 --- a/src/main/java/net/minecraft/world/level/block/MangrovePropaguleBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/MangrovePropaguleBlock.java
-@@ -69,8 +69,10 @@ public class MangrovePropaguleBlock extends SaplingBlock implements SimpleWaterl
+@@ -69,17 +69,21 @@ public class MangrovePropaguleBlock extends SaplingBlock implements SimpleWaterl
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
@@ -1276,7 +1982,19 @@ index cf240750aecc57d287efc986b471e66a860850ee..e564320478486314f1ff6697f1c20327
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-@@ -88,6 +90,7 @@ public class MangrovePropaguleBlock extends SaplingBlock implements SimpleWaterl
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         if (state.getValue(WATERLOGGED)) {
+             world.scheduleTick(pos, Fluids.WATER, Fluids.WATER.getTickDelay(world));
+         }
+ 
+         return direction == Direction.UP && !state.canSurvive(world, pos) ? Blocks.AIR.defaultBlockState() : super.updateShape(state, direction, neighborState, world, pos, neighborPos);
+-    }
++        }); // MCCLab - Add BlockBehaviour
++        }
+ 
+     @Override
+     public FluidState getFluidState(BlockState state) {
+@@ -88,6 +92,7 @@ public class MangrovePropaguleBlock extends SaplingBlock implements SimpleWaterl
  
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
@@ -1285,10 +2003,26 @@ index cf240750aecc57d287efc986b471e66a860850ee..e564320478486314f1ff6697f1c20327
              if (random.nextFloat() < (world.spigotConfig.saplingModifier / (100.0F * 7))) { // Paper
                  this.advanceTree(world, pos, state, random);
 diff --git a/src/main/java/net/minecraft/world/level/block/MultifaceBlock.java b/src/main/java/net/minecraft/world/level/block/MultifaceBlock.java
-index 51103a88432275b2e5d4351430fea022dbca34de..248a7449ffefb7b8a63079439467a9af131d97e2 100644
+index 51103a88432275b2e5d4351430fea022dbca34de..e130e6c4919c8784a3835b5ebec85e67fc6857d0 100644
 --- a/src/main/java/net/minecraft/world/level/block/MultifaceBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/MultifaceBlock.java
-@@ -128,6 +128,7 @@ public abstract class MultifaceBlock extends Block {
+@@ -114,12 +114,14 @@ public abstract class MultifaceBlock extends Block {
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         if (!hasAnyFace(state)) {
+             return Blocks.AIR.defaultBlockState();
+         } else {
+             return hasFace(state, direction) && !canAttachTo(world, direction, neighborPos, neighborState) ? removeFace(state, getFaceProperty(direction)) : state;
+         }
+-    }
++        }); // MCCLab - Add BlockBehaviour
++        }
+ 
+     @Override
+     public VoxelShape getShape(BlockState state, BlockGetter world, BlockPos pos, CollisionContext context) {
+@@ -128,6 +130,7 @@ public abstract class MultifaceBlock extends Block {
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
@@ -1296,7 +2030,7 @@ index 51103a88432275b2e5d4351430fea022dbca34de..248a7449ffefb7b8a63079439467a9af
          boolean bl = false;
  
          for(Direction direction : DIRECTIONS) {
-@@ -142,6 +143,7 @@ public abstract class MultifaceBlock extends Block {
+@@ -142,6 +145,7 @@ public abstract class MultifaceBlock extends Block {
          }
  
          return bl;
@@ -1332,7 +2066,7 @@ index 302c5a6401facf192677b89cc0e9190bb35b1229..747a2ec9a816b93783303f34cf23440f
      public boolean growMushroom(ServerLevel world, BlockPos pos, BlockState state, RandomSource random) {
          Optional<? extends Holder<ConfiguredFeature<?, ?>>> optional = world.registryAccess().registryOrThrow(Registries.CONFIGURED_FEATURE).getHolder(this.feature);
 diff --git a/src/main/java/net/minecraft/world/level/block/NetherPortalBlock.java b/src/main/java/net/minecraft/world/level/block/NetherPortalBlock.java
-index a6ab0d0defc05e56a91084c49897059670a1324b..33c14d1070d8bc9a0a7422847fe437f2db6b37ff 100644
+index a6ab0d0defc05e56a91084c49897059670a1324b..8cb1ef471fd262413cd036daa40db6261b373475 100644
 --- a/src/main/java/net/minecraft/world/level/block/NetherPortalBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/NetherPortalBlock.java
 @@ -52,6 +52,7 @@ public class NetherPortalBlock extends Block {
@@ -1343,6 +2077,22 @@ index a6ab0d0defc05e56a91084c49897059670a1324b..33c14d1070d8bc9a0a7422847fe437f2
          if (world.spigotConfig.enableZombiePigmenPortalSpawns && world.dimensionType().natural() && world.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING) && random.nextInt(2000) < world.getDifficulty().getId()) { // Spigot
              while (world.getBlockState(pos).is((Block) this)) {
                  pos = pos.below();
+@@ -73,12 +74,14 @@ public class NetherPortalBlock extends Block {
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         Direction.Axis enumdirection_enumaxis = direction.getAxis();
+         Direction.Axis enumdirection_enumaxis1 = (Direction.Axis) state.getValue(NetherPortalBlock.AXIS);
+         boolean flag = enumdirection_enumaxis1 != enumdirection_enumaxis && enumdirection_enumaxis.isHorizontal();
+ 
+         return !flag && !neighborState.is((Block) this) && !(new PortalShape(world, pos, enumdirection_enumaxis1)).isComplete() ? Blocks.AIR.defaultBlockState() : super.updateShape(state, direction, neighborState, world, pos, neighborPos);
+-    }
++        }); // MCCLab - Add BlockBehaviour
++        }
+ 
+     @Override
+     public void entityInside(BlockState state, Level world, BlockPos pos, Entity entity) {
 diff --git a/src/main/java/net/minecraft/world/level/block/NetherWartBlock.java b/src/main/java/net/minecraft/world/level/block/NetherWartBlock.java
 index e55720c4d2fbdf6aae526910e87a67c29cf906fd..3d0c1031ced4175df50acf336294296dc5b56d30 100644
 --- a/src/main/java/net/minecraft/world/level/block/NetherWartBlock.java
@@ -1355,6 +2105,25 @@ index e55720c4d2fbdf6aae526910e87a67c29cf906fd..3d0c1031ced4175df50acf336294296d
          int i = (Integer) state.getValue(NetherWartBlock.AGE);
  
          if (i < 3 && random.nextFloat() < (world.spigotConfig.wartModifier / (100.0f * 10))) { // Spigot - SPIGOT-7159: Better modifier resolution
+diff --git a/src/main/java/net/minecraft/world/level/block/NoteBlock.java b/src/main/java/net/minecraft/world/level/block/NoteBlock.java
+index e46d84750bdd7c940f400efda226e12a3fdc3848..4c3391b86f27f938db8941473301d306187f3e88 100644
+--- a/src/main/java/net/minecraft/world/level/block/NoteBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/NoteBlock.java
+@@ -64,11 +64,13 @@ public class NoteBlock extends Block {
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         if (io.papermc.paper.configuration.GlobalConfiguration.get().blockUpdates.disableNoteblockUpdates) return state; // Paper - prevent noteblock instrument from updating
+         boolean flag = direction.getAxis() == Direction.Axis.Y;
+ 
+         return flag ? this.setInstrument(world, pos, state) : super.updateShape(state, direction, neighborState, world, pos, neighborPos);
+-    }
++        }); // MCCLab - Add BlockBehaviour
++        }
+ 
+     @Override
+     public void neighborChanged(BlockState state, Level world, BlockPos pos, Block sourceBlock, BlockPos sourcePos, boolean notify) {
 diff --git a/src/main/java/net/minecraft/world/level/block/NyliumBlock.java b/src/main/java/net/minecraft/world/level/block/NyliumBlock.java
 index 47a3a9e0f0ba4f8a00828874e73d501d18f0ae1c..0e659a4c08b4722d6c186b031ae3c2611153e030 100644
 --- a/src/main/java/net/minecraft/world/level/block/NyliumBlock.java
@@ -1368,7 +2137,7 @@ index 47a3a9e0f0ba4f8a00828874e73d501d18f0ae1c..0e659a4c08b4722d6c186b031ae3c261
              // CraftBukkit start
              if (org.bukkit.craftbukkit.event.CraftEventFactory.callBlockFadeEvent(world, pos, Blocks.NETHERRACK.defaultBlockState()).isCancelled()) {
 diff --git a/src/main/java/net/minecraft/world/level/block/ObserverBlock.java b/src/main/java/net/minecraft/world/level/block/ObserverBlock.java
-index 7b45d6b9a005036ca5051d089a7be792eb87012f..4920485cf26809942b99184b25b2b395d321ca88 100644
+index 7b45d6b9a005036ca5051d089a7be792eb87012f..8dbd435b08bbdb6bf159b9703a8ebdc6dbfa8ff5 100644
 --- a/src/main/java/net/minecraft/world/level/block/ObserverBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/ObserverBlock.java
 @@ -41,6 +41,7 @@ public class ObserverBlock extends DirectionalBlock {
@@ -1379,11 +2148,36 @@ index 7b45d6b9a005036ca5051d089a7be792eb87012f..4920485cf26809942b99184b25b2b395
          if ((Boolean) state.getValue(ObserverBlock.POWERED)) {
              // CraftBukkit start
              if (CraftEventFactory.callRedstoneChange(world, pos, 15, 0).getNewCurrent() != 0) {
+@@ -63,11 +64,13 @@ public class ObserverBlock extends DirectionalBlock {
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         if (state.getValue(ObserverBlock.FACING) == direction && !(Boolean) state.getValue(ObserverBlock.POWERED)) {
+             this.startSignal(world, pos);
+         }
+ 
+         return super.updateShape(state, direction, neighborState, world, pos, neighborPos);
++        }); // MCCLab - Add BlockBehaviour
+     }
+ 
+     private void startSignal(LevelAccessor world, BlockPos pos) {
 diff --git a/src/main/java/net/minecraft/world/level/block/PitcherCropBlock.java b/src/main/java/net/minecraft/world/level/block/PitcherCropBlock.java
-index 1641453fd17938bc8fcdba7f89a0515ebeef20c5..02adcac014d41fab53ca47bcdd20b8028d31e8b7 100644
+index 1641453fd17938bc8fcdba7f89a0515ebeef20c5..1b0aafa82431c50ace3051c08a202e13347776bc 100644
 --- a/src/main/java/net/minecraft/world/level/block/PitcherCropBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/PitcherCropBlock.java
-@@ -71,8 +71,10 @@ public class PitcherCropBlock extends DoublePlantBlock implements BonemealableBl
+@@ -62,17 +62,21 @@ public class PitcherCropBlock extends DoublePlantBlock implements BonemealableBl
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         if (isDouble(state.getValue(AGE))) {
+             return super.updateShape(state, direction, neighborState, world, pos, neighborPos);
+         } else {
+             return state.canSurvive(world, pos) ? state : Blocks.AIR.defaultBlockState();
+         }
++        }); // MCCLab - Add BlockBehaviour
+     }
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
@@ -1395,7 +2189,7 @@ index 1641453fd17938bc8fcdba7f89a0515ebeef20c5..02adcac014d41fab53ca47bcdd20b802
  
      @Override
      protected boolean mayPlaceOn(BlockState floor, BlockGetter world, BlockPos pos) {
-@@ -111,6 +113,7 @@ public class PitcherCropBlock extends DoublePlantBlock implements BonemealableBl
+@@ -111,6 +115,7 @@ public class PitcherCropBlock extends DoublePlantBlock implements BonemealableBl
  
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
@@ -1404,10 +2198,10 @@ index 1641453fd17938bc8fcdba7f89a0515ebeef20c5..02adcac014d41fab53ca47bcdd20b802
          boolean bl = random.nextFloat() < (world.spigotConfig.pitcherPlantModifier / (100.0F * (Math.floor(25.0F / f) + 1))); // Paper
          if (bl) {
 diff --git a/src/main/java/net/minecraft/world/level/block/PointedDripstoneBlock.java b/src/main/java/net/minecraft/world/level/block/PointedDripstoneBlock.java
-index cd943997f11f5ea5c600fdc6db96043fb0fa713c..d987a5e53aa30eab1fe1607040ea7cba5a7b28e1 100644
+index cd943997f11f5ea5c600fdc6db96043fb0fa713c..aef0a5db072b6ffa2f7616621302048319929d86 100644
 --- a/src/main/java/net/minecraft/world/level/block/PointedDripstoneBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/PointedDripstoneBlock.java
-@@ -90,8 +90,10 @@ public class PointedDripstoneBlock extends Block implements Fallable, SimpleWate
+@@ -90,11 +90,14 @@ public class PointedDripstoneBlock extends Block implements Fallable, SimpleWate
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
@@ -1419,7 +2213,19 @@ index cd943997f11f5ea5c600fdc6db96043fb0fa713c..d987a5e53aa30eab1fe1607040ea7cba
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-@@ -167,6 +169,7 @@ public class PointedDripstoneBlock extends Block implements Fallable, SimpleWate
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         if ((Boolean) state.getValue(PointedDripstoneBlock.WATERLOGGED)) {
+             world.scheduleTick(pos, (Fluid) Fluids.WATER, Fluids.WATER.getTickDelay(world));
+         }
+@@ -121,6 +124,7 @@ public class PointedDripstoneBlock extends Block implements Fallable, SimpleWate
+                 return (BlockState) state.setValue(PointedDripstoneBlock.THICKNESS, dripstonethickness);
+             }
+         }
++        }); // MCCLab - Add BlockBehaviour
+     }
+ 
+     @Override
+@@ -167,6 +171,7 @@ public class PointedDripstoneBlock extends Block implements Fallable, SimpleWate
  
      @Override
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
@@ -1427,7 +2233,7 @@ index cd943997f11f5ea5c600fdc6db96043fb0fa713c..d987a5e53aa30eab1fe1607040ea7cba
          if (PointedDripstoneBlock.isStalagmite(state) && !this.canSurvive(state, world, pos)) {
              world.destroyBlock(pos, true);
          } else {
-@@ -177,6 +180,7 @@ public class PointedDripstoneBlock extends Block implements Fallable, SimpleWate
+@@ -177,6 +182,7 @@ public class PointedDripstoneBlock extends Block implements Fallable, SimpleWate
  
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
@@ -1456,10 +2262,26 @@ index 06760ff3d20bcfdc30f3f3ee65bc2a0d12d28aff..297ef7a8106c57d8854954ce652a33dd
              // CraftBukkit start
              if (CraftEventFactory.callBlockFadeEvent(world, pos, state.setValue(RedStoneOreBlock.LIT, false)).isCancelled()) {
 diff --git a/src/main/java/net/minecraft/world/level/block/RedStoneWireBlock.java b/src/main/java/net/minecraft/world/level/block/RedStoneWireBlock.java
-index 2b054439b7a763d5a3fbb5dbfe197cb9a9a3525c..d420036af50eb638561193afd623dd4f397a60c5 100644
+index 2b054439b7a763d5a3fbb5dbfe197cb9a9a3525c..6c55620585e19c738ba0cf3d63b9bafaebcb721d 100644
 --- a/src/main/java/net/minecraft/world/level/block/RedStoneWireBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/RedStoneWireBlock.java
-@@ -242,10 +242,12 @@ public class RedStoneWireBlock extends Block {
+@@ -166,6 +166,7 @@ public class RedStoneWireBlock extends Block {
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         if (direction == Direction.DOWN) {
+             return !this.canSurviveOn(world, neighborPos, neighborState) ? Blocks.AIR.defaultBlockState() : state;
+         } else if (direction == Direction.UP) {
+@@ -175,6 +176,7 @@ public class RedStoneWireBlock extends Block {
+ 
+             return blockpropertyredstoneside.isConnected() == ((RedstoneSide) state.getValue((Property) RedStoneWireBlock.PROPERTY_BY_DIRECTION.get(direction))).isConnected() && !RedStoneWireBlock.isCross(state) ? (BlockState) state.setValue((Property) RedStoneWireBlock.PROPERTY_BY_DIRECTION.get(direction), blockpropertyredstoneside) : this.getConnectionState(world, (BlockState) ((BlockState) this.crossState.setValue(RedStoneWireBlock.POWER, (Integer) state.getValue(RedStoneWireBlock.POWER))).setValue((Property) RedStoneWireBlock.PROPERTY_BY_DIRECTION.get(direction), blockpropertyredstoneside), pos);
+         }
++        }); // MCCLab - Add BlockBehaviour
+     }
+ 
+     private static boolean isCross(BlockState state) {
+@@ -242,10 +244,12 @@ public class RedStoneWireBlock extends Block {
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
@@ -1497,10 +2319,10 @@ index c91535f6c0bbc870fad7e04b9d341783cfcbbd63..ad05ae1e850130c2ca5567b9091735ee
          // Paper start
          java.util.ArrayDeque<RedstoneTorchBlock.Toggle> redstoneUpdateInfos = world.redstoneUpdateInfos;
 diff --git a/src/main/java/net/minecraft/world/level/block/RedstoneWallTorchBlock.java b/src/main/java/net/minecraft/world/level/block/RedstoneWallTorchBlock.java
-index e5a4525ae64454ec1400de1e4e7945b2caa675f8..96ecea1a9fe47467bcf97ecd261870c90da56b09 100644
+index e5a4525ae64454ec1400de1e4e7945b2caa675f8..d57938d5836210e0d490185ba14a437fee8c5190 100644
 --- a/src/main/java/net/minecraft/world/level/block/RedstoneWallTorchBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/RedstoneWallTorchBlock.java
-@@ -38,7 +38,9 @@ public class RedstoneWallTorchBlock extends RedstoneTorchBlock {
+@@ -38,13 +38,17 @@ public class RedstoneWallTorchBlock extends RedstoneTorchBlock {
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
@@ -1509,6 +2331,15 @@ index e5a4525ae64454ec1400de1e4e7945b2caa675f8..96ecea1a9fe47467bcf97ecd261870c9
 +        });
      }
  
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         return Blocks.WALL_TORCH.updateShape(state, direction, neighborState, world, pos, neighborPos);
+-    }
++        }); // MCCLab - Add BlockBehaviour
++        }
+ 
+     @Nullable
      @Override
 diff --git a/src/main/java/net/minecraft/world/level/block/SaplingBlock.java b/src/main/java/net/minecraft/world/level/block/SaplingBlock.java
 index 53ac4e618fec3fe384d8a106c521f3eace0b5b35..395791ee65b091d9f3dadf860fc4fa7220bee9be 100644
@@ -1527,10 +2358,23 @@ index 53ac4e618fec3fe384d8a106c521f3eace0b5b35..395791ee65b091d9f3dadf860fc4fa72
  
      public void advanceTree(ServerLevel world, BlockPos pos, net.minecraft.world.level.block.state.BlockState state, RandomSource random) {
 diff --git a/src/main/java/net/minecraft/world/level/block/ScaffoldingBlock.java b/src/main/java/net/minecraft/world/level/block/ScaffoldingBlock.java
-index e9358522e526505d5c200e19b193bbcf5ee10826..cae7df90683600a9a3fcc6449a3a8bc07f4402a0 100644
+index e9358522e526505d5c200e19b193bbcf5ee10826..7b4d78235f81614f7293f0916a8f54c98bd52bc3 100644
 --- a/src/main/java/net/minecraft/world/level/block/ScaffoldingBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/ScaffoldingBlock.java
-@@ -93,6 +93,7 @@ public class ScaffoldingBlock extends Block implements SimpleWaterloggedBlock {
+@@ -80,6 +80,7 @@ public class ScaffoldingBlock extends Block implements SimpleWaterloggedBlock {
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         if ((Boolean) state.getValue(ScaffoldingBlock.WATERLOGGED)) {
+             world.scheduleTick(pos, (Fluid) Fluids.WATER, Fluids.WATER.getTickDelay(world));
+         }
+@@ -89,10 +90,12 @@ public class ScaffoldingBlock extends Block implements SimpleWaterloggedBlock {
+         }
+ 
+         return state;
++        }); // MCCLab - Add BlockBehaviour
+     }
  
      @Override
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
@@ -1538,7 +2382,7 @@ index e9358522e526505d5c200e19b193bbcf5ee10826..cae7df90683600a9a3fcc6449a3a8bc0
          int i = ScaffoldingBlock.getDistance(world, pos);
          BlockState iblockdata1 = (BlockState) ((BlockState) state.setValue(ScaffoldingBlock.DISTANCE, i)).setValue(ScaffoldingBlock.BOTTOM, this.isBottom(world, pos, i));
  
-@@ -110,7 +111,9 @@ public class ScaffoldingBlock extends Block implements SimpleWaterloggedBlock {
+@@ -110,7 +113,9 @@ public class ScaffoldingBlock extends Block implements SimpleWaterloggedBlock {
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
@@ -1561,7 +2405,7 @@ index 031398e6afeec4c9db64a25fc0f55e5a5baa0990..561fb39a43beb6c29ae6f472c27f8511
              world.setBlock(pos, (BlockState) state.setValue(SculkCatalystBlock.PULSE, false), 3);
          }
 diff --git a/src/main/java/net/minecraft/world/level/block/SculkSensorBlock.java b/src/main/java/net/minecraft/world/level/block/SculkSensorBlock.java
-index 2ccbf171089ed4d166428445fdfdf1262c1dd65d..90b990a0744ed03606d5b4721b22dc4d975230bd 100644
+index 2ccbf171089ed4d166428445fdfdf1262c1dd65d..dc042c134dcd92873c4d190f6aad2837c0020c2c 100644
 --- a/src/main/java/net/minecraft/world/level/block/SculkSensorBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/SculkSensorBlock.java
 @@ -83,6 +83,7 @@ public class SculkSensorBlock extends BaseEntityBlock implements SimpleWaterlogg
@@ -1580,8 +2424,22 @@ index 2ccbf171089ed4d166428445fdfdf1262c1dd65d..90b990a0744ed03606d5b4721b22dc4d
          if (!world.isClientSide() && SculkSensorBlock.canActivate(state) && entity.getType() != EntityType.WARDEN) {
              // CraftBukkit start
              org.bukkit.event.Cancellable cancellable;
+@@ -152,11 +154,13 @@ public class SculkSensorBlock extends BaseEntityBlock implements SimpleWaterlogg
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         if ((Boolean) state.getValue(SculkSensorBlock.WATERLOGGED)) {
+             world.scheduleTick(pos, (Fluid) Fluids.WATER, Fluids.WATER.getTickDelay(world));
+         }
+ 
+         return super.updateShape(state, direction, neighborState, world, pos, neighborPos);
++        }); // MCCLab - Add BlockBehaviour
+     }
+ 
+     private static void updateNeighbours(Level world, BlockPos pos, BlockState state) {
 diff --git a/src/main/java/net/minecraft/world/level/block/SculkShriekerBlock.java b/src/main/java/net/minecraft/world/level/block/SculkShriekerBlock.java
-index 02d01eabb9606ae8c3b76ad9fa4bb9a525e247b1..885dde2f6829f49793384aef6fa5a1d18b58f8f8 100644
+index 02d01eabb9606ae8c3b76ad9fa4bb9a525e247b1..97a62a66165fadbc2a3b64748dac3d84c3d7948b 100644
 --- a/src/main/java/net/minecraft/world/level/block/SculkShriekerBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/SculkShriekerBlock.java
 @@ -51,6 +51,7 @@ public class SculkShriekerBlock extends BaseEntityBlock implements SimpleWaterlo
@@ -1600,11 +2458,43 @@ index 02d01eabb9606ae8c3b76ad9fa4bb9a525e247b1..885dde2f6829f49793384aef6fa5a1d1
          if ((Boolean) state.getValue(SculkShriekerBlock.SHRIEKING)) {
              world.setBlock(pos, (BlockState) state.setValue(SculkShriekerBlock.SHRIEKING, false), 3);
              world.getBlockEntity(pos, BlockEntityType.SCULK_SHRIEKER).ifPresent((sculkshriekerblockentity) -> {
+@@ -120,11 +122,13 @@ public class SculkShriekerBlock extends BaseEntityBlock implements SimpleWaterlo
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         if ((Boolean) state.getValue(SculkShriekerBlock.WATERLOGGED)) {
+             world.scheduleTick(pos, (Fluid) Fluids.WATER, Fluids.WATER.getTickDelay(world));
+         }
+ 
+         return super.updateShape(state, direction, neighborState, world, pos, neighborPos);
++        }); // MCCLab - Add BlockBehaviour
+     }
+ 
+     @Nullable
+diff --git a/src/main/java/net/minecraft/world/level/block/SculkVeinBlock.java b/src/main/java/net/minecraft/world/level/block/SculkVeinBlock.java
+index 6142ea7b5d46a30b1a923a54410ca9de7cceb2bb..5971701f3780fc30c9f4848e5a079ccad77ea898 100644
+--- a/src/main/java/net/minecraft/world/level/block/SculkVeinBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/SculkVeinBlock.java
+@@ -174,11 +174,13 @@ public class SculkVeinBlock extends MultifaceBlock implements SculkBehaviour, Si
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         if ((Boolean) state.getValue(SculkVeinBlock.WATERLOGGED)) {
+             world.scheduleTick(pos, (Fluid) Fluids.WATER, Fluids.WATER.getTickDelay(world));
+         }
+ 
+         return super.updateShape(state, direction, neighborState, world, pos, neighborPos);
++        }); // MCCLab - Add BlockBehaviour
+     }
+ 
+     @Override
 diff --git a/src/main/java/net/minecraft/world/level/block/SeaPickleBlock.java b/src/main/java/net/minecraft/world/level/block/SeaPickleBlock.java
-index 51c464065e506df3ad16d4118b619fed8cf1b303..6afdd2987b154d97a97cf1e6e7b26066555f1137 100644
+index 51c464065e506df3ad16d4118b619fed8cf1b303..188c066fe82e8453a431fa217a06c5ead04e9049 100644
 --- a/src/main/java/net/minecraft/world/level/block/SeaPickleBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/SeaPickleBlock.java
-@@ -61,8 +61,10 @@ public class SeaPickleBlock extends BushBlock implements BonemealableBlock, Simp
+@@ -61,12 +61,15 @@ public class SeaPickleBlock extends BushBlock implements BonemealableBlock, Simp
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
@@ -1615,8 +2505,39 @@ index 51c464065e506df3ad16d4118b619fed8cf1b303..6afdd2987b154d97a97cf1e6e7b26066
      }
  
      @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         if (!state.canSurvive(world, pos)) {
+             return Blocks.AIR.defaultBlockState();
+         } else {
+@@ -76,6 +79,7 @@ public class SeaPickleBlock extends BushBlock implements BonemealableBlock, Simp
+ 
+             return super.updateShape(state, direction, neighborState, world, pos, neighborPos);
+         }
++        }); // MCCLab - Add BlockBehaviour
+     }
+ 
+     @Override
+diff --git a/src/main/java/net/minecraft/world/level/block/SignBlock.java b/src/main/java/net/minecraft/world/level/block/SignBlock.java
+index 614777d15bcf4141a89d0a0f7bd880526c668ffd..a05bbf320ee9ad57d5d20f54eb9cc9328a19c824 100644
+--- a/src/main/java/net/minecraft/world/level/block/SignBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/SignBlock.java
+@@ -52,11 +52,13 @@ public abstract class SignBlock extends BaseEntityBlock implements SimpleWaterlo
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         if ((Boolean) state.getValue(SignBlock.WATERLOGGED)) {
+             world.scheduleTick(pos, (Fluid) Fluids.WATER, Fluids.WATER.getTickDelay(world));
+         }
+ 
+         return super.updateShape(state, direction, neighborState, world, pos, neighborPos);
++        }); // MCCLab - Add BlockBehaviour
+     }
+ 
+     @Override
 diff --git a/src/main/java/net/minecraft/world/level/block/SmallDripleafBlock.java b/src/main/java/net/minecraft/world/level/block/SmallDripleafBlock.java
-index ff1121e12e4d74a0c23dca4ee9d741e6d4d7d305..141b75cdecca9ecf0431c89efd43b54f7ddc606d 100644
+index ff1121e12e4d74a0c23dca4ee9d741e6d4d7d305..9e4a9565c6999e29963df1a1f642ad1795006733 100644
 --- a/src/main/java/net/minecraft/world/level/block/SmallDripleafBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/SmallDripleafBlock.java
 @@ -70,6 +70,7 @@ public class SmallDripleafBlock extends DoublePlantBlock implements Bonemealable
@@ -1627,11 +2548,22 @@ index ff1121e12e4d74a0c23dca4ee9d741e6d4d7d305..141b75cdecca9ecf0431c89efd43b54f
          if (state.getValue(HALF) == DoubleBlockHalf.UPPER) {
              return super.canSurvive(state, world, pos);
          } else {
-@@ -77,6 +78,7 @@ public class SmallDripleafBlock extends DoublePlantBlock implements Bonemealable
+@@ -77,15 +78,18 @@ public class SmallDripleafBlock extends DoublePlantBlock implements Bonemealable
              BlockState blockState = world.getBlockState(blockPos);
              return this.mayPlaceOn(blockState, world, blockPos);
          }
 +        });
+     }
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         if (state.getValue(WATERLOGGED)) {
+             world.scheduleTick(pos, Fluids.WATER, Fluids.WATER.getTickDelay(world));
+         }
+ 
+         return super.updateShape(state, direction, neighborState, world, pos, neighborPos);
++        }); // MCCLab - Add BlockBehaviour
      }
  
      @Override
@@ -1648,10 +2580,10 @@ index 16c5be04658a66ff94f2aad8782e34f450e9a729..cb063f9ba707a3c28068bf8f734a940b
              // Paper start
              if (!org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockGrowEvent(world, pos, state.setValue(HATCH, Integer.valueOf(this.getHatchLevel(state) + 1)), 2)) {
 diff --git a/src/main/java/net/minecraft/world/level/block/SnowLayerBlock.java b/src/main/java/net/minecraft/world/level/block/SnowLayerBlock.java
-index 14e00c7feb1c051d56a3d27cd00dcef072dd771a..20a5054f8d4061a51eef3a561191926e99681e61 100644
+index 14e00c7feb1c051d56a3d27cd00dcef072dd771a..f4fd6d44306bc9dd126fe4554a472f67df135014 100644
 --- a/src/main/java/net/minecraft/world/level/block/SnowLayerBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/SnowLayerBlock.java
-@@ -79,10 +79,12 @@ public class SnowLayerBlock extends Block {
+@@ -79,18 +79,23 @@ public class SnowLayerBlock extends Block {
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
@@ -1665,7 +2597,11 @@ index 14e00c7feb1c051d56a3d27cd00dcef072dd771a..20a5054f8d4061a51eef3a561191926e
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-@@ -91,6 +93,7 @@ public class SnowLayerBlock extends Block {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         return !state.canSurvive(world, pos) ? Blocks.AIR.defaultBlockState() : super.updateShape(state, direction, neighborState, world, pos, neighborPos);
+-    }
++        }); // MCCLab - Add BlockBehaviour
++        }
  
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
@@ -1674,10 +2610,18 @@ index 14e00c7feb1c051d56a3d27cd00dcef072dd771a..20a5054f8d4061a51eef3a561191926e
              // CraftBukkit start
              if (org.bukkit.craftbukkit.event.CraftEventFactory.callBlockFadeEvent(world, pos, Blocks.AIR.defaultBlockState()).isCancelled()) {
 diff --git a/src/main/java/net/minecraft/world/level/block/SoulFireBlock.java b/src/main/java/net/minecraft/world/level/block/SoulFireBlock.java
-index 853890258cbe12221b588ff37a3a28fdf3f55520..9a9df5945d725c9f781af8bcb81296e27c9fdcce 100644
+index 853890258cbe12221b588ff37a3a28fdf3f55520..235218bc7110c953ad769dbab09a944186e3a92b 100644
 --- a/src/main/java/net/minecraft/world/level/block/SoulFireBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/SoulFireBlock.java
-@@ -20,7 +20,9 @@ public class SoulFireBlock extends BaseFireBlock {
+@@ -15,12 +15,16 @@ public class SoulFireBlock extends BaseFireBlock {
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         return this.canSurvive(state, world, pos) ? this.defaultBlockState() : Blocks.AIR.defaultBlockState();
+-    }
++        }); // MCCLab - Add BlockBehaviour
++        }
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
@@ -1688,10 +2632,10 @@ index 853890258cbe12221b588ff37a3a28fdf3f55520..9a9df5945d725c9f781af8bcb81296e2
  
      public static boolean canSurviveOnBlock(BlockState state) {
 diff --git a/src/main/java/net/minecraft/world/level/block/SporeBlossomBlock.java b/src/main/java/net/minecraft/world/level/block/SporeBlossomBlock.java
-index 46fffca9563f7d665df54a3d9cabed1dda67ee6e..861e4bd825b00dd9da50c557ae0fc273c7e1a29e 100644
+index 46fffca9563f7d665df54a3d9cabed1dda67ee6e..7c764d53a66e113c6b0e0fb3836f0164bace6ea3 100644
 --- a/src/main/java/net/minecraft/world/level/block/SporeBlossomBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/SporeBlossomBlock.java
-@@ -26,7 +26,9 @@ public class SporeBlossomBlock extends Block {
+@@ -26,13 +26,17 @@ public class SporeBlossomBlock extends Block {
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
@@ -1701,6 +2645,15 @@ index 46fffca9563f7d665df54a3d9cabed1dda67ee6e..861e4bd825b00dd9da50c557ae0fc273
      }
  
      @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         return direction == Direction.UP && !this.canSurvive(state, world, pos) ? Blocks.AIR.defaultBlockState() : super.updateShape(state, direction, neighborState, world, pos, neighborPos);
+-    }
++        }); // MCCLab - Add BlockBehaviour
++        }
+ 
+     @Override
+     public void animateTick(BlockState state, Level world, BlockPos pos, RandomSource random) {
 diff --git a/src/main/java/net/minecraft/world/level/block/SpreadingSnowyDirtBlock.java b/src/main/java/net/minecraft/world/level/block/SpreadingSnowyDirtBlock.java
 index 9bbb9f8e917288bb0d11661a1399a05631ebcce0..2a6a34f6078f6556db62a2dc1f3b2d872fa72ae1 100644
 --- a/src/main/java/net/minecraft/world/level/block/SpreadingSnowyDirtBlock.java
@@ -1714,7 +2667,7 @@ index 9bbb9f8e917288bb0d11661a1399a05631ebcce0..2a6a34f6078f6556db62a2dc1f3b2d87
          // Paper start
          net.minecraft.world.level.chunk.ChunkAccess cachedBlockChunk = world.getChunkIfLoaded(pos);
 diff --git a/src/main/java/net/minecraft/world/level/block/StairBlock.java b/src/main/java/net/minecraft/world/level/block/StairBlock.java
-index 827713a332baa6d280cd61d40faf8f6243b3b08c..6b30dddada3fa9a56eb297cc93e9b4c020f428bf 100644
+index 827713a332baa6d280cd61d40faf8f6243b3b08c..d8d46ec89b1ea8c4fc75ab3e10ea4ec8ef3aca11 100644
 --- a/src/main/java/net/minecraft/world/level/block/StairBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/StairBlock.java
 @@ -139,6 +139,7 @@ public class StairBlock extends Block implements SimpleWaterloggedBlock {
@@ -1739,8 +2692,24 @@ index 827713a332baa6d280cd61d40faf8f6243b3b08c..6b30dddada3fa9a56eb297cc93e9b4c0
          this.base.tick(state, world, pos, random);
      }
  
+@@ -178,12 +181,14 @@ public class StairBlock extends Block implements SimpleWaterloggedBlock {
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         if (state.getValue(WATERLOGGED)) {
+             world.scheduleTick(pos, Fluids.WATER, Fluids.WATER.getTickDelay(world));
+         }
+ 
+         return direction.getAxis().isHorizontal() ? state.setValue(SHAPE, getStairsShape(state, world, pos)) : super.updateShape(state, direction, neighborState, world, pos, neighborPos);
+-    }
++        }); // MCCLab - Add BlockBehaviour
++        }
+ 
+     private static StairsShape getStairsShape(BlockState state, BlockGetter world, BlockPos pos) {
+         Direction direction = state.getValue(FACING);
 diff --git a/src/main/java/net/minecraft/world/level/block/StandingSignBlock.java b/src/main/java/net/minecraft/world/level/block/StandingSignBlock.java
-index 51dc1a0e572c7a1bdef99d7cf69ebe699702cc49..1b6d21db5b910a8a9f2e5ce96e20a5ccbf7263e2 100644
+index 51dc1a0e572c7a1bdef99d7cf69ebe699702cc49..34cf84adc58559f0f559ec1ed468c459a31bdd36 100644
 --- a/src/main/java/net/minecraft/world/level/block/StandingSignBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/StandingSignBlock.java
 @@ -25,7 +25,9 @@ public class StandingSignBlock extends SignBlock {
@@ -1753,6 +2722,18 @@ index 51dc1a0e572c7a1bdef99d7cf69ebe699702cc49..1b6d21db5b910a8a9f2e5ce96e20a5cc
      }
  
      @Override
+@@ -36,8 +38,10 @@ public class StandingSignBlock extends SignBlock {
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         return direction == Direction.DOWN && !this.canSurvive(state, world, pos) ? Blocks.AIR.defaultBlockState() : super.updateShape(state, direction, neighborState, world, pos, neighborPos);
+-    }
++        }); // MCCLab - Add BlockBehaviour
++        }
+ 
+     @Override
+     public float getYRotationDegrees(BlockState state) {
 diff --git a/src/main/java/net/minecraft/world/level/block/StemBlock.java b/src/main/java/net/minecraft/world/level/block/StemBlock.java
 index 0d9be3b28ba4957c3f4da5455283fca903836c91..3b8eaf9ebcb0aef1ea5dc1ffe092a0bbca37212c 100644
 --- a/src/main/java/net/minecraft/world/level/block/StemBlock.java
@@ -1766,7 +2747,7 @@ index 0d9be3b28ba4957c3f4da5455283fca903836c91..3b8eaf9ebcb0aef1ea5dc1ffe092a0bb
              float f = CropBlock.getGrowthSpeed(this, world, pos);
  
 diff --git a/src/main/java/net/minecraft/world/level/block/SugarCaneBlock.java b/src/main/java/net/minecraft/world/level/block/SugarCaneBlock.java
-index c3f500580d257e1397f2eb7c47b063a6fe6bb405..4eaac803681bb044efb409545b469e07d10615bd 100644
+index c3f500580d257e1397f2eb7c47b063a6fe6bb405..4e442b77a2c69283f7332b554b84b55f9c47693d 100644
 --- a/src/main/java/net/minecraft/world/level/block/SugarCaneBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/SugarCaneBlock.java
 @@ -37,6 +37,7 @@ public class SugarCaneBlock extends Block {
@@ -1785,7 +2766,19 @@ index c3f500580d257e1397f2eb7c47b063a6fe6bb405..4eaac803681bb044efb409545b469e07
          if (world.isEmptyBlock(pos.above())) {
              int i;
  
-@@ -78,28 +80,30 @@ public class SugarCaneBlock extends Block {
+@@ -69,37 +71,41 @@ public class SugarCaneBlock extends Block {
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         if (!state.canSurvive(world, pos)) {
+             world.scheduleTick(pos, (Block) this, 1);
+         }
+ 
+         return super.updateShape(state, direction, neighborState, world, pos, neighborPos);
+-    }
++        }); // MCCLab - Add BlockBehaviour
++        }
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
@@ -1880,10 +2873,18 @@ index 69eaf1341d282c4783dab84533ea2c053deed529..590160bb7b1b7263a264ac226d635153
              world.setBlock(pos, state.setValue(OUTPUT_POWER, Integer.valueOf(0)), 3);
          }
 diff --git a/src/main/java/net/minecraft/world/level/block/TorchBlock.java b/src/main/java/net/minecraft/world/level/block/TorchBlock.java
-index 6f85a193e7661cfa61ad169aae1477bc07c9a9ff..eff5ff8b79b5d561da693c05ed0ac1bff77048be 100644
+index 6f85a193e7661cfa61ad169aae1477bc07c9a9ff..e90036f3ddc65aa2acdd4d9fc0e3c9cfd47ec6c0 100644
 --- a/src/main/java/net/minecraft/world/level/block/TorchBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/TorchBlock.java
-@@ -36,7 +36,9 @@ public class TorchBlock extends Block {
+@@ -31,12 +31,16 @@ public class TorchBlock extends Block {
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         return direction == Direction.DOWN && !this.canSurvive(state, world, pos) ? Blocks.AIR.defaultBlockState() : super.updateShape(state, direction, neighborState, world, pos, neighborPos);
+-    }
++        }); // MCCLab - Add BlockBehaviour
++        }
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
@@ -1905,11 +2906,41 @@ index 092759184adbf27ce942a148169e60d3a28c2cc7..a073c21273353e68090485e1dffe0438
          if (random.nextInt(3) != 0) {
              super.randomTick(state, world, pos, random);
          }
+diff --git a/src/main/java/net/minecraft/world/level/block/TrapDoorBlock.java b/src/main/java/net/minecraft/world/level/block/TrapDoorBlock.java
+index b9e3c9cd709d42bced85436720ccc7b9c7e49552..a6a97dc4a6bfd1f2324151fb72b50d5127bb8cad 100644
+--- a/src/main/java/net/minecraft/world/level/block/TrapDoorBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/TrapDoorBlock.java
+@@ -188,10 +188,12 @@ public class TrapDoorBlock extends HorizontalDirectionalBlock implements SimpleW
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         if ((Boolean) state.getValue(TrapDoorBlock.WATERLOGGED)) {
+             world.scheduleTick(pos, (Fluid) Fluids.WATER, Fluids.WATER.getTickDelay(world));
+         }
+ 
+         return super.updateShape(state, direction, neighborState, world, pos, neighborPos);
++        }); // MCCLab - Add BlockBehaviour
+     }
+ }
 diff --git a/src/main/java/net/minecraft/world/level/block/TripWireBlock.java b/src/main/java/net/minecraft/world/level/block/TripWireBlock.java
-index cb2ff8d94308c637a498d2737f86f6af4c9c1b83..5bd62b113965e494d9824a62a6196ce0e992d5fe 100644
+index cb2ff8d94308c637a498d2737f86f6af4c9c1b83..2e867bd28e7c66ade2358810aceb12798e051ef2 100644
 --- a/src/main/java/net/minecraft/world/level/block/TripWireBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/TripWireBlock.java
-@@ -144,6 +144,7 @@ public class TripWireBlock extends Block {
+@@ -62,9 +62,11 @@ public class TripWireBlock extends Block {
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         if (io.papermc.paper.configuration.GlobalConfiguration.get().blockUpdates.disableTripwireUpdates) return state; // Paper - prevent tripwire from updating
+         return direction.getAxis().isHorizontal() ? (BlockState) state.setValue((Property) TripWireBlock.PROPERTY_BY_DIRECTION.get(direction), this.shouldConnectTo(neighborState, direction)) : super.updateShape(state, direction, neighborState, world, pos, neighborPos);
+-    }
++        }); // MCCLab - Add BlockBehaviour
++        }
+ 
+     @Override
+     public void onPlace(BlockState state, Level world, BlockPos pos, BlockState oldState, boolean notify) {
+@@ -144,6 +146,7 @@ public class TripWireBlock extends Block {
  
      @Override
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
@@ -1918,10 +2949,10 @@ index cb2ff8d94308c637a498d2737f86f6af4c9c1b83..5bd62b113965e494d9824a62a6196ce0
          if ((Boolean) world.getBlockState(pos).getValue(TripWireBlock.POWERED)) {
              this.checkPressed(world, pos);
 diff --git a/src/main/java/net/minecraft/world/level/block/TripWireHookBlock.java b/src/main/java/net/minecraft/world/level/block/TripWireHookBlock.java
-index 004dce26ff073f1de52a84cd425c4f60fdab5e50..be12817aacd64a2833fb96827f782b12243aacbe 100644
+index 004dce26ff073f1de52a84cd425c4f60fdab5e50..e0bdb724c6e4ebbaf12e7ae5dfec0f2fbd4cbfc3 100644
 --- a/src/main/java/net/minecraft/world/level/block/TripWireHookBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/TripWireHookBlock.java
-@@ -64,12 +64,14 @@ public class TripWireHookBlock extends Block {
+@@ -64,17 +64,21 @@ public class TripWireHookBlock extends Block {
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
@@ -1937,7 +2968,15 @@ index 004dce26ff073f1de52a84cd425c4f60fdab5e50..be12817aacd64a2833fb96827f782b12
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-@@ -207,6 +209,7 @@ public class TripWireHookBlock extends Block {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         return direction.getOpposite() == state.getValue(TripWireHookBlock.FACING) && !state.canSurvive(world, pos) ? Blocks.AIR.defaultBlockState() : super.updateShape(state, direction, neighborState, world, pos, neighborPos);
+-    }
++        }); // MCCLab - Add BlockBehaviour
++        }
+ 
+     @Nullable
+     @Override
+@@ -207,6 +211,7 @@ public class TripWireHookBlock extends Block {
  
      @Override
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
@@ -1966,7 +3005,7 @@ index 07157822659288e76b2fba34db8d5d566506f33b..20cd165dde3e1e472cb5c8e9aeb2b6bc
              int i = (Integer) state.getValue(TurtleEggBlock.HATCH);
  
 diff --git a/src/main/java/net/minecraft/world/level/block/VineBlock.java b/src/main/java/net/minecraft/world/level/block/VineBlock.java
-index 698ef6ee1c8d08bb38e2775804c1333222b0d73d..873de44202156f0c9a4dc181fda602927e7fb25d 100644
+index 698ef6ee1c8d08bb38e2775804c1333222b0d73d..2198366aa0c28987d2160c4ebdaa81d5bbcc71f7 100644
 --- a/src/main/java/net/minecraft/world/level/block/VineBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/VineBlock.java
 @@ -87,7 +87,9 @@ public class VineBlock extends Block {
@@ -1979,7 +3018,20 @@ index 698ef6ee1c8d08bb38e2775804c1333222b0d73d..873de44202156f0c9a4dc181fda60292
      }
  
      private boolean hasFaces(BlockState state) {
-@@ -177,6 +179,7 @@ public class VineBlock extends Block {
+@@ -166,6 +168,7 @@ public class VineBlock extends Block {
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         if (direction == Direction.DOWN) {
+             return super.updateShape(state, direction, neighborState, world, pos, neighborPos);
+         } else {
+@@ -173,10 +176,12 @@ public class VineBlock extends Block {
+ 
+             return !this.hasFaces(iblockdata2) ? Blocks.AIR.defaultBlockState() : iblockdata2;
+         }
++        }); // MCCLab - Add BlockBehaviour
+     }
  
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
@@ -1988,10 +3040,10 @@ index 698ef6ee1c8d08bb38e2775804c1333222b0d73d..873de44202156f0c9a4dc181fda60292
              if (random.nextFloat() < (world.spigotConfig.vineModifier / (100.0f * 4))) { // Spigot - SPIGOT-7159: Better modifier resolution
                  Direction enumdirection = Direction.getRandom(random);
 diff --git a/src/main/java/net/minecraft/world/level/block/WallBannerBlock.java b/src/main/java/net/minecraft/world/level/block/WallBannerBlock.java
-index e6719fc04011b9d9378eef128701a289b4507a1f..832936283894fc457c14c0328ab7c177c8e32ebe 100644
+index e6719fc04011b9d9378eef128701a289b4507a1f..926df1923a6308f1155960f04e506ef061ccfbaa 100644
 --- a/src/main/java/net/minecraft/world/level/block/WallBannerBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/WallBannerBlock.java
-@@ -33,7 +33,9 @@ public class WallBannerBlock extends AbstractBannerBlock {
+@@ -33,13 +33,17 @@ public class WallBannerBlock extends AbstractBannerBlock {
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
@@ -2001,8 +3053,33 @@ index e6719fc04011b9d9378eef128701a289b4507a1f..832936283894fc457c14c0328ab7c177
      }
  
      @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         return direction == state.getValue(FACING).getOpposite() && !state.canSurvive(world, pos) ? Blocks.AIR.defaultBlockState() : super.updateShape(state, direction, neighborState, world, pos, neighborPos);
+-    }
++        }); // MCCLab - Add BlockBehaviour
++        }
+ 
+     @Override
+     public VoxelShape getShape(BlockState state, BlockGetter world, BlockPos pos, CollisionContext context) {
+diff --git a/src/main/java/net/minecraft/world/level/block/WallHangingSignBlock.java b/src/main/java/net/minecraft/world/level/block/WallHangingSignBlock.java
+index ae232311f12c72ff62d3d18f25e3ebf46ce1ace2..9f08cf5f5ce076dd7ec68e40c89eb8aacca19d0d 100644
+--- a/src/main/java/net/minecraft/world/level/block/WallHangingSignBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/WallHangingSignBlock.java
+@@ -131,8 +131,10 @@ public class WallHangingSignBlock extends SignBlock {
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         return direction.getAxis() == state.getValue(FACING).getClockWise().getAxis() && !state.canSurvive(world, pos) ? Blocks.AIR.defaultBlockState() : super.updateShape(state, direction, neighborState, world, pos, neighborPos);
+-    }
++        }); // MCCLab - Add BlockBehaviour
++        }
+ 
+     @Override
+     public float getYRotationDegrees(BlockState state) {
 diff --git a/src/main/java/net/minecraft/world/level/block/WallSignBlock.java b/src/main/java/net/minecraft/world/level/block/WallSignBlock.java
-index 0065941d41830309a27eed7643b213b0215d395e..c482de0445e0c2afe93fc64d0b3a8f067a910d8c 100644
+index 0065941d41830309a27eed7643b213b0215d395e..e663265fdb79817b565a9293825f3faff6a357d8 100644
 --- a/src/main/java/net/minecraft/world/level/block/WallSignBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/WallSignBlock.java
 @@ -45,7 +45,9 @@ public class WallSignBlock extends SignBlock {
@@ -2015,8 +3092,20 @@ index 0065941d41830309a27eed7643b213b0215d395e..c482de0445e0c2afe93fc64d0b3a8f06
      }
  
      @Nullable
+@@ -72,8 +74,10 @@ public class WallSignBlock extends SignBlock {
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         return direction.getOpposite() == state.getValue(FACING) && !state.canSurvive(world, pos) ? Blocks.AIR.defaultBlockState() : super.updateShape(state, direction, neighborState, world, pos, neighborPos);
+-    }
++        }); // MCCLab - Add BlockBehaviour
++        }
+ 
+     @Override
+     public float getYRotationDegrees(BlockState state) {
 diff --git a/src/main/java/net/minecraft/world/level/block/WallTorchBlock.java b/src/main/java/net/minecraft/world/level/block/WallTorchBlock.java
-index 5f8d2d9e0763c50ec1ca3e06a71f7ecf35d4c46a..f3be0910553e388bec74b73d49b8bc888300987b 100644
+index 5f8d2d9e0763c50ec1ca3e06a71f7ecf35d4c46a..db5995ab0a4687cf55fbc3cd00399a0244c0d93f 100644
 --- a/src/main/java/net/minecraft/world/level/block/WallTorchBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/WallTorchBlock.java
 @@ -47,10 +47,12 @@ public class WallTorchBlock extends TorchBlock {
@@ -2032,6 +3121,18 @@ index 5f8d2d9e0763c50ec1ca3e06a71f7ecf35d4c46a..f3be0910553e388bec74b73d49b8bc88
      }
  
      @Nullable
+@@ -76,8 +78,10 @@ public class WallTorchBlock extends TorchBlock {
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+         return direction.getOpposite() == state.getValue(FACING) && !state.canSurvive(world, pos) ? Blocks.AIR.defaultBlockState() : state;
+-    }
++        }); // MCCLab - Add BlockBehaviour
++        }
+ 
+     @Override
+     public void animateTick(BlockState state, Level world, BlockPos pos, RandomSource random) {
 diff --git a/src/main/java/net/minecraft/world/level/block/WeatheringCopperSlabBlock.java b/src/main/java/net/minecraft/world/level/block/WeatheringCopperSlabBlock.java
 index 37d7fb85a05521e4acb6a79997b661c1895bb7ed..c80496748a5c484d254aef22e9cd32f5f78d523e 100644
 --- a/src/main/java/net/minecraft/world/level/block/WeatheringCopperSlabBlock.java
@@ -2057,10 +3158,19 @@ index 728a607bb28f10955397744970554efe297ea5ca..b08995c375631737b669d14b5198fed1
      }
  
 diff --git a/src/main/java/net/minecraft/world/level/block/piston/PistonHeadBlock.java b/src/main/java/net/minecraft/world/level/block/piston/PistonHeadBlock.java
-index 6091e3c3adbcc92c9ca438c301a99f646e3cb549..589cc6412f1d6cb9c18c27de49e1625e385d6451 100644
+index 6091e3c3adbcc92c9ca438c301a99f646e3cb549..e98a75a6b9028fa18dc1db341b8a4d43cb4f1a95 100644
 --- a/src/main/java/net/minecraft/world/level/block/piston/PistonHeadBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/piston/PistonHeadBlock.java
-@@ -131,9 +131,11 @@ public class PistonHeadBlock extends DirectionalBlock {
+@@ -126,14 +126,18 @@ public class PistonHeadBlock extends DirectionalBlock {
+ 
+     @Override
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
+-        return direction.getOpposite() == state.getValue(FACING) && !state.canSurvive(world, pos) ? Blocks.AIR.defaultBlockState() : super.updateShape(state, direction, neighborState, world, pos, neighborPos);
+-    }
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++            return direction.getOpposite() == state.getValue(FACING) && !state.canSurvive(world, pos) ? Blocks.AIR.defaultBlockState() : super.updateShape(state, direction, neighborState, world, pos, neighborPos);
++        }); // MCCLab - Add BlockBehaviour
++        }
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
@@ -2076,7 +3186,7 @@ index 6091e3c3adbcc92c9ca438c301a99f646e3cb549..589cc6412f1d6cb9c18c27de49e1625e
      @Override
      public void neighborChanged(BlockState state, Level world, BlockPos pos, Block sourceBlock, BlockPos sourcePos, boolean notify) {
 diff --git a/src/main/java/net/minecraft/world/level/block/state/BlockBehaviour.java b/src/main/java/net/minecraft/world/level/block/state/BlockBehaviour.java
-index e6a4a5898ffdcb2aa2bc01371a6d7dbc06d610ce..f05ef25fd42629310e6ea5bf8b9c76af51888710 100644
+index e6a4a5898ffdcb2aa2bc01371a6d7dbc06d610ce..41b5e9f1f4a21a77acfd0a2dd90c0ee5ad4c5449 100644
 --- a/src/main/java/net/minecraft/world/level/block/state/BlockBehaviour.java
 +++ b/src/main/java/net/minecraft/world/level/block/state/BlockBehaviour.java
 @@ -13,6 +13,7 @@ import java.util.function.Predicate;
@@ -2087,6 +3197,15 @@ index e6a4a5898ffdcb2aa2bc01371a6d7dbc06d610ce..f05ef25fd42629310e6ea5bf8b9c76af
  import net.minecraft.core.BlockPos;
  import net.minecraft.core.Direction;
  import net.minecraft.core.Holder;
+@@ -129,7 +130,7 @@ public abstract class BlockBehaviour implements FeatureElement {
+     /** @deprecated */
+     @Deprecated
+     public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
+-        return state;
++        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, state); // MCCLab start - Add BlockBehaviour
+     }
+ 
+     /** @deprecated */
 @@ -163,12 +164,13 @@ public abstract class BlockBehaviour implements FeatureElement {
          if (state.hasBlockEntity() && !state.is(newState.getBlock())) {
              world.removeBlockEntity(pos);
