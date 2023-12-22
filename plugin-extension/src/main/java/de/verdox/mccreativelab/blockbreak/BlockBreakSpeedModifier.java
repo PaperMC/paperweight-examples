@@ -2,11 +2,9 @@ package de.verdox.mccreativelab.blockbreak;
 
 import com.destroystokyo.paper.event.server.ServerTickEndEvent;
 import de.verdox.mccreativelab.MCCreativeLabExtension;
-import de.verdox.mccreativelab.block.FakeBlock;
-import de.verdox.mccreativelab.block.FakeBlockSoundManager;
-import de.verdox.mccreativelab.block.FakeBlockStorage;
-import de.verdox.mccreativelab.block.FakeBlockUtil;
+import de.verdox.mccreativelab.block.*;
 import de.verdox.mccreativelab.util.EntityMetadataPredicate;
+import io.papermc.paper.event.player.PlayerArmSwingEvent;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -26,6 +24,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
+import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 
@@ -37,7 +36,6 @@ import java.util.concurrent.ThreadLocalRandom;
 public class BlockBreakSpeedModifier implements Listener {
     private static final EntityMetadataPredicate.TickDelay DELAY_BETWEEN_BREAK_PARTICLES = new EntityMetadataPredicate.TickDelay("DiggingParticlesDelay", 2);
     private static final Map<Player, BlockBreakProgress> map = new HashMap<>();
-
     @EventHandler
     public void onStartDigging(BlockDamageEvent e) {
         Player player = e.getPlayer();
@@ -62,9 +60,9 @@ public class BlockBreakSpeedModifier implements Listener {
         }
 
         e.setCancelled(true);
-        // If the vanilla hardness is lower the client will predict the block break speed and show the destroy stage
-        // We send a block update to cancel this behaviour.
         map.put(player, new BlockBreakProgress(player, e.getBlock(), customBlockHardness, e.getBlockFace(), fakeBlockState));
+        player.addPotionEffect(new PotionEffect(PotionEffectType.SLOW_DIGGING, 2, -1, false, false, false));
+        CustomBlockRegistry.fakeBlockDamage.sendBlockDamage(e.getBlock(), 0);
     }
 
     @EventHandler
@@ -73,7 +71,7 @@ public class BlockBreakSpeedModifier implements Listener {
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
-    public void onBlockBreak(BlockBreakEvent e){
+    public void onBlockBreak(BlockBreakEvent e) {
         stopBlockBreakAction(e.getPlayer());
     }
 
@@ -88,15 +86,12 @@ public class BlockBreakSpeedModifier implements Listener {
     }
 
     public static void stopBlockBreakAction(Player player) {
-        player.removeMetadata("isBreakingNormalBlock", MCCreativeLabExtension.getInstance());
         if (!map.containsKey(player))
             return;
         map.remove(player).resetBlockDamage();
     }
 
     public static void tick(Player player) {
-        if (!player.hasMetadata("isBreakingNormalBlock"))
-            player.addPotionEffect(new PotionEffect(PotionEffectType.SLOW_DIGGING, 1, -1, false, false, false));
         if (!map.containsKey(player))
             return;
         var data = map.get(player);
@@ -126,7 +121,7 @@ public class BlockBreakSpeedModifier implements Listener {
             var totalTimeInTicks = calculateBreakTime();
             damageTaken += (1f / totalTimeInTicks);
             damageTaken = Math.min(1, damageTaken);
-            player.addPotionEffect(new PotionEffect(PotionEffectType.SLOW_DIGGING, 5, -1, false, false, false));
+            player.addPotionEffect(new PotionEffect(PotionEffectType.SLOW_DIGGING, 2, -1, false, false, false));
 
             int stage = (int) (damageTaken * 10) - 1;
 
@@ -191,6 +186,8 @@ public class BlockBreakSpeedModifier implements Listener {
 
                 player.sendBlockDamage(block.getLocation(), progress, entityId);
             }
+            if (fakeBlockState != null)
+                CustomBlockRegistry.fakeBlockDamage.sendBlockDamage(block, stage);
         }
 
         // This formula is taken from
@@ -201,14 +198,21 @@ public class BlockBreakSpeedModifier implements Listener {
             BlockState blockState = block.getState();
             BlockData blockData = blockState.getBlockData();
 
-            float breakTime = hardness;
+            boolean requiresCorrectToolsForDrops = blockData.requiresCorrectToolForDrops();
             boolean isPreferredTool = block.isPreferredTool(hand);
+            multiplier = block.getDestroySpeed(hand, false);
+
+            if (fakeBlockState != null) {
+                requiresCorrectToolsForDrops = fakeBlockState.getProperties().isRequiresCorrectToolForDrops();
+                isPreferredTool = fakeBlockState.getFakeBlock().isPreferredTool(fakeBlockState, block, player, hand);
+                multiplier = fakeBlockState.getFakeBlock().getDestroySpeedMultiplier(fakeBlockState, block, hand);
+            }
+
+            float breakTime = hardness;
 
             if (isPreferredTool) {
-                multiplier = block.getDestroySpeed(hand, false);
-
                 // canHarvest
-                if (blockData.requiresCorrectToolForDrops()) {
+                if (requiresCorrectToolsForDrops) {
                     int efficiencyLevel = getEnchantmentLevel(player, Enchantment.DIG_SPEED);
                     if (efficiencyLevel > 0)
                         multiplier += (efficiencyLevel ^ 2) + 1;

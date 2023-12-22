@@ -1,4 +1,4 @@
-package de.verdox.mccreativelab.registry.palette;
+package de.verdox.mccreativelab.util.storage.palette;
 
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
@@ -12,6 +12,8 @@ import java.util.List;
 import java.util.Objects;
 
 public class IdMap<T> {
+    //TODO: Die IDMap soll selber serialized werden für Custom Blöcke, damit man die IDs im Zweifel umsortieren kann, wenn irgendwas geändert wurde
+    // Wenn ein Block ganz entfernt wurde dann RIP
     private int nextId = 1;
     private final Object2IntMap<T> dataToId;
     private final List<T> idToData;

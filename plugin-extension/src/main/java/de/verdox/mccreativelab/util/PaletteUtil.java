@@ -14,9 +14,9 @@ public class PaletteUtil {
 
     public static int worldYCoordinateToPaletteCoordinate(int worldMinHeight, int worldMaxHeight, int y){
         if(y < worldMinHeight)
-            throw new IllegalArgumentException(y+" can't be smaller than min height of world"+worldMinHeight);
+            throw new IllegalArgumentException(y+" can't be smaller than min height of world "+worldMinHeight);
         if(y > worldMaxHeight)
-            throw new IllegalArgumentException(y+" can't be greater than max height of world"+worldMaxHeight);
+            throw new IllegalArgumentException(y+" can't be greater than max height of world "+worldMaxHeight);
         if(worldMinHeight > worldMaxHeight)
             throw new IllegalArgumentException("worldMinHeight is greater than worldMaxHeight");
         return y + Math.abs(worldMinHeight);

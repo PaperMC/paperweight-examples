@@ -1,5 +1,9 @@
 package de.verdox.mccreativelab.block;
 
+import de.verdox.mccreativelab.Wrappers;
+import de.verdox.mccreativelab.block.visual.FakeBlockVisualStrategy;
+import de.verdox.mccreativelab.block.visual.SolidBlockVisualStrategy;
+import de.verdox.mccreativelab.block.visual.TransparentBlockVisualStrategy;
 import de.verdox.mccreativelab.generator.Asset;
 import de.verdox.mccreativelab.generator.resourcepack.CustomResourcePack;
 import de.verdox.mccreativelab.generator.resourcepack.ResourcePackAssetTypes;
@@ -7,18 +11,15 @@ import de.verdox.mccreativelab.generator.resourcepack.ResourcePackResource;
 import de.verdox.mccreativelab.generator.resourcepack.types.ItemTextureData;
 import de.verdox.mccreativelab.generator.resourcepack.types.sound.SoundData;
 import de.verdox.mccreativelab.random.VanillaRandomSource;
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
+import org.bukkit.*;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.block.PistonMoveReaction;
 import org.bukkit.block.data.Ageable;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.EntityType;
-import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
@@ -28,78 +29,121 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
-public class FakeBlock {
+public class FakeBlock implements Keyed {
     private final FakeBlockState[] fakeBlockStates;
-    private Map<FakeBlockState, Integer> blockStateToIdMapping = new HashMap<>();
-    FakeBlock(List<FakeBlockState> fakeBlockStates) {
+    private final Map<FakeBlockState, Integer> blockStateToIdMapping = new HashMap<>();
+
+    private NamespacedKey key;
+
+    protected FakeBlock(List<FakeBlockState> fakeBlockStates) {
         this.fakeBlockStates = fakeBlockStates.toArray(FakeBlockState[]::new);
         for (int i = 0; i < fakeBlockStates.size(); i++) {
             blockStateToIdMapping.put(fakeBlockStates.get(i), i);
         }
     }
 
-    public FakeBlockState[] getFakeBlockStates() {
+    FakeBlock setKey(NamespacedKey key) {
+        this.key = key;
+        return this;
+    }
+
+    public final FakeBlockState[] getFakeBlockStates() {
         return fakeBlockStates;
     }
 
-    public FakeBlockState getDefaultBlockState(){
+    public FakeBlockState getDefaultBlockState() {
         return getBlockState(0);
     }
 
-    int getBlockStateID(FakeBlockState fakeBlockState){
+    public final int getBlockStateID(FakeBlockState fakeBlockState) {
         return blockStateToIdMapping.getOrDefault(fakeBlockState, -1);
     }
 
-    @Nullable FakeBlockState getBlockState(int blockStateID){
-        if(blockStateID >= fakeBlockStates.length)
+    @Nullable
+    public final FakeBlockState getBlockState(int blockStateID) {
+        if (blockStateID >= fakeBlockStates.length)
             return null;
         return fakeBlockStates[blockStateID];
     }
 
-    public PistonMoveReaction getPistonMoveReaction(){
-        return PistonMoveReaction.MOVE;
+    //TODO: Not implemented yet -> We just block it for now
+    public final PistonMoveReaction getPistonMoveReaction() {
+        return PistonMoveReaction.BLOCK;
     }
 
-    public void randomTick(FakeBlockState fakeBlockState, Block block, VanillaRandomSource vanillaRandomSource) {}
+    public boolean isPreferredTool(@NotNull FakeBlockState fakeBlockState, @NotNull Block block, @NotNull Player player, @Nullable ItemStack stack) {
+        return true;
+    }
 
-    public void tick(FakeBlockState fakeBlockState, Block block, VanillaRandomSource vanillaRandomSource) {
+    public float getDestroySpeedMultiplier(@NotNull FakeBlockState fakeBlockState, @NotNull Block block, @Nullable ItemStack itemStack) {
+        return 1.0f;
+    }
+
+    public void randomTick(@NotNull FakeBlockState fakeBlockState, @NotNull Block block, @NotNull VanillaRandomSource vanillaRandomSource) {
+    }
+
+    public void tick(@NotNull FakeBlockState fakeBlockState, @NotNull Block block, @NotNull VanillaRandomSource vanillaRandomSource) {
 
     }
 
-    /**
-     * Use to implement
-     * {@link org.bukkit.event.entity.EntitySpawnEvent}
-     */
-    public void popExperience(FakeBlockState fakeBlockState, Block block, Player player) {
+    public void stepOn(@NotNull FakeBlockState fakeBlockState, @NotNull Block block, @NotNull Entity entity) {
 
     }
 
-    public void entityInside(FakeBlockState fakeBlockState, Block block, Entity entity) {
-
+    public BlockData blockUpdate(@NotNull FakeBlockState fakeBlockState, @NotNull Block block, @NotNull BlockFace direction, @NotNull BlockData neighbourBlockData, @NotNull Location neighbourLocation) {
+        return block.getBlockData();
     }
 
-    public static class Builder<T extends FakeBlock>{
+    public boolean canSurvive(@NotNull FakeBlockState fakeBlockState, @NotNull Block block) {
+        return true;
+    }
+
+    public void remove(Location location, boolean withEffects) {
+        FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockStateOrThrow(location, false);
+        if (fakeBlockState == null)
+            return;
+        if (withEffects)
+            FakeBlockUtil.simulateBlockBreakWithParticlesAndSound(fakeBlockState, location.getBlock());
+        FakeBlockUtil.removeFakeBlockIfPossible(location.getBlock());
+    }
+
+    @Override
+    public @NotNull NamespacedKey getKey() {
+        return key;
+    }
+
+    @Override
+    public String toString() {
+        return "FakeBlock{" +
+            "fakeBlockStates=" + Arrays.toString(fakeBlockStates) +
+            ", blockStateToIdMapping=" + blockStateToIdMapping +
+            ", key=" + key +
+            '}';
+    }
+
+    public static class Builder<T extends FakeBlock> {
         private final Class<? extends T> fakeBlockClass;
         final NamespacedKey namespacedKey;
-        final List<FakeBlockState> blockStates= new LinkedList<>();
+        final List<FakeBlockState> blockStates = new LinkedList<>();
 
-        public Builder(NamespacedKey namespacedKey, Class<? extends T> fakeBlockClass){
+        public Builder(NamespacedKey namespacedKey, Class<? extends T> fakeBlockClass) {
             this.namespacedKey = namespacedKey;
             this.fakeBlockClass = fakeBlockClass;
         }
 
-        public Builder<T> withBlockState(Consumer<FakeBlockState.Builder> builderConsumer){
+        public Builder<T> withBlockState(Consumer<FakeBlockState.Builder> builderConsumer) {
             FakeBlockState.Builder builder = new FakeBlockState.Builder(namespacedKey);
             builderConsumer.accept(builder);
             blockStates.add(builder.build());
             return this;
         }
 
-        T buildBlock(){
-            if(blockStates.isEmpty())
-                throw new IllegalStateException(namespacedKey.asString()+" must provide at least one fake block state");
+        T buildBlock() {
+            if (blockStates.isEmpty())
+                throw new IllegalStateException(namespacedKey.asString() + " must provide at least one fake block state");
             try {
                 var constructor = fakeBlockClass.getDeclaredConstructor(List.class);
+                constructor.setAccessible(true);
                 return constructor.newInstance(blockStates);
             } catch (NoSuchMethodException e) {
                 Bukkit.getLogger()
@@ -144,62 +188,77 @@ public class FakeBlock {
             this.fakeBlock = fakeBlock;
             return this;
         }
+
         public static class Builder {
             private FakeBlockProperties fakeBlockProperties = new FakeBlockProperties();
             private FakeBlockDisplay fakeBlockDisplay;
             private FakeBlockSoundGroup fakeBlockSoundGroup;
             private final NamespacedKey namespacedKey;
 
-            Builder(NamespacedKey namespacedKey){
+            Builder(NamespacedKey namespacedKey) {
                 this.namespacedKey = namespacedKey;
             }
 
-            public Builder withBlockProperties(Consumer<FakeBlockProperties> fakeBlockPropertiesConsumer){
+            public Builder withBlockProperties(Consumer<FakeBlockProperties> fakeBlockPropertiesConsumer) {
                 this.fakeBlockProperties = new FakeBlockProperties();
                 fakeBlockPropertiesConsumer.accept(this.fakeBlockProperties);
                 return this;
             }
 
-            public Builder withSoundGroup(@NotNull SoundData digSound, @NotNull SoundData stepSound, @NotNull SoundData breakSound, @NotNull SoundData placeSound){
-                this.fakeBlockSoundGroup = new FakeBlockSoundGroup(namespacedKey, digSound, stepSound, breakSound, placeSound);
+            public Builder withSoundGroup(SoundData hitSound, SoundData stepSound, SoundData breakSound, SoundData placeSound, SoundData fallSound) {
+                this.fakeBlockSoundGroup = new FakeBlockSoundGroup(namespacedKey, hitSound, stepSound, breakSound, placeSound, fallSound);
                 return this;
             }
 
-            public Builder withBlockDisplay(Asset<CustomResourcePack> blockTexture, BlockData destroyParticles, ItemTextureData.ModelType blockModel, FakeBlockHitbox hitBox){
-                this.fakeBlockDisplay = new FakeBlockDisplay(namespacedKey, blockTexture, destroyParticles, blockModel, hitBox);
+            public Builder withBlockDisplay(Consumer<FakeBlockDisplay.Builder> builderConsumer) {
+                FakeBlockDisplay.Builder builder = new FakeBlockDisplay.Builder(namespacedKey);
+                builderConsumer.accept(builder);
+                this.fakeBlockDisplay = builder.build();
                 return this;
             }
 
-            public Builder withFullBlockDisplay(Asset<CustomResourcePack> blockTexture, BlockData destroyParticles){
-                this.fakeBlockDisplay = new FakeBlockDisplay(namespacedKey, blockTexture, destroyParticles, ItemTextureData.ModelType.CUBE_ALL, FakeBlockHitbox.FULL_BLOCK);
-                return this;
-            }
-
-            FakeBlockState build(){
-                Objects.requireNonNull(fakeBlockDisplay, namespacedKey.asString()+" must set a block display");
+            FakeBlockState build() {
+                Objects.requireNonNull(fakeBlockDisplay, namespacedKey.asString() + " must set a block display");
                 return new FakeBlockState(fakeBlockProperties, fakeBlockDisplay, fakeBlockSoundGroup);
             }
+        }
+
+        @Override
+        public String toString() {
+            return "FakeBlockState{" +
+                ", properties=" + properties +
+                ", fakeBlockDisplay=" + fakeBlockDisplay +
+                ", fakeBlockSoundGroup=" + fakeBlockSoundGroup +
+                '}';
         }
     }
 
     public static class FakeBlockDisplay extends ResourcePackResource {
         private static final AtomicInteger ID_COUNTER = new AtomicInteger(9999);
-        private final Asset<CustomResourcePack> blockTexture;
-        private final ItemTextureData.ModelType blockModel;
         private final FakeBlockHitbox hitBox;
         private final BlockData destroyParticles;
-        private ItemTextureData itemTextureData;
+        private final Map<BlockFace, ItemTextureData> itemTextureDataPerBlockFace = new HashMap<>();
+        private final Map<BlockFace, Asset<CustomResourcePack>> texturesPerBlockFace;
+        private final Map<BlockFace, ItemTextureData.ModelType> modelsPerBlockFace;
+        private final FakeBlockVisualStrategy fakeBlockVisualStrategy;
+        private ItemTextureData fullBlockTexture;
+        private ItemTextureData.ModelType fullBlockModel;
 
-        FakeBlockDisplay(NamespacedKey namespacedKey, Asset<CustomResourcePack> blockTexture, BlockData destroyParticles, ItemTextureData.ModelType blockModel, FakeBlockHitbox hitBox) {
+        FakeBlockDisplay(NamespacedKey namespacedKey, BlockData destroyParticles, FakeBlockHitbox hitBox, Map<BlockFace, Asset<CustomResourcePack>> texturesPerBlockFace, Map<BlockFace, ItemTextureData.ModelType> modelsPerBlockFace, FakeBlockVisualStrategy fakeBlockVisualStrategy) {
             super(namespacedKey);
-            this.blockTexture = blockTexture;
-            this.blockModel = blockModel;
             this.hitBox = hitBox;
             this.destroyParticles = destroyParticles;
+            this.texturesPerBlockFace = texturesPerBlockFace;
+            this.modelsPerBlockFace = modelsPerBlockFace;
+            this.fakeBlockVisualStrategy = fakeBlockVisualStrategy;
         }
 
-        public Asset<CustomResourcePack> getBlockTexture() {
-            return blockTexture;
+        public FakeBlockVisualStrategy getFakeBlockVisualStrategy() {
+            return fakeBlockVisualStrategy;
+        }
+
+        public ItemTextureData getFullBlockTexture() {
+            return fullBlockTexture;
         }
 
         public BlockData getDestroyParticles() {
@@ -210,78 +269,171 @@ public class FakeBlock {
             return hitBox;
         }
 
-        public ItemTextureData.ModelType getBlockModel() {
-            return blockModel;
-        }
-
-        public ItemTextureData getItemTextureData() {
-            return itemTextureData;
+        public Map<BlockFace, ItemTextureData> getItemTextureDataPerBlockFace() {
+            return Map.copyOf(itemTextureDataPerBlockFace);
         }
 
         @Override
-        public void installToDataPack(CustomResourcePack customPack) throws IOException {
-            itemTextureData = new ItemTextureData(new NamespacedKey(key().namespace(), "item/fake_block/"+key().getKey()), Material.BARRIER, ID_COUNTER.getAndIncrement(), blockTexture, blockModel);
-            itemTextureData.installToDataPack(customPack);
+        public void beforeResourceInstallation(CustomResourcePack customPack) throws IOException {
+            texturesPerBlockFace.forEach((face, customResourcePackAsset) -> {
+                ItemTextureData.ModelType modelType = modelsPerBlockFace.get(face);
+                NamespacedKey faceKey = getKeyOfFaceTexture(new NamespacedKey(key().namespace(), "item/fake_block/" + key().getKey()), face);
+                ItemTextureData itemTextureData = new ItemTextureData(faceKey, Material.BARRIER, ID_COUNTER.getAndIncrement(), customResourcePackAsset, modelType);
+                itemTextureDataPerBlockFace.put(face, itemTextureData);
+                customPack.register(itemTextureData);
+            });
+
+            NamespacedKey fullDisplayKey = getKeyOfFullDisplay(new NamespacedKey(key().namespace(), "item/fake_block/" + key().getKey()));
+            this.fullBlockModel = ItemTextureData.ModelType.createFullCubeWithSeparateTextures(itemTextureDataPerBlockFace);
+            ItemTextureData itemTextureData = new ItemTextureData(fullDisplayKey, Material.BARRIER, ID_COUNTER.getAndIncrement(), null, this.fullBlockModel);
+            this.fullBlockTexture = itemTextureData;
+            customPack.register(itemTextureData);
         }
 
-        public ItemDisplay spawnFakeBlock(Location location){
-            location = location.add(0.5,0.5,0.5);
-            ItemDisplay itemDisplay = (ItemDisplay) location.getWorld().spawnEntity(location, EntityType.ITEM_DISPLAY);
-            itemDisplay.setItemStack(itemTextureData.createItem());
-            location.getBlock().setBlockData(hitBox.blockData);
-            return itemDisplay;
+        @Override
+        public String toString() {
+            return "FakeBlockDisplay{" +
+                "hitBox=" + hitBox +
+                ", destroyParticles=" + destroyParticles +
+                ", itemTextureDataPerBlockFace=" + itemTextureDataPerBlockFace +
+                ", texturesPerBlockFace=" + texturesPerBlockFace +
+                ", modelsPerBlockFace=" + modelsPerBlockFace +
+                ", fakeBlockVisualStrategy=" + fakeBlockVisualStrategy +
+                ", fullBlockTexture=" + fullBlockTexture +
+                ", fullBlockModel=" + fullBlockModel +
+                '}';
+        }
+
+        @Override
+        public void installResourceToPack(CustomResourcePack customPack) throws IOException {
+
+        }
+
+        private static NamespacedKey getKeyOfFaceTexture(NamespacedKey namespacedKey, BlockFace face) {
+            return new NamespacedKey(namespacedKey.namespace(), namespacedKey.getKey() + "/face/" + face.name()
+                                                                                                        .toLowerCase(Locale.ROOT));
+        }
+
+        private static NamespacedKey getKeyOfFullDisplay(NamespacedKey namespacedKey) {
+            return new NamespacedKey(namespacedKey.namespace(), namespacedKey.getKey() + "/full_display");
+        }
+
+        public static class Builder {
+            private static final List<BlockFace> validFaces = List.of(BlockFace.UP, BlockFace.DOWN, BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST);
+            private final NamespacedKey namespacedKey;
+            private final Map<BlockFace, Asset<CustomResourcePack>> texturesPerBlockFace = new HashMap<>();
+            private final Map<BlockFace, ItemTextureData.ModelType> modelsPerBlockFace = new HashMap<>();
+            private FakeBlockHitbox fakeBlockHitbox = FakeBlockHitbox.SOLID_BLOCK;
+            private BlockData destroyParticleData = Bukkit.createBlockData(Material.STONE);
+            private FakeBlockVisualStrategy fakeBlockVisualStrategy = TransparentBlockVisualStrategy.INSTANCE;
+            Builder(NamespacedKey namespacedKey) {
+                this.namespacedKey = namespacedKey;
+            }
+
+            public Builder withTexture(BlockFace face, Asset<CustomResourcePack> blockTexture) {
+                if (!validFaces.contains(face)) {
+                    Bukkit.getLogger()
+                          .warning("Cannot add texture for block face " + face + ". Allowed faces are: " + validFaces);
+                    return this;
+                }
+
+                modelsPerBlockFace.put(face, ItemTextureData.ModelType.createOnlyOneSideTextureOfCube(face));
+                texturesPerBlockFace.put(face, blockTexture);
+                return this;
+            }
+
+            public Builder withFakeBlockVisualStrategy(FakeBlockVisualStrategy fakeBlockVisualStrategy){
+                this.fakeBlockVisualStrategy = fakeBlockVisualStrategy;
+                return this;
+            }
+
+            public Builder withFullBlockTexture(Asset<CustomResourcePack> blockTexture) {
+                for (BlockFace validFace : validFaces)
+                    withTexture(validFace, blockTexture);
+                return this;
+            }
+
+            public Builder withTopAndBottomTexture(Asset<CustomResourcePack> blockTexture) {
+                withTexture(BlockFace.UP, blockTexture);
+                withTexture(BlockFace.DOWN, blockTexture);
+                return this;
+            }
+
+            public Builder withSideTexture(Asset<CustomResourcePack> blockTexture) {
+                withTexture(BlockFace.NORTH, blockTexture);
+                withTexture(BlockFace.EAST, blockTexture);
+                withTexture(BlockFace.SOUTH, blockTexture);
+                withTexture(BlockFace.WEST, blockTexture);
+                return this;
+            }
+
+            public Builder withHitbox(FakeBlockHitbox fakeBlockHitbox) {
+                this.fakeBlockHitbox = fakeBlockHitbox;
+                return this;
+            }
+
+            public Builder withDestroyParticles(BlockData blockData) {
+                this.destroyParticleData = blockData;
+                return this;
+            }
+
+            FakeBlockDisplay build() {
+                return new FakeBlockDisplay(namespacedKey, destroyParticleData, fakeBlockHitbox, texturesPerBlockFace, modelsPerBlockFace, fakeBlockVisualStrategy);
+            }
         }
     }
+
     public static class FakeBlockSoundGroup extends ResourcePackResource {
-        private final SoundData digSound;
+        private final SoundData hitSound;
         private final SoundData stepSound;
         private final SoundData breakSound;
         private final SoundData placeSound;
+        private final SoundData fallSound;
 
-        public FakeBlockSoundGroup(NamespacedKey namespacedKey, @NotNull SoundData digSound, @NotNull SoundData stepSound, @NotNull SoundData breakSound, @NotNull SoundData placeSound) {
+        public FakeBlockSoundGroup(@NotNull NamespacedKey namespacedKey, SoundData hitSound, SoundData stepSound, SoundData breakSound, SoundData placeSound, SoundData fallSound) {
             super(namespacedKey);
-            Objects.requireNonNull(digSound);
-            Objects.requireNonNull(stepSound);
-            Objects.requireNonNull(breakSound);
-            Objects.requireNonNull(placeSound);
-            this.digSound = digSound;
+            this.hitSound = hitSound;
             this.stepSound = stepSound;
             this.breakSound = breakSound;
             this.placeSound = placeSound;
+            this.fallSound = fallSound;
         }
 
         @Override
         public void onRegister(CustomResourcePack customPack) {
-            customPack.register(digSound);
-            customPack.register(stepSound);
-            customPack.register(breakSound);
-            customPack.register(placeSound);
+            customPack.registerNullable(hitSound);
+            customPack.registerNullable(stepSound);
+            customPack.registerNullable(breakSound);
+            customPack.registerNullable(placeSound);
+            customPack.registerNullable(fallSound);
         }
 
-        public SoundData getStepSound() {
-            return stepSound;
-        }
-
-        public SoundData getBreakSound() {
-            return breakSound;
-        }
-
-        public SoundData getDigSound() {
-            return digSound;
-        }
-
-        public SoundData getPlaceSound() {
-            return placeSound;
+        public Wrappers.SoundGroup asSoundGroup() {
+            return Wrappers.of(Wrappers.of(hitSound), Wrappers.of(stepSound), Wrappers.of(breakSound), Wrappers.of(placeSound), Wrappers.of(fallSound));
         }
 
         @Override
-        public void installToDataPack(CustomResourcePack customPack) throws IOException {
+        public void installResourceToPack(CustomResourcePack customPack) throws IOException {
 
+        }
+
+        @Override
+        public String toString() {
+            return "FakeBlockSoundGroup{" +
+                "hitSound=" + hitSound +
+                ", stepSound=" + stepSound +
+                ", breakSound=" + breakSound +
+                ", placeSound=" + placeSound +
+                ", fallSound=" + fallSound +
+                '}';
         }
     }
 
     public enum FakeBlockHitbox {
-        FULL_BLOCK(Bukkit.createBlockData(Material.PURPLE_STAINED_GLASS, blockData -> {})),
+        SOLID_BLOCK(Bukkit.createBlockData(Material.ANCIENT_DEBRIS, blockData -> {
+        })),
+        TRANSPARENT_BLOCK(Bukkit.createBlockData(Material.PURPLE_STAINED_GLASS, blockData -> {
+        })),
         CROP_AGE_0(Bukkit.createBlockData(Material.WHEAT, blockData -> ((Ageable) blockData).setAge(0))),
         CROP_AGE_1(Bukkit.createBlockData(Material.WHEAT, blockData -> ((Ageable) blockData).setAge(1))),
         CROP_AGE_2(Bukkit.createBlockData(Material.WHEAT, blockData -> ((Ageable) blockData).setAge(2))),
@@ -293,15 +445,19 @@ public class FakeBlock {
         ;
         private final BlockData blockData;
 
-        FakeBlockHitbox(BlockData blockData){
+        FakeBlockHitbox(BlockData blockData) {
             this.blockData = blockData;
+        }
+
+        public BlockData getBlockData() {
+            return blockData;
         }
 
         public static void makeHitBoxesInvisible(CustomResourcePack customResourcePack) throws IOException {
             Bukkit.getLogger().info("Installing invisible hitboxes");
 
             Asset<CustomResourcePack> emptyBlockModel = new Asset<>(() -> CustomResourcePack.class.getResourceAsStream("/empty_block/models/empty.json"));
-            emptyBlockModel.installAsset(customResourcePack, new NamespacedKey("minecraft","block/empty"), ResourcePackAssetTypes.MODELS, "json");
+            emptyBlockModel.installAsset(customResourcePack, new NamespacedKey("minecraft", "block/empty"), ResourcePackAssetTypes.MODELS, "json");
 
 /*            Asset<CustomResourcePack> emptySlabModel = new Asset<>(() -> CustomResourcePack.class.getResourceAsStream("/empty_block/models/empty_slab.json"));
             emptySlabModel.installAsset(customResourcePack, new NamespacedKey("minecraft","block/empty_slab"), ResourcePackAssetTypes.MODELS, "json");
@@ -312,16 +468,31 @@ public class FakeBlock {
 /*
             Asset<CustomResourcePack> petrifiedOakSlabBlockStates = new Asset<>(() -> CustomResourcePack.class.getResourceAsStream("/empty_block/blockstates/petrified_oak_slab.json"));
             petrifiedOakSlabBlockStates.installAsset(customResourcePack, new NamespacedKey("minecraft","petrified_oak_slab"), ResourcePackAssetTypes.BLOCK_STATES, "json");
+
+
 */
 
-            Asset<CustomResourcePack> purpleStainedGlassModel = new Asset<>(() -> CustomResourcePack.class.getResourceAsStream("/empty_block/blockstates/purple_stained_glass.json"));
-            purpleStainedGlassModel.installAsset(customResourcePack, new NamespacedKey("minecraft","purple_stained_glass"), ResourcePackAssetTypes.BLOCK_STATES, "json");
+            Asset<CustomResourcePack> emptyBlockStatesFile = new Asset<>(() -> CustomResourcePack.class.getResourceAsStream("/empty_block/blockstates/empty_blockstates.json"));
+
+            emptyBlockStatesFile.installAsset(customResourcePack, new NamespacedKey("minecraft", SOLID_BLOCK
+                .getBlockData().getMaterial().name()
+                .toLowerCase(Locale.ROOT)), ResourcePackAssetTypes.BLOCK_STATES, "json");
+            emptyBlockStatesFile.installAsset(customResourcePack, new NamespacedKey("minecraft", TRANSPARENT_BLOCK
+                .getBlockData().getMaterial().name()
+                .toLowerCase(Locale.ROOT)), ResourcePackAssetTypes.BLOCK_STATES, "json");
 
             Asset<CustomResourcePack> wheatBlockStatesModified = new Asset<>(() -> CustomResourcePack.class.getResourceAsStream("/empty_block/blockstates/wheat.json"));
-            wheatBlockStatesModified.installAsset(customResourcePack, new NamespacedKey("minecraft","wheat"), ResourcePackAssetTypes.BLOCK_STATES, "json");
+            wheatBlockStatesModified.installAsset(customResourcePack, new NamespacedKey("minecraft", "wheat"), ResourcePackAssetTypes.BLOCK_STATES, "json");
 
             Asset<CustomResourcePack> emptyBlockTexture = new Asset<>(() -> CustomResourcePack.class.getResourceAsStream("/empty_block/textures/empty.png"));
-            emptyBlockTexture.installAsset(customResourcePack, new NamespacedKey("minecraft","block/empty"), ResourcePackAssetTypes.TEXTURES, "png");
+            emptyBlockTexture.installAsset(customResourcePack, new NamespacedKey("minecraft", "block/empty"), ResourcePackAssetTypes.TEXTURES, "png");
+        }
+
+        @Override
+        public String toString() {
+            return "FakeBlockHitbox{" +
+                "blockData=" + blockData +
+                '}';
         }
     }
 
@@ -335,8 +506,17 @@ public class FakeBlock {
         private float jumpFactor = 1.0F;
         private boolean immutable;
 
-        FakeBlockProperties(){
+        FakeBlockProperties() {
 
+        }
+
+        public FakeBlockProperties fromVanillaBlockData(BlockData blockData) {
+            withLightEmission(blockData.getLightEmission());
+            withExplosionResistance(blockData.getMaterial().getBlastResistance());
+            withBlockHardness(blockData.getMaterial().getHardness());
+            requiresCorrectToolForDrops(blockData.requiresCorrectToolForDrops());
+            isRandomlyTicking(blockData.isRandomlyTicked());
+            return this;
         }
 
         public FakeBlockProperties withLightEmission(int lightEmission) {
@@ -381,12 +561,12 @@ public class FakeBlock {
             return this;
         }
 
-        private void checkImmutability(){
-            if(immutable)
+        private void checkImmutability() {
+            if (immutable)
                 throw new IllegalStateException("Block properties can't be changed after building it");
         }
 
-        void makeImmutable(){
+        void makeImmutable() {
             immutable = true;
         }
 
@@ -416,6 +596,20 @@ public class FakeBlock {
 
         public float getJumpFactor() {
             return jumpFactor;
+        }
+
+        @Override
+        public String toString() {
+            return "FakeBlockProperties{" +
+                "lightEmission=" + lightEmission +
+                ", explosionResistance=" + explosionResistance +
+                ", hardness=" + hardness +
+                ", requiresCorrectToolForDrops=" + requiresCorrectToolForDrops +
+                ", isRandomlyTicking=" + isRandomlyTicking +
+                ", speedFactor=" + speedFactor +
+                ", jumpFactor=" + jumpFactor +
+                ", immutable=" + immutable +
+                '}';
         }
     }
 }

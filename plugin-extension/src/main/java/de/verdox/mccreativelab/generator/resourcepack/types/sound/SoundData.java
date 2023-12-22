@@ -4,6 +4,7 @@ import de.verdox.mccreativelab.generator.Asset;
 import de.verdox.mccreativelab.generator.resourcepack.CustomResourcePack;
 import de.verdox.mccreativelab.generator.resourcepack.ResourcePackAssetTypes;
 import de.verdox.mccreativelab.generator.resourcepack.ResourcePackResource;
+import net.kyori.adventure.sound.Sound;
 import org.bukkit.NamespacedKey;
 
 import java.io.IOException;
@@ -29,8 +30,12 @@ public class SoundData extends ResourcePackResource {
         return this;
     }
 
+    public Sound asSound(Sound.Source source, float volume, float pitch){
+        return Sound.sound(key(), source, volume, pitch);
+    }
+
     @Override
-    public void installToDataPack(CustomResourcePack customPack) throws IOException {
+    public void installResourceToPack(CustomResourcePack customPack) throws IOException {
         alreadyInstalled = true;
         for (NamespacedKey namespacedKey : soundVariants.keySet()) {
             SoundVariant soundVariant = soundVariants.get(namespacedKey);

@@ -17,6 +17,14 @@ public record Asset<C extends CustomPack<C>>(Supplier<InputStream> assetInputStr
         this(assetInputStream, null);
     }
 
+    public Asset(String resourcePath, @Nullable Consumer<File> installationCallback){
+        this(() -> Asset.class.getResourceAsStream(resourcePath), installationCallback);
+    }
+
+    public Asset(String resourcePath){
+        this(() -> Asset.class.getResourceAsStream(resourcePath), null);
+    }
+
     public Asset(File assetFile,  @Nullable Consumer<File> installationCallback) {
         this(() -> {
             try {

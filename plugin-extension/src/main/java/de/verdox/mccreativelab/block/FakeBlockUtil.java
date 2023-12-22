@@ -1,9 +1,12 @@
 package de.verdox.mccreativelab.block;
 
 import de.verdox.mccreativelab.MCCreativeLabExtension;
+import de.verdox.mccreativelab.generator.resourcepack.types.ItemTextureData;
 import org.bukkit.*;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.entity.Display;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Player;
@@ -21,19 +24,16 @@ public class FakeBlockUtil {
                                                                       .add(0.5, 0.5, 0.5), 40, 0.1, 0.1, 0.1, fakeBlockState
                 .getFakeBlockDisplay().getDestroyParticles());
             sendBlockDestruction(block.getLocation(), fakeBlockState.getFakeBlockDisplay().getDestroyParticles());
-        } else {
-            if (block.getType().equals(Material.FIRE))
-                block.getWorld().playEffect(block.getLocation(), Effect.EXTINGUISH, block.getBlockData());
-            else
-                block.getWorld().playEffect(block.getLocation(), Effect.STEP_SOUND, block.getBlockData());
-        }
+        } else
+            sendBlockDestruction(block.getLocation(), block.getBlockData());
 
         if (FakeBlockSoundManager.isBlockWithoutStandardSound(block))
             FakeBlockSoundManager.simulateBreakSound(block, fakeBlockState);
     }
 
     public static void moveBlock(Location location, ItemDisplay itemDisplay, FakeBlock.FakeBlockState fakeBlockState, Vector moveDirection) {
-        ItemDisplay animationDisplay = (ItemDisplay) location.getWorld().spawnEntity(itemDisplay.getLocation(), EntityType.ITEM_DISPLAY);
+        ItemDisplay animationDisplay = (ItemDisplay) location.getWorld()
+                                                             .spawnEntity(itemDisplay.getLocation(), EntityType.ITEM_DISPLAY);
         animationDisplay.setItemStack(itemDisplay.getItemStack().clone());
 
         Transformation transformation = animationDisplay.getTransformation();
@@ -112,19 +112,9 @@ public class FakeBlockUtil {
                      .getFakeBlockDisplay().getDestroyParticles());
     }
 
-    public static void removeFakeDisplayOfCustomBlock(Block block){
-        ItemDisplay itemDisplay = FakeBlockStorage.getLinkedDisplayEntity(block);
-        if(itemDisplay == null)
-            return;
-        FakeBlockStorage.unlinkDisplayEntityAndBlock(itemDisplay, block);
-        itemDisplay.remove();
-    }
-
-    public static void removeFakeBlockIfPossible(Block block){
-        if(!FakeBlockSoundManager.isBlockWithoutStandardSound(block))
-            return;
+    public static void removeFakeBlockIfPossible(Block block) {
         FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockStateOrThrow(block.getLocation(), false);
-        if(fakeBlockState == null)
+        if (fakeBlockState == null)
             return;
         FakeBlockStorage.setFakeBlockState(block.getLocation(), null, false);
     }

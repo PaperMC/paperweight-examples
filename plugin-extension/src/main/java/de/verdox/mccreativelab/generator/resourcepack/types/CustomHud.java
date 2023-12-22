@@ -49,11 +49,14 @@ public class CustomHud extends ShaderRendered {
     }
 
     @Override
-    public void installToDataPack(CustomResourcePack customPack) throws IOException {
-        hudTexturesFont.installToDataPack(customPack);
-        for (Font hudTextFont : hudTextFonts) {
-            hudTextFont.installToDataPack(customPack);
-        }
+    public void beforeResourceInstallation(CustomResourcePack customPack) throws IOException {
+        customPack.register(this.hudTexturesFont);
+        for (Font hudTextFont : hudTextFonts)
+            customPack.register(hudTextFont);
+    }
+
+    @Override
+    public void installResourceToPack(CustomResourcePack customPack) throws IOException {
         installShaderFileToPack(customPack);
     }
 

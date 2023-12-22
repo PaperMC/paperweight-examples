@@ -25,7 +25,7 @@ public class SoundFile extends ResourcePackResource {
     }
 
     @Override
-    public void installToDataPack(CustomResourcePack customPack) {
+    public void installResourceToPack(CustomResourcePack customPack) {
         JsonObjectBuilder soundsFileJson = JsonObjectBuilder.create();
         for (SoundData soundData : soundDataSet) {
             var soundObject = JsonObjectBuilder.create();

@@ -9,16 +9,15 @@ import de.verdox.mccreativelab.recipe.CustomItemData;
 import de.verdox.mccreativelab.util.gson.JsonArrayBuilder;
 import de.verdox.mccreativelab.util.gson.JsonObjectBuilder;
 import de.verdox.mccreativelab.util.io.AssetUtil;
-import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
+import org.bukkit.*;
+import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
-import java.util.Comparator;
-import java.util.LinkedList;
+import java.util.*;
 import java.util.function.Function;
 
 public class ItemTextureData extends ResourcePackResource {
@@ -44,46 +43,43 @@ public class ItemTextureData extends ResourcePackResource {
     }
 
     @Override
-    public void installToDataPack(CustomResourcePack customPack) throws IOException {
+    public void installResourceToPack(CustomResourcePack customPack) throws IOException {
         var hasCustomTexture = pngFile != null;
 
         if (hasCustomTexture)
             pngFile.installAsset(customPack, key(), ResourcePackAssetTypes.TEXTURES, "png");
 
         createModelFile(customPack);
-        createVanillaModelFile(customPack);
     }
 
-    private void createModelFile(CustomResourcePack customPack) {
-        JsonObject jsonToWriteToFile = createModelJson(key(), modelType);
-
-        AssetUtil.createJsonAssetAndInstall(jsonToWriteToFile, customPack, key(), ResourcePackAssetTypes.MODELS);
-    }
-
-    private void createVanillaModelFile(CustomResourcePack customPack) {
-        if (customModelData == 0)
-            return;
+    public static void createVanillaModelFile(Material material, Set<ItemTextureData> installedItems, CustomResourcePack customPack) {
+        //TODO: Funktioniert noch nicht!
         NamespacedKey vanillaKey = new NamespacedKey(material.getKey().namespace(), "item/" + material.getKey()
                                                                                                       .getKey());
-        JsonObject jsonToWriteToFile = createModelJson(vanillaKey, null);
+        JsonObject jsonToWriteToFile = createModelJson(material, vanillaKey, null);
 
-        addCustomModelDataListToVanillaModelFile(jsonToWriteToFile);
+        addCustomModelDataListToVanillaModelFile(installedItems, jsonToWriteToFile);
 
         AssetUtil.createJsonAssetAndInstall(jsonToWriteToFile, customPack, vanillaKey, ResourcePackAssetTypes.MODELS);
+        Bukkit.getLogger()
+              .info("Installing modified vanilla item model for " + vanillaKey + " with " + installedItems.size() + " entries");
     }
 
-    private void addCustomModelDataListToVanillaModelFile(JsonObject jsonToWriteToFile) {
+    private static void addCustomModelDataListToVanillaModelFile(Set<ItemTextureData> installedItems, JsonObject jsonToWriteToFile) {
         var list = new LinkedList<JsonObject>();
         var builder = JsonObjectBuilder.create(jsonToWriteToFile)
                                        .getOrCreateArray("overrides", jsonArrayBuilder -> {
-                                           jsonArrayBuilder.add(
-                                               JsonObjectBuilder
-                                                   .create()
-                                                   .add("predicate",
-                                                       JsonObjectBuilder
-                                                           .create()
-                                                           .add("custom_model_data", customModelData))
-                                                   .add("model", key().toString()));
+
+                                           for (ItemTextureData installedItem : installedItems) {
+                                               jsonArrayBuilder.add(
+                                                   JsonObjectBuilder
+                                                       .create()
+                                                       .add("predicate",
+                                                           JsonObjectBuilder
+                                                               .create()
+                                                               .add("custom_model_data", installedItem.customModelData))
+                                                       .add("model", installedItem.key().toString()));
+                                           }
                                            jsonArrayBuilder.build()
                                                            .forEach(jsonElement -> list.add(jsonElement.getAsJsonObject()));
                                        });
@@ -99,7 +95,13 @@ public class ItemTextureData extends ResourcePackResource {
         builder.add("overrides", sortedArray);
     }
 
-    private JsonObject createModelJson(NamespacedKey key, @Nullable ModelType modelType) {
+    private void createModelFile(CustomResourcePack customPack) {
+        JsonObject jsonToWriteToFile = createModelJson(this.material, key(), modelType);
+
+        AssetUtil.createJsonAssetAndInstall(jsonToWriteToFile, customPack, key(), ResourcePackAssetTypes.MODELS);
+    }
+
+    private static JsonObject createModelJson(Material material, NamespacedKey key, @Nullable ModelType modelType) {
         JsonObject jsonToWriteToFile;
         if (modelType != null)
             jsonToWriteToFile = modelType.modelCreator().apply(key);
@@ -112,7 +114,7 @@ public class ItemTextureData extends ResourcePackResource {
         return jsonToWriteToFile;
     }
 
-    private boolean isHandheldItem(Material material) {
+    private static boolean isHandheldItem(Material material) {
         return material.name().contains("SWORD") || material.name().contains("AXE") || material.name()
                                                                                                .contains("HOE") || material
             .name().contains("SHOVEL") || material.equals(Material.FISHING_ROD);
@@ -122,6 +124,106 @@ public class ItemTextureData extends ResourcePackResource {
         public static ModelType createModelForBlockItem(String modelName, NamespacedKey blockModel) {
             return new ModelType(modelName, namespacedKey ->
                 JsonObjectBuilder.create().add("parent", blockModel.toString())
+                                 .build());
+        }
+
+        public static ModelType createFullCubeWithSingleTexture(Keyed textureKey) {
+            return createFullCubeWithSeparateTextures(Map.of(BlockFace.UP, textureKey, BlockFace.DOWN, textureKey, BlockFace.NORTH, textureKey, BlockFace.EAST, textureKey, BlockFace.SOUTH, textureKey, BlockFace.WEST, textureKey));
+        }
+
+        public static ModelType createFullCubeWithSeparateTextures(Map<BlockFace, ? extends Keyed> texturesPerBlockFace) {
+            var textures = JsonObjectBuilder.create();
+            texturesPerBlockFace.forEach((blockFace, itemTextureData) -> {
+                textures.add(blockFace.name().toLowerCase(Locale.ROOT), itemTextureData.key().toString());
+            });
+
+            return new ModelType("", namespacedKey ->
+                JsonObjectBuilder.create().add("parent", "block/cube")
+                                 .add("textures", textures)
+                                 .build());
+
+        }
+
+        public static ModelType createOnlyOneSideTextureOfCube(BlockFace face) {
+
+            String faceName;
+            if (face.equals(BlockFace.UP) || face.equals(BlockFace.DOWN))
+                faceName = face.name().toLowerCase(Locale.ROOT);
+            else
+                faceName = face.getOppositeFace().name().toLowerCase(Locale.ROOT);
+            int posX = 0;
+            int posY = 0;
+            int posZ = 0;
+
+            int sizeX = 0;
+            int sizeY = 0;
+            int sizeZ = 0;
+
+            if (face == BlockFace.DOWN) {
+                posY = 8;
+                sizeY = 8;
+
+                sizeX = 16;
+                sizeZ = 16;
+            } else if (face == BlockFace.EAST) {
+                posX = 8;
+                sizeX = 8;
+
+                sizeY = 16;
+                sizeZ = 16;
+            } else if (face == BlockFace.NORTH) {
+                posZ = 8;
+                sizeZ = 8;
+
+                sizeX = 16;
+                sizeY = 16;
+            } else if (face == BlockFace.SOUTH) {
+                posZ = 8;
+                sizeZ = 8;
+
+                sizeX = 16;
+                sizeY = 16;
+            } else if (face == BlockFace.UP) {
+                posY = 8;
+                sizeY = 8;
+
+                sizeX = 16;
+                sizeZ = 16;
+            } else if (face == BlockFace.WEST) {
+                posX = 8;
+                sizeX = 8;
+
+                sizeY = 16;
+                sizeZ = 16;
+            }
+
+            var element = JsonObjectBuilder.create()
+                                           .add("from", JsonArrayBuilder.create().add(posX).add(posY).add(posZ))
+                                           .add("to", JsonArrayBuilder.create().add(sizeX).add(sizeY).add(sizeZ))
+                                           .add("faces",
+                                               JsonObjectBuilder.create()
+                                                                .add(faceName,
+                                                                    JsonObjectBuilder.create()
+                                                                                     .add("texture", "#" + faceName)
+                                                                                     .add("cullface", faceName)
+                                                                )
+                                           );
+
+
+            return new ModelType("", namespacedKey ->
+                JsonObjectBuilder.create().add("parent", "block/block")
+                                 .add("elements", JsonArrayBuilder.create().add(element))
+                                 .add("textures",
+                                     JsonObjectBuilder.create()
+                                                      .add("particle", namespacedKey.toString())
+/*                                                      .add("down", emptyTexture.toString())
+                                                      .add("up", emptyTexture.toString())
+                                                      .add("north", emptyTexture.toString())
+                                                      .add("east", emptyTexture.toString())
+                                                      .add("south", emptyTexture.toString())
+                                                      .add("west", emptyTexture.toString())*/
+                                                      .add(faceName, namespacedKey.toString())
+                                 )
                                  .build());
         }
 
@@ -143,6 +245,11 @@ public class ItemTextureData extends ResourcePackResource {
                              .add("textures", JsonObjectBuilder.create().add("all", namespacedKey.toString()))
                              .build());
 
+        public static final ModelType CUBE_ONLY_FACE_UP = new ModelType("minecraft:block/cube_all", namespacedKey ->
+            JsonObjectBuilder.create().add("parent", "minecraft:block/cube_all")
+                             .add("textures", JsonObjectBuilder.create().add("all", namespacedKey.toString()))
+                             .build());
+
         public static final ModelType CLICKABLE_ITEM = new ModelType("clickable_item", namespacedKey ->
             JsonObjectBuilder.create().add("parent", "item/generated")
                              .add("textures", JsonObjectBuilder.create().add("layer0", namespacedKey.toString()))
@@ -155,5 +262,21 @@ public class ItemTextureData extends ResourcePackResource {
                                                           .add(1)
                                                           .add(1))))
                              .build());
+    }
+
+    public Material getMaterial() {
+        return material;
+    }
+
+    public int getCustomModelData() {
+        return customModelData;
+    }
+
+    public Asset<CustomResourcePack> getPngFile() {
+        return pngFile;
+    }
+
+    public ModelType getModelType() {
+        return modelType;
     }
 }

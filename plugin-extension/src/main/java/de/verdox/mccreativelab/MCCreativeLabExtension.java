@@ -1,5 +1,6 @@
 package de.verdox.mccreativelab;
 
+import com.destroystokyo.paper.event.server.ServerTickEndEvent;
 import de.verdox.mccreativelab.block.*;
 import de.verdox.mccreativelab.blockbreak.BlockBreakSpeedModifier;
 import de.verdox.mccreativelab.event.MCCreativeLabReloadEvent;
@@ -11,18 +12,18 @@ import de.verdox.mccreativelab.generator.resourcepack.CustomResourcePack;
 import de.verdox.mccreativelab.generator.resourcepack.renderer.HudRendererImpl;
 import de.verdox.mccreativelab.generator.resourcepack.renderer.element.HudRenderer;
 import de.verdox.mccreativelab.generator.resourcepack.types.sound.SoundData;
+import de.verdox.mccreativelab.sound.ReplacedSoundGroups;
 import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
-import org.bukkit.SoundGroup;
-import org.bukkit.World;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
 import org.bukkit.event.server.ServerLoadEvent;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.codehaus.plexus.util.FileUtils;
 
 import java.io.File;
 import java.io.IOException;
 
-public class MCCreativeLabExtension extends JavaPlugin {
+public class MCCreativeLabExtension extends JavaPlugin implements Listener {
     public static MCCreativeLabExtension getInstance() {
         return INSTANCE;
     }
@@ -42,14 +43,23 @@ public class MCCreativeLabExtension extends JavaPlugin {
 
     @Override
     public void onEnable() {
+        Bukkit.getPluginManager().registerEvents(this, this);
+        Bukkit.getPluginManager().registerEvents(new FakeBlockCacheHandler(), this);
         Bukkit.getPluginManager().registerEvents(new ResourcePackListener(), this);
         Bukkit.getPluginManager().registerEvents(new BlockBreakSpeedModifier(), this);
         Bukkit.getPluginManager().registerEvents(new FakeBlockListener(), this);
         Bukkit.getPluginManager().registerEvents(new FakeBlockSoundManager(), this);
+        Bukkit.getPluginManager().registerEvents(CustomBlockRegistry.fakeBlockDamage, this);
         Bukkit.getCommandMap().register("fakeblock", "mccreativelab", new FakeBlockCommand());
         this.hudRenderer.start();
 
-        modifyGlassSoundsForCustomBlocks();
+
+
+    }
+
+    @EventHandler
+    public void onServerTick(ServerTickEndEvent e){
+        hudRenderer.addTickToRenderQueue(Bukkit.getOnlinePlayers());
     }
 
     private void modifyGlassSoundsForCustomBlocks() {
@@ -66,10 +76,8 @@ public class MCCreativeLabExtension extends JavaPlugin {
     }
 
     public void onServerLoad(ServerLoadEvent.LoadType loadType) {
-        if (loadType.equals(ServerLoadEvent.LoadType.STARTUP)) {
-
-        }
-
+        ReplacedSoundGroups.init();
+        CustomBlockRegistry.setupFakeBlocks();
         if (createResourcePack())
             MCCreativeLabExtension.getInstance().getResourcePackFileHoster()
                                   .sendDefaultResourcePackToPlayers(Bukkit.getOnlinePlayers());

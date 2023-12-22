@@ -61,7 +61,7 @@ public class CustomCropSettings {
         }
 
         @Override
-        public void installToDataPack(CustomResourcePack customPack) throws IOException {
+        public void installResourceToPack(CustomResourcePack customPack) throws IOException {
 
         }
     }

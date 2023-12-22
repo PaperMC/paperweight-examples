@@ -63,7 +63,7 @@ public class Font extends ResourcePackResource {
     }
 
     @Override
-    public void installToDataPack(CustomResourcePack customPack) throws IOException {
+    public void installResourceToPack(CustomResourcePack customPack) throws IOException {
         JsonArrayBuilder providers = JsonArrayBuilder.create();
 
         for (int i = 0; i < bitMaps.size(); i++) {

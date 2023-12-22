@@ -1,9 +1,39 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: derverdox <mail.ysp@web.de>
-Date: Thu, 14 Dec 2023 01:13:42 +0100
-Subject: [PATCH] Adding BlockBehaviour
+Date: Thu, 21 Dec 2023 17:17:43 +0100
+Subject: [PATCH] BlockBehaviour improvements
 
 
+diff --git a/src/main/java/de/verdox/mccreativelab/CustomBehaviour.java b/src/main/java/de/verdox/mccreativelab/CustomBehaviour.java
+index 2f9981a67d72f575fb2ac37b8b6c2bde4d0733ed..65f0b720ca3cca54440f90b0f6e26f444396cd0b 100644
+--- a/src/main/java/de/verdox/mccreativelab/CustomBehaviour.java
++++ b/src/main/java/de/verdox/mccreativelab/CustomBehaviour.java
+@@ -19,6 +19,10 @@ public class CustomBehaviour<T> {
+         this.key = key;
+     }
+ 
++    public String getKey() {
++        return key;
++    }
++
+     /**
+      * Used to set a new behaviour.
+      * @param behaviour The new implementation
+diff --git a/src/main/java/de/verdox/mccreativelab/MultiCustomBehaviour.java b/src/main/java/de/verdox/mccreativelab/MultiCustomBehaviour.java
+index 5db6debc33b781afff966bfc86db11d5b17273da..f3f6272c3e6a56a1ead0ea8484a077ac9d7d21cb 100644
+--- a/src/main/java/de/verdox/mccreativelab/MultiCustomBehaviour.java
++++ b/src/main/java/de/verdox/mccreativelab/MultiCustomBehaviour.java
+@@ -17,6 +17,10 @@ public class MultiCustomBehaviour<K, T> {
+         this.key = key;
+     }
+ 
++    public String getKey() {
++        return key;
++    }
++
+     /**
+      * Used to set a new behaviour.
+      *
 diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/BehaviourResult.java b/src/main/java/de/verdox/mccreativelab/behaviour/BehaviourResult.java
 index 637c1869ce9ba16953410b0dd4fd01184ebe9f1f..80fa2f2b3c206fe15c99ea0272d291417efd449b 100644
 --- a/src/main/java/de/verdox/mccreativelab/behaviour/BehaviourResult.java
@@ -24,10 +54,10 @@ index 637c1869ce9ba16953410b0dd4fd01184ebe9f1f..80fa2f2b3c206fe15c99ea0272d29141
              USE_VANILLA
 diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/BlockBehaviour.java b/src/main/java/de/verdox/mccreativelab/behaviour/BlockBehaviour.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..8090d68cf4f998afbc87347c2655060ceb20eacb
+index 0000000000000000000000000000000000000000..67eb273032f4223f8aa0bfffbd66ccf52ecaced0
 --- /dev/null
 +++ b/src/main/java/de/verdox/mccreativelab/behaviour/BlockBehaviour.java
-@@ -0,0 +1,130 @@
+@@ -0,0 +1,168 @@
 +package de.verdox.mccreativelab.behaviour;
 +
 +import de.verdox.mccreativelab.MultiCustomBehaviour;
@@ -56,6 +86,16 @@ index 0000000000000000000000000000000000000000..8090d68cf4f998afbc87347c2655060c
 +        return BehaviourResult.Object.DEFAULT_INSTANCE;
 +    }
 +
++    /**
++     * This method is called everytime the block receives a block update due to any reason.
++     * Normally this happens when a block next to this block was changed. If you want to implement any custom behaviour on environmental changes use this method.
++     * @param location The location of the block
++     * @param blockData The blockData of the block
++     * @param direction The direction of the Blockupdate
++     * @param neighbourBlockData The neighbour blockdata that issued the block update
++     * @param neighbourLocation The neighbour location
++     * @return The blockdata that results from this update.
++     */
 +    default BehaviourResult.Object<BlockData> blockUpdate(Location location, BlockData blockData, BlockFace direction, BlockData neighbourBlockData, Location neighbourLocation){
 +        return BehaviourResult.Object.DEFAULT_INSTANCE;
 +    }
@@ -68,6 +108,16 @@ index 0000000000000000000000000000000000000000..8090d68cf4f998afbc87347c2655060c
 +     * @return void result
 +     */
 +    default BehaviourResult.Void stepOn(Block block, BlockData blockData, Entity entity){
++        return BehaviourResult.Void.DEFAULT_INSTANCE;
++    }
++
++    /**
++     * This method is called every time the server software tries to randomly tick a block.
++     *
++     * @param block               The randomly ticked block
++     * @param vanillaRandomSource The vanilla random source
++     */
++    default BehaviourResult.Void randomTick(Block block, VanillaRandomSource vanillaRandomSource) {
 +        return BehaviourResult.Void.DEFAULT_INSTANCE;
 +    }
 +
@@ -90,17 +140,6 @@ index 0000000000000000000000000000000000000000..8090d68cf4f998afbc87347c2655060c
 +        return BehaviourResult.Bool.DEFAULT_INSTANCE;
 +    }
 +
-+
-+    /**
-+     * This method is called to check if a block can survive in the current environment
-+     * @param block The block
-+     * @param world The world
-+     * @return A boolean result
-+     */
-+    default BehaviourResult.Bool canSurvive(Block block, World world) {
-+        return BehaviourResult.Bool.DEFAULT_INSTANCE;
-+    }
-+
 +    /**
 +     * This callback is run after the server placed a block due to any reason
 +     * @param location The location
@@ -113,6 +152,29 @@ index 0000000000000000000000000000000000000000..8090d68cf4f998afbc87347c2655060c
 +    default BehaviourResult.Callback onPlace(Location location, BlockData newBlockData, BlockData oldBlockData, boolean notify) {
 +        return BehaviourResult.Callback.DEFAULT_INSTANCE;
 +    }
++
++    /**
++     * This callback is run after a player placed a block
++     * @param player The player
++     * @param location The location
++     * @return callback
++     */
++    default BehaviourResult.Callback onPlayerPlace(Player player, Location location, BlockData thePlacedState) {
++        return BehaviourResult.Callback.DEFAULT_INSTANCE;
++    }
++
++    /**
++     * This callback is run after a player breaks a block
++     * @param player The player
++     * @param location The location
++     * @param brokenState The broken block state
++     * @return callback
++     */
++    default BehaviourResult.Callback onPlayerBreak(Player player, Location location, BlockData brokenState) {
++        return BehaviourResult.Callback.DEFAULT_INSTANCE;
++    }
++
++
 +
 +    /**
 +     * This callback is run after the server removes a block due to any reason
@@ -139,17 +201,10 @@ index 0000000000000000000000000000000000000000..8090d68cf4f998afbc87347c2655060c
 +    }
 +
 +    /**
-+     * This method is called every time the server software tries to randomly tick a block.
-+     *
-+     * @param block               The randomly ticked block
-+     * @param vanillaRandomSource The vanilla random source
-+     */
-+    default BehaviourResult.Void randomTick(Block block, VanillaRandomSource vanillaRandomSource) {
-+        return BehaviourResult.Void.DEFAULT_INSTANCE;
-+    }
-+
-+    /**
-+     * This method is called every time the server software ticks a block
++     * This method is called every time the server software ticks a block.
++     * <p>
++     * Some blocks may not be ticked in vanilla by default. For example Stone blocks don't receive ticks.
++     * Please use the blockUpdate method to implement any custom logic or to call this method.
 +     *
 +     * @param block               The ticked block
 +     * @param vanillaRandomSource The vanilla random source
@@ -157,6 +212,29 @@ index 0000000000000000000000000000000000000000..8090d68cf4f998afbc87347c2655060c
 +    default BehaviourResult.Void tick(Block block, VanillaRandomSource vanillaRandomSource) {
 +        return BehaviourResult.Void.DEFAULT_INSTANCE;
 +    }
++
++    /**
++     * This method is called to check if a block can survive in the current environment
++     * <p>
++     * Some blocks may not use this method by default.
++     * Please use the blockUpdate method to implement any custom logic or to call this method.
++     * @param block The block
++     * @param world The world
++     * @return A boolean result
++     */
++    default BehaviourResult.Bool canSurvive(Block block, World world) {
++        return BehaviourResult.Bool.DEFAULT_INSTANCE;
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/LightingBehaviour.java b/src/main/java/de/verdox/mccreativelab/behaviour/LightingBehaviour.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..ce07d68fbebd22f31bd65d8b67d14065f123d342
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/behaviour/LightingBehaviour.java
+@@ -0,0 +1,4 @@
++package de.verdox.mccreativelab.behaviour;
++
++public interface LightingBehaviour {
 +}
 diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/RandomTickBehaviour.java b/src/main/java/de/verdox/mccreativelab/behaviour/RandomTickBehaviour.java
 new file mode 100644
@@ -646,3 +724,83 @@ index 0000000000000000000000000000000000000000..a7615978914b2d9f306cebd54207a06c
 +        return true;
 +    }
 +}
+diff --git a/src/main/java/de/verdox/mccreativelab/data/BlockLightContext.java b/src/main/java/de/verdox/mccreativelab/data/BlockLightContext.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..e575db353eb9e39ef2bec1acfa24f8a61e90a1d9
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/data/BlockLightContext.java
+@@ -0,0 +1,11 @@
++package de.verdox.mccreativelab.data;
++
++import org.bukkit.block.data.BlockData;
++import org.jetbrains.annotations.Nullable;
++
++import java.util.UUID;
++
++public interface BlockLightContext {
++    UUID getWorldUUID();
++    @Nullable BlockData getBlockDataIfLoaded(int x, int y, int z);
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/events/BlockLightEvent.java b/src/main/java/de/verdox/mccreativelab/events/BlockLightEvent.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..52766dcaf469e5de789abdd98beff7262747b2ed
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/events/BlockLightEvent.java
+@@ -0,0 +1,44 @@
++package de.verdox.mccreativelab.events;
++
++import org.bukkit.Bukkit;
++import org.bukkit.Location;
++import org.bukkit.World;
++import org.bukkit.event.Event;
++import org.bukkit.event.HandlerList;
++import org.jetbrains.annotations.NotNull;
++
++import java.util.Map;
++
++public class BlockLightEvent extends Event {
++    private static final HandlerList HANDLER_LIST = new HandlerList();
++    private final World world;
++    private final Map<Location, int[]> trackedBlockLightChanges;
++
++    public BlockLightEvent(World world, Map<Location, int[]> trackedBlockLightChanges){
++        super(!Bukkit.isPrimaryThread());
++        this.world = world;
++        this.trackedBlockLightChanges = trackedBlockLightChanges;
++    }
++
++    public World getWorld() {
++        return world;
++    }
++
++    /**
++     * The first value of the int array is the block light. The second value is the skylight.
++     * If one value was not updated it is stored as -1.
++     * @return
++     */
++    public Map<Location, int[]> getTrackedBlockLightChanges() {
++        return trackedBlockLightChanges;
++    }
++
++    @NotNull
++    public static HandlerList getHandlerList() {
++        return HANDLER_LIST;
++    }
++    @NotNull
++    public HandlerList getHandlers() {
++        return HANDLER_LIST;
++    }
++}
+diff --git a/src/main/java/org/bukkit/entity/Player.java b/src/main/java/org/bukkit/entity/Player.java
+index 20fa1024f9ad8f478a347be5c554b5e45b398a1c..be26bf3288631d4a0edc32eacf2ca703185f638f 100644
+--- a/src/main/java/org/bukkit/entity/Player.java
++++ b/src/main/java/org/bukkit/entity/Player.java
+@@ -725,6 +725,8 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
+     @Deprecated
+     public void sendBlockChange(@NotNull Location loc, @NotNull Material material, byte data);
+ 
++    public void sendInventoryChange(@Nullable ItemStack stack, int slot);
++
+     /**
+      * Send a block change. This fakes a block change packet for a user at a
+      * certain location. This will not actually change the world in any way.

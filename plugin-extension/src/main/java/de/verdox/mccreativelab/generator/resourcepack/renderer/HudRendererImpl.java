@@ -4,9 +4,7 @@ import de.verdox.mccreativelab.generator.resourcepack.renderer.element.HudRender
 import de.verdox.mccreativelab.generator.resourcepack.types.CustomHud;
 import org.bukkit.entity.Player;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -40,7 +38,7 @@ public class HudRendererImpl extends Thread implements HudRenderer {
         getRendererData(player).forceUpdate();
     }
 
-    public void addTickToRenderQueue(List<Player> serverPlayers) {
+    public void addTickToRenderQueue(Collection<? extends Player> serverPlayers) {
         ticksToProcess.offer(new TickData(Set.copyOf(serverPlayers)));
     }
 
