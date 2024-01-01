@@ -100,10 +100,12 @@ public abstract class FakeBlockVisualStrategy<T extends FakeBlockVisualStrategy.
     protected T getOrCreateFakeBlockDisplayData(Block block){
         return getFakeBlockDisplayData(block, true);
     }
+
+    protected abstract T newData();
     protected T getFakeBlockDisplayData(Block block, boolean createIfNotExist){
         if (!block.hasMetadata(FAKE_BLOCK_FACE_LINKING_KEY)) {
             if (createIfNotExist)
-                block.setMetadata(FAKE_BLOCK_FACE_LINKING_KEY, new FixedMetadataValue(MCCreativeLabExtension.getInstance(), new SolidBlockVisualStrategy.FakeBlockFaces()));
+                block.setMetadata(FAKE_BLOCK_FACE_LINKING_KEY, new FixedMetadataValue(MCCreativeLabExtension.getInstance(), newData()));
             else
                 return null;
         }

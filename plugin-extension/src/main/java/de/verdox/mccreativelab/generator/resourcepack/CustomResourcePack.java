@@ -1,5 +1,6 @@
 package de.verdox.mccreativelab.generator.resourcepack;
 
+import com.google.gson.JsonObject;
 import de.verdox.mccreativelab.generator.Asset;
 import de.verdox.mccreativelab.generator.AssetPath;
 import de.verdox.mccreativelab.generator.CustomPack;
@@ -8,6 +9,7 @@ import de.verdox.mccreativelab.generator.resourcepack.types.ItemTextureData;
 import de.verdox.mccreativelab.generator.resourcepack.types.sound.SoundData;
 import de.verdox.mccreativelab.util.gson.JsonObjectBuilder;
 import de.verdox.mccreativelab.util.gson.JsonUtil;
+import de.verdox.mccreativelab.util.io.AssetUtil;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 
@@ -22,6 +24,7 @@ public class CustomResourcePack extends CustomPack<CustomResourcePack> {
     public static final AssetPath resourcePacksFolder = AssetPath.buildPath("resourcePacks");
     private final Map<String, SoundFile> soundFilesPerNamespace = new HashMap<>();
     private final Map<Material, Set<ItemTextureData>> itemTextureDataPerMaterial = new HashMap<>();
+    private final Map<Material, Set<AlternateBlockStateModel>> alternateBlockStateModels = new HashMap<>();
 
 
     public CustomResourcePack(String packName, int packFormat, String description, AssetPath savePath) {
@@ -64,6 +67,15 @@ public class CustomResourcePack extends CustomPack<CustomResourcePack> {
             Set<ItemTextureData> itemTextureDataSet = materialSetEntry.getValue();
             ItemTextureData.createVanillaModelFile(material, itemTextureDataSet, this);
         }
+        for (Map.Entry<Material, Set<AlternateBlockStateModel>> materialSetEntry : alternateBlockStateModels.entrySet()) {
+
+            Material material = materialSetEntry.getKey();
+            Set<AlternateBlockStateModel> alternateBlockStateModels = materialSetEntry.getValue();
+
+            JsonObject jsonObject = AlternateBlockStateModel.createBlockStateJson(alternateBlockStateModels);
+
+            AssetUtil.createJsonAssetAndInstall(jsonObject, this, material.getKey(), ResourcePackAssetTypes.BLOCK_STATES);
+        }
         return file;
     }
 
@@ -78,6 +90,9 @@ public class CustomResourcePack extends CustomPack<CustomResourcePack> {
             }).addSoundData(soundData);
         if(resource instanceof ItemTextureData itemTextureData)
             itemTextureDataPerMaterial.computeIfAbsent(itemTextureData.getMaterial(), material -> new HashSet<>()).add(itemTextureData);
+        if(resource instanceof AlternateBlockStateModel alternateBlockStateModel){
+            alternateBlockStateModels.computeIfAbsent(alternateBlockStateModel.getBlockData().getMaterial(), material -> new HashSet<>()).add(alternateBlockStateModel);
+        }
     }
 
     @Override

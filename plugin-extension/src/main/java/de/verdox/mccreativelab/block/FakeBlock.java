@@ -1,10 +1,15 @@
 package de.verdox.mccreativelab.block;
 
 import de.verdox.mccreativelab.Wrappers;
+import de.verdox.mccreativelab.behaviour.BehaviourResult;
+import de.verdox.mccreativelab.behaviour.BlockBehaviour;
+import de.verdox.mccreativelab.block.behaviour.VanillaReplacingBehaviour;
+import de.verdox.mccreativelab.block.visual.DummyBlockVisualStrategy;
 import de.verdox.mccreativelab.block.visual.FakeBlockVisualStrategy;
-import de.verdox.mccreativelab.block.visual.SolidBlockVisualStrategy;
 import de.verdox.mccreativelab.block.visual.TransparentBlockVisualStrategy;
 import de.verdox.mccreativelab.generator.Asset;
+import de.verdox.mccreativelab.generator.UnusedBlockStates;
+import de.verdox.mccreativelab.generator.resourcepack.AlternateBlockStateModel;
 import de.verdox.mccreativelab.generator.resourcepack.CustomResourcePack;
 import de.verdox.mccreativelab.generator.resourcepack.ResourcePackAssetTypes;
 import de.verdox.mccreativelab.generator.resourcepack.ResourcePackResource;
@@ -29,10 +34,9 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
-public class FakeBlock implements Keyed {
+public class FakeBlock implements Keyed, VanillaReplacingBehaviour {
     private final FakeBlockState[] fakeBlockStates;
     private final Map<FakeBlockState, Integer> blockStateToIdMapping = new HashMap<>();
-
     private NamespacedKey key;
 
     protected FakeBlock(List<FakeBlockState> fakeBlockStates) {
@@ -75,27 +79,12 @@ public class FakeBlock implements Keyed {
         return true;
     }
 
-    public float getDestroySpeedMultiplier(@NotNull FakeBlockState fakeBlockState, @NotNull Block block, @Nullable ItemStack itemStack) {
+    public List<ItemStack> drawLoot(){
+        return List.of();
+    }
+
+    public float getDestroySpeed(@NotNull FakeBlockState fakeBlockState, @NotNull Block block, @Nullable ItemStack itemStack) {
         return 1.0f;
-    }
-
-    public void randomTick(@NotNull FakeBlockState fakeBlockState, @NotNull Block block, @NotNull VanillaRandomSource vanillaRandomSource) {
-    }
-
-    public void tick(@NotNull FakeBlockState fakeBlockState, @NotNull Block block, @NotNull VanillaRandomSource vanillaRandomSource) {
-
-    }
-
-    public void stepOn(@NotNull FakeBlockState fakeBlockState, @NotNull Block block, @NotNull Entity entity) {
-
-    }
-
-    public BlockData blockUpdate(@NotNull FakeBlockState fakeBlockState, @NotNull Block block, @NotNull BlockFace direction, @NotNull BlockData neighbourBlockData, @NotNull Location neighbourLocation) {
-        return block.getBlockData();
-    }
-
-    public boolean canSurvive(@NotNull FakeBlockState fakeBlockState, @NotNull Block block) {
-        return true;
     }
 
     public void remove(Location location, boolean withEffects) {
@@ -241,16 +230,22 @@ public class FakeBlock implements Keyed {
         private final Map<BlockFace, Asset<CustomResourcePack>> texturesPerBlockFace;
         private final Map<BlockFace, ItemTextureData.ModelType> modelsPerBlockFace;
         private final FakeBlockVisualStrategy fakeBlockVisualStrategy;
+        private final boolean isReusingMinecraftBlockstate;
         private ItemTextureData fullBlockTexture;
         private ItemTextureData.ModelType fullBlockModel;
 
-        FakeBlockDisplay(NamespacedKey namespacedKey, BlockData destroyParticles, FakeBlockHitbox hitBox, Map<BlockFace, Asset<CustomResourcePack>> texturesPerBlockFace, Map<BlockFace, ItemTextureData.ModelType> modelsPerBlockFace, FakeBlockVisualStrategy fakeBlockVisualStrategy) {
+        FakeBlockDisplay(NamespacedKey namespacedKey, BlockData destroyParticles, FakeBlockHitbox hitBox, Map<BlockFace, Asset<CustomResourcePack>> texturesPerBlockFace, Map<BlockFace, ItemTextureData.ModelType> modelsPerBlockFace, FakeBlockVisualStrategy fakeBlockVisualStrategy, boolean isReusingMinecraftBlockstate) {
             super(namespacedKey);
             this.hitBox = hitBox;
             this.destroyParticles = destroyParticles;
             this.texturesPerBlockFace = texturesPerBlockFace;
             this.modelsPerBlockFace = modelsPerBlockFace;
             this.fakeBlockVisualStrategy = fakeBlockVisualStrategy;
+            this.isReusingMinecraftBlockstate = isReusingMinecraftBlockstate;
+        }
+
+        public boolean isReusingMinecraftBlockstate() {
+            return isReusingMinecraftBlockstate;
         }
 
         public FakeBlockVisualStrategy getFakeBlockVisualStrategy() {
@@ -288,6 +283,9 @@ public class FakeBlock implements Keyed {
             ItemTextureData itemTextureData = new ItemTextureData(fullDisplayKey, Material.BARRIER, ID_COUNTER.getAndIncrement(), null, this.fullBlockModel);
             this.fullBlockTexture = itemTextureData;
             customPack.register(itemTextureData);
+
+            if(isReusingMinecraftBlockstate)
+                customPack.register(new AlternateBlockStateModel(hitBox.blockData, fullDisplayKey));
         }
 
         @Override
@@ -326,6 +324,8 @@ public class FakeBlock implements Keyed {
             private FakeBlockHitbox fakeBlockHitbox = FakeBlockHitbox.SOLID_BLOCK;
             private BlockData destroyParticleData = Bukkit.createBlockData(Material.STONE);
             private FakeBlockVisualStrategy fakeBlockVisualStrategy = TransparentBlockVisualStrategy.INSTANCE;
+            private boolean isReusingMinecraftBlockState;
+
             Builder(NamespacedKey namespacedKey) {
                 this.namespacedKey = namespacedKey;
             }
@@ -342,7 +342,7 @@ public class FakeBlock implements Keyed {
                 return this;
             }
 
-            public Builder withFakeBlockVisualStrategy(FakeBlockVisualStrategy fakeBlockVisualStrategy){
+            public Builder withFakeBlockVisualStrategy(FakeBlockVisualStrategy fakeBlockVisualStrategy) {
                 this.fakeBlockVisualStrategy = fakeBlockVisualStrategy;
                 return this;
             }
@@ -377,8 +377,19 @@ public class FakeBlock implements Keyed {
                 return this;
             }
 
+            public Builder useUnusedBlockState(Material material){
+                FakeBlockHitbox fakeBlockHitbox = new FakeBlockHitbox(UnusedBlockStates.getUnusedBlockState(material));
+                withHitbox(fakeBlockHitbox);
+                withDestroyParticles(fakeBlockHitbox.blockData);
+                withFakeBlockVisualStrategy(DummyBlockVisualStrategy.INSTANCE);
+                isReusingMinecraftBlockState = true;
+                return this;
+            }
+
             FakeBlockDisplay build() {
-                return new FakeBlockDisplay(namespacedKey, destroyParticleData, fakeBlockHitbox, texturesPerBlockFace, modelsPerBlockFace, fakeBlockVisualStrategy);
+
+
+                return new FakeBlockDisplay(namespacedKey, destroyParticleData, fakeBlockHitbox, texturesPerBlockFace, modelsPerBlockFace, fakeBlockVisualStrategy, isReusingMinecraftBlockState);
             }
         }
     }
@@ -429,20 +440,19 @@ public class FakeBlock implements Keyed {
         }
     }
 
-    public enum FakeBlockHitbox {
-        SOLID_BLOCK(Bukkit.createBlockData(Material.ANCIENT_DEBRIS, blockData -> {
-        })),
-        TRANSPARENT_BLOCK(Bukkit.createBlockData(Material.PURPLE_STAINED_GLASS, blockData -> {
-        })),
-        CROP_AGE_0(Bukkit.createBlockData(Material.WHEAT, blockData -> ((Ageable) blockData).setAge(0))),
-        CROP_AGE_1(Bukkit.createBlockData(Material.WHEAT, blockData -> ((Ageable) blockData).setAge(1))),
-        CROP_AGE_2(Bukkit.createBlockData(Material.WHEAT, blockData -> ((Ageable) blockData).setAge(2))),
-        CROP_AGE_3(Bukkit.createBlockData(Material.WHEAT, blockData -> ((Ageable) blockData).setAge(3))),
-        CROP_AGE_4(Bukkit.createBlockData(Material.WHEAT, blockData -> ((Ageable) blockData).setAge(4))),
-        CROP_AGE_5(Bukkit.createBlockData(Material.WHEAT, blockData -> ((Ageable) blockData).setAge(5))),
-        CROP_AGE_6(Bukkit.createBlockData(Material.WHEAT, blockData -> ((Ageable) blockData).setAge(6))),
-        CROP_AGE_7(Bukkit.createBlockData(Material.WHEAT, blockData -> ((Ageable) blockData).setAge(7))),
-        ;
+    public static class FakeBlockHitbox {
+        public static final FakeBlockHitbox SOLID_BLOCK = new FakeBlockHitbox(Bukkit.createBlockData(Material.ANCIENT_DEBRIS, blockData -> {
+        }));
+        public static final FakeBlockHitbox TRANSPARENT_BLOCK = new FakeBlockHitbox(Bukkit.createBlockData(Material.PURPLE_STAINED_GLASS, blockData -> {
+        }));
+        public static final FakeBlockHitbox CROP_AGE_0 = new FakeBlockHitbox(Bukkit.createBlockData(Material.WHEAT, blockData -> ((Ageable) blockData).setAge(0)));
+        public static final FakeBlockHitbox CROP_AGE_1 = new FakeBlockHitbox(Bukkit.createBlockData(Material.WHEAT, blockData -> ((Ageable) blockData).setAge(1)));
+        public static final FakeBlockHitbox CROP_AGE_2 = new FakeBlockHitbox(Bukkit.createBlockData(Material.WHEAT, blockData -> ((Ageable) blockData).setAge(2)));
+        public static final FakeBlockHitbox CROP_AGE_3 = new FakeBlockHitbox(Bukkit.createBlockData(Material.WHEAT, blockData -> ((Ageable) blockData).setAge(3)));
+        public static final FakeBlockHitbox CROP_AGE_4 = new FakeBlockHitbox(Bukkit.createBlockData(Material.WHEAT, blockData -> ((Ageable) blockData).setAge(4)));
+        public static final FakeBlockHitbox CROP_AGE_5 = new FakeBlockHitbox(Bukkit.createBlockData(Material.WHEAT, blockData -> ((Ageable) blockData).setAge(5)));
+        public static final FakeBlockHitbox CROP_AGE_6 = new FakeBlockHitbox(Bukkit.createBlockData(Material.WHEAT, blockData -> ((Ageable) blockData).setAge(6)));
+        public static final FakeBlockHitbox CROP_AGE_7 = new FakeBlockHitbox(Bukkit.createBlockData(Material.WHEAT, blockData -> ((Ageable) blockData).setAge(7)));
         private final BlockData blockData;
 
         FakeBlockHitbox(BlockData blockData) {
@@ -458,19 +468,6 @@ public class FakeBlock implements Keyed {
 
             Asset<CustomResourcePack> emptyBlockModel = new Asset<>(() -> CustomResourcePack.class.getResourceAsStream("/empty_block/models/empty.json"));
             emptyBlockModel.installAsset(customResourcePack, new NamespacedKey("minecraft", "block/empty"), ResourcePackAssetTypes.MODELS, "json");
-
-/*            Asset<CustomResourcePack> emptySlabModel = new Asset<>(() -> CustomResourcePack.class.getResourceAsStream("/empty_block/models/empty_slab.json"));
-            emptySlabModel.installAsset(customResourcePack, new NamespacedKey("minecraft","block/empty_slab"), ResourcePackAssetTypes.MODELS, "json");
-            Asset<CustomResourcePack> emptySlabModelTop = new Asset<>(() -> CustomResourcePack.class.getResourceAsStream("/empty_block/models/empty_slab_top.json"));
-            emptySlabModelTop.installAsset(customResourcePack, new NamespacedKey("minecraft","block/empty_slab_top"), ResourcePackAssetTypes.MODELS, "json");*/
-
-
-/*
-            Asset<CustomResourcePack> petrifiedOakSlabBlockStates = new Asset<>(() -> CustomResourcePack.class.getResourceAsStream("/empty_block/blockstates/petrified_oak_slab.json"));
-            petrifiedOakSlabBlockStates.installAsset(customResourcePack, new NamespacedKey("minecraft","petrified_oak_slab"), ResourcePackAssetTypes.BLOCK_STATES, "json");
-
-
-*/
 
             Asset<CustomResourcePack> emptyBlockStatesFile = new Asset<>(() -> CustomResourcePack.class.getResourceAsStream("/empty_block/blockstates/empty_blockstates.json"));
 

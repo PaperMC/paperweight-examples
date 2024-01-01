@@ -1564,7 +1564,7 @@ index b2c2bd5ec0afd479973f7237a5c610f21231c505..90cbc1b3aca20b80735b2ccdce252c72
  import java.util.Objects;
  import javax.annotation.Nullable;
 +
-+import de.verdox.mccreativelab.behaviour.BehaviourUtil;
++import de.verdox.mccreativelab.behaviour.BlockBehaviourUtil;
  import net.minecraft.advancements.CriteriaTriggers;
  import net.minecraft.core.BlockPos;
  import net.minecraft.core.Direction;
@@ -1634,7 +1634,7 @@ index e483186a5292b3b53bfb1af4d56f55fcc1a6106c..0448a9408667b91625f3d48132633d79
  import java.util.stream.Stream;
  import javax.annotation.Nullable;
 +
-+import de.verdox.mccreativelab.behaviour.BehaviourUtil;
++import de.verdox.mccreativelab.behaviour.BlockBehaviourUtil;
  import net.minecraft.advancements.CriteriaTriggers;
  import net.minecraft.core.BlockPos;
  import net.minecraft.nbt.CompoundTag;
@@ -1656,7 +1656,7 @@ index c057c0138cad7c3ee221b3a30d8713231ccd03ab..c66186588879877cb17a7b754ca47e07
  import java.util.stream.Stream;
  import javax.annotation.Nullable;
 +
-+import de.verdox.mccreativelab.behaviour.BehaviourUtil;
++import de.verdox.mccreativelab.behaviour.BlockBehaviourUtil;
  import net.minecraft.ChatFormatting;
  import net.minecraft.Util;
  import net.minecraft.advancements.CriteriaTriggers;
@@ -1690,7 +1690,7 @@ index 47468086c1cae252aa99c55b0065f225357dee62..e30e24f352dc0abf10f08a0e575ca652
  
      @Override
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          BlockPos blockPos = PointedDripstoneBlock.findStalactiteTipAboveCauldron(world, pos);
          if (blockPos != null) {
              Fluid fluid = PointedDripstoneBlock.getCauldronFillFluidType(world, blockPos);
@@ -1702,7 +1702,7 @@ index 01b4cf48901aaac897b8def284bf3e2c1cea3570..552b88ee374c1b3fa42f06bf78d4083c
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.canSurvive(state, world, pos, () -> {
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.canSurvive(state, world, pos, () -> {
          Direction direction = state.getValue(FACING);
          BlockPos blockPos = pos.relative(direction.getOpposite());
          return world.getBlockState(blockPos).isFaceSturdy(world, blockPos, direction);
@@ -1720,7 +1720,7 @@ index e98f566aaba3ff7e3058fbd53bcac467c2c63182..b7bc6f7815c1be84f69d3bbfd2d54b7a
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
 -        return !neighborState.is(this.fruit) && direction == state.getValue(FACING) ? this.fruit.getStem().defaultBlockState().setValue(StemBlock.AGE, Integer.valueOf(7)) : super.updateShape(state, direction, neighborState, world, pos, neighborPos);
 -    }
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
 +            return !neighborState.is(this.fruit) && direction == state.getValue(FACING) ? this.fruit.getStem()
 +                                                                                                    .defaultBlockState()
 +                                                                                                    .setValue(StemBlock.AGE, Integer.valueOf(7)) : super.updateShape(state, direction, neighborState, world, pos, neighborPos);
@@ -1737,7 +1737,7 @@ index fd0143944e4fecaf6f1ffa4561702178431575e9..80d5abc5c49181aab7ec2a2ac13a5cc5
  
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          if (random.nextFloat() < (world.spigotConfig.bambooModifier / (100.0f * 3)) && world.isEmptyBlock(pos.above()) && world.getRawBrightness(pos.above(), 0) >= 9) { // Spigot - SPIGOT-7159: Better modifier resolution
              this.growBamboo(world, pos);
          }
@@ -1745,14 +1745,14 @@ index fd0143944e4fecaf6f1ffa4561702178431575e9..80d5abc5c49181aab7ec2a2ac13a5cc5
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.canSurvive(state, world, pos, () -> {
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.canSurvive(state, world, pos, () -> {
          return world.getBlockState(pos.below()).is(BlockTags.BAMBOO_PLANTABLE_ON);
 +        });
      }
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          if (!state.canSurvive(world, pos)) {
              return Blocks.AIR.defaultBlockState();
          } else {
@@ -1780,7 +1780,7 @@ index 05a508cb457b67078ccb08bd2228a59e73701cf3..a49681b49801498e192fe1be59a167b7
  
      @Override
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          if (!state.canSurvive(world, pos)) {
              world.destroyBlock(pos, true);
          }
@@ -1788,7 +1788,7 @@ index 05a508cb457b67078ccb08bd2228a59e73701cf3..a49681b49801498e192fe1be59a167b7
  
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          if ((Integer) state.getValue(BambooStalkBlock.STAGE) == 0) {
              if (random.nextFloat() < (world.spigotConfig.bambooModifier / (100.0f * 3)) && world.isEmptyBlock(pos.above()) && world.getRawBrightness(pos.above(), 0) >= 9) { // Spigot - SPIGOT-7159: Better modifier resolution
                  int i = this.getHeightBelowUpToMax(world, pos) + 1;
@@ -1796,14 +1796,14 @@ index 05a508cb457b67078ccb08bd2228a59e73701cf3..a49681b49801498e192fe1be59a167b7
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.canSurvive(state, world, pos, () -> {
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.canSurvive(state, world, pos, () -> {
          return world.getBlockState(pos.below()).is(BlockTags.BAMBOO_PLANTABLE_ON);
 +        });
      }
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          if (!state.canSurvive(world, pos)) {
              world.scheduleTick(pos, (Block) this, 1);
          }
@@ -1823,7 +1823,7 @@ index 09451bc19b65e09c85389d597625dcc2b6f715c5..3a8eb6e5cf9a253c0bd8a5269b9bfb64
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.canSurvive(state, world, pos, () -> {
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.canSurvive(state, world, pos, () -> {
          return world.getBlockState(pos.below()).isSolid();
 +        });
      }
@@ -1833,7 +1833,7 @@ index 09451bc19b65e09c85389d597625dcc2b6f715c5..3a8eb6e5cf9a253c0bd8a5269b9bfb64
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          return direction == Direction.DOWN && !state.canSurvive(world, pos) ? Blocks.AIR.defaultBlockState() : super.updateShape(state, direction, neighborState, world, pos, neighborPos);
 -    }
 +        }); // MCCLab - Add BlockBehaviour
@@ -1849,7 +1849,7 @@ index 79f19bc122f08d276d96b4490327e228224576fc..fe52e60c03dbddf6bd251a499582e3e4
  
      @Override
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          BlockEntity blockEntity = world.getBlockEntity(pos);
          if (blockEntity instanceof BarrelBlockEntity) {
              ((BarrelBlockEntity)blockEntity).recheckOpen();
@@ -1864,7 +1864,7 @@ index a46f924ba1ac778f2fabbbd811b993ce33f8cf89..66bc6b478ec361df3b035cbca3416b6c
 -        if (state.getValue(WATERLOGGED)) {
 -            world.scheduleTick(pos, Fluids.WATER, Fluids.WATER.getTickDelay(world));
 -        }
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
 +            if (state.getValue(WATERLOGGED)) {
 +                world.scheduleTick(pos, Fluids.WATER, Fluids.WATER.getTickDelay(world));
 +            }
@@ -1883,7 +1883,7 @@ index 3d2b34c5a7c9b00c1164b4f89c2cbff81fc460eb..d5190478b3f44ece5397d9604a5b2055
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          if (state.getValue(WATERLOGGED)) {
              world.scheduleTick(pos, Fluids.WATER, Fluids.WATER.getTickDelay(world));
          }
@@ -1895,7 +1895,7 @@ index 3d2b34c5a7c9b00c1164b4f89c2cbff81fc460eb..d5190478b3f44ece5397d9604a5b2055
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.canSurvive(state, world, pos, () -> {
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.canSurvive(state, world, pos, () -> {
          BlockPos blockPos = pos.below();
          return world.getBlockState(blockPos).isFaceSturdy(world, blockPos, Direction.UP);
 +        });
@@ -1910,7 +1910,7 @@ index 94e7a53fb6792d490246c7f2aec8a7f47f2ef493..46f8bf2a73684f1dd22d60d988bce77c
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          if (state.getValue(WATERLOGGED)) {
              world.scheduleTick(pos, Fluids.WATER, Fluids.WATER.getTickDelay(world));
          }
@@ -1922,7 +1922,7 @@ index 94e7a53fb6792d490246c7f2aec8a7f47f2ef493..46f8bf2a73684f1dd22d60d988bce77c
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.canSurvive(state, world, pos, () -> {
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.canSurvive(state, world, pos, () -> {
          Direction direction = state.getValue(FACING);
          BlockPos blockPos = pos.relative(direction.getOpposite());
          BlockState blockState = world.getBlockState(blockPos);
@@ -1939,7 +1939,7 @@ index ee4b3ac212483995bb8ae990bebfb8aa2fbe86a5..390eff67ee30a3a0ffa9e0c4cc8edebc
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          return direction == Direction.DOWN && !state.canSurvive(world, pos) ? Blocks.AIR.defaultBlockState() : super.updateShape(state, direction, neighborState, world, pos, neighborPos);
 -    }
 +        }); // MCCLab - Add BlockBehaviour
@@ -1947,7 +1947,7 @@ index ee4b3ac212483995bb8ae990bebfb8aa2fbe86a5..390eff67ee30a3a0ffa9e0c4cc8edebc
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.canSurvive(state, world, pos, () -> {
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.canSurvive(state, world, pos, () -> {
          BlockPos blockposition1 = pos.below();
  
          return canSupportRigidBlock(world, blockposition1) || canSupportCenter(world, blockposition1, Direction.UP);
@@ -1956,7 +1956,7 @@ index ee4b3ac212483995bb8ae990bebfb8aa2fbe86a5..390eff67ee30a3a0ffa9e0c4cc8edebc
  
      @Override
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          int i = this.getSignalForState(state);
  
          if (i > 0) {
@@ -1968,7 +1968,7 @@ index 547d09c3a1cd0c5401aacb78886896365ba192e7..607d7675b59fbb0e1c8e48317d46647d
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.canSurvive(state, world, pos, () -> {
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.canSurvive(state, world, pos, () -> {
          return canSupportRigidBlock(world, pos.below());
 +        });
      }
@@ -1978,7 +1978,7 @@ index 547d09c3a1cd0c5401aacb78886896365ba192e7..607d7675b59fbb0e1c8e48317d46647d
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          if (state.getValue(WATERLOGGED)) {
              world.scheduleTick(pos, Fluids.WATER, Fluids.WATER.getTickDelay(world));
          }
@@ -1996,7 +1996,7 @@ index d40500f9a807cab0b2fb6fa9032f33f4fb74c895..c2261f527d7d3cbff2670a0540ec7e4c
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          return direction == BedBlock.getNeighbourDirection((BedPart) state.getValue(BedBlock.PART), (Direction) state.getValue(BedBlock.FACING)) ? (neighborState.is((Block) this) && neighborState.getValue(BedBlock.PART) != state.getValue(BedBlock.PART) ? (BlockState) state.setValue(BedBlock.OCCUPIED, (Boolean) neighborState.getValue(BedBlock.OCCUPIED)) : Blocks.AIR.defaultBlockState()) : super.updateShape(state, direction, neighborState, world, pos, neighborPos);
 -    }
 +        }); // MCCLab - Add BlockBehaviour
@@ -2014,7 +2014,7 @@ index 4b4a6b081ffedc7f637fa1e1726391d8e0fee0a1..e196202adabbef9837e042f59af4baa2
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
 -        if (world.getBlockState(neighborPos).getBlock() instanceof FireBlock) {
 -            BlockEntity tileentity = world.getBlockEntity(pos);
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
 +            if (world.getBlockState(neighborPos).getBlock() instanceof FireBlock) {
 +                BlockEntity tileentity = world.getBlockEntity(pos);
  
@@ -2043,7 +2043,7 @@ index 2bd714466fb86d4013bd3bceddecba19ce98df08..b64f43291f5aaf637579ca3f4b4f7d9a
  
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          if (random.nextInt(3) != 0) {
              super.randomTick(state, world, pos, random);
          }
@@ -2055,7 +2055,7 @@ index 2774c32bd62255e8902d23e986c8d3e13ccddc7f..11f0354ee2e804a26a883501c2ed9847
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          BellAttachType blockpropertybellattach = (BellAttachType) state.getValue(BellBlock.ATTACHMENT);
          Direction enumdirection1 = BellBlock.getConnectedDirection(state).getOpposite();
  
@@ -2068,7 +2068,7 @@ index 2774c32bd62255e8902d23e986c8d3e13ccddc7f..11f0354ee2e804a26a883501c2ed9847
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.canSurvive(state, world, pos, () -> {
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.canSurvive(state, world, pos, () -> {
          Direction enumdirection = BellBlock.getConnectedDirection(state).getOpposite();
  
          return enumdirection == Direction.UP ? Block.canSupportCenter(world, pos.above(), Direction.DOWN) : FaceAttachedHorizontalDirectionalBlock.canAttach(world, pos, enumdirection);
@@ -2086,7 +2086,7 @@ index 54cf35b0c48d96ecfb27ff13cd685c16a1cd616b..abbedae000e10edd4539fcf01a6f1114
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.canSurvive(state, world, pos, () -> {
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.canSurvive(state, world, pos, () -> {
          BlockPos blockposition1 = pos.below();
          BlockState iblockdata1 = world.getBlockState(blockposition1);
  
@@ -2097,7 +2097,7 @@ index 54cf35b0c48d96ecfb27ff13cd685c16a1cd616b..abbedae000e10edd4539fcf01a6f1114
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          if (direction == Direction.DOWN && !state.canSurvive(world, pos)) {
              return Blocks.AIR.defaultBlockState();
          } else {
@@ -2113,7 +2113,7 @@ index 54cf35b0c48d96ecfb27ff13cd685c16a1cd616b..abbedae000e10edd4539fcf01a6f1114
  
      @Override
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          if (world.hasNeighborSignal(pos)) {
              BigDripleafBlock.resetTilt(state, world, pos);
          } else {
@@ -2125,7 +2125,7 @@ index 06f353e28ef6a9e7efc4c2fe383284fd651e0486..e29eb30481831dfb10b98f60c1ad60da
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.canSurvive(state, world, pos, () -> {
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.canSurvive(state, world, pos, () -> {
          BlockPos blockPos = pos.below();
          BlockState blockState = world.getBlockState(blockPos);
          BlockState blockState2 = world.getBlockState(pos.above());
@@ -2140,7 +2140,7 @@ index 06f353e28ef6a9e7efc4c2fe383284fd651e0486..e29eb30481831dfb10b98f60c1ad60da
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          if ((direction == Direction.DOWN || direction == Direction.UP) && !state.canSurvive(world, pos)) {
              world.scheduleTick(pos, this, 1);
          }
@@ -2153,7 +2153,7 @@ index 06f353e28ef6a9e7efc4c2fe383284fd651e0486..e29eb30481831dfb10b98f60c1ad60da
  
      @Override
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          if (!state.canSurvive(world, pos)) {
              world.destroyBlock(pos, true);
          }
@@ -2167,7 +2167,7 @@ index d4cbff18adb62073a1dceb189043789620af6877..3f56251c3e7f7c3ea6e8b44895a8dbe8
  
 +    // MCCLab start - Add BlockBehaviour
 +    public float getExplosionResistance(BlockGetter world, BlockPos pos, BlockState blockState){
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.getExplosionResistance(world, pos, blockState, getExplosionResistance());
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.getExplosionResistance(world, pos, blockState, getExplosionResistance());
 +    }
 +    // MCCLab end - Add BlockBehaviour
 +
@@ -2179,7 +2179,7 @@ index d4cbff18adb62073a1dceb189043789620af6877..3f56251c3e7f7c3ea6e8b44895a8dbe8
  
 -    public void stepOn(Level world, BlockPos pos, BlockState state, Entity entity) {}
 +    public void stepOn(Level world, BlockPos pos, BlockState state, Entity entity) {
-+        de.verdox.mccreativelab.behaviour.BehaviourUtil.isStepOnLogicReplaced(world, pos, state, entity); // MCCLab start - Adding BlockBehaviour
++        de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isStepOnLogicReplaced(world, pos, state, entity); // MCCLab start - Adding BlockBehaviour
 +    }
  
      @Nullable
@@ -2194,7 +2194,7 @@ index c751ebf0bb1343a543e70abbfd64f1b070e5c430..8d5da8b983ba759ce51d5ec8c747a0fe
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
 -        world.scheduleTick(pos, this, 2);
 -        return super.updateShape(state, direction, neighborState, world, pos, neighborPos);
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
 +            world.scheduleTick(pos, this, 2);
 +            return super.updateShape(state, direction, neighborState, world, pos, neighborPos);
 +        });
@@ -2202,7 +2202,7 @@ index c751ebf0bb1343a543e70abbfd64f1b070e5c430..8d5da8b983ba759ce51d5ec8c747a0fe
  
      @Override
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          BlockEntity var6 = world.getBlockEntity(pos);
          if (var6 instanceof BrushableBlockEntity brushableBlockEntity) {
              brushableBlockEntity.checkReset();
@@ -2214,7 +2214,7 @@ index ed36a378b79f62c3dce3da637a337595415f14ac..49df6ef30af2a00bd10c03f47438cbf3
  
      @Override
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          updateColumn(world, pos, state, world.getBlockState(pos.below()));
      }
  
@@ -2222,7 +2222,7 @@ index ed36a378b79f62c3dce3da637a337595415f14ac..49df6ef30af2a00bd10c03f47438cbf3
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          world.scheduleTick(pos, Fluids.WATER, Fluids.WATER.getTickDelay(world));
          if (!state.canSurvive(world, pos) || direction == Direction.DOWN || direction == Direction.UP && !neighborState.is(Blocks.BUBBLE_COLUMN) && canExistIn(neighborState)) {
              world.scheduleTick(pos, this, 5);
@@ -2234,7 +2234,7 @@ index ed36a378b79f62c3dce3da637a337595415f14ac..49df6ef30af2a00bd10c03f47438cbf3
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.canSurvive(state, world, pos, () -> {
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.canSurvive(state, world, pos, () -> {
          BlockState blockState = world.getBlockState(pos.below());
          return blockState.is(Blocks.BUBBLE_COLUMN) || blockState.is(Blocks.MAGMA_BLOCK) || blockState.is(Blocks.SOUL_SAND);
 -    }
@@ -2251,7 +2251,7 @@ index 2548244c089dff583c8c424dcaa5504caedf3f10..f8fabad3dac609677a9e28f39ece8f82
  
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          if (random.nextInt(5) == 0) {
              Direction enumdirection = BuddingAmethystBlock.DIRECTIONS[random.nextInt(BuddingAmethystBlock.DIRECTIONS.length)];
              BlockPos blockposition1 = pos.relative(enumdirection);
@@ -2263,7 +2263,7 @@ index 03fde6e47c4a347c62fe9b4a3351769aedf874f6..5d213c9f8696d40c27508c6d386c6c35
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          // CraftBukkit start
          if (!state.canSurvive(world, pos)) {
              if (!(world instanceof net.minecraft.server.level.ServerLevel && ((net.minecraft.server.level.ServerLevel) world).hasPhysicsEvent) || !org.bukkit.craftbukkit.event.CraftEventFactory.callBlockPhysicsEvent(world, pos).isCancelled()) { // Paper
@@ -2277,7 +2277,7 @@ index 03fde6e47c4a347c62fe9b4a3351769aedf874f6..5d213c9f8696d40c27508c6d386c6c35
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
 -        BlockPos blockposition1 = pos.below();
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.canSurvive(state, world, pos, () -> {
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.canSurvive(state, world, pos, () -> {
 +            BlockPos blockposition1 = pos.below();
  
 -        return this.mayPlaceOn(world.getBlockState(blockposition1), world, blockposition1);
@@ -2294,7 +2294,7 @@ index 3e792514d042f05ff6848b7d6506472ace67b67a..7a63fe7687279bab5d45b67174ae865a
  
      @Override
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          if ((Boolean) state.getValue(ButtonBlock.POWERED)) {
              this.checkPressed(state, world, pos);
          }
@@ -2306,7 +2306,7 @@ index 0003fb51ae3a6575575e10b4c86719f3061e2577..96c23c4a44d1d19f9c6781e6e6ef3e79
  
      @Override
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          if (!state.canSurvive(world, pos)) {
              world.destroyBlock(pos, true);
          }
@@ -2314,7 +2314,7 @@ index 0003fb51ae3a6575575e10b4c86719f3061e2577..96c23c4a44d1d19f9c6781e6e6ef3e79
  
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          BlockPos blockposition1 = pos.above();
  
          if (world.isEmptyBlock(blockposition1)) {
@@ -2322,7 +2322,7 @@ index 0003fb51ae3a6575575e10b4c86719f3061e2577..96c23c4a44d1d19f9c6781e6e6ef3e79
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          if (!state.canSurvive(world, pos)) {
              world.scheduleTick(pos, (Block) this, 1);
          }
@@ -2333,7 +2333,7 @@ index 0003fb51ae3a6575575e10b4c86719f3061e2577..96c23c4a44d1d19f9c6781e6e6ef3e79
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.canSurvive(state, world, pos, () -> {
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.canSurvive(state, world, pos, () -> {
          Iterator iterator = Direction.Plane.HORIZONTAL.iterator();
  
          Direction enumdirection;
@@ -2353,7 +2353,7 @@ index 397b8945bd0c2f413b17ba95cfb31befca252595..47ce5c9c0fbbb32e7978f0421c1ca3b4
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          return direction == Direction.DOWN && !state.canSurvive(world, pos) ? Blocks.AIR.defaultBlockState() : super.updateShape(state, direction, neighborState, world, pos, neighborPos);
 -    }
 +        }); // MCCLab - Add BlockBehaviour
@@ -2361,7 +2361,7 @@ index 397b8945bd0c2f413b17ba95cfb31befca252595..47ce5c9c0fbbb32e7978f0421c1ca3b4
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.canSurvive(state, world, pos, () -> {
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.canSurvive(state, world, pos, () -> {
          return world.getBlockState(pos.below()).isSolid();
 -    }
 +        });
@@ -2377,7 +2377,7 @@ index 7700461b8cd0bde1bf6c0d5e4b73184bed1adc4e..75c828bcd0900e18f135c5705c594095
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          if ((Boolean) state.getValue(CampfireBlock.WATERLOGGED)) {
              world.scheduleTick(pos, (Fluid) Fluids.WATER, Fluids.WATER.getTickDelay(world));
          }
@@ -2397,7 +2397,7 @@ index ff575d3d369340f4ec0d61cc4dea144432ea3690..b3bf1d1a7c402c911f66080a35734d6d
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          if (state.getValue(WATERLOGGED)) {
              world.scheduleTick(pos, Fluids.WATER, Fluids.WATER.getTickDelay(world));
          }
@@ -2411,7 +2411,7 @@ index ff575d3d369340f4ec0d61cc4dea144432ea3690..b3bf1d1a7c402c911f66080a35734d6d
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.canSurvive(state, world, pos, () -> {
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.canSurvive(state, world, pos, () -> {
          return Block.canSupportCenter(world, pos.below(), Direction.UP);
 +        });
      }
@@ -2424,7 +2424,7 @@ index 29cf6571ef738823e52d7e18400fcb9f51308114..9b9477f7c9113143467c7497d7cef4b3
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          return direction == Direction.DOWN && !state.canSurvive(world, pos) ? Blocks.AIR.defaultBlockState() : super.updateShape(state, direction, neighborState, world, pos, neighborPos);
 -    }
 +        }); // MCCLab - Add BlockBehaviour
@@ -2432,7 +2432,7 @@ index 29cf6571ef738823e52d7e18400fcb9f51308114..9b9477f7c9113143467c7497d7cef4b3
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.canSurvive(state, world, pos, () -> {
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.canSurvive(state, world, pos, () -> {
          return world.getBlockState(pos.below()).isSolid();
 +        });
      }
@@ -2446,7 +2446,7 @@ index db687aff597df22913b8764ec2cd28976b66e061..cae5190b7db56c5468a9f60be94d8fcb
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          return !state.canSurvive(world, pos) ? Blocks.AIR.defaultBlockState() : super.updateShape(state, direction, neighborState, world, pos, neighborPos);
 -    }
 +        }); // MCCLab - Add BlockBehaviour
@@ -2454,7 +2454,7 @@ index db687aff597df22913b8764ec2cd28976b66e061..cae5190b7db56c5468a9f60be94d8fcb
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.canSurvive(state, world, pos, () -> {
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.canSurvive(state, world, pos, () -> {
          return !world.isEmptyBlock(pos.below());
 +        });
      }
@@ -2467,7 +2467,7 @@ index 0bd8ea3143b2e9755d492af4596622d1dca1afaf..d5c19c36ae4ef50142ded9a7520c2541
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.canSurvive(state, world, pos, () -> {
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.canSurvive(state, world, pos, () -> {
          return world.getBlockState(pos.above()).isFaceSturdy(world, pos.above(), Direction.DOWN, SupportType.CENTER);
 -    }
 +        });
@@ -2479,7 +2479,7 @@ index 0bd8ea3143b2e9755d492af4596622d1dca1afaf..d5c19c36ae4ef50142ded9a7520c2541
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          return direction == Direction.UP && !this.canSurvive(state, world, pos) ? Blocks.AIR.defaultBlockState() : super.updateShape(state, direction, neighborState, world, pos, neighborPos);
 -    }
 +        }); // MCCLab - Add BlockBehaviour
@@ -2498,7 +2498,7 @@ index 1c5d7173c320b4f852f138c4050d6c27c6126c0b..30e78f6f158e3e5761f7e857988665f6
 -        if (state.getValue(WATERLOGGED)) {
 -            world.scheduleTick(pos, Fluids.WATER, Fluids.WATER.getTickDelay(world));
 -        }
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
 +            if (state.getValue(WATERLOGGED)) {
 +                world.scheduleTick(pos, Fluids.WATER, Fluids.WATER.getTickDelay(world));
 +            }
@@ -2517,7 +2517,7 @@ index 5e22d175b1048a58802cdf64ac70a8b56329e915..4a1b49707625161d4bb0c1165839984a
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          if ((Boolean) state.getValue(ChestBlock.WATERLOGGED)) {
              world.scheduleTick(pos, (Fluid) Fluids.WATER, Fluids.WATER.getTickDelay(world));
          }
@@ -2533,7 +2533,7 @@ index 5e22d175b1048a58802cdf64ac70a8b56329e915..4a1b49707625161d4bb0c1165839984a
  
      @Override
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          BlockEntity tileentity = world.getBlockEntity(pos);
  
          if (tileentity instanceof ChestBlockEntity) {
@@ -2545,7 +2545,7 @@ index e9beebedf1d60e06e16c442b64d28d022a3e3164..03d0109d4f8b4fd08374cade4c48f03c
  
      @Override
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          if (!state.canSurvive(world, pos)) {
              world.destroyBlock(pos, true);
          }
@@ -2553,7 +2553,7 @@ index e9beebedf1d60e06e16c442b64d28d022a3e3164..03d0109d4f8b4fd08374cade4c48f03c
  
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          BlockPos blockposition1 = pos.above();
  
          if (world.isEmptyBlock(blockposition1) && blockposition1.getY() < world.getMaxBuildHeight()) {
@@ -2561,7 +2561,7 @@ index e9beebedf1d60e06e16c442b64d28d022a3e3164..03d0109d4f8b4fd08374cade4c48f03c
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          if (direction != Direction.UP && !state.canSurvive(world, pos)) {
              world.scheduleTick(pos, (Block) this, 1);
          }
@@ -2572,7 +2572,7 @@ index e9beebedf1d60e06e16c442b64d28d022a3e3164..03d0109d4f8b4fd08374cade4c48f03c
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.canSurvive(state, world, pos, () -> {
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.canSurvive(state, world, pos, () -> {
          BlockState iblockdata1 = world.getBlockState(pos.below());
  
          if (!iblockdata1.is((Block) this.plant) && !iblockdata1.is(Blocks.END_STONE)) {
@@ -2592,7 +2592,7 @@ index 2e8bf4463b8da8da50cd14d3f84aba5e930e5710..35c11ea1725045618568ab3909826e3d
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          if (io.papermc.paper.configuration.GlobalConfiguration.get().blockUpdates.disableChorusPlantUpdates) return state; // Paper - add option to disable block updates
          if (!state.canSurvive(world, pos)) {
              world.scheduleTick(pos, this, 1);
@@ -2606,7 +2606,7 @@ index 2e8bf4463b8da8da50cd14d3f84aba5e930e5710..35c11ea1725045618568ab3909826e3d
  
      @Override
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          if (io.papermc.paper.configuration.GlobalConfiguration.get().blockUpdates.disableChorusPlantUpdates) return; // Paper - add option to disable block updates
          if (!state.canSurvive(world, pos)) {
              world.destroyBlock(pos, true);
@@ -2617,7 +2617,7 @@ index 2e8bf4463b8da8da50cd14d3f84aba5e930e5710..35c11ea1725045618568ab3909826e3d
 -        if (io.papermc.paper.configuration.GlobalConfiguration.get().blockUpdates.disableChorusPlantUpdates) return true; // Paper - add option to disable block updates
 -        BlockState blockState = world.getBlockState(pos.below());
 -        boolean bl = !world.getBlockState(pos.above()).isAir() && !blockState.isAir();
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.canSurvive(state, world, pos, () -> {
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.canSurvive(state, world, pos, () -> {
 +            if (io.papermc.paper.configuration.GlobalConfiguration.get().blockUpdates.disableChorusPlantUpdates)
 +                return true; // Paper - add option to disable block updates
 +            BlockState blockState = world.getBlockState(pos.below());
@@ -2663,7 +2663,7 @@ index f5c42fee3ec68a7a9260f01d19c7a1d7533bad9c..a4eb4d0939a26037e0f5afef84b0bb28
  
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          if (world.random.nextFloat() < (world.spigotConfig.cocoaModifier / (100.0f * 5))) { // Spigot - SPIGOT-7159: Better modifier resolution
              int i = (Integer) state.getValue(CocoaBlock.AGE);
  
@@ -2671,7 +2671,7 @@ index f5c42fee3ec68a7a9260f01d19c7a1d7533bad9c..a4eb4d0939a26037e0f5afef84b0bb28
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.canSurvive(state, world, pos, () -> {
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.canSurvive(state, world, pos, () -> {
          BlockState iblockdata1 = world.getBlockState(pos.relative((Direction) state.getValue(CocoaBlock.FACING)));
  
          return iblockdata1.is(BlockTags.JUNGLE_LOGS);
@@ -2683,7 +2683,7 @@ index f5c42fee3ec68a7a9260f01d19c7a1d7533bad9c..a4eb4d0939a26037e0f5afef84b0bb28
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          return direction == state.getValue(CocoaBlock.FACING) && !state.canSurvive(world, pos) ? Blocks.AIR.defaultBlockState() : super.updateShape(state, direction, neighborState, world, pos, neighborPos);
 -    }
 +        }); // MCCLab - Add BlockBehaviour
@@ -2699,7 +2699,7 @@ index 2e7c03b00bc941b86df6a7f1b2b188c9f0aede22..651b4d0bab4f663308afa4d4fd2284cc
  
      @Override
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          BlockEntity tileentity = world.getBlockEntity(pos);
  
          if (tileentity instanceof CommandBlockEntity) {
@@ -2711,7 +2711,7 @@ index 16174c573b1acd1e1a75dba9305994ed37fe6c72..9d8850ec7b973e8b4052b86799576b27
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          return direction == Direction.DOWN && !this.canSurviveOn(world, neighborPos, neighborState) ? Blocks.AIR.defaultBlockState() : super.updateShape(state, direction, neighborState, world, pos, neighborPos);
 -    }
 +        }); // MCCLab - Add BlockBehaviour
@@ -2723,7 +2723,7 @@ index 16174c573b1acd1e1a75dba9305994ed37fe6c72..9d8850ec7b973e8b4052b86799576b27
  
      @Override
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          this.refreshOutputState(world, pos, state);
      }
  
@@ -2735,7 +2735,7 @@ index 10d3912ef043eefdf89105332e29b0d2bf4a5539..fac4a6aa77078869c89f29658c1d66d4
  
      @Override
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          if ((Integer) state.getValue(ComposterBlock.LEVEL) == 7) {
              world.setBlock(pos, (BlockState) state.cycle(ComposterBlock.LEVEL), 3);
              world.playSound((Player) null, pos, SoundEvents.COMPOSTER_READY, SoundSource.BLOCKS, 1.0F, 1.0F);
@@ -2747,7 +2747,7 @@ index 065525e8ce46c12cdfa1d5d06fb96ea4654e95a3..6dbef50029fc515e4b8a007cc9a634e6
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          // CraftBukkit start
          if (ConcretePowderBlock.touchesLiquid(world, pos)) {
              // Suppress during worldgen
@@ -2770,7 +2770,7 @@ index 1a97e9075ec3fc3cad597d78ef46310c4c87cac3..241205f6fa8cb7118a0649868c55ce25
 -        if (state.getValue(WATERLOGGED)) {
 -            world.scheduleTick(pos, Fluids.WATER, Fluids.WATER.getTickDelay(world));
 -        }
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
 +            if (state.getValue(WATERLOGGED)) {
 +                world.scheduleTick(pos, Fluids.WATER, Fluids.WATER.getTickDelay(world));
 +            }
@@ -2789,7 +2789,7 @@ index 88faea00be60a519f56f975a5311df5e1eb3e6b8..430e7a84f39bf6406f2e460463f7f8ff
  
      @Override
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          if (!this.scanForWater(world, pos)) {
              // CraftBukkit start
              if (org.bukkit.craftbukkit.event.CraftEventFactory.callBlockFadeEvent(world, pos, this.deadBlock.defaultBlockState()).isCancelled()) {
@@ -2797,7 +2797,7 @@ index 88faea00be60a519f56f975a5311df5e1eb3e6b8..430e7a84f39bf6406f2e460463f7f8ff
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          if (!this.scanForWater(world, pos)) {
              world.scheduleTick(pos, (Block) this, 60 + world.getRandom().nextInt(40));
          }
@@ -2815,7 +2815,7 @@ index 86e58786c8a4caa965ea63aff50a13ae61da8c1c..b44a1a7ad568a31665b00d6c03344037
  
      @Override
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          if (!scanForWater(state, world, pos)) {
              // CraftBukkit start
              if (org.bukkit.craftbukkit.event.CraftEventFactory.callBlockFadeEvent(world, pos, this.deadBlock.defaultBlockState().setValue(CoralFanBlock.WATERLOGGED, false)).isCancelled()) {
@@ -2823,7 +2823,7 @@ index 86e58786c8a4caa965ea63aff50a13ae61da8c1c..b44a1a7ad568a31665b00d6c03344037
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          if (direction == Direction.DOWN && !state.canSurvive(world, pos)) {
              return Blocks.AIR.defaultBlockState();
          } else {
@@ -2842,7 +2842,7 @@ index f980e31c4b6ba396be6ef317cffe027004a090e0..7bb39d0b9c493f30b5da094f18daebfc
  
      @Override
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          if (!scanForWater(state, world, pos)) {
              // CraftBukkit start
              if (org.bukkit.craftbukkit.event.CraftEventFactory.callBlockFadeEvent(world, pos, this.deadBlock.defaultBlockState().setValue(CoralPlantBlock.WATERLOGGED, false)).isCancelled()) {
@@ -2850,7 +2850,7 @@ index f980e31c4b6ba396be6ef317cffe027004a090e0..7bb39d0b9c493f30b5da094f18daebfc
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          if (direction == Direction.DOWN && !state.canSurvive(world, pos)) {
              return Blocks.AIR.defaultBlockState();
          } else {
@@ -2870,7 +2870,7 @@ index f759ad7b49244a91aca4d36db2980267d46e1c23..0532ed0b32c58edfeb1fabaf0f869dba
  
      @Override
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          if (!scanForWater(state, world, pos)) {
              // CraftBukkit start
              if (org.bukkit.craftbukkit.event.CraftEventFactory.callBlockFadeEvent(world, pos, this.deadBlock.defaultBlockState().setValue(CoralWallFanBlock.WATERLOGGED, false).setValue(CoralWallFanBlock.FACING, state.getValue(CoralWallFanBlock.FACING))).isCancelled()) {
@@ -2878,7 +2878,7 @@ index f759ad7b49244a91aca4d36db2980267d46e1c23..0532ed0b32c58edfeb1fabaf0f869dba
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          if (direction.getOpposite() == state.getValue(CoralWallFanBlock.FACING) && !state.canSurvive(world, pos)) {
              return Blocks.AIR.defaultBlockState();
          } else {
@@ -2897,7 +2897,7 @@ index 6365ddea0c23bc5d4009d98915f2b39aed2a0328..6a5928d736ee098c422801dc068610e4
  
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          if (world.getRawBrightness(pos, 0) >= 9) {
              int i = this.getAge(state);
  
@@ -2905,7 +2905,7 @@ index 6365ddea0c23bc5d4009d98915f2b39aed2a0328..6a5928d736ee098c422801dc068610e4
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.canSurvive(state, world, pos, () -> {
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.canSurvive(state, world, pos, () -> {
          return CropBlock.hasSufficientLight(world, pos) && super.canSurvive(state, world, pos);
 +        });
      }
@@ -2922,7 +2922,7 @@ index 5737b2cdd662197883e2f3a6358f6a38a5b9db94..39be2fd09c68b0b490a1fd98820df475
 -        if (state.getValue(WATERLOGGED)) {
 -            world.scheduleTick(pos, Fluids.WATER, Fluids.WATER.getTickDelay(world));
 -        }
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
 +            if (state.getValue(WATERLOGGED)) {
 +                world.scheduleTick(pos, Fluids.WATER, Fluids.WATER.getTickDelay(world));
 +            }
@@ -2941,7 +2941,7 @@ index 05dfb1790a292f9f85b641377c2ca3675726c127..470acb9d314750fc4baac304c5ecd3cf
  
      @Override
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          if ((Boolean) state.getValue(DetectorRailBlock.POWERED)) {
              this.checkPressed(world, pos, state);
          }
@@ -2953,7 +2953,7 @@ index 0f513bc36ed62a8eff1be874de61f47888739ec8..cfdb93e6aac1da54eb22e57379265b52
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.canSurvive(state, world, pos, () -> {
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.canSurvive(state, world, pos, () -> {
          BlockPos blockposition1 = pos.below();
  
          return this.canSurviveOn(world, blockposition1, world.getBlockState(blockposition1));
@@ -2965,7 +2965,7 @@ index 0f513bc36ed62a8eff1be874de61f47888739ec8..cfdb93e6aac1da54eb22e57379265b52
  
      @Override
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          if (!this.isLocked(world, pos, state)) {
              boolean flag = (Boolean) state.getValue(DiodeBlock.POWERED);
              boolean flag1 = this.shouldTurnOn(world, pos, state);
@@ -2980,7 +2980,7 @@ index 1ec9bad118dee4ad072242c1b47c82ad74760aca..d9d243b3b678cde06139272f13ba6fd0
 -        if (direction == Direction.UP && !state.canSurvive(world, pos)) {
 -            world.scheduleTick(pos, (Block) this, 1);
 -        }
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
 +            if (direction == Direction.UP && !state.canSurvive(world, pos)) {
 +                world.scheduleTick(pos, (Block) this, 1);
 +            }
@@ -2992,7 +2992,7 @@ index 1ec9bad118dee4ad072242c1b47c82ad74760aca..d9d243b3b678cde06139272f13ba6fd0
  
      @Override
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          // CraftBukkit start - do not fade if the block is valid here
          if (state.canSurvive(world, pos)) {
              return;
@@ -3000,7 +3000,7 @@ index 1ec9bad118dee4ad072242c1b47c82ad74760aca..d9d243b3b678cde06139272f13ba6fd0
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.canSurvive(state, world, pos, () -> {
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.canSurvive(state, world, pos, () -> {
          BlockState iblockdata1 = world.getBlockState(pos.above());
  
          return !iblockdata1.isSolid() || iblockdata1.getBlock() instanceof FenceGateBlock;
@@ -3016,7 +3016,7 @@ index 9b1e51c1d95da885c80c6d05000d83436b7bcfb4..cec180976bdf93fcaf6262153b054acd
  
      @Override
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          this.dispenseFrom(world, state, pos);
      }
  
@@ -3028,7 +3028,7 @@ index c028a7158e41a0754abb8e24dcd647633fbf3fe8..767c13a357d079b06848535850e9423b
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          DoubleBlockHalf blockpropertydoubleblockhalf = (DoubleBlockHalf) state.getValue(DoorBlock.HALF);
  
          return direction.getAxis() == Direction.Axis.Y && blockpropertydoubleblockhalf == DoubleBlockHalf.LOWER == (direction == Direction.UP) ? (neighborState.is((Block) this) && neighborState.getValue(DoorBlock.HALF) != blockpropertydoubleblockhalf ? (BlockState) ((BlockState) ((BlockState) ((BlockState) state.setValue(DoorBlock.FACING, (Direction) neighborState.getValue(DoorBlock.FACING))).setValue(DoorBlock.OPEN, (Boolean) neighborState.getValue(DoorBlock.OPEN))).setValue(DoorBlock.HINGE, (DoorHingeSide) neighborState.getValue(DoorBlock.HINGE))).setValue(DoorBlock.POWERED, (Boolean) neighborState.getValue(DoorBlock.POWERED)) : Blocks.AIR.defaultBlockState()) : (blockpropertydoubleblockhalf == DoubleBlockHalf.LOWER && direction == Direction.DOWN && !state.canSurvive(world, pos) ? Blocks.AIR.defaultBlockState() : super.updateShape(state, direction, neighborState, world, pos, neighborPos));
@@ -3042,7 +3042,7 @@ index c028a7158e41a0754abb8e24dcd647633fbf3fe8..767c13a357d079b06848535850e9423b
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.canSurvive(state, world, pos, () -> {
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.canSurvive(state, world, pos, () -> {
          BlockPos blockposition1 = pos.below();
          BlockState iblockdata1 = world.getBlockState(blockposition1);
  
@@ -3061,7 +3061,7 @@ index 030b38d5d5d2578d6ef482a239ef58787efa3b08..c9b823f5805ac163e2714336903be2fd
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          DoubleBlockHalf blockpropertydoubleblockhalf = (DoubleBlockHalf) state.getValue(DoublePlantBlock.HALF);
  
          return direction.getAxis() == Direction.Axis.Y && blockpropertydoubleblockhalf == DoubleBlockHalf.LOWER == (direction == Direction.UP) && (!neighborState.is((Block) this) || neighborState.getValue(DoublePlantBlock.HALF) == blockpropertydoubleblockhalf) ? Blocks.AIR.defaultBlockState() : (blockpropertydoubleblockhalf == DoubleBlockHalf.LOWER && direction == Direction.DOWN && !state.canSurvive(world, pos) ? Blocks.AIR.defaultBlockState() : super.updateShape(state, direction, neighborState, world, pos, neighborPos));
@@ -3075,7 +3075,7 @@ index 030b38d5d5d2578d6ef482a239ef58787efa3b08..c9b823f5805ac163e2714336903be2fd
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.canSurvive(state, world, pos, () -> {
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.canSurvive(state, world, pos, () -> {
          if (state.getValue(DoublePlantBlock.HALF) != DoubleBlockHalf.UPPER) {
              return super.canSurvive(state, world, pos);
          } else {
@@ -3098,7 +3098,7 @@ index 7385e91f32f070e86a4e0fd3d214f55d832c7979..c5a68e294f6fb031e9e897a1f41b930c
 -        if (state.getValue(WATERLOGGED)) {
 -            world.scheduleTick(pos, Fluids.WATER, Fluids.WATER.getTickDelay(world));
 -        }
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
 +            if (state.getValue(WATERLOGGED)) {
 +                world.scheduleTick(pos, Fluids.WATER, Fluids.WATER.getTickDelay(world));
 +            }
@@ -3113,7 +3113,7 @@ index 7385e91f32f070e86a4e0fd3d214f55d832c7979..c5a68e294f6fb031e9e897a1f41b930c
  
      @Override
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          BlockEntity blockEntity = world.getBlockEntity(pos);
          if (blockEntity instanceof EnderChestBlockEntity) {
              ((EnderChestBlockEntity)blockEntity).recheckOpen();
@@ -3125,7 +3125,7 @@ index 9d889080be6d5b4b679fa9a2bd46ad8fd2ad1e77..83947b238bc909c517cf04761d9bd4df
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.canSurvive(state, world, pos, () -> {
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.canSurvive(state, world, pos, () -> {
          return canAttach(world, pos, getConnectedDirection(state).getOpposite());
 -    }
 +        });
@@ -3137,7 +3137,7 @@ index 9d889080be6d5b4b679fa9a2bd46ad8fd2ad1e77..83947b238bc909c517cf04761d9bd4df
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          return getConnectedDirection(state).getOpposite() == direction && !state.canSurvive(world, pos) ? Blocks.AIR.defaultBlockState() : super.updateShape(state, direction, neighborState, world, pos, neighborPos);
 -    }
 +        }); // MCCLab - Add BlockBehaviour
@@ -3154,7 +3154,7 @@ index 631ac128aebcd6388482adb3b1f03673281eaf95..d0d79daf5678bef5a7e6dcfc15da11b6
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
 -        world.scheduleTick(pos, this, this.getDelayAfterPlace());
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
 +            world.scheduleTick(pos, this, this.getDelayAfterPlace());
          return super.updateShape(state, direction, neighborState, world, pos, neighborPos);
 +        }); // MCCLab - Add BlockBehaviour
@@ -3162,7 +3162,7 @@ index 631ac128aebcd6388482adb3b1f03673281eaf95..d0d79daf5678bef5a7e6dcfc15da11b6
  
      @Override
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          if (isFree(world.getBlockState(pos.below())) && pos.getY() >= world.getMinBuildHeight()) {
              FallingBlockEntity fallingBlockEntity = FallingBlockEntity.fall(world, pos, state);
              this.falling(fallingBlockEntity);
@@ -3174,7 +3174,7 @@ index 5946f06f63b5694034bd027984a4925b0831d439..f50153a58b14d8afe80e2f3dd0b1da28
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          if (direction == Direction.UP && !state.canSurvive(world, pos)) {
              world.scheduleTick(pos, (Block) this, 1);
          }
@@ -3185,7 +3185,7 @@ index 5946f06f63b5694034bd027984a4925b0831d439..f50153a58b14d8afe80e2f3dd0b1da28
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.canSurvive(state, world, pos, () -> {
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.canSurvive(state, world, pos, () -> {
          BlockState iblockdata1 = world.getBlockState(pos.above());
  
          return !iblockdata1.isSolid() || iblockdata1.getBlock() instanceof FenceGateBlock || iblockdata1.getBlock() instanceof MovingPistonBlock;
@@ -3199,7 +3199,7 @@ index 5946f06f63b5694034bd027984a4925b0831d439..f50153a58b14d8afe80e2f3dd0b1da28
  
      @Override
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          if (!state.canSurvive(world, pos)) {
              FarmBlock.turnToDirt((Entity) null, state, world, pos);
          }
@@ -3207,7 +3207,7 @@ index 5946f06f63b5694034bd027984a4925b0831d439..f50153a58b14d8afe80e2f3dd0b1da28
  
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          int i = (Integer) state.getValue(FarmBlock.MOISTURE);
  
          if (!FarmBlock.isNearWater(world, pos) && !world.isRainingAt(pos.above())) {
@@ -3222,7 +3222,7 @@ index b7b8c9ca03cf4aa8b8e2cf60d15d627769e82ffa..677380a21ea09281c50ed79bd082d9a0
 -        if (state.getValue(WATERLOGGED)) {
 -            world.scheduleTick(pos, Fluids.WATER, Fluids.WATER.getTickDelay(world));
 -        }
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
 +            if (state.getValue(WATERLOGGED)) {
 +                world.scheduleTick(pos, Fluids.WATER, Fluids.WATER.getTickDelay(world));
 +            }
@@ -3244,7 +3244,7 @@ index baaf648f65042a9c6bf41eaba595dce2aa6bb187..882a34319c966d1c7ea9b162ca13a8fb
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          Direction.Axis enumdirection_enumaxis = direction.getAxis();
  
          if (((Direction) state.getValue(FenceGateBlock.FACING)).getClockWise().getAxis() != enumdirection_enumaxis) {
@@ -3264,7 +3264,7 @@ index 4002e0fffb60556e7af1aeff71b4be244f02b0f5..8c439e4c25481cebad93d3c68974bd51
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          // CraftBukkit start
          if (!(world instanceof ServerLevel)) return this.canSurvive(state, world, pos) ? (BlockState) this.getStateWithAge(world, pos, (Integer) state.getValue(FireBlock.AGE)) : Blocks.AIR.defaultBlockState(); // Paper - don't fire events in world generation
          if (!this.canSurvive(state, world, pos)) {
@@ -3280,7 +3280,7 @@ index 4002e0fffb60556e7af1aeff71b4be244f02b0f5..8c439e4c25481cebad93d3c68974bd51
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.canSurvive(state, world, pos, () -> {
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.canSurvive(state, world, pos, () -> {
          BlockPos blockposition1 = pos.below();
  
          return world.getBlockState(blockposition1).isFaceSturdy(world, blockposition1, Direction.UP) || this.isValidFireLocation(world, pos);
@@ -3290,7 +3290,7 @@ index 4002e0fffb60556e7af1aeff71b4be244f02b0f5..8c439e4c25481cebad93d3c68974bd51
  
      @Override
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          world.scheduleTick(pos, (Block) this, FireBlock.getFireTickDelay(world)); // Paper
          if (world.getGameRules().getBoolean(GameRules.RULE_DOFIRETICK)) {
              if (!state.canSurvive(world, pos)) {
@@ -3302,7 +3302,7 @@ index db05c1ea847d60ad45d33cd798cb34ad3f5cfd75..24d73df6f8c67a8576145fe93b9babbe
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          return direction == Direction.DOWN && !state.canSurvive(world, pos) ? Blocks.AIR.defaultBlockState() : super.updateShape(state, direction, neighborState, world, pos, neighborPos);
 -    }
 +        }); // MCCLab - Add BlockBehaviour
@@ -3318,7 +3318,7 @@ index bebcdc70c4cb01764428836fff76f03b94f2eae8..cd577af4bbf8b6a1f89522db390c7d62
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.canSurvive(state, world, pos, () -> {
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.canSurvive(state, world, pos, () -> {
          return mayPlaceOn(world, pos.below());
 -    }
 +        });
@@ -3330,7 +3330,7 @@ index bebcdc70c4cb01764428836fff76f03b94f2eae8..cd577af4bbf8b6a1f89522db390c7d62
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          return !this.canSurvive(state, world, pos) ? Blocks.AIR.defaultBlockState() : super.updateShape(state, direction, neighborState, world, pos, neighborPos);
 -    }
 +        }); // MCCLab - Add BlockBehaviour
@@ -3338,7 +3338,7 @@ index bebcdc70c4cb01764428836fff76f03b94f2eae8..cd577af4bbf8b6a1f89522db390c7d62
  
      @Override
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          if (!this.canSurvive(state, world, pos)) {
              this.destroyBlock(world, pos);
          } else {
@@ -3350,13 +3350,13 @@ index a3af96b2518b41f370d09cfda26dc589b9ee977b..e9549800b45c94a4fc858ca16f8cc9cc
  
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          this.tick(state, world, pos, random);
      }
  
      @Override
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          if (!world.paperConfig().environment.frostedIce.enabled) return; // Paper - add ability to disable frosted ice
          if ((random.nextInt(3) == 0 || this.fewerNeigboursThan(world, pos, 4)) && world.getMaxLocalRawBrightness(pos) > 11 - state.getValue(AGE) - state.getLightBlock(world, pos) && this.slightlyMelt(state, world, pos)) {
              BlockPos.MutableBlockPos mutableBlockPos = new BlockPos.MutableBlockPos();
@@ -3371,7 +3371,7 @@ index a061fec641c5c5fabf24a41ca4eb0ab0cb233c70..dbd94a1bc6eaca1d07eafcb8c78ffeb4
 -        if (state.getValue(WATERLOGGED)) {
 -            world.scheduleTick(pos, Fluids.WATER, Fluids.WATER.getTickDelay(world));
 -        }
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
 +            if (state.getValue(WATERLOGGED)) {
 +                world.scheduleTick(pos, Fluids.WATER, Fluids.WATER.getTickDelay(world));
 +            }
@@ -3390,7 +3390,7 @@ index c6a5d917616ef57c9ea949acae20db045bb4407b..42b0facd05a44f90b605aa9a1904c69c
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.canSurvive(state, world, pos, () -> {
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.canSurvive(state, world, pos, () -> {
          return true;
 -    }
 +        });
@@ -3406,7 +3406,7 @@ index bac57e5234182315a66c9726490a233cb9d99181..24f457a056ede7dbd250d2e0be0ba880
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.canSurvive(state, world, pos, () -> {
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.canSurvive(state, world, pos, () -> {
          BlockPos blockPos = pos.relative(this.growthDirection.getOpposite());
          BlockState blockState = world.getBlockState(blockPos);
          if (!this.canAttachTo(blockState)) {
@@ -3420,7 +3420,7 @@ index bac57e5234182315a66c9726490a233cb9d99181..24f457a056ede7dbd250d2e0be0ba880
  
      @Override
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          if (!state.canSurvive(world, pos)) {
              world.destroyBlock(pos, true);
          }
@@ -3442,7 +3442,7 @@ index fa22fb66c6484ba644620b0d98f80c5354200e34..dc59f02e7a460e36f5a1265163508db4
 -        } else {
 -            if (this.scheduleFluidTicks) {
 -                world.scheduleTick(pos, Fluids.WATER, Fluids.WATER.getTickDelay(world));
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
 +            if (direction == this.growthDirection.getOpposite() && !state.canSurvive(world, pos)) {
 +                world.scheduleTick(pos, this, 1);
              }
@@ -3471,7 +3471,7 @@ index b325fdec8eb99ce57152a5c0fefa5059685276e4..fd68df9466ce54bd51c0e7af5b6abada
  
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          // Spigot start
          int modifier;
          if (this == Blocks.KELP) {
@@ -3479,7 +3479,7 @@ index b325fdec8eb99ce57152a5c0fefa5059685276e4..fd68df9466ce54bd51c0e7af5b6abada
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          if (direction == this.growthDirection.getOpposite() && !state.canSurvive(world, pos)) {
              world.scheduleTick(pos, (Block) this, 1);
          }
@@ -3499,7 +3499,7 @@ index 664ff099fd6f44b4bc2e23d06afe8006931f1aa6..22cdd70421993db7bff45468f459e13d
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.canSurvive(state, world, pos, () -> {
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.canSurvive(state, world, pos, () -> {
          BlockPos blockPos = pos.above();
          BlockState blockState = world.getBlockState(blockPos);
          return blockState.isFaceSturdy(world, blockPos, Direction.DOWN);
@@ -3513,7 +3513,7 @@ index 664ff099fd6f44b4bc2e23d06afe8006931f1aa6..22cdd70421993db7bff45468f459e13d
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          if (direction == Direction.UP && !this.canSurvive(state, world, pos)) {
              return Blocks.AIR.defaultBlockState();
          } else {
@@ -3532,7 +3532,7 @@ index 1dd44eb0ab977093660e8fe6f49338e7f5ef7b28..13f88c9dbe0d0af0b76595863dff2170
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          if (io.papermc.paper.configuration.GlobalConfiguration.get().blockUpdates.disableMushroomBlockUpdates) return state; // Paper - add option to disable block updates
          return neighborState.is(this) ? state.setValue(PROPERTY_BY_DIRECTION.get(direction), Boolean.valueOf(false)) : super.updateShape(state, direction, neighborState, world, pos, neighborPos);
 -    }
@@ -3549,7 +3549,7 @@ index 04089e6f7d6e3d532b00585870283922b6be5246..cba69f8fe89406b03536806e179b46cb
  
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          if (world.getBrightness(LightLayer.BLOCK, pos) > 11 - state.getLightBlock(world, pos)) {
              this.melt(state, world, pos);
          }
@@ -3564,7 +3564,7 @@ index 83352a3909e892e35f96adea092a8c399ad98463..064b346fced7357d6f88ddc65e7f80e9
 -        if (state.getValue(WATERLOGGED)) {
 -            world.scheduleTick(pos, Fluids.WATER, Fluids.WATER.getTickDelay(world));
 -        }
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
 +            if (state.getValue(WATERLOGGED)) {
 +                world.scheduleTick(pos, Fluids.WATER, Fluids.WATER.getTickDelay(world));
 +            }
@@ -3586,7 +3586,7 @@ index 6bcc83245e8046518921b82d948d45900ae0c8db..77a1e8da5465e19b9c4f650a4303c980
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.canSurvive(state, world, pos, () -> {
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.canSurvive(state, world, pos, () -> {
          Direction direction = state.getValue(FACING);
          return this.canAttachTo(world, pos.relative(direction.getOpposite()), direction);
 -    }
@@ -3595,7 +3595,7 @@ index 6bcc83245e8046518921b82d948d45900ae0c8db..77a1e8da5465e19b9c4f650a4303c980
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          if (direction.getOpposite() == state.getValue(FACING) && !state.canSurvive(world, pos)) {
              return Blocks.AIR.defaultBlockState();
          } else {
@@ -3615,7 +3615,7 @@ index da143e1d162855e99e7c1bc8db55a8c217f3a3dc..4eed89beaa18f3933e8470a36a724e1a
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.canSurvive(state, world, pos, () -> {
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.canSurvive(state, world, pos, () -> {
          Direction direction = getConnectedDirection(state).getOpposite();
          return Block.canSupportCenter(world, pos.relative(direction), direction.getOpposite());
 +        });
@@ -3626,7 +3626,7 @@ index da143e1d162855e99e7c1bc8db55a8c217f3a3dc..4eed89beaa18f3933e8470a36a724e1a
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          if (state.getValue(WATERLOGGED)) {
              world.scheduleTick(pos, Fluids.WATER, Fluids.WATER.getTickDelay(world));
          }
@@ -3646,7 +3646,7 @@ index ebee1dfdb1d75381de847834262a66b45fd9f0ce..d87ea95580bc88cc5bd8c931a73d3ea6
  
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          if (this.decaying(state)) {
              // CraftBukkit start
              LeavesDecayEvent event = new LeavesDecayEvent(world.getWorld().getBlockAt(pos.getX(), pos.getY(), pos.getZ()));
@@ -3654,7 +3654,7 @@ index ebee1dfdb1d75381de847834262a66b45fd9f0ce..d87ea95580bc88cc5bd8c931a73d3ea6
  
      @Override
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          world.setBlock(pos, LeavesBlock.updateDistance(state, world, pos), 3);
      }
  
@@ -3662,7 +3662,7 @@ index ebee1dfdb1d75381de847834262a66b45fd9f0ce..d87ea95580bc88cc5bd8c931a73d3ea6
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          if ((Boolean) state.getValue(LeavesBlock.WATERLOGGED)) {
              world.scheduleTick(pos, (Fluid) Fluids.WATER, Fluids.WATER.getTickDelay(world));
          }
@@ -3682,7 +3682,7 @@ index 2da67bd990b3f3762dfe089bf543cebac66378db..bb2d89a96a4befbaddb90b3c0b007fae
  
      @Override
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          LecternBlock.changePowered(world, pos, state, false);
      }
  
@@ -3694,7 +3694,7 @@ index 6eec44c484763f877aece6d9676ffc166bc10395..d71ef3b211c6d322533f80b0b08c93b7
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          if (state.getValue(WATERLOGGED)) {
              world.scheduleTick(pos, Fluids.WATER, Fluids.WATER.getTickDelay(world));
          }
@@ -3715,7 +3715,7 @@ index da3b301a42a93c891d083a6e02d1be8ed35adf1d..ee3af0e1b34843adb920b55c00415f22
 -        if ((Boolean) state.getValue(LightningRodBlock.WATERLOGGED)) {
 -            world.scheduleTick(pos, (Fluid) Fluids.WATER, Fluids.WATER.getTickDelay(world));
 -        }
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
 +            if ((Boolean) state.getValue(LightningRodBlock.WATERLOGGED)) {
 +                world.scheduleTick(pos, (Fluid) Fluids.WATER, Fluids.WATER.getTickDelay(world));
 +            }
@@ -3730,7 +3730,7 @@ index da3b301a42a93c891d083a6e02d1be8ed35adf1d..ee3af0e1b34843adb920b55c00415f22
  
      @Override
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          world.setBlock(pos, (BlockState) state.setValue(LightningRodBlock.POWERED, false), 3);
          this.updateNeighbours(state, world, pos);
      }
@@ -3742,7 +3742,7 @@ index 4a1830f85f47014da63e4584f411d13f0f0cd8b3..16b05ab57d5f42e7aaa23aff43b49896
  
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          state.getFluidState().randomTick(world, pos, random);
      }
  
@@ -3750,7 +3750,7 @@ index 4a1830f85f47014da63e4584f411d13f0f0cd8b3..16b05ab57d5f42e7aaa23aff43b49896
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          if (state.getFluidState().isSource() || neighborState.getFluidState().isSource()) {
              world.scheduleTick(pos, state.getFluidState().getType(), this.fluid.getTickDelay(world));
          }
@@ -3768,7 +3768,7 @@ index 1b766045687e4dcded5cbcc50b746c55b9a34e22..525f2c8ea60775a9ef841455d7de8ecd
  
      @Override
      public void stepOn(Level world, BlockPos pos, BlockState state, Entity entity) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isStepOnLogicReplaced(world, pos, state, entity)) return; // MCCLab start - Adding BlockBehaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isStepOnLogicReplaced(world, pos, state, entity)) return; // MCCLab start - Adding BlockBehaviour
          if (!entity.isSteppingCarefully() && entity instanceof LivingEntity && !EnchantmentHelper.hasFrostWalker((LivingEntity) entity)) {
              org.bukkit.craftbukkit.event.CraftEventFactory.blockDamage = world.getWorld().getBlockAt(pos.getX(), pos.getY(), pos.getZ()); // CraftBukkit
              entity.hurt(world.damageSources().hotFloor(), 1.0F);
@@ -3776,13 +3776,13 @@ index 1b766045687e4dcded5cbcc50b746c55b9a34e22..525f2c8ea60775a9ef841455d7de8ecd
  
      @Override
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          BubbleColumnBlock.updateColumn(world, pos.above(), state);
      }
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          if (direction == Direction.UP && neighborState.is(Blocks.WATER)) {
              world.scheduleTick(pos, (Block) this, 20);
          }
@@ -3794,7 +3794,7 @@ index 1b766045687e4dcded5cbcc50b746c55b9a34e22..525f2c8ea60775a9ef841455d7de8ecd
      @Override
      public void onPlace(BlockState state, Level world, BlockPos pos, BlockState oldState, boolean notify) {
          world.scheduleTick(pos, (Block) this, 20);
-+        de.verdox.mccreativelab.behaviour.BehaviourUtil.onPlaceCallback(state, world, pos, oldState, notify); // MCCLab - Add Block behaviour
++        de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.onPlaceCallback(state, world, pos, oldState, notify); // MCCLab - Add Block behaviour
      }
  }
 diff --git a/src/main/java/net/minecraft/world/level/block/MangrovePropaguleBlock.java b/src/main/java/net/minecraft/world/level/block/MangrovePropaguleBlock.java
@@ -3805,7 +3805,7 @@ index cf240750aecc57d287efc986b471e66a860850ee..6c827bf6d4e47483f89b688570057408
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.canSurvive(state, world, pos, () -> {
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.canSurvive(state, world, pos, () -> {
          return isHanging(state) ? world.getBlockState(pos.above()).is(Blocks.MANGROVE_LEAVES) : super.canSurvive(state, world, pos);
 -    }
 +        });
@@ -3813,7 +3813,7 @@ index cf240750aecc57d287efc986b471e66a860850ee..6c827bf6d4e47483f89b688570057408
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          if (state.getValue(WATERLOGGED)) {
              world.scheduleTick(pos, Fluids.WATER, Fluids.WATER.getTickDelay(world));
          }
@@ -3829,7 +3829,7 @@ index cf240750aecc57d287efc986b471e66a860850ee..6c827bf6d4e47483f89b688570057408
  
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          if (!isHanging(state)) {
              if (random.nextFloat() < (world.spigotConfig.saplingModifier / (100.0F * 7))) { // Paper
                  this.advanceTree(world, pos, state, random);
@@ -3844,7 +3844,7 @@ index 7fc9ce525c32d32c911c3a027baff37ce93d9bcd..f344c531212f3124af18131e9bd46f47
 -        if (state.getValue(WATERLOGGED)) {
 -            world.scheduleTick(pos, Fluids.WATER, Fluids.WATER.getTickDelay(world));
 -        }
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
 +            if (state.getValue(WATERLOGGED)) {
 +                world.scheduleTick(pos, Fluids.WATER, Fluids.WATER.getTickDelay(world));
 +            }
@@ -3863,7 +3863,7 @@ index 51103a88432275b2e5d4351430fea022dbca34de..e130e6c4919c8784a3835b5ebec85e67
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          if (!hasAnyFace(state)) {
              return Blocks.AIR.defaultBlockState();
          } else {
@@ -3879,7 +3879,7 @@ index 51103a88432275b2e5d4351430fea022dbca34de..e130e6c4919c8784a3835b5ebec85e67
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.canSurvive(state, world, pos, () -> {
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.canSurvive(state, world, pos, () -> {
          boolean bl = false;
  
          for(Direction direction : DIRECTIONS) {
@@ -3899,7 +3899,7 @@ index 302c5a6401facf192677b89cc0e9190bb35b1229..747a2ec9a816b93783303f34cf23440f
  
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          if (random.nextFloat() < (world.spigotConfig.mushroomModifier / (100.0f * 25))) { // Spigot - SPIGOT-7159: Better modifier resolution
              int i = 5;
              boolean flag = true;
@@ -3907,7 +3907,7 @@ index 302c5a6401facf192677b89cc0e9190bb35b1229..747a2ec9a816b93783303f34cf23440f
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.canSurvive(state, world, pos, () -> {
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.canSurvive(state, world, pos, () -> {
          BlockPos blockposition1 = pos.below();
          BlockState iblockdata1 = world.getBlockState(blockposition1);
  
@@ -3926,7 +3926,7 @@ index a6ab0d0defc05e56a91084c49897059670a1324b..8cb1ef471fd262413cd036daa40db626
  
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          if (world.spigotConfig.enableZombiePigmenPortalSpawns && world.dimensionType().natural() && world.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING) && random.nextInt(2000) < world.getDifficulty().getId()) { // Spigot
              while (world.getBlockState(pos).is((Block) this)) {
                  pos = pos.below();
@@ -3934,7 +3934,7 @@ index a6ab0d0defc05e56a91084c49897059670a1324b..8cb1ef471fd262413cd036daa40db626
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          Direction.Axis enumdirection_enumaxis = direction.getAxis();
          Direction.Axis enumdirection_enumaxis1 = (Direction.Axis) state.getValue(NetherPortalBlock.AXIS);
          boolean flag = enumdirection_enumaxis1 != enumdirection_enumaxis && enumdirection_enumaxis.isHorizontal();
@@ -3954,7 +3954,7 @@ index e55720c4d2fbdf6aae526910e87a67c29cf906fd..3d0c1031ced4175df50acf336294296d
  
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          int i = (Integer) state.getValue(NetherWartBlock.AGE);
  
          if (i < 3 && random.nextFloat() < (world.spigotConfig.wartModifier / (100.0f * 10))) { // Spigot - SPIGOT-7159: Better modifier resolution
@@ -3966,7 +3966,7 @@ index e46d84750bdd7c940f400efda226e12a3fdc3848..4c3391b86f27f938db8941473301d306
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          if (io.papermc.paper.configuration.GlobalConfiguration.get().blockUpdates.disableNoteblockUpdates) return state; // Paper - prevent noteblock instrument from updating
          boolean flag = direction.getAxis() == Direction.Axis.Y;
  
@@ -3985,7 +3985,7 @@ index 47a3a9e0f0ba4f8a00828874e73d501d18f0ae1c..0e659a4c08b4722d6c186b031ae3c261
  
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          if (!NyliumBlock.canBeNylium(state, world, pos)) {
              // CraftBukkit start
              if (org.bukkit.craftbukkit.event.CraftEventFactory.callBlockFadeEvent(world, pos, Blocks.NETHERRACK.defaultBlockState()).isCancelled()) {
@@ -3997,7 +3997,7 @@ index 7b45d6b9a005036ca5051d089a7be792eb87012f..8dbd435b08bbdb6bf159b9703a8ebdc6
  
      @Override
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          if ((Boolean) state.getValue(ObserverBlock.POWERED)) {
              // CraftBukkit start
              if (CraftEventFactory.callRedstoneChange(world, pos, 15, 0).getNewCurrent() != 0) {
@@ -4005,7 +4005,7 @@ index 7b45d6b9a005036ca5051d089a7be792eb87012f..8dbd435b08bbdb6bf159b9703a8ebdc6
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          if (state.getValue(ObserverBlock.FACING) == direction && !(Boolean) state.getValue(ObserverBlock.POWERED)) {
              this.startSignal(world, pos);
          }
@@ -4023,7 +4023,7 @@ index 1641453fd17938bc8fcdba7f89a0515ebeef20c5..1b0aafa82431c50ace3051c08a202e13
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          if (isDouble(state.getValue(AGE))) {
              return super.updateShape(state, direction, neighborState, world, pos, neighborPos);
          } else {
@@ -4034,7 +4034,7 @@ index 1641453fd17938bc8fcdba7f89a0515ebeef20c5..1b0aafa82431c50ace3051c08a202e13
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.canSurvive(state, world, pos, () -> {
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.canSurvive(state, world, pos, () -> {
          return isLower(state) && !sufficientLight(world, pos) ? false : super.canSurvive(state, world, pos);
 -    }
 +        });
@@ -4046,7 +4046,7 @@ index 1641453fd17938bc8fcdba7f89a0515ebeef20c5..1b0aafa82431c50ace3051c08a202e13
  
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          float f = CropBlock.getGrowthSpeed(this, world, pos);
          boolean bl = random.nextFloat() < (world.spigotConfig.pitcherPlantModifier / (100.0F * (Math.floor(25.0F / f) + 1))); // Paper
          if (bl) {
@@ -4058,7 +4058,7 @@ index cd943997f11f5ea5c600fdc6db96043fb0fa713c..aef0a5db072b6ffa2f76166213020483
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.canSurvive(state, world, pos, () -> {
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.canSurvive(state, world, pos, () -> {
          return PointedDripstoneBlock.isValidPointedDripstonePlacement(world, pos, (Direction) state.getValue(PointedDripstoneBlock.TIP_DIRECTION));
 -    }
 +        });
@@ -4066,7 +4066,7 @@ index cd943997f11f5ea5c600fdc6db96043fb0fa713c..aef0a5db072b6ffa2f76166213020483
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          if ((Boolean) state.getValue(PointedDripstoneBlock.WATERLOGGED)) {
              world.scheduleTick(pos, (Fluid) Fluids.WATER, Fluids.WATER.getTickDelay(world));
          }
@@ -4082,7 +4082,7 @@ index cd943997f11f5ea5c600fdc6db96043fb0fa713c..aef0a5db072b6ffa2f76166213020483
  
      @Override
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          if (PointedDripstoneBlock.isStalagmite(state) && !this.canSurvive(state, world, pos)) {
              world.destroyBlock(pos, true);
          } else {
@@ -4090,7 +4090,7 @@ index cd943997f11f5ea5c600fdc6db96043fb0fa713c..aef0a5db072b6ffa2f76166213020483
  
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          PointedDripstoneBlock.maybeTransferFluid(state, world, pos, random.nextFloat());
          if (random.nextFloat() < 0.011377778F && PointedDripstoneBlock.isStalactiteStartPos(state, world, pos)) {
              PointedDripstoneBlock.growStalactiteOrStalagmiteIfPossible(state, world, pos, random);
@@ -4102,7 +4102,7 @@ index 06760ff3d20bcfdc30f3f3ee65bc2a0d12d28aff..297ef7a8106c57d8854954ce652a33dd
  
      @Override
      public void stepOn(Level world, BlockPos pos, BlockState state, Entity entity) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isStepOnLogicReplaced(world, pos, state, entity)) return; // MCCLab start - Adding BlockBehaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isStepOnLogicReplaced(world, pos, state, entity)) return; // MCCLab start - Adding BlockBehaviour
          if (!entity.isSteppingCarefully()) {
              // CraftBukkit start
              if (entity instanceof Player) {
@@ -4110,7 +4110,7 @@ index 06760ff3d20bcfdc30f3f3ee65bc2a0d12d28aff..297ef7a8106c57d8854954ce652a33dd
  
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          if ((Boolean) state.getValue(RedStoneOreBlock.LIT)) {
              // CraftBukkit start
              if (CraftEventFactory.callBlockFadeEvent(world, pos, state.setValue(RedStoneOreBlock.LIT, false)).isCancelled()) {
@@ -4122,7 +4122,7 @@ index 2b054439b7a763d5a3fbb5dbfe197cb9a9a3525c..6c55620585e19c738ba0cf3d63b9bafa
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          if (direction == Direction.DOWN) {
              return !this.canSurviveOn(world, neighborPos, neighborState) ? Blocks.AIR.defaultBlockState() : state;
          } else if (direction == Direction.UP) {
@@ -4138,7 +4138,7 @@ index 2b054439b7a763d5a3fbb5dbfe197cb9a9a3525c..6c55620585e19c738ba0cf3d63b9bafa
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.canSurvive(state, world, pos, () -> {
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.canSurvive(state, world, pos, () -> {
          BlockPos blockposition1 = pos.below();
          BlockState iblockdata1 = world.getBlockState(blockposition1);
  
@@ -4155,7 +4155,7 @@ index 64136745aad7ddbfdfbb8040832a58422d24e8ae..95c7f47fe50865fdb082ec87cb177346
  
      @Override
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          if ((Boolean) state.getValue(RedstoneLampBlock.LIT) && !world.hasNeighborSignal(pos)) {
              // CraftBukkit start
              if (CraftEventFactory.callRedstoneChange(world, pos, 15, 0).getNewCurrent() != 0) {
@@ -4167,7 +4167,7 @@ index c91535f6c0bbc870fad7e04b9d341783cfcbbd63..ad05ae1e850130c2ca5567b9091735ee
  
      @Override
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          boolean flag = this.hasNeighborSignal(world, pos, state);
          // Paper start
          java.util.ArrayDeque<RedstoneTorchBlock.Toggle> redstoneUpdateInfos = world.redstoneUpdateInfos;
@@ -4179,14 +4179,14 @@ index e5a4525ae64454ec1400de1e4e7945b2caa675f8..d57938d5836210e0d490185ba14a437f
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.canSurvive(state, world, pos, () -> {
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.canSurvive(state, world, pos, () -> {
          return Blocks.WALL_TORCH.canSurvive(state, world, pos);
 +        });
      }
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          return Blocks.WALL_TORCH.updateShape(state, direction, neighborState, world, pos, neighborPos);
 -    }
 +        }); // MCCLab - Add BlockBehaviour
@@ -4207,7 +4207,7 @@ index 5121603ab0fe02dafd3893e3ef7c7298d41e4f81..bc256f3c792336ced2ae0d236222202d
 -        } else {
 -            return !world.isClientSide() && direction.getAxis() != state.getValue(FACING).getAxis() ? state.setValue(LOCKED, Boolean.valueOf(this.isLocked(world, pos, state))) : super.updateShape(state, direction, neighborState, world, pos, neighborPos);
 -        }
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
 +            if (direction == Direction.DOWN && !this.canSurviveOn(world, neighborPos, neighborState)) {
 +                return Blocks.AIR.defaultBlockState();
 +            } else {
@@ -4226,7 +4226,7 @@ index 53ac4e618fec3fe384d8a106c521f3eace0b5b35..395791ee65b091d9f3dadf860fc4fa72
  
      @Override
      public void randomTick(net.minecraft.world.level.block.state.BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          if (world.getMaxLocalRawBrightness(pos.above()) >= 9 && random.nextFloat() < (world.spigotConfig.saplingModifier / (100.0f * 7))) { // Spigot - SPIGOT-7159: Better modifier resolution
              this.advanceTree(world, pos, state, random);
          }
@@ -4242,7 +4242,7 @@ index e9358522e526505d5c200e19b193bbcf5ee10826..7b4d78235f81614f7293f0916a8f54c9
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          if ((Boolean) state.getValue(ScaffoldingBlock.WATERLOGGED)) {
              world.scheduleTick(pos, (Fluid) Fluids.WATER, Fluids.WATER.getTickDelay(world));
          }
@@ -4255,7 +4255,7 @@ index e9358522e526505d5c200e19b193bbcf5ee10826..7b4d78235f81614f7293f0916a8f54c9
  
      @Override
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          int i = ScaffoldingBlock.getDistance(world, pos);
          BlockState iblockdata1 = (BlockState) ((BlockState) state.setValue(ScaffoldingBlock.DISTANCE, i)).setValue(ScaffoldingBlock.BOTTOM, this.isBottom(world, pos, i));
  
@@ -4263,7 +4263,7 @@ index e9358522e526505d5c200e19b193bbcf5ee10826..7b4d78235f81614f7293f0916a8f54c9
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.canSurvive(state, world, pos, () -> {
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.canSurvive(state, world, pos, () -> {
          return ScaffoldingBlock.getDistance(world, pos) < 7;
 +        });
      }
@@ -4277,7 +4277,7 @@ index 031398e6afeec4c9db64a25fc0f55e5a5baa0990..561fb39a43beb6c29ae6f472c27f8511
  
      @Override
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          if ((Boolean) state.getValue(SculkCatalystBlock.PULSE)) {
              world.setBlock(pos, (BlockState) state.setValue(SculkCatalystBlock.PULSE, false), 3);
          }
@@ -4289,7 +4289,7 @@ index 2ccbf171089ed4d166428445fdfdf1262c1dd65d..dc042c134dcd92873c4d190f6aad2837
  
      @Override
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          if (SculkSensorBlock.getPhase(state) != SculkSensorPhase.ACTIVE) {
              if (SculkSensorBlock.getPhase(state) == SculkSensorPhase.COOLDOWN) {
                  world.setBlock(pos, (BlockState) state.setValue(SculkSensorBlock.PHASE, SculkSensorPhase.INACTIVE), 3);
@@ -4297,7 +4297,7 @@ index 2ccbf171089ed4d166428445fdfdf1262c1dd65d..dc042c134dcd92873c4d190f6aad2837
  
      @Override
      public void stepOn(Level world, BlockPos pos, BlockState state, Entity entity) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isStepOnLogicReplaced(world, pos, state, entity)) return; // MCCLab start - Adding BlockBehaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isStepOnLogicReplaced(world, pos, state, entity)) return; // MCCLab start - Adding BlockBehaviour
          if (!world.isClientSide() && SculkSensorBlock.canActivate(state) && entity.getType() != EntityType.WARDEN) {
              // CraftBukkit start
              org.bukkit.event.Cancellable cancellable;
@@ -4305,7 +4305,7 @@ index 2ccbf171089ed4d166428445fdfdf1262c1dd65d..dc042c134dcd92873c4d190f6aad2837
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          if ((Boolean) state.getValue(SculkSensorBlock.WATERLOGGED)) {
              world.scheduleTick(pos, (Fluid) Fluids.WATER, Fluids.WATER.getTickDelay(world));
          }
@@ -4323,7 +4323,7 @@ index 02d01eabb9606ae8c3b76ad9fa4bb9a525e247b1..97a62a66165fadbc2a3b64748dac3d84
  
      @Override
      public void stepOn(Level world, BlockPos pos, BlockState state, Entity entity) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isStepOnLogicReplaced(world, pos, state, entity)) return; // MCCLab start - Adding BlockBehaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isStepOnLogicReplaced(world, pos, state, entity)) return; // MCCLab start - Adding BlockBehaviour
          if (world instanceof ServerLevel) {
              ServerLevel worldserver = (ServerLevel) world;
              ServerPlayer entityplayer = SculkShriekerBlockEntity.tryGetPlayer(entity);
@@ -4331,7 +4331,7 @@ index 02d01eabb9606ae8c3b76ad9fa4bb9a525e247b1..97a62a66165fadbc2a3b64748dac3d84
  
      @Override
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          if ((Boolean) state.getValue(SculkShriekerBlock.SHRIEKING)) {
              world.setBlock(pos, (BlockState) state.setValue(SculkShriekerBlock.SHRIEKING, false), 3);
              world.getBlockEntity(pos, BlockEntityType.SCULK_SHRIEKER).ifPresent((sculkshriekerblockentity) -> {
@@ -4339,7 +4339,7 @@ index 02d01eabb9606ae8c3b76ad9fa4bb9a525e247b1..97a62a66165fadbc2a3b64748dac3d84
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          if ((Boolean) state.getValue(SculkShriekerBlock.WATERLOGGED)) {
              world.scheduleTick(pos, (Fluid) Fluids.WATER, Fluids.WATER.getTickDelay(world));
          }
@@ -4357,7 +4357,7 @@ index 6142ea7b5d46a30b1a923a54410ca9de7cceb2bb..5971701f3780fc30c9f4848e5a079cca
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          if ((Boolean) state.getValue(SculkVeinBlock.WATERLOGGED)) {
              world.scheduleTick(pos, (Fluid) Fluids.WATER, Fluids.WATER.getTickDelay(world));
          }
@@ -4375,7 +4375,7 @@ index 51c464065e506df3ad16d4118b619fed8cf1b303..188c066fe82e8453a431fa217a06c5ea
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.canSurvive(state, world, pos, () -> {
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.canSurvive(state, world, pos, () -> {
          BlockPos blockPos = pos.below();
          return this.mayPlaceOn(world.getBlockState(blockPos), world, blockPos);
 +        });
@@ -4383,7 +4383,7 @@ index 51c464065e506df3ad16d4118b619fed8cf1b303..188c066fe82e8453a431fa217a06c5ea
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          if (!state.canSurvive(world, pos)) {
              return Blocks.AIR.defaultBlockState();
          } else {
@@ -4407,7 +4407,7 @@ index c403ac42e54b92128cc4bd8ce8dd42875271897f..cd34e1e2fdf99b23df6124f542aef75e
 -        if (!blockState.isAir()) {
 -            world.scheduleTick(pos, Fluids.WATER, Fluids.WATER.getTickDelay(world));
 -        }
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
 +            BlockState blockState = super.updateShape(state, direction, neighborState, world, pos, neighborPos);
 +            if (!blockState.isAir()) {
 +                world.scheduleTick(pos, Fluids.WATER, Fluids.WATER.getTickDelay(world));
@@ -4427,7 +4427,7 @@ index 614777d15bcf4141a89d0a0f7bd880526c668ffd..a05bbf320ee9ad57d5d20f54eb9cc932
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          if ((Boolean) state.getValue(SignBlock.WATERLOGGED)) {
              world.scheduleTick(pos, (Fluid) Fluids.WATER, Fluids.WATER.getTickDelay(world));
          }
@@ -4445,7 +4445,7 @@ index 12013498de68f9176e172c568d527819026da14e..f0b62ac56ceabf6b688c641ec57ed5a3
  
      @Override
      public void stepOn(Level world, BlockPos pos, BlockState state, Entity entity) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isStepOnLogicReplaced(world, pos, state, entity)) return; // MCCLab start - Adding BlockBehaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isStepOnLogicReplaced(world, pos, state, entity)) return; // MCCLab start - Adding BlockBehaviour
          double d = Math.abs(entity.getDeltaMovement().y);
          if (d < 0.1D && !entity.isSteppingCarefully()) {
              double e = 0.4D + d * 0.2D;
@@ -4457,7 +4457,7 @@ index ff1121e12e4d74a0c23dca4ee9d741e6d4d7d305..9e4a9565c6999e29963df1a1f642ad17
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.canSurvive(state, world, pos, () -> {
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.canSurvive(state, world, pos, () -> {
          if (state.getValue(HALF) == DoubleBlockHalf.UPPER) {
              return super.canSurvive(state, world, pos);
          } else {
@@ -4470,7 +4470,7 @@ index ff1121e12e4d74a0c23dca4ee9d741e6d4d7d305..9e4a9565c6999e29963df1a1f642ad17
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          if (state.getValue(WATERLOGGED)) {
              world.scheduleTick(pos, Fluids.WATER, Fluids.WATER.getTickDelay(world));
          }
@@ -4488,7 +4488,7 @@ index 16c5be04658a66ff94f2aad8782e34f450e9a729..cb063f9ba707a3c28068bf8f734a940b
  
      @Override
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          if (!this.isReadyToHatch(state)) {
              // Paper start
              if (!org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockGrowEvent(world, pos, state.setValue(HATCH, Integer.valueOf(this.getHatchLevel(state) + 1)), 2)) {
@@ -4500,7 +4500,7 @@ index 14e00c7feb1c051d56a3d27cd00dcef072dd771a..f4fd6d44306bc9dd126fe4554a472f67
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.canSurvive(state, world, pos, () -> {
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.canSurvive(state, world, pos, () -> {
          BlockState iblockdata1 = world.getBlockState(pos.below());
  
          return iblockdata1.is(BlockTags.SNOW_LAYER_CANNOT_SURVIVE_ON) ? false : (iblockdata1.is(BlockTags.SNOW_LAYER_CAN_SURVIVE_ON) ? true : Block.isFaceFull(iblockdata1.getCollisionShape(world, pos.below()), Direction.UP) || iblockdata1.is((Block) this) && (Integer) iblockdata1.getValue(SnowLayerBlock.LAYERS) == 8);
@@ -4510,7 +4510,7 @@ index 14e00c7feb1c051d56a3d27cd00dcef072dd771a..f4fd6d44306bc9dd126fe4554a472f67
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          return !state.canSurvive(world, pos) ? Blocks.AIR.defaultBlockState() : super.updateShape(state, direction, neighborState, world, pos, neighborPos);
 -    }
 +        }); // MCCLab - Add BlockBehaviour
@@ -4518,7 +4518,7 @@ index 14e00c7feb1c051d56a3d27cd00dcef072dd771a..f4fd6d44306bc9dd126fe4554a472f67
  
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          if (world.getBrightness(LightLayer.BLOCK, pos) > 11) {
              // CraftBukkit start
              if (org.bukkit.craftbukkit.event.CraftEventFactory.callBlockFadeEvent(world, pos, Blocks.AIR.defaultBlockState()).isCancelled()) {
@@ -4531,7 +4531,7 @@ index f95284fcf5b9c922227670b9357523eba9b7ffcc..1fd0206d77c8f58dc1651bba9e605390
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
 -        return direction == Direction.UP ? state.setValue(SNOWY, Boolean.valueOf(isSnowySetting(neighborState))) : super.updateShape(state, direction, neighborState, world, pos, neighborPos);
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
 +            return direction == Direction.UP ? state.setValue(SNOWY, Boolean.valueOf(isSnowySetting(neighborState))) : super.updateShape(state, direction, neighborState, world, pos, neighborPos);
 +        });
      }
@@ -4545,7 +4545,7 @@ index 853890258cbe12221b588ff37a3a28fdf3f55520..235218bc7110c953ad769dbab09a9441
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          return this.canSurvive(state, world, pos) ? this.defaultBlockState() : Blocks.AIR.defaultBlockState();
 -    }
 +        }); // MCCLab - Add BlockBehaviour
@@ -4553,7 +4553,7 @@ index 853890258cbe12221b588ff37a3a28fdf3f55520..235218bc7110c953ad769dbab09a9441
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.canSurvive(state, world, pos, () -> {
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.canSurvive(state, world, pos, () -> {
          return canSurviveOnBlock(world.getBlockState(pos.below()));
 +        });
      }
@@ -4567,7 +4567,7 @@ index 1f228adaa95e03bede7865cefe1bbb5127fe4cc9..c228d64bf7c0906b0542ff5998241d2a
  
      @Override
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          BubbleColumnBlock.updateColumn(world, pos.above(), state);
      }
  
@@ -4576,7 +4576,7 @@ index 1f228adaa95e03bede7865cefe1bbb5127fe4cc9..c228d64bf7c0906b0542ff5998241d2a
 -        if (direction == Direction.UP && neighborState.is(Blocks.WATER)) {
 -            world.scheduleTick(pos, this, 20);
 -        }
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
 +            if (direction == Direction.UP && neighborState.is(Blocks.WATER)) {
 +                world.scheduleTick(pos, this, 20);
 +            }
@@ -4595,14 +4595,14 @@ index 46fffca9563f7d665df54a3d9cabed1dda67ee6e..7c764d53a66e113c6b0e0fb3836f0164
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.canSurvive(state, world, pos, () -> {
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.canSurvive(state, world, pos, () -> {
          return Block.canSupportCenter(world, pos.above(), Direction.DOWN) && !world.isWaterAt(pos);
 +        });
      }
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          return direction == Direction.UP && !this.canSurvive(state, world, pos) ? Blocks.AIR.defaultBlockState() : super.updateShape(state, direction, neighborState, world, pos, neighborPos);
 -    }
 +        }); // MCCLab - Add BlockBehaviour
@@ -4618,7 +4618,7 @@ index 9bbb9f8e917288bb0d11661a1399a05631ebcce0..2a6a34f6078f6556db62a2dc1f3b2d87
  
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          if (this instanceof GrassBlock && world.paperConfig().tickRates.grassSpread != 1 && (world.paperConfig().tickRates.grassSpread < 1 || (MinecraftServer.currentTick + pos.hashCode()) % world.paperConfig().tickRates.grassSpread != 0)) { return; } // Paper
          // Paper start
          net.minecraft.world.level.chunk.ChunkAccess cachedBlockChunk = world.getChunkIfLoaded(pos);
@@ -4630,7 +4630,7 @@ index 827713a332baa6d280cd61d40faf8f6243b3b08c..d8d46ec89b1ea8c4fc75ab3e10ea4ec8
  
      @Override
      public void stepOn(Level world, BlockPos pos, BlockState state, Entity entity) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isStepOnLogicReplaced(world, pos, state, entity)) return; // MCCLab start - Adding BlockBehaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isStepOnLogicReplaced(world, pos, state, entity)) return; // MCCLab start - Adding BlockBehaviour
          this.base.stepOn(world, pos, state, entity);
      }
  
@@ -4638,13 +4638,13 @@ index 827713a332baa6d280cd61d40faf8f6243b3b08c..d8d46ec89b1ea8c4fc75ab3e10ea4ec8
  
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          this.base.randomTick(state, world, pos, random);
      }
  
      @Override
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          this.base.tick(state, world, pos, random);
      }
  
@@ -4652,7 +4652,7 @@ index 827713a332baa6d280cd61d40faf8f6243b3b08c..d8d46ec89b1ea8c4fc75ab3e10ea4ec8
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          if (state.getValue(WATERLOGGED)) {
              world.scheduleTick(pos, Fluids.WATER, Fluids.WATER.getTickDelay(world));
          }
@@ -4672,7 +4672,7 @@ index 51dc1a0e572c7a1bdef99d7cf69ebe699702cc49..34cf84adc58559f0f559ec1ed468c459
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.canSurvive(state, world, pos, () -> {
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.canSurvive(state, world, pos, () -> {
          return world.getBlockState(pos.below()).isSolid();
 +        });
      }
@@ -4682,7 +4682,7 @@ index 51dc1a0e572c7a1bdef99d7cf69ebe699702cc49..34cf84adc58559f0f559ec1ed468c459
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          return direction == Direction.DOWN && !this.canSurvive(state, world, pos) ? Blocks.AIR.defaultBlockState() : super.updateShape(state, direction, neighborState, world, pos, neighborPos);
 -    }
 +        }); // MCCLab - Add BlockBehaviour
@@ -4698,7 +4698,7 @@ index 0d9be3b28ba4957c3f4da5455283fca903836c91..3b8eaf9ebcb0aef1ea5dc1ffe092a0bb
  
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          if (world.getRawBrightness(pos, 0) >= 9) {
              float f = CropBlock.getGrowthSpeed(this, world, pos);
  
@@ -4710,7 +4710,7 @@ index c3f500580d257e1397f2eb7c47b063a6fe6bb405..4e442b77a2c69283f7332b554b84b55f
  
      @Override
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          if (!state.canSurvive(world, pos)) {
              world.destroyBlock(pos, true);
          }
@@ -4718,7 +4718,7 @@ index c3f500580d257e1397f2eb7c47b063a6fe6bb405..4e442b77a2c69283f7332b554b84b55f
  
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          if (world.isEmptyBlock(pos.above())) {
              int i;
  
@@ -4726,7 +4726,7 @@ index c3f500580d257e1397f2eb7c47b063a6fe6bb405..4e442b77a2c69283f7332b554b84b55f
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          if (!state.canSurvive(world, pos)) {
              world.scheduleTick(pos, (Block) this, 1);
          }
@@ -4754,7 +4754,7 @@ index c3f500580d257e1397f2eb7c47b063a6fe6bb405..4e442b77a2c69283f7332b554b84b55f
 -
 -                    if (fluid.is(FluidTags.WATER) || iblockdata2.is(Blocks.FROSTED_ICE)) {
 -                        return true;
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.canSurvive(state, world, pos, () -> {
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.canSurvive(state, world, pos, () -> {
 +            BlockState iblockdata1 = world.getBlockState(pos.below());
 +
 +            if (iblockdata1.is((Block) this)) {
@@ -4792,7 +4792,7 @@ index 34eb7ba1adb51e394bf46a6f643db3529626d9ec..e7836fd3e1a725f9d2084131c18833f4
  
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          int i = (Integer) state.getValue(SweetBerryBushBlock.AGE);
  
          if (i < 3 && random.nextFloat() < (world.spigotConfig.sweetBerryModifier / (100.0f * 5)) && world.getRawBrightness(pos.above(), 0) >= 9) { // Spigot - SPIGOT-7159: Better modifier resolution
@@ -4804,7 +4804,7 @@ index ecc58329ca169a8f3ae813ddcbc58a2e28fd837c..bb6c356777b337cfadb23c644e9d5d95
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.canSurvive(state, world, pos, () -> {
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.canSurvive(state, world, pos, () -> {
          if (state.getValue(HALF) == DoubleBlockHalf.UPPER) {
              BlockState blockState = world.getBlockState(pos.below());
              return blockState.is(this) && blockState.getValue(HALF) == DoubleBlockHalf.LOWER;
@@ -4824,7 +4824,7 @@ index 69eaf1341d282c4783dab84533ea2c053deed529..590160bb7b1b7263a264ac226d635153
  
      @Override
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          if (state.getValue(OUTPUT_POWER) != 0) {
              world.setBlock(pos, state.setValue(OUTPUT_POWER, Integer.valueOf(0)), 3);
          }
@@ -4836,7 +4836,7 @@ index 6f85a193e7661cfa61ad169aae1477bc07c9a9ff..e90036f3ddc65aa2acdd4d9fc0e3c9cf
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          return direction == Direction.DOWN && !this.canSurvive(state, world, pos) ? Blocks.AIR.defaultBlockState() : super.updateShape(state, direction, neighborState, world, pos, neighborPos);
 -    }
 +        }); // MCCLab - Add BlockBehaviour
@@ -4844,7 +4844,7 @@ index 6f85a193e7661cfa61ad169aae1477bc07c9a9ff..e90036f3ddc65aa2acdd4d9fc0e3c9cf
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.canSurvive(state, world, pos, () -> {
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.canSurvive(state, world, pos, () -> {
          return canSupportCenter(world, pos.below(), Direction.UP);
 +        });
      }
@@ -4858,7 +4858,7 @@ index 092759184adbf27ce942a148169e60d3a28c2cc7..a073c21273353e68090485e1dffe0438
  
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          if (random.nextInt(3) != 0) {
              super.randomTick(state, world, pos, random);
          }
@@ -4870,7 +4870,7 @@ index b9e3c9cd709d42bced85436720ccc7b9c7e49552..a6a97dc4a6bfd1f2324151fb72b50d51
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          if ((Boolean) state.getValue(TrapDoorBlock.WATERLOGGED)) {
              world.scheduleTick(pos, (Fluid) Fluids.WATER, Fluids.WATER.getTickDelay(world));
          }
@@ -4887,7 +4887,7 @@ index cb2ff8d94308c637a498d2737f86f6af4c9c1b83..2e867bd28e7c66ade2358810aceb1279
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          if (io.papermc.paper.configuration.GlobalConfiguration.get().blockUpdates.disableTripwireUpdates) return state; // Paper - prevent tripwire from updating
          return direction.getAxis().isHorizontal() ? (BlockState) state.setValue((Property) TripWireBlock.PROPERTY_BY_DIRECTION.get(direction), this.shouldConnectTo(neighborState, direction)) : super.updateShape(state, direction, neighborState, world, pos, neighborPos);
 -    }
@@ -4900,7 +4900,7 @@ index cb2ff8d94308c637a498d2737f86f6af4c9c1b83..2e867bd28e7c66ade2358810aceb1279
  
      @Override
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          if (io.papermc.paper.configuration.GlobalConfiguration.get().blockUpdates.disableTripwireUpdates) return; // Paper - prevent tripwire pressed check
          if ((Boolean) world.getBlockState(pos).getValue(TripWireBlock.POWERED)) {
              this.checkPressed(world, pos);
@@ -4912,7 +4912,7 @@ index 004dce26ff073f1de52a84cd425c4f60fdab5e50..e0bdb724c6e4ebbaf12e7ae5dfec0f2f
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.canSurvive(state, world, pos, () -> {
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.canSurvive(state, world, pos, () -> {
          Direction enumdirection = (Direction) state.getValue(TripWireHookBlock.FACING);
          BlockPos blockposition1 = pos.relative(enumdirection.getOpposite());
          BlockState iblockdata1 = world.getBlockState(blockposition1);
@@ -4924,7 +4924,7 @@ index 004dce26ff073f1de52a84cd425c4f60fdab5e50..e0bdb724c6e4ebbaf12e7ae5dfec0f2f
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          return direction.getOpposite() == state.getValue(TripWireHookBlock.FACING) && !state.canSurvive(world, pos) ? Blocks.AIR.defaultBlockState() : super.updateShape(state, direction, neighborState, world, pos, neighborPos);
 -    }
 +        }); // MCCLab - Add BlockBehaviour
@@ -4936,7 +4936,7 @@ index 004dce26ff073f1de52a84cd425c4f60fdab5e50..e0bdb724c6e4ebbaf12e7ae5dfec0f2f
  
      @Override
      public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          this.calculateState(world, pos, state, false, true, -1, (BlockState) null);
      }
  
@@ -4948,7 +4948,7 @@ index 07157822659288e76b2fba34db8d5d566506f33b..20cd165dde3e1e472cb5c8e9aeb2b6bc
  
      @Override
      public void stepOn(Level world, BlockPos pos, BlockState state, Entity entity) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isStepOnLogicReplaced(world, pos, state, entity)) return; // MCCLab start - Adding BlockBehaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isStepOnLogicReplaced(world, pos, state, entity)) return; // MCCLab start - Adding BlockBehaviour
          if (!entity.isSteppingCarefully()) {
              this.destroyEgg(world, state, pos, entity, 100);
          }
@@ -4956,7 +4956,7 @@ index 07157822659288e76b2fba34db8d5d566506f33b..20cd165dde3e1e472cb5c8e9aeb2b6bc
  
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          if (this.shouldUpdateHatchLevel(world) && TurtleEggBlock.onSand(world, pos)) {
              int i = (Integer) state.getValue(TurtleEggBlock.HATCH);
  
@@ -4968,7 +4968,7 @@ index 698ef6ee1c8d08bb38e2775804c1333222b0d73d..2198366aa0c28987d2160c4ebdaa81d5
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.canSurvive(state, world, pos, () -> {
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.canSurvive(state, world, pos, () -> {
          return this.hasFaces(this.getUpdatedState(state, world, pos));
 +        });
      }
@@ -4978,7 +4978,7 @@ index 698ef6ee1c8d08bb38e2775804c1333222b0d73d..2198366aa0c28987d2160c4ebdaa81d5
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          if (direction == Direction.DOWN) {
              return super.updateShape(state, direction, neighborState, world, pos, neighborPos);
          } else {
@@ -4991,7 +4991,7 @@ index 698ef6ee1c8d08bb38e2775804c1333222b0d73d..2198366aa0c28987d2160c4ebdaa81d5
  
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          if (world.getGameRules().getBoolean(GameRules.RULE_DO_VINES_SPREAD)) {
              if (random.nextFloat() < (world.spigotConfig.vineModifier / (100.0f * 4))) { // Spigot - SPIGOT-7159: Better modifier resolution
                  Direction enumdirection = Direction.getRandom(random);
@@ -5003,14 +5003,14 @@ index e6719fc04011b9d9378eef128701a289b4507a1f..926df1923a6308f1155960f04e506ef0
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.canSurvive(state, world, pos, () -> {
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.canSurvive(state, world, pos, () -> {
          return world.getBlockState(pos.relative(state.getValue(FACING).getOpposite())).isSolid();
 +        });
      }
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          return direction == state.getValue(FACING).getOpposite() && !state.canSurvive(world, pos) ? Blocks.AIR.defaultBlockState() : super.updateShape(state, direction, neighborState, world, pos, neighborPos);
 -    }
 +        }); // MCCLab - Add BlockBehaviour
@@ -5029,7 +5029,7 @@ index d1d0fa66aa0c3e481b6d68fe36147040a730293f..cc867a4b879012679a86ab14946f4294
 -        if (state.getValue(WATERLOGGED)) {
 -            world.scheduleTick(pos, Fluids.WATER, Fluids.WATER.getTickDelay(world));
 -        }
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
 +            if (state.getValue(WATERLOGGED)) {
 +                world.scheduleTick(pos, Fluids.WATER, Fluids.WATER.getTickDelay(world));
 +            }
@@ -5056,7 +5056,7 @@ index ae232311f12c72ff62d3d18f25e3ebf46ce1ace2..9f08cf5f5ce076dd7ec68e40c89eb8aa
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          return direction.getAxis() == state.getValue(FACING).getClockWise().getAxis() && !state.canSurvive(world, pos) ? Blocks.AIR.defaultBlockState() : super.updateShape(state, direction, neighborState, world, pos, neighborPos);
 -    }
 +        }); // MCCLab - Add BlockBehaviour
@@ -5072,7 +5072,7 @@ index 0065941d41830309a27eed7643b213b0215d395e..e663265fdb79817b565a9293825f3faf
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.canSurvive(state, world, pos, () -> {
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.canSurvive(state, world, pos, () -> {
          return world.getBlockState(pos.relative(state.getValue(FACING).getOpposite())).isSolid();
 +        });
      }
@@ -5082,7 +5082,7 @@ index 0065941d41830309a27eed7643b213b0215d395e..e663265fdb79817b565a9293825f3faf
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          return direction.getOpposite() == state.getValue(FACING) && !state.canSurvive(world, pos) ? Blocks.AIR.defaultBlockState() : super.updateShape(state, direction, neighborState, world, pos, neighborPos);
 -    }
 +        }); // MCCLab - Add BlockBehaviour
@@ -5098,7 +5098,7 @@ index 5f8d2d9e0763c50ec1ca3e06a71f7ecf35d4c46a..db5995ab0a4687cf55fbc3cd00399a02
  
      @Override
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.canSurvive(state, world, pos, () -> { // MCClab start - Add Block behaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.canSurvive(state, world, pos, () -> { // MCClab start - Add Block behaviour
          Direction direction = state.getValue(FACING);
          BlockPos blockPos = pos.relative(direction.getOpposite());
          BlockState blockState = world.getBlockState(blockPos);
@@ -5111,7 +5111,7 @@ index 5f8d2d9e0763c50ec1ca3e06a71f7ecf35d4c46a..db5995ab0a4687cf55fbc3cd00399a02
  
      @Override
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
          return direction.getOpposite() == state.getValue(FACING) && !state.canSurvive(world, pos) ? Blocks.AIR.defaultBlockState() : state;
 -    }
 +        }); // MCCLab - Add BlockBehaviour
@@ -5127,7 +5127,7 @@ index 05cccc33e7745eb3a905a804b318aaa6bd440d04..bd72a1d2b200e57603a5fd31dc05db96
  
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          this.onRandomTick(state, world, pos, random);
      }
  
@@ -5139,7 +5139,7 @@ index 37d7fb85a05521e4acb6a79997b661c1895bb7ed..c80496748a5c484d254aef22e9cd32f5
  
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          this.onRandomTick(state, world, pos, random);
      }
  
@@ -5151,7 +5151,7 @@ index 728a607bb28f10955397744970554efe297ea5ca..b08995c375631737b669d14b5198fed1
  
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          this.onRandomTick(state, world, pos, random);
      }
  
@@ -5165,7 +5165,7 @@ index 6091e3c3adbcc92c9ca438c301a99f646e3cb549..e98a75a6b9028fa18dc1db341b8a4d43
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
 -        return direction.getOpposite() == state.getValue(FACING) && !state.canSurvive(world, pos) ? Blocks.AIR.defaultBlockState() : super.updateShape(state, direction, neighborState, world, pos, neighborPos);
 -    }
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
 +            return direction.getOpposite() == state.getValue(FACING) && !state.canSurvive(world, pos) ? Blocks.AIR.defaultBlockState() : super.updateShape(state, direction, neighborState, world, pos, neighborPos);
 +        }); // MCCLab - Add BlockBehaviour
 +        }
@@ -5175,7 +5175,7 @@ index 6091e3c3adbcc92c9ca438c301a99f646e3cb549..e98a75a6b9028fa18dc1db341b8a4d43
 -        BlockState blockState = world.getBlockState(pos.relative(state.getValue(FACING).getOpposite()));
 -        return this.isFittingBase(state, blockState) || blockState.is(Blocks.MOVING_PISTON) && blockState.getValue(FACING) == state.getValue(FACING);
 -    }
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.canSurvive(state, world, pos, () -> {
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.canSurvive(state, world, pos, () -> {
 +            BlockState blockState = world.getBlockState(pos.relative(state.getValue(FACING).getOpposite()));
 +            return this.isFittingBase(state, blockState) || blockState.is(Blocks.MOVING_PISTON) && blockState.getValue(FACING) == state.getValue(FACING);
 +        });
@@ -5200,7 +5200,7 @@ index e6a4a5898ffdcb2aa2bc01371a6d7dbc06d610ce..98f904b77fbe6558454e66e23ff8786b
      @Deprecated
      public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
 -        return state;
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, state); // MCCLab start - Add BlockBehaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.updateShape(state, direction, neighborState, world, pos, neighborPos, state); // MCCLab start - Add BlockBehaviour
      }
  
      /** @deprecated */
@@ -5209,13 +5209,13 @@ index e6a4a5898ffdcb2aa2bc01371a6d7dbc06d610ce..98f904b77fbe6558454e66e23ff8786b
              world.removeBlockEntity(pos);
          }
 -
-+        de.verdox.mccreativelab.behaviour.BehaviourUtil.onRemoveCallback(state, world, pos, state, moved); // MCCLab - Add Block behaviour
++        de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.onRemoveCallback(state, world, pos, state, moved); // MCCLab - Add Block behaviour
      }
  
      /** @deprecated */
      @Deprecated
      public InteractionResult use(BlockState state, Level world, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
-+        de.verdox.mccreativelab.behaviour.BehaviourUtil.onUseCallback(state, world, pos, player, hand, hit); // MCClab - Add Block behaviour
++        de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.onUseCallback(state, world, pos, player, hand, hit); // MCClab - Add Block behaviour
          return InteractionResult.PASS;
      }
  
@@ -5224,7 +5224,7 @@ index e6a4a5898ffdcb2aa2bc01371a6d7dbc06d610ce..98f904b77fbe6558454e66e23ff8786b
      @Deprecated
      public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
 -        return true;
-+        return de.verdox.mccreativelab.behaviour.BehaviourUtil.canSurvive(state, world, pos, true); // MCClab - Add Block behaviour
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.canSurvive(state, world, pos, true); // MCClab - Add Block behaviour
      }
  
      /** @deprecated */
@@ -5232,7 +5232,7 @@ index e6a4a5898ffdcb2aa2bc01371a6d7dbc06d610ce..98f904b77fbe6558454e66e23ff8786b
      /** @deprecated */
      @Deprecated
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
          this.tick(state, world, pos, random);
      }
  
@@ -5240,7 +5240,7 @@ index e6a4a5898ffdcb2aa2bc01371a6d7dbc06d610ce..98f904b77fbe6558454e66e23ff8786b
      @Deprecated
 -    public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {}
 +    public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isVanillaTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
 +    }
  
      /** @deprecated */
@@ -5250,7 +5250,7 @@ index e6a4a5898ffdcb2aa2bc01371a6d7dbc06d610ce..98f904b77fbe6558454e66e23ff8786b
          public void initCache() {
              this.fluidState = ((Block) this.owner).getFluidState(this.asState());
 -            this.isRandomlyTicking = ((Block) this.owner).isRandomlyTicking(this.asState());
-+            this.isRandomlyTicking = de.verdox.mccreativelab.behaviour.BehaviourUtil.isRandomlyTicking(this.asState(), ((Block) this.owner).isRandomlyTicking(this.asState()));
++            this.isRandomlyTicking = de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isRandomlyTicking(this.asState(), ((Block) this.owner).isRandomlyTicking(this.asState()));
              if (!this.getBlock().hasDynamicShape()) {
                  this.cache = new BlockBehaviour.BlockStateBase.Cache(this.asState());
              }
@@ -5258,7 +5258,7 @@ index e6a4a5898ffdcb2aa2bc01371a6d7dbc06d610ce..98f904b77fbe6558454e66e23ff8786b
  
          public void onPlace(Level world, BlockPos pos, BlockState state, boolean notify) {
              this.getBlock().onPlace(this.asState(), world, pos, state, notify);
-+            de.verdox.mccreativelab.behaviour.BehaviourUtil.onPlaceCallback(this.asState(), world, pos, state, notify); // MCCLab - Add Block behaviour
++            de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.onPlaceCallback(this.asState(), world, pos, state, notify); // MCCLab - Add Block behaviour
          }
  
          public void onRemove(Level world, BlockPos pos, BlockState state, boolean moved) {
@@ -5278,7 +5278,7 @@ index e6a4a5898ffdcb2aa2bc01371a6d7dbc06d610ce..98f904b77fbe6558454e66e23ff8786b
 +        public final boolean isRandomlyTicking(Level world, int x, int y, int z, BlockState blockState){
 +            if(world == null || x == -1 || z == -1 || blockState == null)
 +                return this.isRandomlyTicking();
-+            return de.verdox.mccreativelab.behaviour.BehaviourUtil.isRandomlyTicking(world, x, y,z,blockState, this.isRandomlyTicking());
++            return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isRandomlyTicking(world, x, y,z,blockState, this.isRandomlyTicking());
 +        }
 +        // MCCLab end - Add BlockBehaviour
 +

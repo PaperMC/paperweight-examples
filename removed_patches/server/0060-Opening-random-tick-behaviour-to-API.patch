@@ -77,7 +77,7 @@ index fd0143944e4fecaf6f1ffa4561702178431575e9..c3dbda01cc30770df44f755890e8541c
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
 +        // MCCLab - start
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.randomTick(state, world, pos, random))
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.randomTick(state, world, pos, random))
 +            return;
 +        // MCCLab - end
          if (random.nextFloat() < (world.spigotConfig.bambooModifier / (100.0f * 3)) && world.isEmptyBlock(pos.above()) && world.getRawBrightness(pos.above(), 0) >= 9) { // Spigot - SPIGOT-7159: Better modifier resolution
@@ -92,8 +92,8 @@ index 05a508cb457b67078ccb08bd2228a59e73701cf3..cd8a5dca38d3e76f56254b82b24c2c13
      @Override
      public boolean isRandomlyTicking(BlockState state) {
 +        // MCCLab - start
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isRandomTickBehaviourImplemented(state))
-+            return de.verdox.mccreativelab.behaviour.BehaviourUtil.isRandomlyTicking(state);
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isRandomTickBehaviourImplemented(state))
++            return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isRandomlyTicking(state);
 +        // MCCLab - end
          return (Integer) state.getValue(BambooStalkBlock.STAGE) == 0;
      }
@@ -101,7 +101,7 @@ index 05a508cb457b67078ccb08bd2228a59e73701cf3..cd8a5dca38d3e76f56254b82b24c2c13
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
 +        // MCCLab - start
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.randomTick(state, world, pos, random))
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.randomTick(state, world, pos, random))
 +            return;
 +        // MCCLab - end
          if ((Integer) state.getValue(BambooStalkBlock.STAGE) == 0) {
@@ -116,7 +116,7 @@ index 2bd714466fb86d4013bd3bceddecba19ce98df08..5c45040390bc89730aa239c5d3d218dc
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
 +        // MCCLab - start
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.randomTick(state, world, pos, random))
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.randomTick(state, world, pos, random))
 +            return;
 +        // MCCLab - end
          if (random.nextInt(3) != 0) {
@@ -131,8 +131,8 @@ index d4cbff18adb62073a1dceb189043789620af6877..392ab770b004a673445f8596a7981e0e
  
      public boolean isRandomlyTicking(BlockState state) {
 +        // MCCLab - start
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isRandomTickBehaviourImplemented(state))
-+            return de.verdox.mccreativelab.behaviour.BehaviourUtil.isRandomlyTicking(state);
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isRandomTickBehaviourImplemented(state))
++            return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isRandomlyTicking(state);
 +        // MCCLab - end
          return this.isRandomlyTicking;
      }
@@ -146,7 +146,7 @@ index 2548244c089dff583c8c424dcaa5504caedf3f10..c1fb487cc0b1aa3cd852358afce59066
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
 +        // MCCLab - start
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.randomTick(state, world, pos, random))
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.randomTick(state, world, pos, random))
 +            return;
 +        // MCCLab - end
          if (random.nextInt(5) == 0) {
@@ -161,7 +161,7 @@ index 0003fb51ae3a6575575e10b4c86719f3061e2577..2230e80ecb7de233d6170c47519570a9
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
 +        // MCCLab - start
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.randomTick(state, world, pos, random))
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.randomTick(state, world, pos, random))
 +            return;
 +        // MCCLab - end
          BlockPos blockposition1 = pos.above();
@@ -176,8 +176,8 @@ index e9beebedf1d60e06e16c442b64d28d022a3e3164..c08cf5dd5b5aee516ca482031e617c51
      @Override
      public boolean isRandomlyTicking(BlockState state) {
 +        // MCCLab - start
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isRandomTickBehaviourImplemented(state))
-+            return de.verdox.mccreativelab.behaviour.BehaviourUtil.isRandomlyTicking(state);
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isRandomTickBehaviourImplemented(state))
++            return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isRandomlyTicking(state);
 +        // MCCLab - end
          return (Integer) state.getValue(ChorusFlowerBlock.AGE) < 5;
      }
@@ -187,7 +187,7 @@ index e9beebedf1d60e06e16c442b64d28d022a3e3164..c08cf5dd5b5aee516ca482031e617c51
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
 +        // MCCLab - start
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.randomTick(state, world, pos, random))
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.randomTick(state, world, pos, random))
 +            return;
 +        // MCCLab - end
          BlockPos blockposition1 = pos.above();
@@ -202,8 +202,8 @@ index f5c42fee3ec68a7a9260f01d19c7a1d7533bad9c..f049edccafa877befb1790354a094579
      @Override
      public boolean isRandomlyTicking(BlockState state) {
 +        // MCCLab - start
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isRandomTickBehaviourImplemented(state))
-+            return de.verdox.mccreativelab.behaviour.BehaviourUtil.isRandomlyTicking(state);
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isRandomTickBehaviourImplemented(state))
++            return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isRandomlyTicking(state);
 +        // MCCLab - end
          return (Integer) state.getValue(CocoaBlock.AGE) < 2;
      }
@@ -211,7 +211,7 @@ index f5c42fee3ec68a7a9260f01d19c7a1d7533bad9c..f049edccafa877befb1790354a094579
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
 +        // MCCLab - start
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.randomTick(state, world, pos, random))
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.randomTick(state, world, pos, random))
 +            return;
 +        // MCCLab - end
          if (world.random.nextFloat() < (world.spigotConfig.cocoaModifier / (100.0f * 5))) { // Spigot - SPIGOT-7159: Better modifier resolution
@@ -226,8 +226,8 @@ index 6365ddea0c23bc5d4009d98915f2b39aed2a0328..844722ac6b069f6a4497b3c1f0aa622d
      @Override
      public boolean isRandomlyTicking(BlockState state) {
 +        // MCCLab - start
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isRandomTickBehaviourImplemented(state))
-+            return de.verdox.mccreativelab.behaviour.BehaviourUtil.isRandomlyTicking(state);
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isRandomTickBehaviourImplemented(state))
++            return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isRandomlyTicking(state);
 +        // MCCLab - end
          return !this.isMaxAge(state);
      }
@@ -235,7 +235,7 @@ index 6365ddea0c23bc5d4009d98915f2b39aed2a0328..844722ac6b069f6a4497b3c1f0aa622d
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
 +        // MCCLab - start
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.randomTick(state, world, pos, random))
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.randomTick(state, world, pos, random))
 +            return;
 +        // MCCLab - end
          if (world.getRawBrightness(pos, 0) >= 9) {
@@ -250,7 +250,7 @@ index 5946f06f63b5694034bd027984a4925b0831d439..8e5a003ba6ab948aba4de7dc8f2a4b9a
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
 +        // MCCLab - start
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.randomTick(state, world, pos, random))
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.randomTick(state, world, pos, random))
 +            return;
 +        // MCCLab - end
          int i = (Integer) state.getValue(FarmBlock.MOISTURE);
@@ -265,7 +265,7 @@ index a3af96b2518b41f370d09cfda26dc589b9ee977b..595d8a53509fe678a0d8c00e98918518
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
 +        // MCCLab - start
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.randomTick(state, world, pos, random))
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.randomTick(state, world, pos, random))
 +            return;
 +        // MCCLab - end
          this.tick(state, world, pos, random);
@@ -280,8 +280,8 @@ index b325fdec8eb99ce57152a5c0fefa5059685276e4..dc6314518127c39ddd4efbfa4e8b0353
      @Override
      public boolean isRandomlyTicking(BlockState state) {
 +        // MCCLab - start
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isRandomTickBehaviourImplemented(state))
-+            return de.verdox.mccreativelab.behaviour.BehaviourUtil.isRandomlyTicking(state);
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isRandomTickBehaviourImplemented(state))
++            return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isRandomlyTicking(state);
 +        // MCCLab - end
          return (Integer) state.getValue(GrowingPlantHeadBlock.AGE) < 25;
      }
@@ -289,7 +289,7 @@ index b325fdec8eb99ce57152a5c0fefa5059685276e4..dc6314518127c39ddd4efbfa4e8b0353
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
 +        // MCCLab - start
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.randomTick(state, world, pos, random))
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.randomTick(state, world, pos, random))
 +            return;
 +        // MCCLab - end
          // Spigot start
@@ -304,7 +304,7 @@ index 04089e6f7d6e3d532b00585870283922b6be5246..7b7dd00d183aea109f5aaf0bae641734
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
 +        // MCCLab - start
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.randomTick(state, world, pos, random))
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.randomTick(state, world, pos, random))
 +            return;
 +        // MCCLab - end
          if (world.getBrightness(LightLayer.BLOCK, pos) > 11 - state.getLightBlock(world, pos)) {
@@ -319,8 +319,8 @@ index ebee1dfdb1d75381de847834262a66b45fd9f0ce..e377fed577f8ce96864c4f889c009986
      @Override
      public boolean isRandomlyTicking(BlockState state) {
 +        // MCCLab - start
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isRandomTickBehaviourImplemented(state))
-+            return de.verdox.mccreativelab.behaviour.BehaviourUtil.isRandomlyTicking(state);
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isRandomTickBehaviourImplemented(state))
++            return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isRandomlyTicking(state);
 +        // MCCLab - end
          return (Integer) state.getValue(LeavesBlock.DISTANCE) == 7 && !(Boolean) state.getValue(LeavesBlock.PERSISTENT);
      }
@@ -328,7 +328,7 @@ index ebee1dfdb1d75381de847834262a66b45fd9f0ce..e377fed577f8ce96864c4f889c009986
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
 +        // MCCLab - start
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.randomTick(state, world, pos, random))
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.randomTick(state, world, pos, random))
 +            return;
 +        // MCCLab - end
          if (this.decaying(state)) {
@@ -343,8 +343,8 @@ index 4a1830f85f47014da63e4584f411d13f0f0cd8b3..b779235fad70b40e27779905be9f2bcb
      @Override
      public boolean isRandomlyTicking(BlockState state) {
 +        // MCCLab - start
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isRandomTickBehaviourImplemented(state))
-+            return de.verdox.mccreativelab.behaviour.BehaviourUtil.isRandomlyTicking(state);
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isRandomTickBehaviourImplemented(state))
++            return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isRandomlyTicking(state);
 +        // MCCLab - end
          return state.getFluidState().isRandomlyTicking();
      }
@@ -352,7 +352,7 @@ index 4a1830f85f47014da63e4584f411d13f0f0cd8b3..b779235fad70b40e27779905be9f2bcb
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
 +        // MCCLab - start
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.randomTick(state, world, pos, random))
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.randomTick(state, world, pos, random))
 +            return;
 +        // MCCLab - end
          state.getFluidState().randomTick(world, pos, random);
@@ -367,7 +367,7 @@ index cf240750aecc57d287efc986b471e66a860850ee..43cc46284efad11e5056f35028fff84b
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
 +        // MCCLab - start
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.randomTick(state, world, pos, random))
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.randomTick(state, world, pos, random))
 +            return;
 +        // MCCLab - end
          if (!isHanging(state)) {
@@ -382,7 +382,7 @@ index 302c5a6401facf192677b89cc0e9190bb35b1229..e9f29e0c1b6c64262cbd50954ff5e181
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
 +        // MCCLab - start
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.randomTick(state, world, pos, random))
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.randomTick(state, world, pos, random))
 +            return;
 +        // MCCLab - end
          if (random.nextFloat() < (world.spigotConfig.mushroomModifier / (100.0f * 25))) { // Spigot - SPIGOT-7159: Better modifier resolution
@@ -397,7 +397,7 @@ index a6ab0d0defc05e56a91084c49897059670a1324b..b7416108d8c5890db5aa3a32a9b629a4
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
 +        // MCCLab - start
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.randomTick(state, world, pos, random))
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.randomTick(state, world, pos, random))
 +            return;
 +        // MCCLab - end
          if (world.spigotConfig.enableZombiePigmenPortalSpawns && world.dimensionType().natural() && world.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING) && random.nextInt(2000) < world.getDifficulty().getId()) { // Spigot
@@ -412,8 +412,8 @@ index e55720c4d2fbdf6aae526910e87a67c29cf906fd..1d850147fa4d023a40a0bce4ee38e93b
      @Override
      public boolean isRandomlyTicking(BlockState state) {
 +        // MCCLab - start
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isRandomTickBehaviourImplemented(state))
-+            return de.verdox.mccreativelab.behaviour.BehaviourUtil.isRandomlyTicking(state);
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isRandomTickBehaviourImplemented(state))
++            return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isRandomlyTicking(state);
 +        // MCCLab - end
          return (Integer) state.getValue(NetherWartBlock.AGE) < 3;
      }
@@ -421,7 +421,7 @@ index e55720c4d2fbdf6aae526910e87a67c29cf906fd..1d850147fa4d023a40a0bce4ee38e93b
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
 +        // MCCLab - start
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.randomTick(state, world, pos, random))
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.randomTick(state, world, pos, random))
 +            return;
 +        // MCCLab - end
          int i = (Integer) state.getValue(NetherWartBlock.AGE);
@@ -436,7 +436,7 @@ index 47a3a9e0f0ba4f8a00828874e73d501d18f0ae1c..a5dcc1970c66bd7d8e1eaef4112c1b97
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
 +        // MCCLab - start
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.randomTick(state, world, pos, random))
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.randomTick(state, world, pos, random))
 +            return;
 +        // MCCLab - end
          if (!NyliumBlock.canBeNylium(state, world, pos)) {
@@ -451,8 +451,8 @@ index 1641453fd17938bc8fcdba7f89a0515ebeef20c5..89f91ef083103f0b6987a4631b7976a5
      @Override
      public boolean isRandomlyTicking(BlockState state) {
 +        // MCCLab - start
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isRandomTickBehaviourImplemented(state))
-+            return de.verdox.mccreativelab.behaviour.BehaviourUtil.isRandomlyTicking(state);
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isRandomTickBehaviourImplemented(state))
++            return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isRandomlyTicking(state);
 +        // MCCLab - end
          return state.getValue(HALF) == DoubleBlockHalf.LOWER && !this.isMaxAge(state);
      }
@@ -460,7 +460,7 @@ index 1641453fd17938bc8fcdba7f89a0515ebeef20c5..89f91ef083103f0b6987a4631b7976a5
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
 +        // MCCLab - start
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.randomTick(state, world, pos, random))
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.randomTick(state, world, pos, random))
 +            return;
 +        // MCCLab - end
          float f = CropBlock.getGrowthSpeed(this, world, pos);
@@ -475,7 +475,7 @@ index cd943997f11f5ea5c600fdc6db96043fb0fa713c..2cb82df7bafde64495603326b633b4a4
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
 +        // MCCLab - start
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.randomTick(state, world, pos, random))
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.randomTick(state, world, pos, random))
 +            return;
 +        // MCCLab - end
          PointedDripstoneBlock.maybeTransferFluid(state, world, pos, random.nextFloat());
@@ -490,8 +490,8 @@ index 06760ff3d20bcfdc30f3f3ee65bc2a0d12d28aff..92816e777ddc20f0020e3bc4dfb33702
      @Override
      public boolean isRandomlyTicking(BlockState state) {
 +        // MCCLab - start
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isRandomTickBehaviourImplemented(state))
-+            return de.verdox.mccreativelab.behaviour.BehaviourUtil.isRandomlyTicking(state);
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isRandomTickBehaviourImplemented(state))
++            return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isRandomlyTicking(state);
 +        // MCCLab - end
          return (Boolean) state.getValue(RedStoneOreBlock.LIT);
      }
@@ -499,7 +499,7 @@ index 06760ff3d20bcfdc30f3f3ee65bc2a0d12d28aff..92816e777ddc20f0020e3bc4dfb33702
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
 +        // MCCLab - start
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.randomTick(state, world, pos, random))
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.randomTick(state, world, pos, random))
 +            return;
 +        // MCCLab - end
          if ((Boolean) state.getValue(RedStoneOreBlock.LIT)) {
@@ -514,7 +514,7 @@ index 53ac4e618fec3fe384d8a106c521f3eace0b5b35..f8f5301bd8327fb79e0a090755966b3c
      @Override
      public void randomTick(net.minecraft.world.level.block.state.BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
 +        // MCCLab - start
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.randomTick(state, world, pos, random))
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.randomTick(state, world, pos, random))
 +            return;
 +        // MCCLab - end
          if (world.getMaxLocalRawBrightness(pos.above()) >= 9 && random.nextFloat() < (world.spigotConfig.saplingModifier / (100.0f * 7))) { // Spigot - SPIGOT-7159: Better modifier resolution
@@ -533,7 +533,7 @@ index 14e00c7feb1c051d56a3d27cd00dcef072dd771a..fbe73840c1467712a8010122bfd64885
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
 +        // MCCLab - start
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.randomTick(state, world, pos, random))
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.randomTick(state, world, pos, random))
 +            return;
 +        // MCCLab - end
          if (world.getBrightness(LightLayer.BLOCK, pos) > 11) {
@@ -548,7 +548,7 @@ index 9bbb9f8e917288bb0d11661a1399a05631ebcce0..c408d0101eda47fd3f59b4de6a1016e3
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
 +        // MCCLab - start
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.randomTick(state, world, pos, random))
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.randomTick(state, world, pos, random))
 +            return;
 +        // MCCLab - end
          if (this instanceof GrassBlock && world.paperConfig().tickRates.grassSpread != 1 && (world.paperConfig().tickRates.grassSpread < 1 || (MinecraftServer.currentTick + pos.hashCode()) % world.paperConfig().tickRates.grassSpread != 0)) { return; } // Paper
@@ -563,8 +563,8 @@ index 827713a332baa6d280cd61d40faf8f6243b3b08c..1e1d97bdab149aa42e4c11cf69d26b35
      @Override
      public boolean isRandomlyTicking(BlockState state) {
 +        // MCCLab - start
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isRandomTickBehaviourImplemented(state))
-+            return de.verdox.mccreativelab.behaviour.BehaviourUtil.isRandomlyTicking(state);
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isRandomTickBehaviourImplemented(state))
++            return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isRandomlyTicking(state);
 +        // MCCLab - end
          return this.base.isRandomlyTicking(state);
      }
@@ -572,7 +572,7 @@ index 827713a332baa6d280cd61d40faf8f6243b3b08c..1e1d97bdab149aa42e4c11cf69d26b35
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
 +        // MCCLab - start
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.randomTick(state, world, pos, random))
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.randomTick(state, world, pos, random))
 +            return;
 +        // MCCLab - end
          this.base.randomTick(state, world, pos, random);
@@ -587,7 +587,7 @@ index 0d9be3b28ba4957c3f4da5455283fca903836c91..5bc6ac35589f7d82252a03ba42ce9bc4
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
 +        // MCCLab - start
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.randomTick(state, world, pos, random))
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.randomTick(state, world, pos, random))
 +            return;
 +        // MCCLab - end
          if (world.getRawBrightness(pos, 0) >= 9) {
@@ -602,7 +602,7 @@ index c3f500580d257e1397f2eb7c47b063a6fe6bb405..f7d7e8c11e23ae2605adf029df0b692c
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
 +        // MCCLab - start
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.randomTick(state, world, pos, random))
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.randomTick(state, world, pos, random))
 +            return;
 +        // MCCLab - end
          if (world.isEmptyBlock(pos.above())) {
@@ -617,8 +617,8 @@ index 34eb7ba1adb51e394bf46a6f643db3529626d9ec..0f391076db8bbfe7ad5c8fba30167c64
      @Override
      public boolean isRandomlyTicking(BlockState state) {
 +        // MCCLab - start
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isRandomTickBehaviourImplemented(state))
-+            return de.verdox.mccreativelab.behaviour.BehaviourUtil.isRandomlyTicking(state);
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isRandomTickBehaviourImplemented(state))
++            return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isRandomlyTicking(state);
 +        // MCCLab - end
          return (Integer) state.getValue(SweetBerryBushBlock.AGE) < 3;
      }
@@ -626,7 +626,7 @@ index 34eb7ba1adb51e394bf46a6f643db3529626d9ec..0f391076db8bbfe7ad5c8fba30167c64
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
 +        // MCCLab - start
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.randomTick(state, world, pos, random))
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.randomTick(state, world, pos, random))
 +            return;
 +        // MCCLab - end
          int i = (Integer) state.getValue(SweetBerryBushBlock.AGE);
@@ -641,7 +641,7 @@ index 092759184adbf27ce942a148169e60d3a28c2cc7..2678e71bc1f3d28d199956c69668a2fe
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
 +        // MCCLab - start
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.randomTick(state, world, pos, random))
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.randomTick(state, world, pos, random))
 +            return;
 +        // MCCLab - end
          if (random.nextInt(3) != 0) {
@@ -656,7 +656,7 @@ index 07157822659288e76b2fba34db8d5d566506f33b..5ec340f28936b836b3310e22fd6065df
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
 +        // MCCLab - start
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.randomTick(state, world, pos, random))
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.randomTick(state, world, pos, random))
 +            return;
 +        // MCCLab - end
          if (this.shouldUpdateHatchLevel(world) && TurtleEggBlock.onSand(world, pos)) {
@@ -671,7 +671,7 @@ index 698ef6ee1c8d08bb38e2775804c1333222b0d73d..b139803946cb8e3f0f6ea983edbefb84
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
 +        // MCCLab - start
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.randomTick(state, world, pos, random))
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.randomTick(state, world, pos, random))
 +            return;
 +        // MCCLab - end
          if (world.getGameRules().getBoolean(GameRules.RULE_DO_VINES_SPREAD)) {
@@ -686,7 +686,7 @@ index 05cccc33e7745eb3a905a804b318aaa6bd440d04..2278bff4545cb258cb076422a4c75895
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
 +        // MCCLab - start
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.randomTick(state, world, pos, random))
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.randomTick(state, world, pos, random))
 +            return;
 +        // MCCLab - end
          this.onRandomTick(state, world, pos, random);
@@ -695,8 +695,8 @@ index 05cccc33e7745eb3a905a804b318aaa6bd440d04..2278bff4545cb258cb076422a4c75895
      @Override
      public boolean isRandomlyTicking(BlockState state) {
 +        // MCCLab - start
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isRandomTickBehaviourImplemented(state))
-+            return de.verdox.mccreativelab.behaviour.BehaviourUtil.isRandomlyTicking(state);
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isRandomTickBehaviourImplemented(state))
++            return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isRandomlyTicking(state);
 +        // MCCLab - end
          return WeatheringCopper.getNext(state.getBlock()).isPresent();
      }
@@ -710,7 +710,7 @@ index 37d7fb85a05521e4acb6a79997b661c1895bb7ed..7f3ca01da48db936534320c85f1efcb2
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
 +        // MCCLab - start
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.randomTick(state, world, pos, random))
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.randomTick(state, world, pos, random))
 +            return;
 +        // MCCLab - end
          this.onRandomTick(state, world, pos, random);
@@ -719,8 +719,8 @@ index 37d7fb85a05521e4acb6a79997b661c1895bb7ed..7f3ca01da48db936534320c85f1efcb2
      @Override
      public boolean isRandomlyTicking(BlockState state) {
 +        // MCCLab - start
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isRandomTickBehaviourImplemented(state))
-+            return de.verdox.mccreativelab.behaviour.BehaviourUtil.isRandomlyTicking(state);
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isRandomTickBehaviourImplemented(state))
++            return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isRandomlyTicking(state);
 +        // MCCLab - end
          return WeatheringCopper.getNext(state.getBlock()).isPresent();
      }
@@ -734,7 +734,7 @@ index 728a607bb28f10955397744970554efe297ea5ca..ef7ce2d63017d133bef53aa1b721be46
      @Override
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
 +        // MCCLab - start
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.randomTick(state, world, pos, random))
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.randomTick(state, world, pos, random))
 +            return;
 +        // MCCLab - end
          this.onRandomTick(state, world, pos, random);
@@ -743,8 +743,8 @@ index 728a607bb28f10955397744970554efe297ea5ca..ef7ce2d63017d133bef53aa1b721be46
      @Override
      public boolean isRandomlyTicking(BlockState state) {
 +        // MCCLab - start
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.isRandomTickBehaviourImplemented(state))
-+            return de.verdox.mccreativelab.behaviour.BehaviourUtil.isRandomlyTicking(state);
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isRandomTickBehaviourImplemented(state))
++            return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.isRandomlyTicking(state);
 +        // MCCLab - end
          return WeatheringCopper.getNext(state.getBlock()).isPresent();
      }
@@ -758,7 +758,7 @@ index e6a4a5898ffdcb2aa2bc01371a6d7dbc06d610ce..3c8e09b76407d0782109b172765a9745
      @Deprecated
      public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
 +        // MCCLab - start
-+        if(de.verdox.mccreativelab.behaviour.BehaviourUtil.randomTick(state, world, pos, random))
++        if(de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.randomTick(state, world, pos, random))
 +            return;
 +        // MCCLab - end
          this.tick(state, world, pos, random);

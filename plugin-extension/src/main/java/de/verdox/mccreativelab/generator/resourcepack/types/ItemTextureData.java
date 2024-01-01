@@ -53,7 +53,6 @@ public class ItemTextureData extends ResourcePackResource {
     }
 
     public static void createVanillaModelFile(Material material, Set<ItemTextureData> installedItems, CustomResourcePack customPack) {
-        //TODO: Funktioniert noch nicht!
         NamespacedKey vanillaKey = new NamespacedKey(material.getKey().namespace(), "item/" + material.getKey()
                                                                                                       .getKey());
         JsonObject jsonToWriteToFile = createModelJson(material, vanillaKey, null);
@@ -135,6 +134,7 @@ public class ItemTextureData extends ResourcePackResource {
             var textures = JsonObjectBuilder.create();
             texturesPerBlockFace.forEach((blockFace, itemTextureData) -> {
                 textures.add(blockFace.name().toLowerCase(Locale.ROOT), itemTextureData.key().toString());
+                textures.add("particle", itemTextureData.key().toString());
             });
 
             return new ModelType("", namespacedKey ->

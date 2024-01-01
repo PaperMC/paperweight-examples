@@ -18,14 +18,47 @@ public class ReplacedSoundGroups {
     private static final Map<Wrappers.SoundGroup, Wrappers.SoundGroup> replacedSoundGroups = new HashMap<>();
 
     static {
+        replaceGlassSoundGroup();
+        replaceWoodSoundGroup();
+    }
+
+    private static void replaceGlassSoundGroup(){
         SoundData newGlassBreakSound = new SoundData(new NamespacedKey("minecraft", "block.glass.custom.break"), false, "subtitles.block.generic.break")
             .withSoundVariant(new NamespacedKey("minecraft", "block/custom/glass/break/glass1"), new Asset<>("/sounds/glass/break/glass1.ogg"), 1, 1)
             .withSoundVariant(new NamespacedKey("minecraft", "block/custom/glass/break/glass2"), new Asset<>("/sounds/glass/break/glass2.ogg"), 1, 1)
             .withSoundVariant(new NamespacedKey("minecraft", "block/custom/glass/break/glass3"), new Asset<>("/sounds/glass/break/glass3.ogg"), 1, 1)
-        ;
+            ;
 
         Wrappers.SoundGroup newGlassSoundGroup = Wrappers.of(Wrappers.of(Sound.BLOCK_STONE_HIT), Wrappers.of(Sound.BLOCK_STONE_STEP), Wrappers.of(newGlassBreakSound), Wrappers.of(Sound.BLOCK_STONE_PLACE), Wrappers.of(Sound.BLOCK_STONE_FALL));
         replaceSoundGroup("block.glass", Material.GLASS.createBlockData().getSoundGroup(), newGlassSoundGroup);
+    }
+
+    private static void replaceWoodSoundGroup(){
+        SoundData newWoodDigSound = new SoundData(new NamespacedKey("minecraft", "block.wood.custom.break"), false, "subtitles.block.generic.break")
+            .withSoundVariant(new NamespacedKey("minecraft", "block/custom/wood/dig/wood1"), new Asset<>("/sounds/wood/dig/wood1.ogg"), 1, 1)
+            .withSoundVariant(new NamespacedKey("minecraft", "block/custom/wood/dig/wood2"), new Asset<>("/sounds/wood/dig/wood2.ogg"), 1, 1)
+            .withSoundVariant(new NamespacedKey("minecraft", "block/custom/wood/dig/wood3"), new Asset<>("/sounds/wood/dig/wood3.ogg"), 1, 1)
+            .withSoundVariant(new NamespacedKey("minecraft", "block/custom/wood/dig/wood4"), new Asset<>("/sounds/wood/dig/wood4.ogg"), 1, 1)
+            ;
+
+        SoundData newWoodStepSound = new SoundData(new NamespacedKey("minecraft", "block.wood.custom.step"), false, "subtitles.block.generic.step")
+            .withSoundVariant(new NamespacedKey("minecraft", "block/custom/wood/step/wood1"), new Asset<>("/sounds/wood/step/wood1.ogg"), 1, 1)
+            .withSoundVariant(new NamespacedKey("minecraft", "block/custom/wood/step/wood2"), new Asset<>("/sounds/wood/step/wood2.ogg"), 1, 1)
+            .withSoundVariant(new NamespacedKey("minecraft", "block/custom/wood/step/wood3"), new Asset<>("/sounds/wood/step/wood3.ogg"), 1, 1)
+            .withSoundVariant(new NamespacedKey("minecraft", "block/custom/wood/step/wood4"), new Asset<>("/sounds/wood/step/wood4.ogg"), 1, 1)
+            .withSoundVariant(new NamespacedKey("minecraft", "block/custom/wood/step/wood5"), new Asset<>("/sounds/wood/step/wood5.ogg"), 1, 1)
+            .withSoundVariant(new NamespacedKey("minecraft", "block/custom/wood/step/wood6"), new Asset<>("/sounds/wood/step/wood6.ogg"), 1, 1)
+            ;
+
+
+        Wrappers.SoundGroup newWoodSoundGroup = Wrappers.of(
+            Wrappers.of(newWoodStepSound),
+            Wrappers.of(newWoodStepSound),
+            Wrappers.of(newWoodDigSound),
+            Wrappers.of(newWoodDigSound),
+            Wrappers.of(Sound.BLOCK_STONE_FALL)
+        );
+        replaceSoundGroup("block.wood", Material.OAK_LOG.createBlockData().getSoundGroup(), newWoodSoundGroup);
     }
 
     public static void init() {

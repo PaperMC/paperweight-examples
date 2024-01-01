@@ -1,25 +1,16 @@
 package de.verdox.mccreativelab.block;
 
-import com.destroystokyo.paper.event.block.BlockDestroyEvent;
-import de.verdox.mccreativelab.MCCreativeLabExtension;
-import org.bukkit.Bukkit;
-import org.bukkit.Chunk;
-import org.bukkit.Location;
 import org.bukkit.block.Block;
-import org.bukkit.entity.EntityType;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
-import org.bukkit.event.block.BlockExplodeEvent;
+import org.bukkit.event.block.BlockDropItemEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
-import org.bukkit.event.world.ChunkLoadEvent;
 
 import javax.annotation.Nullable;
 
 public class FakeBlockListener implements Listener {
-
-
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
     public void onFakeBlockPlace(BlockPlaceEvent e) {
         if (!FakeBlockSoundManager.isBlockWithoutStandardSound(e.getBlock()))
@@ -29,6 +20,41 @@ public class FakeBlockListener implements Listener {
                                                                                              .getLocation(), false);
 
         FakeBlockSoundManager.simulateBlockPlaceSound(e.getPlayer(), e.getBlock(), fakeBlockState);
+    }
+
+/*    @EventHandler
+    public void soundEvent(WorldSoundEvent e) {
+        e.setExcept(null);
+        if (e.getSound().getKey().contains("block"))
+            Bukkit.getLogger()
+                  .info("Playing sound: " + e.getSound() + " at pos " + e.getSoundLocation().toBlock() + " (" + e
+                      .getSoundLocation().getBlock().getState().getBlockData() + ")");
+    }
+
+    @EventHandler
+    public void worldEvent(WorldEffectEvent e) {
+        Bukkit.getLogger().info("Effect: " + e.getEffect().name());
+        if(e.getEffect().equals(Effect.STEP_SOUND))
+            e.setCancelled(true);
+    }*/
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
+    public void doNotDropVanillaLootForFakeBlocks(BlockBreakEvent e) {
+        FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockStateOrThrow(e.getBlock()
+                                                                                             .getLocation(), false);
+        if (fakeBlockState == null)
+            return;
+        e.setDropItems(false);
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
+    public void fakeBlockDropItems(BlockDropItemEvent e) {
+        FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockStateOrThrow(e.getBlock()
+                                                                                             .getLocation(), false);
+        if (fakeBlockState == null)
+            return;
+        e.getItems().clear();
+        fakeBlockState.getFakeBlock().drawLoot();
     }
 
 /*    @EventHandler
@@ -88,24 +114,6 @@ public class FakeBlockListener implements Listener {
             }
         }
     }*/
-
-    @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
-    public void onFakeBlockBreak(BlockDestroyEvent e) {
-        Bukkit.getScheduler()
-              .runTask(MCCreativeLabExtension.getInstance(), () -> FakeBlockUtil.removeFakeBlockIfPossible(e.getBlock()));
-    }
-
-    @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
-    public void onFakeBlockBreak(BlockExplodeEvent e) {
-        Bukkit.getScheduler()
-              .runTask(MCCreativeLabExtension.getInstance(), () -> FakeBlockUtil.removeFakeBlockIfPossible(e.getBlock()));
-    }
-
-    @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
-    public void onFakeBlockBreak(BlockBreakEvent e) {
-        Bukkit.getScheduler()
-              .runTask(MCCreativeLabExtension.getInstance(), () -> FakeBlockUtil.removeFakeBlockIfPossible(e.getBlock()));
-    }
 
     @Nullable
     private static FakeBlock.FakeBlockState getFakeBlockState(Block block) {

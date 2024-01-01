@@ -15,6 +15,7 @@ import de.verdox.mccreativelab.generator.resourcepack.types.sound.SoundData;
 import de.verdox.mccreativelab.sound.ReplacedSoundGroups;
 import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
+import org.bukkit.World;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.server.ServerLoadEvent;
@@ -52,10 +53,9 @@ public class MCCreativeLabExtension extends JavaPlugin implements Listener {
         Bukkit.getPluginManager().registerEvents(CustomBlockRegistry.fakeBlockDamage, this);
         Bukkit.getCommandMap().register("fakeblock", "mccreativelab", new FakeBlockCommand());
         this.hudRenderer.start();
-
-
-
     }
+
+
 
     @EventHandler
     public void onServerTick(ServerTickEndEvent e){
@@ -118,7 +118,8 @@ public class MCCreativeLabExtension extends JavaPlugin implements Listener {
 
     @Override
     public void onDisable() {
-        MCCreativeLabExtension.getInstance().getFakeBlockStorage().saveAll();
+        for (World world : Bukkit.getWorlds())
+            world.save();
         try {
             resourcePackFileHoster.closeAndWait();
             this.hudRenderer.interrupt();

@@ -35,6 +35,11 @@ public class TransparentBlockVisualStrategy extends FakeBlockVisualStrategy<Tran
         getOrCreateFakeBlockDisplayData(block).setStoredItemDisplay(itemDisplay);
     }
 
+    @Override
+    protected FakeBlockFullDisplay newData() {
+        return new FakeBlockFullDisplay();
+    }
+
     protected static class FakeBlockFullDisplay extends FakeBlockDisplayData{
         @Nullable
         private ItemDisplay storedItemDisplay;

@@ -30,7 +30,7 @@ public class FakeBlockCommand extends Command {
             if(block == null)
                 return false;
             if(args[0].equalsIgnoreCase("set")){
-                if(FakeBlockStorage.setFakeBlock(block.getLocation(), FakeBlocks.DEBUG_BLOCK,false))
+                if(FakeBlockStorage.setFakeBlock(block.getLocation(), FakeBlocks.DEBUG_BLOCK_USING_NOTE_BLOCK,false))
                     player.sendMessage(Component.text("Set fake block"));
                 else player.sendMessage(Component.text("Could not set fake block"));
                 return true;

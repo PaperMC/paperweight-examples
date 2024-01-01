@@ -4,6 +4,7 @@ import com.destroystokyo.paper.event.entity.EntityRemoveFromWorldEvent;
 import de.verdox.mccreativelab.MCCreativeLabExtension;
 import de.verdox.mccreativelab.Wrappers;
 import de.verdox.mccreativelab.behaviour.BlockBehaviour;
+import de.verdox.mccreativelab.block.behaviour.ReplacingFakeBlockBehaviour;
 import de.verdox.mccreativelab.generator.Asset;
 import de.verdox.mccreativelab.generator.resourcepack.CustomResourcePack;
 import de.verdox.mccreativelab.generator.resourcepack.types.ItemTextureData;
@@ -13,11 +14,13 @@ import de.verdox.mccreativelab.sound.ReplacedSoundGroups;
 import de.verdox.mccreativelab.util.storage.palette.IdMap;
 import org.bukkit.*;
 import org.bukkit.block.Block;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.ItemDisplay;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.util.Transformation;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -31,6 +34,7 @@ public class CustomBlockRegistry extends CustomRegistry<FakeBlock> {
     };
     public static BlockBehaviour TRANSPARENT_BLOCK_BEHAVIOUR = new BlockBehaviour() {
     };
+    private static final Map<BlockData, FakeBlock.FakeBlockState> reusedBlockStates = new HashMap<>();
 
     public static final FakeBlockDamage fakeBlockDamage = new FakeBlockDamage();
 
@@ -46,7 +50,7 @@ public class CustomBlockRegistry extends CustomRegistry<FakeBlock> {
 
         BlockBehaviour.BLOCK_BEHAVIOUR.setBehaviour(solidBlockMaterial, new ReplacingFakeBlockBehaviour(solidBlockMaterial, solidBlockKey, () -> SOLID_BLOCK_BEHAVIOUR));
         BlockBehaviour.BLOCK_BEHAVIOUR.setBehaviour(transparentBlockMaterial, new ReplacingFakeBlockBehaviour(transparentBlockMaterial, transparentBlockKey, () -> TRANSPARENT_BLOCK_BEHAVIOUR));
-        BlockBehaviour.BLOCK_BEHAVIOUR.setBehaviour(Material.NOTE_BLOCK, new NoteBlockBehaviour());
+        BlockBehaviour.BLOCK_BEHAVIOUR.setBehaviour(Material.NOTE_BLOCK, new ReplacingFakeBlockBehaviour(Material.NOTE_BLOCK));
 
         Asset<CustomResourcePack> ancient_debris_side_texture = new Asset<>("/replaced/blocks/ancient_debris_side.png");
         Asset<CustomResourcePack> ancient_debris_top_texture = new Asset<>("/replaced/blocks/ancient_debris_top.png");
@@ -104,12 +108,22 @@ public class CustomBlockRegistry extends CustomRegistry<FakeBlock> {
             fakeBlockState.linkFakeBlock(fakeBlock);
             fakeBlockState.getProperties().makeImmutable();
             FAKE_BLOCK_STATE_ID_MAP.add(fakeBlockState);
+            if(fakeBlockState.getFakeBlockDisplay().isReusingMinecraftBlockstate())
+                reusedBlockStates.put(fakeBlockState.getFakeBlockDisplay().getHitBox().getBlockData(),fakeBlockState);
         }
         fakeBlock.setKey(fakeBlockBuilder.namespacedKey);
         Bukkit.getLogger().info("Registering fake block " + fakeBlockBuilder.namespacedKey);
         return fakeBlock;
     }
 
+    @Nullable
+    public static FakeBlock.FakeBlockState getFakeBlockStateFromBlockData(BlockData blockData){
+        if(reusedBlockStates.containsKey(blockData))
+            return reusedBlockStates.get(blockData);
+        return null;
+    }
+
+    @Deprecated
     public static class FakeBlockDamage implements Listener {
         private static final AtomicInteger ID_COUNTER = new AtomicInteger(9999);
         private final Map<Integer, ItemTextureData> texturesPerDamage = new HashMap<>();

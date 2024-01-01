@@ -25,24 +25,7 @@ public class CustomOreBlock extends FakeBlock {
     }
 
     @Override
-    public float getDestroySpeedMultiplier(@NotNull FakeBlockState fakeBlockState, @NotNull Block block, @Nullable ItemStack itemStack) {
+    public float getDestroySpeed(@NotNull FakeBlockState fakeBlockState, @NotNull Block block, @Nullable ItemStack itemStack) {
         return itemStack != null ? itemStack.getType().equals(Material.STICK) ? 5 : 0 : 0;
-    }
-
-    @Override
-    public void randomTick(FakeBlockState fakeBlockState, Block block, VanillaRandomSource vanillaRandomSource) {
-        System.out.println("CustomOreBlock random tick");
-    }
-
-    @Override
-    public boolean canSurvive(FakeBlockState fakeBlockState, Block block) {
-        System.out.println("CustomOreBlock canSurvive");
-        return true;
-    }
-
-    @Override
-    public BlockData blockUpdate(FakeBlockState fakeBlockState, Block block, BlockFace direction, BlockData neighbourBlockData, Location neighbourLocation) {
-        System.out.println("CustomOreBlock blockupdate");
-        return block.getBlockData();
     }
 }

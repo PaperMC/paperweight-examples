@@ -70,6 +70,11 @@ public class SolidBlockVisualStrategy extends FakeBlockVisualStrategy<SolidBlock
         getOrCreateFakeBlockDisplayData(block).saveBlockFaceDisplay(blockFace, itemDisplay);
     }
 
+    @Override
+    protected FakeBlockFaces newData() {
+        return new FakeBlockFaces();
+    }
+
     private ItemDisplay createFakeBlockFace(BlockFace blockFace, ItemTextureData itemTextureData, Block block, FakeBlock.FakeBlockState fakeBlockState) {
         Location blockCenter = block.getLocation().clone().add(0.5, 0.5, 0.5);
         Location spawnLocation = blockCenter.clone().add(blockFace.getDirection().clone().multiply(0.5));

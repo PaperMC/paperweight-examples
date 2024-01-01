@@ -18,7 +18,6 @@ public class FakeBlockStorage {
     private static final NamespacedKey FAKE_BLOCK_PALETTE_KEY = new NamespacedKey("mccreativelab", "fake_block_storage");
     private static final NamespacedKey BLOCK_STATE_BLOCK_KEY = new NamespacedKey("mccreativelab", "fake_block_key");
     private static final NamespacedKey BLOCK_STATE_ID = new NamespacedKey("mccreativelab", "block_state_id");
-    private static final NamespacedKey ITEM_DISPLAY_LINKING_KEY = new NamespacedKey("mccreativelab", "linked_fake_block_state");
 
     public static boolean setFakeBlock(Location location, @Nullable FakeBlock fakeBlock, boolean forceLoad) {
         return setFakeBlockState(location, fakeBlock != null ? fakeBlock.getDefaultBlockState() : null, forceLoad);
@@ -69,31 +68,6 @@ public class FakeBlockStorage {
         return true;
     }
 
-/*    public static void linkDisplayEntityToFakeBlock(ItemDisplay itemDisplay) {
-        Block vanillaBlock = itemDisplay.getLocation().getBlock();
-        if (!itemDisplay.getPersistentDataContainer().has(ITEM_DISPLAY_LINKING_KEY))
-            return;
-        var serializedFakeBlockState = itemDisplay.getPersistentDataContainer().get(ITEM_DISPLAY_LINKING_KEY, PersistentDataType.TAG_CONTAINER);
-        if (serializedFakeBlockState == null)
-            return;
-        FakeBlockPalettedContainer fakeBlockPaletteContainer = MCCreativeLabExtension.getInstance()
-                                                                                     .getFakeBlockStorage()
-                                                                                     .getFakeBlockPalette(itemDisplay.getChunk());
-
-        FakeBlock.FakeBlockState fakeBlockStateStoredInDisplay = fakeBlockPaletteContainer.nbtToData(serializedFakeBlockState);
-
-
-        FakeBlock.FakeBlockState fakeBlockStateStoredInBlock = getFakeBlockStateOrThrow(vanillaBlock.getLocation(), false);
-
-
-        if (fakeBlockStateStoredInBlock != null && fakeBlockStateStoredInBlock.equals(fakeBlockStateStoredInDisplay)) {
-            vanillaBlock.setMetadata("fakeBlockItemDisplay", new FixedMetadataValue(MCCreativeLabExtension.getInstance(), itemDisplay.getUniqueId()));
-        } else if (fakeBlockStateStoredInDisplay == null && fakeBlockStateStoredInBlock != null) {
-            setFakeBlockState(vanillaBlock.getLocation(), fakeBlockStateStoredInBlock, false);
-        } else if (fakeBlockStateStoredInBlock == null) {
-            Bukkit.getScheduler().runTask(MCCreativeLabExtension.getInstance(), itemDisplay::remove);
-        }
-    }*/
     public static @Nullable FakeBlock.FakeBlockState getFakeBlockStateOrThrow(Location location, boolean forceLoad) {
         return getFakeBlockState(location, forceLoad);
     }

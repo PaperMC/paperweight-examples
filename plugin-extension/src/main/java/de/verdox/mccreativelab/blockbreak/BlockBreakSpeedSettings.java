@@ -10,11 +10,11 @@ public class BlockBreakSpeedSettings {
     public static boolean hasCustomBlockHardness(Material material){
         return customHardness.containsKey(material);
     }
-
-    static {
-        customHardness.put(Material.TINTED_GLASS, 10f);
-    }
     public static float getCustomBlockHardness(Material material){
         return customHardness.getOrDefault(material, material.getHardness());
+    }
+
+    public static void setCustomBlockHardness(Material material, float hardness){
+        customHardness.put(material, hardness);
     }
 }

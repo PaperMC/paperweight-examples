@@ -19,16 +19,35 @@ import javax.annotation.Nullable;
 
 public class FakeBlockUtil {
     public static void simulateBlockBreakWithParticlesAndSound(@Nullable FakeBlock.FakeBlockState fakeBlockState, Block block) {
-        if (fakeBlockState != null) {
+        BlockData destroyParticleBlockData = block.getBlockData();
+
+        if(fakeBlockState != null)
+            destroyParticleBlockData = fakeBlockState.getFakeBlockDisplay().getDestroyParticles();
+
+        FakeBlockSoundManager.simulateBreakSound(block, fakeBlockState);
+        block.getWorld().spawnParticle(Particle.BLOCK_CRACK,
+            block.getLocation().clone().add(0.5, 0.5, 0.5), 40, 0.1, 0.1, 0.1, destroyParticleBlockData);
+
+/*        if (fakeBlockState != null) {
             block.getWorld().spawnParticle(Particle.BLOCK_CRACK, block.getLocation().clone()
                                                                       .add(0.5, 0.5, 0.5), 40, 0.1, 0.1, 0.1, fakeBlockState
                 .getFakeBlockDisplay().getDestroyParticles());
             sendBlockDestruction(block.getLocation(), fakeBlockState.getFakeBlockDisplay().getDestroyParticles());
         } else
-            sendBlockDestruction(block.getLocation(), block.getBlockData());
+            sendBlockDestruction(block.getLocation(), block.getBlockData());*/
+    }
 
-        if (FakeBlockSoundManager.isBlockWithoutStandardSound(block))
-            FakeBlockSoundManager.simulateBreakSound(block, fakeBlockState);
+    @ApiStatus.Experimental
+    public static void sendBlockDestruction(Location location, BlockData fakeBukkitParticles) {
+        Block block = location.getBlock();
+        if (block.getType().equals(Material.FIRE))
+            block.getWorld().playEffect(block.getLocation(), Effect.EXTINGUISH, fakeBukkitParticles);
+        else
+            block.getWorld().playEffect(block.getLocation(), Effect.STEP_SOUND, fakeBukkitParticles);
+    }
+
+    public static void dropResources(Block block, FakeBlock.FakeBlockState fakeBlockState, Player player){
+
     }
 
     public static void moveBlock(Location location, ItemDisplay itemDisplay, FakeBlock.FakeBlockState fakeBlockState, Vector moveDirection) {
@@ -49,20 +68,6 @@ public class FakeBlockUtil {
         FakeBlockStorage.setFakeBlockState(newBlockLocation, fakeBlockState, false);
     }
 
-    @ApiStatus.Experimental
-    public static void sendBlockDestruction(Location location, BlockData fakeBukkitParticles) {
-        Block block = location.getBlock();
-        for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
-            if (playerNotInEffectRange(onlinePlayer, location.getBlock())) continue;
-
-            onlinePlayer.sendBlockChange(location, fakeBukkitParticles);
-            if (block.getType().equals(Material.FIRE))
-                block.getWorld().playEffect(block.getLocation(), Effect.EXTINGUISH, block.getBlockData());
-            else
-                block.getWorld().playEffect(block.getLocation(), Effect.STEP_SOUND, block.getBlockData());
-        }
-    }
-
     public static boolean playerNotInEffectRange(Player onlinePlayer, Block block) {
         if (!onlinePlayer.getWorld().equals(block.getWorld()))
             return true;
@@ -74,7 +79,7 @@ public class FakeBlockUtil {
         return xDistance * xDistance + yDistance * yDistance + zDistance * zDistance >= 1024.0D;
     }
 
-    public static void spawnDiggingParticles(Block block, FakeBlock.FakeBlockState fakeBlockState, Vector normalOfBlockFace) {
+    public static void spawnDiggingParticles(Player player, Block block, FakeBlock.FakeBlockState fakeBlockState, Vector normalOfBlockFace) {
         float xOffset = 0;
         float yOffset = 0;
         float zOffset = 0;
@@ -103,8 +108,7 @@ public class FakeBlockUtil {
             zPos = pos * normalOfBlockFace.getBlockZ();
         }
 
-        block.getWorld()
-             .spawnParticle(Particle.BLOCK_DUST,
+        player.spawnParticle(Particle.BLOCK_DUST,
                  block.getLocation().clone()
                       .add(0.5, 0.5, 0.5)
                       .add(xPos, yPos, zPos)

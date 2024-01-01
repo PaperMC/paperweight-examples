@@ -62,7 +62,6 @@ public abstract class CustomPack<C extends CustomPack<C>> {
         wasModified = true;
         addedResources.add(resource);
         resource.onRegister((C) this);
-        Bukkit.getLogger().info("Registering resource " + resource.key());
     }
 
     public final void registerNullable(@Nullable Resource<C> resource) {
