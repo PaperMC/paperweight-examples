@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: derverdox <mail.ysp@web.de>
-Date: Thu, 21 Dec 2023 17:17:43 +0100
-Subject: [PATCH] BlockBehaviour improvements
+Date: Thu, 4 Jan 2024 22:02:58 +0100
+Subject: [PATCH] Temp Patch
 
 
 diff --git a/src/main/java/de/verdox/mccreativelab/CustomBehaviour.java b/src/main/java/de/verdox/mccreativelab/CustomBehaviour.java
@@ -19,6 +19,21 @@ index 2f9981a67d72f575fb2ac37b8b6c2bde4d0733ed..65f0b720ca3cca54440f90b0f6e26f44
      /**
       * Used to set a new behaviour.
       * @param behaviour The new implementation
+diff --git a/src/main/java/de/verdox/mccreativelab/InteractionResult.java b/src/main/java/de/verdox/mccreativelab/InteractionResult.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..0daf40262de8269c3dece903bb8f16519da7ed46
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/InteractionResult.java
+@@ -0,0 +1,9 @@
++package de.verdox.mccreativelab;
++
++public enum InteractionResult {
++    SUCCESS,
++    CONSUME,
++    CONSUME_PARTIAL,
++    PASS,
++    FAIL;
++}
 diff --git a/src/main/java/de/verdox/mccreativelab/MultiCustomBehaviour.java b/src/main/java/de/verdox/mccreativelab/MultiCustomBehaviour.java
 index 5db6debc33b781afff966bfc86db11d5b17273da..f3f6272c3e6a56a1ead0ea8484a077ac9d7d21cb 100644
 --- a/src/main/java/de/verdox/mccreativelab/MultiCustomBehaviour.java
@@ -35,10 +50,41 @@ index 5db6debc33b781afff966bfc86db11d5b17273da..f3f6272c3e6a56a1ead0ea8484a077ac
       * Used to set a new behaviour.
       *
 diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/BehaviourResult.java b/src/main/java/de/verdox/mccreativelab/behaviour/BehaviourResult.java
-index 637c1869ce9ba16953410b0dd4fd01184ebe9f1f..80fa2f2b3c206fe15c99ea0272d291417efd449b 100644
+index 637c1869ce9ba16953410b0dd4fd01184ebe9f1f..657ca21f3346d4213f78f23f8113a16318c96b8b 100644
 --- a/src/main/java/de/verdox/mccreativelab/behaviour/BehaviourResult.java
 +++ b/src/main/java/de/verdox/mccreativelab/behaviour/BehaviourResult.java
-@@ -93,6 +93,13 @@ public abstract class BehaviourResult<T,R extends Enum<?>> {
+@@ -35,18 +35,18 @@ public abstract class BehaviourResult<T,R extends Enum<?>> {
+         }
+     }
+     public static class Void extends BehaviourResult<java.lang.Void, Void.Type> {
+-        public static final Void DEFAULT_INSTANCE = new Void(Void.Type.EXECUTE_VANILLA_LOGIC);
++        public static final Void DEFAULT_INSTANCE = new Void(Void.Type.USE_VANILLA);
+         public Void(Type result) {
+             super(null, result);
+         }
+ 
+         public boolean replaceVanillaLogic(){
+-            return Type.REPLACE_VANILLA_LOGIC.equals(getResult());
++            return Type.REPLACE_VANILLA.equals(getResult());
+         }
+ 
+         public enum Type{
+-            REPLACE_VANILLA_LOGIC,
+-            EXECUTE_VANILLA_LOGIC
++            REPLACE_VANILLA,
++            USE_VANILLA
+         }
+     }
+     public static class Bool extends BehaviourResult<Boolean, Bool.Type> {
+@@ -79,7 +79,6 @@ public abstract class BehaviourResult<T,R extends Enum<?>> {
+             ONLY_VANILLA,
+         }
+     }
+-
+     public static class Object<T> extends BehaviourResult<T, Object.Type>{
+         public static final Object DEFAULT_INSTANCE = new Object(null, Type.USE_VANILLA);
+         public Object(T value, Type result) {
+@@ -93,6 +92,13 @@ public abstract class BehaviourResult<T,R extends Enum<?>> {
              };
          }
  
@@ -54,12 +100,13 @@ index 637c1869ce9ba16953410b0dd4fd01184ebe9f1f..80fa2f2b3c206fe15c99ea0272d29141
              USE_VANILLA
 diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/BlockBehaviour.java b/src/main/java/de/verdox/mccreativelab/behaviour/BlockBehaviour.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..67eb273032f4223f8aa0bfffbd66ccf52ecaced0
+index 0000000000000000000000000000000000000000..db69e6d95c2537309b62d1a898df2c5b11b003d1
 --- /dev/null
 +++ b/src/main/java/de/verdox/mccreativelab/behaviour/BlockBehaviour.java
-@@ -0,0 +1,168 @@
+@@ -0,0 +1,214 @@
 +package de.verdox.mccreativelab.behaviour;
 +
++import de.verdox.mccreativelab.InteractionResult;
 +import de.verdox.mccreativelab.MultiCustomBehaviour;
 +import de.verdox.mccreativelab.random.VanillaRandomSource;
 +import org.bukkit.Location;
@@ -78,36 +125,51 @@ index 0000000000000000000000000000000000000000..67eb273032f4223f8aa0bfffbd66ccf5
 +
 +    /**
 +     * This method is called to get the explosion resistance of a block
-+     * @param block The block
++     *
++     * @param block     The block
 +     * @param blockData The blockData of the block
 +     * @return float result
 +     */
-+    default BehaviourResult.Object<Float> getExplosionResistance(Block block, BlockData blockData){
++    default BehaviourResult.Object<Float> getExplosionResistance(Block block, BlockData blockData) {
 +        return BehaviourResult.Object.DEFAULT_INSTANCE;
 +    }
 +
 +    /**
 +     * This method is called everytime the block receives a block update due to any reason.
 +     * Normally this happens when a block next to this block was changed. If you want to implement any custom behaviour on environmental changes use this method.
-+     * @param location The location of the block
-+     * @param blockData The blockData of the block
-+     * @param direction The direction of the Blockupdate
++     *
++     * @param location           The location of the block
++     * @param blockData          The blockData of the block
++     * @param direction          The direction of the Blockupdate
 +     * @param neighbourBlockData The neighbour blockdata that issued the block update
-+     * @param neighbourLocation The neighbour location
++     * @param neighbourLocation  The neighbour location
 +     * @return The blockdata that results from this update.
 +     */
-+    default BehaviourResult.Object<BlockData> blockUpdate(Location location, BlockData blockData, BlockFace direction, BlockData neighbourBlockData, Location neighbourLocation){
++    default BehaviourResult.Object<BlockData> blockUpdate(Location location, BlockData blockData, BlockFace direction, BlockData neighbourBlockData, Location neighbourLocation) {
 +        return BehaviourResult.Object.DEFAULT_INSTANCE;
 +    }
 +
 +    /**
++     * This method is called everytime the block recognizes a neighbour block update
++     * Normally this happens when a block next to this block was changed. If you want to implement any custom behaviour on environmental changes use this method.
++     *
++     * @param block           The block recognizing the neighbour update
++     * @param sourceBlock     The neighbour block receiving the block update
++     * @param notify          The Notify flag
++     */
++    default BehaviourResult.Void onNeighbourBlockUpdate(Block block, Block sourceBlock, boolean notify) {
++        return BehaviourResult.Void.DEFAULT_INSTANCE;
++    }
++
++    /**
 +     * This method is called whenever an entity steps on a block
-+     * @param block The block
++     *
++     * @param block     The block
 +     * @param blockData The blockData of the block
-+     * @param entity The Entity stepping on the block
++     * @param entity    The Entity stepping on the block
 +     * @return void result
 +     */
-+    default BehaviourResult.Void stepOn(Block block, BlockData blockData, Entity entity){
++    default BehaviourResult.Void stepOn(Block block, BlockData blockData, Entity entity) {
 +        return BehaviourResult.Void.DEFAULT_INSTANCE;
 +    }
 +
@@ -123,6 +185,7 @@ index 0000000000000000000000000000000000000000..67eb273032f4223f8aa0bfffbd66ccf5
 +
 +    /**
 +     * This method is called to check if a blockdata is randomly ticking regardless of it being placed in a world right now.
++     *
 +     * @param blockData The block data of the block
 +     * @return A boolean result
 +     */
@@ -132,7 +195,8 @@ index 0000000000000000000000000000000000000000..67eb273032f4223f8aa0bfffbd66ccf5
 +
 +    /**
 +     * This method is called to check if a block in a world is randomly ticking
-+     * @param block The block
++     *
++     * @param block     The block
 +     * @param blockData The block data of the block
 +     * @return A boolean result
 +     */
@@ -142,20 +206,21 @@ index 0000000000000000000000000000000000000000..67eb273032f4223f8aa0bfffbd66ccf5
 +
 +    /**
 +     * This callback is run after the server placed a block due to any reason
-+     * @param location The location
++     *
++     * @param location     The location
 +     * @param newBlockData The new block data
 +     * @param oldBlockData The old block data
-+     * @param notify Whether this notifies the world
++     * @param notify       Whether this notifies the world
 +     * @return callback
 +     */
-+    //TODO: onPlace must still be called on all child implementations!
 +    default BehaviourResult.Callback onPlace(Location location, BlockData newBlockData, BlockData oldBlockData, boolean notify) {
 +        return BehaviourResult.Callback.DEFAULT_INSTANCE;
 +    }
 +
 +    /**
 +     * This callback is run after a player placed a block
-+     * @param player The player
++     *
++     * @param player   The player
 +     * @param location The location
 +     * @return callback
 +     */
@@ -165,8 +230,9 @@ index 0000000000000000000000000000000000000000..67eb273032f4223f8aa0bfffbd66ccf5
 +
 +    /**
 +     * This callback is run after a player breaks a block
-+     * @param player The player
-+     * @param location The location
++     *
++     * @param player      The player
++     * @param location    The location
 +     * @param brokenState The broken block state
 +     * @return callback
 +     */
@@ -175,13 +241,13 @@ index 0000000000000000000000000000000000000000..67eb273032f4223f8aa0bfffbd66ccf5
 +    }
 +
 +
-+
 +    /**
 +     * This callback is run after the server removes a block due to any reason
-+     * @param location The location
++     *
++     * @param location     The location
 +     * @param newBlockData The new block data
 +     * @param oldBlockData The old block data
-+     * @param moved Whether the block was moved
++     * @param moved        Whether the block was moved
 +     * @return callback
 +     */
 +    default BehaviourResult.Callback onRemove(Location location, BlockData newBlockData, BlockData oldBlockData, boolean moved) {
@@ -190,14 +256,28 @@ index 0000000000000000000000000000000000000000..67eb273032f4223f8aa0bfffbd66ccf5
 +
 +    /**
 +     * This callback is run after a player interacted with this block. This method is not run on blocks that call bukkit events! Only on those that do not define any specific onUse Behaviour
-+     * @param block The block
-+     * @param player The player
-+     * @param hand The Hand used to interact
++     *
++     * @param block          The block
++     * @param player         The player
++     * @param hand           The Hand used to interact
 +     * @param rayTraceResult The interaction info
 +     * @return callback
 +     */
 +    default BehaviourResult.Callback onUse(Block block, Player player, EquipmentSlot hand, RayTraceResult rayTraceResult) {
 +        return BehaviourResult.Callback.DEFAULT_INSTANCE;
++    }
++
++    /**
++     * This method is run when a player interacts with a block in any way.
++     *
++     * @param block          The block
++     * @param player         The player
++     * @param hand           The Hand used to interact
++     * @param rayTraceResult The interaction info
++     * @return The result of this interaction
++     */
++    default BehaviourResult.Object<InteractionResult> use(Block block, Player player, EquipmentSlot hand, RayTraceResult rayTraceResult){
++        return BehaviourResult.Object.DEFAULT_INSTANCE;
 +    }
 +
 +    /**
@@ -218,6 +298,7 @@ index 0000000000000000000000000000000000000000..67eb273032f4223f8aa0bfffbd66ccf5
 +     * <p>
 +     * Some blocks may not use this method by default.
 +     * Please use the blockUpdate method to implement any custom logic or to call this method.
++     *
 +     * @param block The block
 +     * @param world The world
 +     * @return A boolean result
@@ -225,16 +306,37 @@ index 0000000000000000000000000000000000000000..67eb273032f4223f8aa0bfffbd66ccf5
 +    default BehaviourResult.Bool canSurvive(Block block, World world) {
 +        return BehaviourResult.Bool.DEFAULT_INSTANCE;
 +    }
++
++    /**
++     * This method is called every time a user left-clicks a block.
++     * <p>
++     *
++     * @param block  The clicked block
++     * @param player The player
++     */
++    default BehaviourResult.Void attack(Block block, Player player) {
++        return BehaviourResult.Void.DEFAULT_INSTANCE;
++    }
 +}
-diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/LightingBehaviour.java b/src/main/java/de/verdox/mccreativelab/behaviour/LightingBehaviour.java
+diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/ItemBehaviour.java b/src/main/java/de/verdox/mccreativelab/behaviour/ItemBehaviour.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..ce07d68fbebd22f31bd65d8b67d14065f123d342
+index 0000000000000000000000000000000000000000..2271581b86b2f7d27984e9b7ff00abf0101efa19
 --- /dev/null
-+++ b/src/main/java/de/verdox/mccreativelab/behaviour/LightingBehaviour.java
-@@ -0,0 +1,4 @@
++++ b/src/main/java/de/verdox/mccreativelab/behaviour/ItemBehaviour.java
+@@ -0,0 +1,14 @@
 +package de.verdox.mccreativelab.behaviour;
 +
-+public interface LightingBehaviour {
++import de.verdox.mccreativelab.MultiCustomBehaviour;
++import de.verdox.mccreativelab.recipe.CustomItemData;
++import org.bukkit.World;
++import org.bukkit.entity.Player;
++
++public interface ItemBehaviour {
++    MultiCustomBehaviour<CustomItemData, ItemBehaviour> ITEM_BEHAVIOUR = new MultiCustomBehaviour<>("MCCLab - ItemBehaviour");
++
++    default BehaviourResult.Void onCraftedBy(World world, Player player, int amount){
++        return BehaviourResult.Void.DEFAULT_INSTANCE;
++    }
 +}
 diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/RandomTickBehaviour.java b/src/main/java/de/verdox/mccreativelab/behaviour/RandomTickBehaviour.java
 new file mode 100644
@@ -724,62 +826,343 @@ index 0000000000000000000000000000000000000000..a7615978914b2d9f306cebd54207a06c
 +        return true;
 +    }
 +}
-diff --git a/src/main/java/de/verdox/mccreativelab/data/BlockLightContext.java b/src/main/java/de/verdox/mccreativelab/data/BlockLightContext.java
+diff --git a/src/main/java/io/papermc/paper/event/world/WorldEffectEvent.java b/src/main/java/io/papermc/paper/event/world/WorldEffectEvent.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..e575db353eb9e39ef2bec1acfa24f8a61e90a1d9
+index 0000000000000000000000000000000000000000..2e7964834937d16003314cdbd2c424cd77cf1a41
 --- /dev/null
-+++ b/src/main/java/de/verdox/mccreativelab/data/BlockLightContext.java
-@@ -0,0 +1,11 @@
-+package de.verdox.mccreativelab.data;
++++ b/src/main/java/io/papermc/paper/event/world/WorldEffectEvent.java
+@@ -0,0 +1,134 @@
++package io.papermc.paper.event.world;
 +
-+import org.bukkit.block.data.BlockData;
-+import org.jetbrains.annotations.Nullable;
-+
-+import java.util.UUID;
-+
-+public interface BlockLightContext {
-+    UUID getWorldUUID();
-+    @Nullable BlockData getBlockDataIfLoaded(int x, int y, int z);
-+}
-diff --git a/src/main/java/de/verdox/mccreativelab/events/BlockLightEvent.java b/src/main/java/de/verdox/mccreativelab/events/BlockLightEvent.java
-new file mode 100644
-index 0000000000000000000000000000000000000000..52766dcaf469e5de789abdd98beff7262747b2ed
---- /dev/null
-+++ b/src/main/java/de/verdox/mccreativelab/events/BlockLightEvent.java
-@@ -0,0 +1,44 @@
-+package de.verdox.mccreativelab.events;
-+
-+import org.bukkit.Bukkit;
++import org.bukkit.Effect;
 +import org.bukkit.Location;
 +import org.bukkit.World;
-+import org.bukkit.event.Event;
++import org.bukkit.entity.Player;
++import org.bukkit.event.Cancellable;
 +import org.bukkit.event.HandlerList;
++import org.bukkit.event.world.WorldEvent;
 +import org.jetbrains.annotations.NotNull;
++import org.jetbrains.annotations.Nullable;
 +
-+import java.util.Map;
-+
-+public class BlockLightEvent extends Event {
++public class WorldEffectEvent extends WorldEvent implements Cancellable {
 +    private static final HandlerList HANDLER_LIST = new HandlerList();
-+    private final World world;
-+    private final Map<Location, int[]> trackedBlockLightChanges;
++    private final boolean global;
++    private Location soundLocation;
++    private Player except;
++    private Effect effect;
++    private int data;
++    private boolean cancelled;
 +
-+    public BlockLightEvent(World world, Map<Location, int[]> trackedBlockLightChanges){
-+        super(!Bukkit.isPrimaryThread());
-+        this.world = world;
-+        this.trackedBlockLightChanges = trackedBlockLightChanges;
-+    }
-+
-+    public World getWorld() {
-+        return world;
++    public WorldEffectEvent(@NotNull World world, @NotNull Location soundLocation, @Nullable Player except, Effect effect, int data, boolean global) {
++        super(world);
++        this.soundLocation = soundLocation;
++        this.except = except;
++        this.effect = effect;
++        this.data = data;
++        this.global = global;
 +    }
 +
 +    /**
-+     * The first value of the int array is the block light. The second value is the skylight.
-+     * If one value was not updated it is stored as -1.
-+     * @return
++     * Sets the location of the effect
++     *
++     * @param soundLocation - The new location
 +     */
-+    public Map<Location, int[]> getTrackedBlockLightChanges() {
-+        return trackedBlockLightChanges;
++    public void setSoundLocation(Location soundLocation) {
++        this.soundLocation = soundLocation;
++    }
++
++    /**
++     * Sets the player to except from receiving this effect
++     *
++     * @param except - The excepted player
++     */
++    public void setExcept(Player except) {
++        this.except = except;
++    }
++
++    /**
++     * Sets the effect played
++     *
++     * @param effect - The new effect
++     */
++    public void setEffect(Effect effect) {
++        this.effect = effect;
++    }
++
++    /**
++     * Sets the data associated with this effect
++     *
++     * @param data - the new data
++     */
++    public void setData(int data) {
++        this.data = data;
++    }
++
++    /**
++     * Gets if the world effect is global
++     *
++     * @return - true if global
++     */
++    public boolean isGlobal() {
++        return global;
++    }
++
++    /**
++     * Gets the location of the effect origin
++     *
++     * @return - The location
++     */
++    public Location getSoundLocation() {
++        return soundLocation;
++    }
++
++    /**
++     * Gets the except player if available.
++     * This is not null for effects that occur on client side simultaneously.
++     *
++     * @return - The except player if available
++     */
++    @Nullable
++    public Player getExcept() {
++        return except;
++    }
++
++    /**
++     * The effect associated with this event
++     *
++     * @return - The effect
++     */
++    public Effect getEffect() {
++        return effect;
++    }
++
++    /**
++     * The data associated with this effect
++     * See <a href="https://wiki.vg/Protocol#:~:text=been%20highly%20inconsistent.-,World%20Event,-Sent%20when%20a">...</a> for further details
++     *
++     * @return - The data
++     */
++    public int getData() {
++        return data;
++    }
++
++    @NotNull
++    public static HandlerList getHandlerList() {
++        return HANDLER_LIST;
++    }
++
++    @NotNull
++    public HandlerList getHandlers() {
++        return HANDLER_LIST;
++    }
++
++    @Override
++    public boolean isCancelled() {
++        return cancelled;
++    }
++
++    @Override
++    public void setCancelled(boolean cancel) {
++        this.cancelled = cancel;
++    }
++}
+diff --git a/src/main/java/io/papermc/paper/event/world/WorldSoundEvent.java b/src/main/java/io/papermc/paper/event/world/WorldSoundEvent.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..9adfd51f6659e920786658c34709ee5d1b0f790a
+--- /dev/null
++++ b/src/main/java/io/papermc/paper/event/world/WorldSoundEvent.java
+@@ -0,0 +1,202 @@
++package io.papermc.paper.event.world;
++
++import net.kyori.adventure.sound.Sound;
++import org.bukkit.Location;
++import org.bukkit.NamespacedKey;
++import org.bukkit.World;
++import org.bukkit.entity.Entity;
++import org.bukkit.entity.Player;
++import org.bukkit.event.Cancellable;
++import org.bukkit.event.HandlerList;
++import org.bukkit.event.world.WorldEvent;
++import org.jetbrains.annotations.NotNull;
++import org.jetbrains.annotations.Nullable;
++
++import java.util.Objects;
++
++/**
++ * Is called when a sound is played in a world.
++ * Some sounds are client side and can't be manipulated with this event.
++ */
++public class WorldSoundEvent extends WorldEvent implements Cancellable {
++    private static final HandlerList HANDLER_LIST = new HandlerList();
++    private Location soundLocation;
++    private @Nullable Player except;
++    private @Nullable Entity emitter;
++    private NamespacedKey sound;
++    private Sound.Source soundCategory;
++    private float volume;
++    private float pitch;
++    private long seed;
++    private boolean cancelled;
++
++    public WorldSoundEvent(@NotNull World world, @NotNull Location soundLocation, @Nullable Player except, @Nullable Entity emitter, @NotNull NamespacedKey sound, @NotNull Sound.Source soundCategory, float volume, float pitch, long seed) {
++        super(world);
++        this.soundLocation = soundLocation;
++        this.except = except;
++        this.emitter = emitter;
++        this.sound = sound;
++        this.soundCategory = soundCategory;
++        this.volume = volume;
++        this.pitch = pitch;
++        this.seed = seed;
++    }
++
++    /**
++     * Sets the location of the sound
++     * If the sound has an emitter entity the location will be the location of the entity
++     * @param soundLocation - The new sound location
++     */
++    public void setSoundLocation(@NotNull Location soundLocation) {
++        Objects.requireNonNull(soundLocation);
++        this.soundLocation = soundLocation;
++    }
++
++    /**
++     * Sets the emitter of this sound event.
++     * If the emitter is null, the soundLocation will be used instead
++     * @param emitter - The new entity emitter
++     */
++    public void setEmitter(@Nullable Entity emitter) {
++        this.emitter = emitter;
++    }
++
++    /**
++     * Sets the player that is excepted from this sound event
++     * @param except - The Player excepted
++     */
++    public void setExcept(@Nullable Player except) {
++        this.except = except;
++    }
++
++    /**
++     * Sets the sound played by this event
++     * @param sound - The sound
++     */
++    public void setSound(@NotNull NamespacedKey sound) {
++        Objects.requireNonNull(sound);
++        this.sound = sound;
++    }
++
++    /**
++     * Sets the volume of the sound
++     * @param volume - The volume
++     */
++    public void setVolume(float volume) {
++        this.volume = volume;
++    }
++
++    /**
++     * Sets the pitch of the sound
++     * @param pitch - The pitch
++     */
++    public void setPitch(float pitch) {
++        this.pitch = pitch;
++    }
++
++    /**
++     * Sets the sound category of this sound
++     * @param soundCategory - The sound category
++     */
++    public void setSoundCategory(@NotNull Sound.Source soundCategory) {
++        Objects.requireNonNull(soundCategory);
++        this.soundCategory = soundCategory;
++    }
++
++    /**
++     * Sets the sound seed
++     * @param seed - The seed
++     */
++    public void setSeed(long seed) {
++        this.seed = seed;
++    }
++
++    /**
++     * Gets the player that is excepted from this sound event.
++     * This is used to play player related sounds the client produces as well to prevent double sounds.
++     * Is null when the sound has no player that wont receive it
++     * @return The player if available
++     */
++    @Nullable
++    public Player getExcept() {
++        return except;
++    }
++
++    /**
++     * Gets the sound related to this event
++     * @return - The sound
++     */
++    @NotNull
++    public NamespacedKey getSound() {
++        return sound;
++    }
++
++    /**
++     * Gets the sound category of this sound
++     * @return - The sound category
++     */
++    @NotNull
++    public Sound.Source getSoundCategory() {
++        return soundCategory;
++    }
++
++    /**
++     * Gets the volume
++     * @return - The volume
++     */
++    public float getVolume() {
++        return volume;
++    }
++
++    /**
++     * Gets the emitter of the sound.
++     * Might be null if the sound origin is not an entity
++     * @return - The sound emitter
++     */
++    public @Nullable Entity getEmitter() {
++        return emitter;
++    }
++
++    /**
++     * Gets the location of the sound
++     * @return - The sound location
++     */
++    public Location getSoundLocation() {
++        return soundLocation;
++    }
++
++    /**
++     * Gets the pitch
++     * @return - The pitch
++     */
++    public float getPitch() {
++        return pitch;
++    }
++
++    /**
++     * Gets the sound seed
++     * @return - The seed
++     */
++    public long getSeed() {
++        return seed;
++    }
++
++    @Override
++    public void setCancelled(boolean cancel) {
++        this.cancelled = cancel;
++    }
++
++    @Override
++    public boolean isCancelled() {
++        return cancelled;
 +    }
 +
 +    @NotNull
@@ -792,15 +1175,40 @@ index 0000000000000000000000000000000000000000..52766dcaf469e5de789abdd98beff726
 +    }
 +}
 diff --git a/src/main/java/org/bukkit/entity/Player.java b/src/main/java/org/bukkit/entity/Player.java
-index 20fa1024f9ad8f478a347be5c554b5e45b398a1c..be26bf3288631d4a0edc32eacf2ca703185f638f 100644
+index 20fa1024f9ad8f478a347be5c554b5e45b398a1c..9570c7de760f0c15a49237b0960d7bbf2b135c69 100644
 --- a/src/main/java/org/bukkit/entity/Player.java
 +++ b/src/main/java/org/bukkit/entity/Player.java
-@@ -725,6 +725,8 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
+@@ -39,6 +39,7 @@ import org.bukkit.event.player.PlayerExpCooldownChangeEvent;
+ import org.bukkit.event.player.PlayerResourcePackStatusEvent;
+ import org.bukkit.inventory.EquipmentSlot;
+ import org.bukkit.inventory.ItemStack;
++import org.bukkit.inventory.PlayerInventory;
+ import org.bukkit.map.MapView;
+ import org.bukkit.plugin.Plugin;
+ import org.bukkit.plugin.messaging.PluginMessageRecipient;
+@@ -679,6 +680,25 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
      @Deprecated
-     public void sendBlockChange(@NotNull Location loc, @NotNull Material material, byte data);
+     public void playEffect(@NotNull Location loc, @NotNull Effect effect, int data);
  
-+    public void sendInventoryChange(@Nullable ItemStack stack, int slot);
++    // MCCLab start
++    /**
++     * Whether the player inventory synchronizer should be used.
++     * If set to false the player will not send container or inventory changes to the player.
++     * This is useful to send a fake inventory to the player if needed.
++     * @param value - The new value
++     * @return
++     */
++    void doInventorySynchronization(boolean value);
++    // MCCLab end
++
++    void sendFakeInventoryContents(ItemStack[] fakeContents);
++
++    /**
++     * Returns true if the inventory synchronizer of the player is working currently
++     * @return - true if the synchronizer is working
++     */
++    boolean isInventorySynchronization();
 +
      /**
-      * Send a block change. This fakes a block change packet for a user at a
-      * certain location. This will not actually change the world in any way.
+      * Plays an effect to just this player.
+      *
