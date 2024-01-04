@@ -1,0 +1,72 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <mail.ysp@web.de>
+Date: Thu, 4 Jan 2024 23:34:36 +0100
+Subject: [PATCH] Temp patch 3
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/BehaviourResult.java b/src/main/java/de/verdox/mccreativelab/behaviour/BehaviourResult.java
+index 657ca21f3346d4213f78f23f8113a16318c96b8b..712650f2106041b792a510354b5bc00dc673f36b 100644
+--- a/src/main/java/de/verdox/mccreativelab/behaviour/BehaviourResult.java
++++ b/src/main/java/de/verdox/mccreativelab/behaviour/BehaviourResult.java
+@@ -1,5 +1,7 @@
+ package de.verdox.mccreativelab.behaviour;
+ 
++import java.util.HashMap;
++import java.util.Map;
+ import java.util.function.Supplier;
+ 
+ /**
+diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/ItemBehaviour.java b/src/main/java/de/verdox/mccreativelab/behaviour/ItemBehaviour.java
+index 5906e44f6841321fe70e0281ae6ed8a04eaca630..732beb2d00841bb179d8fa211d18904948cbb181 100644
+--- a/src/main/java/de/verdox/mccreativelab/behaviour/ItemBehaviour.java
++++ b/src/main/java/de/verdox/mccreativelab/behaviour/ItemBehaviour.java
+@@ -2,7 +2,9 @@ package de.verdox.mccreativelab.behaviour;
+ 
+ import de.verdox.mccreativelab.MultiCustomBehaviour;
+ import de.verdox.mccreativelab.recipe.CustomItemData;
+-import org.bukkit.World;
++import org.bukkit.block.Block;
++import org.bukkit.block.data.BlockData;
++import org.bukkit.entity.Item;
+ import org.bukkit.entity.LivingEntity;
+ import org.bukkit.entity.Player;
+ import org.bukkit.inventory.ItemStack;
+@@ -10,10 +12,6 @@ import org.bukkit.inventory.ItemStack;
+ public interface ItemBehaviour {
+     MultiCustomBehaviour<CustomItemData, ItemBehaviour> ITEM_BEHAVIOUR = new MultiCustomBehaviour<>("MCCLab - ItemBehaviour");
+ 
+-    default BehaviourResult.Void onCraftedBy(World world, Player player, int amount){
+-        return BehaviourResult.Void.DEFAULT_INSTANCE;
+-    }
+-
+     default BehaviourResult.Object<ItemStack> finishUsingItem(LivingEntity livingEntity, ItemStack usedItem){
+         return BehaviourResult.Object.DEFAULT_INSTANCE;
+     }
+@@ -22,5 +20,27 @@ public interface ItemBehaviour {
+         return BehaviourResult.Object.DEFAULT_INSTANCE;
+     }
+ 
++    default BehaviourResult.Object<Integer> getMaxDamage(ItemStack stack){
++        return BehaviourResult.Object.DEFAULT_INSTANCE;
++    }
+ 
++    default BehaviourResult.Void mineBlock(ItemStack stack, Block block, Player miner){
++        return BehaviourResult.Void.DEFAULT_INSTANCE;
++    }
++
++    default BehaviourResult.Bool isCorrectToolForDrops(ItemStack stack, BlockData blockData){
++        return BehaviourResult.Bool.DEFAULT_INSTANCE;
++    }
++
++    default BehaviourResult.Void onCraftedBy(ItemStack stack, Player player, int amount){
++        return BehaviourResult.Void.DEFAULT_INSTANCE;
++    }
++
++    default BehaviourResult.Void onDestroyed(Item item, ItemStack stack){
++        return BehaviourResult.Void.DEFAULT_INSTANCE;
++    }
++
++    default BehaviourResult.Bool isEdible(ItemStack stack){
++        return BehaviourResult.Bool.DEFAULT_INSTANCE;
++    }
+ }

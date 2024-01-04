@@ -1,0 +1,128 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <mail.ysp@web.de>
+Date: Thu, 4 Jan 2024 23:34:36 +0100
+Subject: [PATCH] Temp patch 3
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/ItemBehaviour.java b/src/main/java/de/verdox/mccreativelab/behaviour/ItemBehaviour.java
+deleted file mode 100644
+index 17ab202acd8c38973ba75258aec80d34e8cf816f..0000000000000000000000000000000000000000
+--- a/src/main/java/de/verdox/mccreativelab/behaviour/ItemBehaviour.java
++++ /dev/null
+@@ -1,4 +0,0 @@
+-package de.verdox.mccreativelab.behaviour;
+-
+-public class ItemBehaviour extends BehaviourUtil {
+-}
+diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/ItemBehaviourUtil.java b/src/main/java/de/verdox/mccreativelab/behaviour/ItemBehaviourUtil.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..de22049ad71897c95cc8b184b98036d5bbf1aea2
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/behaviour/ItemBehaviourUtil.java
+@@ -0,0 +1,24 @@
++package de.verdox.mccreativelab.behaviour;
++
++import de.verdox.mccreativelab.recipe.CustomItemData;
++import net.minecraft.world.entity.LivingEntity;
++import net.minecraft.world.item.ItemStack;
++import net.minecraft.world.level.Level;
++
++public class ItemBehaviourUtil extends BehaviourUtil {
++    private static final BehaviourResult.Object<org.bukkit.inventory.ItemStack> DEFAULT_RESULT_ITEMSTACK = new BehaviourResult.Object<>(null, BehaviourResult.Object.Type.USE_VANILLA);
++
++    public static ItemStack finishUsingItem(ItemStack stack, Level world, LivingEntity user) {
++
++        var a = evaluate(ItemBehaviour.ITEM_BEHAVIOUR, fromStack(stack),
++            itemBehaviour -> itemBehaviour.finishUsingItem(user.getBukkitLivingEntity(), stack.asBukkitMirror()), () -> {
++                return stack.getItem().finishUsingItem(stack, world, user).getBukkitStack();
++            });
++
++    }
++
++    public static CustomItemData fromStack(ItemStack stack) {
++        return CustomItemData.fromItemStack(stack.getBukkitStack());
++    }
++
++}
+diff --git a/src/main/java/net/minecraft/world/inventory/CartographyTableMenu.java b/src/main/java/net/minecraft/world/inventory/CartographyTableMenu.java
+index 09be5db3c09262e8bc56c4e20a48fe648f09237c..f276e82f281096b1b1755922d715139b9e8f9140 100644
+--- a/src/main/java/net/minecraft/world/inventory/CartographyTableMenu.java
++++ b/src/main/java/net/minecraft/world/inventory/CartographyTableMenu.java
+@@ -103,7 +103,7 @@ public class CartographyTableMenu extends AbstractContainerMenu {
+             public void onTake(net.minecraft.world.entity.player.Player player, ItemStack stack) {
+                 ((Slot) CartographyTableMenu.this.slots.get(0)).remove(1);
+                 ((Slot) CartographyTableMenu.this.slots.get(1)).remove(1);
+-                stack.getItem().onCraftedBy(stack, player.level(), player);
++                stack.onCraftedBy(player.level(), player);
+                 context.execute((world, blockposition) -> {
+                     long j = world.getGameTime();
+ 
+@@ -203,7 +203,7 @@ public class CartographyTableMenu extends AbstractContainerMenu {
+ 
+             itemstack = itemstack1.copy();
+             if (slot == 2) {
+-                itemstack1.getItem().onCraftedBy(itemstack1, player.level(), player);
++                itemstack1.onCraftedBy(player.level(), player);
+                 if (!this.moveItemStackTo(itemstack1, 3, 39, true)) {
+                     return ItemStack.EMPTY;
+                 }
+diff --git a/src/main/java/net/minecraft/world/inventory/CraftingMenu.java b/src/main/java/net/minecraft/world/inventory/CraftingMenu.java
+index 4c8ce073094e55ea0df67fe02c0d1cc8aef76562..aad33f40a579717594e552df0904a399c9394f6a 100644
+--- a/src/main/java/net/minecraft/world/inventory/CraftingMenu.java
++++ b/src/main/java/net/minecraft/world/inventory/CraftingMenu.java
+@@ -147,7 +147,7 @@ public class CraftingMenu extends RecipeBookMenu<CraftingContainer> {
+             itemstack = itemstack1.copy();
+             if (slot == 0) {
+                 this.access.execute((world, blockposition) -> {
+-                    itemstack1.getItem().onCraftedBy(itemstack1, world, player);
++                    itemstack1.onCraftedBy(world, player);
+                 });
+                 if (!this.moveItemStackTo(itemstack1, 10, 46, true)) {
+                     return ItemStack.EMPTY;
+diff --git a/src/main/java/net/minecraft/world/inventory/StonecutterMenu.java b/src/main/java/net/minecraft/world/inventory/StonecutterMenu.java
+index f8129dcdcae12ed66ec58e8c749fa88ec3cd85d8..28a3dbddf9697613daf5c77571913c690c6fc1fb 100644
+--- a/src/main/java/net/minecraft/world/inventory/StonecutterMenu.java
++++ b/src/main/java/net/minecraft/world/inventory/StonecutterMenu.java
+@@ -259,7 +259,7 @@ public class StonecutterMenu extends AbstractContainerMenu {
+ 
+             itemstack = itemstack1.copy();
+             if (slot == 1) {
+-                item.onCraftedBy(itemstack1, player.level(), player);
++                itemstack1.onCraftedBy(player.level(), player);
+                 if (!this.moveItemStackTo(itemstack1, 2, 38, true)) {
+                     return ItemStack.EMPTY;
+                 }
+diff --git a/src/main/java/net/minecraft/world/item/ItemStack.java b/src/main/java/net/minecraft/world/item/ItemStack.java
+index 05f09e08bafe55cf83991e43aafb442ee7f21cee..970c5995e5c799ebd1f38a5662b3be488e45e822 100644
+--- a/src/main/java/net/minecraft/world/item/ItemStack.java
++++ b/src/main/java/net/minecraft/world/item/ItemStack.java
+@@ -812,6 +812,10 @@ public final class ItemStack {
+     public void onCraftedBy(Level world, net.minecraft.world.entity.player.Player player, int amount) {
+         player.awardStat(Stats.ITEM_CRAFTED.get(this.getItem()), amount);
+         //TODO: ItemStack Behaviour
++        onCraftedBy(world, player);
++    }
++
++    public void onCraftedBy(Level world, net.minecraft.world.entity.player.Player player) {
+         this.getItem().onCraftedBy(this, world, player);
+     }
+ 
+diff --git a/src/main/java/net/minecraft/world/item/crafting/RepairItemRecipe.java b/src/main/java/net/minecraft/world/item/crafting/RepairItemRecipe.java
+index 15394aa4d7836ca140e52e061fde08ca5e7151b0..3e9d17303d53186a0b354dd26fcef78e241c2553 100644
+--- a/src/main/java/net/minecraft/world/item/crafting/RepairItemRecipe.java
++++ b/src/main/java/net/minecraft/world/item/crafting/RepairItemRecipe.java
+@@ -60,10 +60,10 @@ public class RepairItemRecipe extends CustomRecipe {
+             ItemStack itemStack4 = list.get(1);
+             if (itemStack3.is(itemStack4.getItem()) && itemStack3.getCount() == 1 && itemStack4.getCount() == 1 && itemStack3.getItem().canBeDepleted()) {
+                 Item item = itemStack3.getItem();
+-                int j = item.getMaxDamage() - itemStack3.getDamageValue();
+-                int k = item.getMaxDamage() - itemStack4.getDamageValue();
+-                int l = j + k + item.getMaxDamage() * 5 / 100;
+-                int m = item.getMaxDamage() - l;
++                int j = itemStack3.getMaxDamage() - itemStack3.getDamageValue();
++                int k = itemStack3.getMaxDamage() - itemStack4.getDamageValue();
++                int l = j + k + itemStack3.getMaxDamage() * 5 / 100;
++                int m = itemStack3.getMaxDamage() - l;
+                 if (m < 0) {
+                     m = 0;
+                 }
