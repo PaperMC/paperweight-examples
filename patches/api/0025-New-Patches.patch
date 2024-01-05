@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: derverdox <mail.ysp@web.de>
-Date: Thu, 4 Jan 2024 22:02:58 +0100
-Subject: [PATCH] Temp Patch
+Date: Fri, 5 Jan 2024 21:11:40 +0100
+Subject: [PATCH] New Patches
 
 
 diff --git a/src/main/java/de/verdox/mccreativelab/CustomBehaviour.java b/src/main/java/de/verdox/mccreativelab/CustomBehaviour.java
@@ -50,54 +50,143 @@ index 5db6debc33b781afff966bfc86db11d5b17273da..f3f6272c3e6a56a1ead0ea8484a077ac
       * Used to set a new behaviour.
       *
 diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/BehaviourResult.java b/src/main/java/de/verdox/mccreativelab/behaviour/BehaviourResult.java
-index 637c1869ce9ba16953410b0dd4fd01184ebe9f1f..657ca21f3346d4213f78f23f8113a16318c96b8b 100644
---- a/src/main/java/de/verdox/mccreativelab/behaviour/BehaviourResult.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..adfef7680d03193d829e8aedf17a97e2d66b56e1
+--- /dev/null
 +++ b/src/main/java/de/verdox/mccreativelab/behaviour/BehaviourResult.java
-@@ -35,18 +35,18 @@ public abstract class BehaviourResult<T,R extends Enum<?>> {
-         }
-     }
-     public static class Void extends BehaviourResult<java.lang.Void, Void.Type> {
--        public static final Void DEFAULT_INSTANCE = new Void(Void.Type.EXECUTE_VANILLA_LOGIC);
+@@ -0,0 +1,132 @@
++package de.verdox.mccreativelab.behaviour;
++
++import java.util.function.Supplier;
++
++/**
++ * @param <T> The actual return value of a behaviour that was run.
++ * @param <R> The Result Type
++ */
++public abstract class BehaviourResult<T, R extends Enum<?>> {
++    private final T value;
++    private final R result;
++
++    BehaviourResult(T value, R result) {
++        this.value = value;
++        this.result = result;
++    }
++
++    protected T getValue() {
++        return value;
++    }
++
++    protected R getResult() {
++        return result;
++    }
++
++    protected abstract T evaluateReturnValue(Supplier<T> vanillaLogic);
++    protected abstract boolean replaceVanillaLogic();
++
++    public static class Callback extends BehaviourResult<java.lang.Void, Callback.Type> {
++        public static final Callback DEFAULT_INSTANCE = new Callback();
++
++        Callback() {
++            super(null, Type.NONE);
++        }
++
++        @Override
++        protected java.lang.Void evaluateReturnValue(Supplier<java.lang.Void> vanillaLogic) {
++            return null;
++        }
++
++        @Override
++        protected boolean replaceVanillaLogic() {
++            return false;
++        }
++
++        public enum Type {
++            NONE,
++        }
++    }
++
++    public static class Void extends BehaviourResult<java.lang.Void, Void.Type> {
 +        public static final Void DEFAULT_INSTANCE = new Void(Void.Type.USE_VANILLA);
-         public Void(Type result) {
-             super(null, result);
-         }
- 
-         public boolean replaceVanillaLogic(){
--            return Type.REPLACE_VANILLA_LOGIC.equals(getResult());
++
++        public Void(Type result) {
++            super(null, result);
++        }
++
++        public boolean replaceVanillaLogic() {
 +            return Type.REPLACE_VANILLA.equals(getResult());
-         }
- 
-         public enum Type{
--            REPLACE_VANILLA_LOGIC,
--            EXECUTE_VANILLA_LOGIC
++        }
++
++        @Override
++        protected java.lang.Void evaluateReturnValue(Supplier<java.lang.Void> vanillaLogic) {
++            if (!Type.REPLACE_VANILLA.equals(getResult()))
++                return vanillaLogic.get();
++            else
++                return getValue();
++        }
++
++        public enum Type {
 +            REPLACE_VANILLA,
 +            USE_VANILLA
-         }
-     }
-     public static class Bool extends BehaviourResult<Boolean, Bool.Type> {
-@@ -79,7 +79,6 @@ public abstract class BehaviourResult<T,R extends Enum<?>> {
-             ONLY_VANILLA,
-         }
-     }
--
-     public static class Object<T> extends BehaviourResult<T, Object.Type>{
-         public static final Object DEFAULT_INSTANCE = new Object(null, Type.USE_VANILLA);
-         public Object(T value, Type result) {
-@@ -93,6 +92,13 @@ public abstract class BehaviourResult<T,R extends Enum<?>> {
-             };
-         }
- 
-+        public T returnRightValue(Supplier<T> vanillaLogic){
-+            return switch (getResult()){
++        }
++    }
++
++    public static class Bool extends BehaviourResult<Boolean, Bool.Type> {
++        public static final Bool DEFAULT_INSTANCE = new Bool(false, Type.ONLY_VANILLA);
++
++        public Bool(Boolean value, Type result) {
++            super(value, result);
++        }
++
++        @Override
++        protected Boolean evaluateReturnValue(Supplier<Boolean> vanillaLogic) {
++            return switch (getResult()) {
++                case AND -> vanillaLogic.get() && getValue();
++                case OR -> vanillaLogic.get() || getValue();
++                case XOR -> vanillaLogic.get() ^ getValue();
++                case REPLACE_VANILLA -> getValue();
++                case ONLY_VANILLA -> vanillaLogic.get();
++            };
++        }
++
++        @Override
++        protected boolean replaceVanillaLogic() {
++            return Bool.Type.REPLACE_VANILLA.equals(getResult());
++        }
++        public enum Type {
++            AND,
++            OR,
++            XOR,
++            REPLACE_VANILLA,
++            ONLY_VANILLA,
++        }
++    }
++
++    public static class Object<T> extends BehaviourResult<T, Object.Type> {
++        public static final Object DEFAULT_INSTANCE = new Object(null, Type.USE_VANILLA);
++
++        public Object(T value, Type result) {
++            super(value, result);
++        }
++
++        @Override
++        protected T evaluateReturnValue(Supplier<T> vanillaLogic) {
++            return switch (getResult()) {
 +                case REPLACE_VANILLA -> getValue();
 +                case USE_VANILLA -> vanillaLogic.get();
 +            };
 +        }
 +
-         public enum Type{
-             REPLACE_VANILLA,
-             USE_VANILLA
++        @Override
++        protected boolean replaceVanillaLogic() {
++            return Object.Type.REPLACE_VANILLA.equals(getResult());
++        }
++
++        public enum Type {
++            REPLACE_VANILLA,
++            USE_VANILLA
++        }
++    }
++}
 diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/BlockBehaviour.java b/src/main/java/de/verdox/mccreativelab/behaviour/BlockBehaviour.java
 new file mode 100644
 index 0000000000000000000000000000000000000000..db69e6d95c2537309b62d1a898df2c5b11b003d1
@@ -320,22 +409,77 @@ index 0000000000000000000000000000000000000000..db69e6d95c2537309b62d1a898df2c5b
 +}
 diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/ItemBehaviour.java b/src/main/java/de/verdox/mccreativelab/behaviour/ItemBehaviour.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..2271581b86b2f7d27984e9b7ff00abf0101efa19
+index 0000000000000000000000000000000000000000..e8b46b386039b456d9a955309a37b0e806b90cda
 --- /dev/null
 +++ b/src/main/java/de/verdox/mccreativelab/behaviour/ItemBehaviour.java
-@@ -0,0 +1,14 @@
+@@ -0,0 +1,69 @@
 +package de.verdox.mccreativelab.behaviour;
 +
++import de.verdox.mccreativelab.InteractionResult;
 +import de.verdox.mccreativelab.MultiCustomBehaviour;
 +import de.verdox.mccreativelab.recipe.CustomItemData;
-+import org.bukkit.World;
++import org.bukkit.block.Block;
++import org.bukkit.block.data.BlockData;
++import org.bukkit.entity.Item;
++import org.bukkit.entity.LivingEntity;
 +import org.bukkit.entity.Player;
++import org.bukkit.inventory.EquipmentSlot;
++import org.bukkit.inventory.FoodProperties;
++import org.bukkit.inventory.ItemStack;
 +
 +public interface ItemBehaviour {
 +    MultiCustomBehaviour<CustomItemData, ItemBehaviour> ITEM_BEHAVIOUR = new MultiCustomBehaviour<>("MCCLab - ItemBehaviour");
 +
-+    default BehaviourResult.Void onCraftedBy(World world, Player player, int amount){
++    default BehaviourResult.Object<ItemStack> finishUsingItem(LivingEntity livingEntity, ItemStack usedItem){
++        return BehaviourResult.Object.DEFAULT_INSTANCE;
++    }
++
++    default BehaviourResult.Object<Integer> getMaxStackSize(ItemStack stack){
++        return BehaviourResult.Object.DEFAULT_INSTANCE;
++    }
++
++    default BehaviourResult.Object<Integer> getMaxDamage(ItemStack stack){
++        return BehaviourResult.Object.DEFAULT_INSTANCE;
++    }
++
++    default BehaviourResult.Bool mineBlock(ItemStack stack, Block block, Player miner){
++        return BehaviourResult.Bool.DEFAULT_INSTANCE;
++    }
++
++    default BehaviourResult.Bool isCorrectToolForDrops(ItemStack stack, BlockData blockData){
++        return BehaviourResult.Bool.DEFAULT_INSTANCE;
++    }
++
++    default BehaviourResult.Void onCraftedBy(ItemStack stack, Player player, int amount){
 +        return BehaviourResult.Void.DEFAULT_INSTANCE;
++    }
++
++    default BehaviourResult.Void onDestroyed(ItemStack stack, Item item){
++        return BehaviourResult.Void.DEFAULT_INSTANCE;
++    }
++
++    default BehaviourResult.Bool isEdible(ItemStack stack){
++        return BehaviourResult.Bool.DEFAULT_INSTANCE;
++    }
++
++    default BehaviourResult.Object<InteractionResult> interactLivingEntity(ItemStack stack, Player player, LivingEntity livingEntity, EquipmentSlot equipmentSlot){
++        return BehaviourResult.Object.DEFAULT_INSTANCE;
++    }
++
++    default BehaviourResult.Object<FoodProperties> getFoodProperties(ItemStack stack){
++        return BehaviourResult.Object.DEFAULT_INSTANCE;
++    }
++
++    default BehaviourResult.Object<ItemStack> getCraftRemainingItem(ItemStack stack){
++        return BehaviourResult.Object.DEFAULT_INSTANCE;
++    }
++
++    default BehaviourResult.Bool isFireResistant(ItemStack stack){
++        return BehaviourResult.Bool.DEFAULT_INSTANCE;
++    }
++
++    default BehaviourResult.Bool canFitInsideContainerItems(ItemStack stack){
++        return BehaviourResult.Bool.DEFAULT_INSTANCE;
 +    }
 +}
 diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/RandomTickBehaviour.java b/src/main/java/de/verdox/mccreativelab/behaviour/RandomTickBehaviour.java
@@ -1212,3 +1356,24 @@ index 20fa1024f9ad8f478a347be5c554b5e45b398a1c..9570c7de760f0c15a49237b0960d7bbf
      /**
       * Plays an effect to just this player.
       *
+diff --git a/src/main/java/org/bukkit/inventory/FoodProperties.java b/src/main/java/org/bukkit/inventory/FoodProperties.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..5f141daee39ac344774b73856cbc09fd35c319eb
+--- /dev/null
++++ b/src/main/java/org/bukkit/inventory/FoodProperties.java
+@@ -0,0 +1,15 @@
++package org.bukkit.inventory;
++
++import it.unimi.dsi.fastutil.Pair;
++import org.bukkit.potion.PotionEffect;
++
++import java.util.List;
++
++public interface FoodProperties {
++    int getNutrition();
++    float getSaturationModifier();
++    boolean isMeat();
++    boolean canAlwaysEat();
++    boolean isFastFood();
++    List<Pair<PotionEffect, Float>> getEffects();
++}

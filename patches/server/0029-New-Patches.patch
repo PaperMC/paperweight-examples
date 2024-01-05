@@ -1,88 +1,226 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: derverdox <mail.ysp@web.de>
-Date: Thu, 4 Jan 2024 22:02:57 +0100
-Subject: [PATCH] Temp Patch
+Date: Fri, 5 Jan 2024 21:11:39 +0100
+Subject: [PATCH] New Patches
 
 
 diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/BehaviourUtil.java b/src/main/java/de/verdox/mccreativelab/behaviour/BehaviourUtil.java
-index 1621278706f54458882135243ce2d1eb9311921d..44f916958ea0268e34d481a86fc6ca5fa78862ff 100644
---- a/src/main/java/de/verdox/mccreativelab/behaviour/BehaviourUtil.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..88378b6bfa460be116d48417d2a1a4d527825941
+--- /dev/null
 +++ b/src/main/java/de/verdox/mccreativelab/behaviour/BehaviourUtil.java
-@@ -2,27 +2,65 @@ package de.verdox.mccreativelab.behaviour;
- 
- import de.verdox.mccreativelab.CustomBehaviour;
- import de.verdox.mccreativelab.MultiCustomBehaviour;
-+import org.bukkit.Bukkit;
- import org.jetbrains.annotations.NotNull;
- 
- import java.util.function.Function;
- import java.util.function.Supplier;
- 
- public class BehaviourUtil {
-+    public static final BehaviourResult.Object<Float> FLOAT_DEFAULT = new BehaviourResult.Object<>(0f, BehaviourResult.Object.Type.USE_VANILLA);
+@@ -0,0 +1,205 @@
++package de.verdox.mccreativelab.behaviour;
 +
-     public static <T extends BehaviourResult<?, ?>, K, V> T evaluate(@NotNull T defaultValue, @NotNull MultiCustomBehaviour<K, V> multiCustomBehaviour, @NotNull K key, @NotNull Function<V, T> logicFunction) {
-         if (!multiCustomBehaviour.isImplemented(key))
-             return defaultValue;
--        return logicFunction.apply(multiCustomBehaviour.getBehaviour(key));
-+        V behaviour = multiCustomBehaviour.getBehaviour(key);
-+        try {
-+            return logicFunction.apply(behaviour);
-+        } catch (Throwable throwable) {
-+            Bukkit.getLogger()
-+                  .log(java.util.logging.Level.WARNING, "An error occurred while running custom behaviour logic " + multiCustomBehaviour.getKey() + " for key " + key + " with value " + behaviour, throwable);
-+            return defaultValue;
-+        }
++import de.verdox.mccreativelab.MultiCustomBehaviour;
++import net.minecraft.world.level.block.state.BlockState;
++import org.bukkit.Bukkit;
++import org.bukkit.craftbukkit.CraftFoodProperties;
++import org.bukkit.craftbukkit.block.data.CraftBlockData;
++import org.bukkit.craftbukkit.inventory.CraftItemStack;
++import org.bukkit.inventory.FoodProperties;
++import org.jetbrains.annotations.NotNull;
++import org.jetbrains.annotations.Nullable;
++
++import java.util.HashMap;
++import java.util.Map;
++import java.util.function.Function;
++import java.util.function.Supplier;
++
++public class BehaviourUtil {
++    public static final BehaviourResult.Object<Float> FLOAT_DEFAULT = new BehaviourResult.Object<>(0f, BehaviourResult.Object.Type.USE_VANILLA);
++    public static <I, R, K, V> void evaluateObject(@NotNull MultiCustomBehaviour<K, V> multiCustomBehaviour, @NotNull K key, @NotNull Function<V, BehaviourResult.Object<I>> logicFunction, Supplier<R> vanillaLogic, Converter<I,R> converter) {
++        evaluate(multiCustomBehaviour, key, logicFunction, vanillaLogic, converter);
 +    }
 +
-+    public static <T extends BehaviourResult<?, ?>, K, V> T evaluate(@NotNull MultiCustomBehaviour<K, V> multiCustomBehaviour, @NotNull K key, @NotNull Function<V, T> logicFunction, @NotNull Supplier<T> vanillaLogic) {
++    public static <R, K, V> void evaluateObject(@NotNull MultiCustomBehaviour<K, V> multiCustomBehaviour, @NotNull K key, @NotNull Function<V, BehaviourResult.Object<R>> logicFunction) {
++        evaluateObject(multiCustomBehaviour, key, logicFunction, () -> null, null);
++    }
++
++    public static <K, V> boolean evaluateBoolean(@NotNull MultiCustomBehaviour<K, V> multiCustomBehaviour, @NotNull K key, @NotNull Function<V, BehaviourResult.Bool> logicFunction, Supplier<Boolean> vanillaLogic) {
++        return evaluate(multiCustomBehaviour, key, logicFunction, vanillaLogic, Converter.DummyConverter.getInstance(Boolean.class));
++    }
++
++    public static <K, V> int evaluateInteger(@NotNull MultiCustomBehaviour<K, V> multiCustomBehaviour, @NotNull K key, @NotNull Function<V, BehaviourResult.Object<Integer>> logicFunction, Supplier<Integer> vanillaLogic) {
++        return evaluate(multiCustomBehaviour, key, logicFunction, vanillaLogic, Converter.DummyConverter.getInstance(Integer.class));
++    }
++
++    public static <K, V> boolean evaluateBoolean(@NotNull MultiCustomBehaviour<K, V> multiCustomBehaviour, @NotNull K key, @NotNull Function<V, BehaviourResult.Bool> logicFunction) {
++        return evaluateBoolean(multiCustomBehaviour, key, logicFunction, () -> false);
++    }
++
++    public static <K, V> void evaluateVoid(@NotNull MultiCustomBehaviour<K, V> multiCustomBehaviour, @NotNull K key, @NotNull Function<V, BehaviourResult.Void> logicFunction, Runnable vanillaLogic) {
++        evaluate(multiCustomBehaviour, key, logicFunction, () -> {
++            vanillaLogic.run();
++            return null;
++        }, Converter.DummyConverter.getInstance(Void.class));
++    }
++
++    public static <K, V> void evaluateVoid(@NotNull MultiCustomBehaviour<K, V> multiCustomBehaviour, @NotNull K key, @NotNull Function<V, BehaviourResult.Void> logicFunction) {
++        evaluate(multiCustomBehaviour, key, logicFunction);
++    }
++
++    public static <K, V> void evaluateCallback(@NotNull MultiCustomBehaviour<K, V> multiCustomBehaviour, @NotNull K key, @NotNull Function<V, BehaviourResult.Callback> logicFunction, Supplier<Void> vanillaLogic) {
++        evaluate(multiCustomBehaviour, key, logicFunction, vanillaLogic, Converter.DummyConverter.getInstance(Void.class));
++    }
++
++    public static <K, V> void evaluateCallback(@NotNull MultiCustomBehaviour<K, V> multiCustomBehaviour, @NotNull K key, @NotNull Function<V, BehaviourResult.Callback> logicFunction) {
++        evaluate(multiCustomBehaviour, key, logicFunction);
++    }
++
++    public static <I, R, T extends BehaviourResult<I, ?>, K, V> R evaluate(@NotNull MultiCustomBehaviour<K, V> multiCustomBehaviour, @NotNull K key, @NotNull Function<V, T> logicFunction, Supplier<R> vanillaLogic, @Nullable Converter<I, R> converter) {
 +        if (!multiCustomBehaviour.isImplemented(key))
 +            return vanillaLogic.get();
 +        V behaviour = multiCustomBehaviour.getBehaviour(key);
 +        try {
-+            return logicFunction.apply(behaviour);
++            BehaviourResult<I, ?> behaviourResult = logicFunction.apply(behaviour);
++            if(converter == null)
++                return vanillaLogic.get();
++
++            var vanillaValue = vanillaLogic.get();
++            if(vanillaValue == null)
++                return null;
++            var evaluatedValue = behaviourResult.evaluateReturnValue(() -> converter.nmsToBukkitValue(vanillaValue));
++            if(evaluatedValue == null)
++                return null;
++            return converter.bukkitToNMS(evaluatedValue);
 +        } catch (Throwable throwable) {
 +            Bukkit.getLogger()
 +                  .log(java.util.logging.Level.WARNING, "An error occurred while running custom behaviour logic " + multiCustomBehaviour.getKey() + " for key " + key + " with value " + behaviour, throwable);
 +            return vanillaLogic.get();
 +        }
-     }
- 
-     public static <K, V> boolean evaluateBoolean(@NotNull MultiCustomBehaviour<K, V> multiCustomBehaviour, @NotNull K key, @NotNull Function<V, BehaviourResult.Bool> logicFunction, Supplier<Boolean> vanillaLogic) {
-         if (!multiCustomBehaviour.isImplemented(key))
-             return vanillaLogic.get();
--        return logicFunction.apply(multiCustomBehaviour.getBehaviour(key)).evaluate(vanillaLogic);
++    }
++
++    public static <T extends BehaviourResult<?, ?>, K, V> boolean runIfVanillaLogicReplaced(@NotNull MultiCustomBehaviour<K, V> multiCustomBehaviour, @NotNull K key, @NotNull Function<V, T> logicFunction) {
++        if (!multiCustomBehaviour.isImplemented(key))
++            return false;
 +        V behaviour = multiCustomBehaviour.getBehaviour(key);
-+        try{
-+            return logicFunction.apply(behaviour).evaluate(vanillaLogic);
-+        }
-+        catch (Throwable throwable){
-+            Bukkit.getLogger()
-+                  .log(java.util.logging.Level.WARNING, "An error occurred while running custom behaviour logic " + multiCustomBehaviour.getKey() + " for key " + key + " with value " + behaviour, throwable);
-+            return vanillaLogic.get();
-+        }
-     }
- 
-     public static <T extends BehaviourResult<?, ?>, V> T evaluate(@NotNull T defaultValue, @NotNull CustomBehaviour<V> customBehaviour, @NotNull Function<V, T> logicFunction) {
-         if (!customBehaviour.isImplemented())
-             return defaultValue;
--        return logicFunction.apply(customBehaviour.getBehaviour());
-+        V behaviour = customBehaviour.getBehaviour();
-+        try{
-+            return logicFunction.apply(customBehaviour.getBehaviour());
++
++        try {
++            BehaviourResult<?, ?> behaviourResult = logicFunction.apply(behaviour);
++            return behaviourResult.replaceVanillaLogic();
 +        } catch (Throwable throwable) {
 +            Bukkit.getLogger()
-+                  .log(java.util.logging.Level.WARNING, "An error occurred while running custom behaviour logic " + customBehaviour.getKey() + " with value " + behaviour, throwable);
-+            return defaultValue;
++                  .log(java.util.logging.Level.WARNING, "An error occurred while running custom behaviour logic " + multiCustomBehaviour.getKey() + " for key " + key + " with value " + behaviour, throwable);
++            return false;
 +        }
-     }
- }
++    }
++
++    private static <I, R, T extends BehaviourResult<I, ?>, K, V> R evaluate(@NotNull MultiCustomBehaviour<K, V> multiCustomBehaviour, @NotNull K key, @NotNull Function<V, T> logicFunction) {
++        return evaluate(multiCustomBehaviour, key, logicFunction, () -> null, new Converter<>() {
++            @Override
++            public R bukkitToNMS(I bukkitValue) {
++                return null;
++            }
++
++            @Override
++            public I nmsToBukkitValue(R nmsValue) {
++                return null;
++            }
++        });
++    }
++
++    /**
++     * @param <I> The bukkit value
++     * @param <R> The nms value
++     */
++    public interface Converter<I, R> {
++        class DummyConverter<T> implements Converter<T, T> {
++            private static final Map<Class<?>, DummyConverter<?>> cache = new HashMap<>();
++            public static <T> DummyConverter<T> getInstance(Class<? extends T> type){
++                return (DummyConverter<T>) cache.computeIfAbsent(type, aClass -> new DummyConverter<T>());
++            }
++
++            @Override
++            public T bukkitToNMS(T bukkitValue) {
++                return bukkitValue;
++            }
++
++            @Override
++            public T nmsToBukkitValue(T nmsValue) {
++                return nmsValue;
++            }
++        }
++        class ItemStack implements Converter<org.bukkit.inventory.ItemStack, net.minecraft.world.item.ItemStack> {
++            public static final ItemStack INSTANCE = new ItemStack();
++
++            @Override
++            public net.minecraft.world.item.ItemStack bukkitToNMS(org.bukkit.inventory.ItemStack bukkitValue) {
++                if (bukkitValue instanceof CraftItemStack craftItemStack)
++                    return craftItemStack.handle;
++                return CraftItemStack.asNMSCopy(bukkitValue);
++            }
++
++            @Override
++            public org.bukkit.inventory.ItemStack nmsToBukkitValue(net.minecraft.world.item.ItemStack nmsValue) {
++                return nmsValue.getBukkitStack();
++            }
++        }
++        class InteractionResult implements Converter<de.verdox.mccreativelab.InteractionResult, net.minecraft.world.InteractionResult>{
++            public static final InteractionResult INSTANCE = new InteractionResult();
++            private InteractionResult(){}
++            @Override
++            public net.minecraft.world.InteractionResult bukkitToNMS(de.verdox.mccreativelab.InteractionResult bukkitValue) {
++                if(bukkitValue == null)
++                    return net.minecraft.world.InteractionResult.PASS;
++                return switch (bukkitValue){
++                    case SUCCESS -> net.minecraft.world.InteractionResult.SUCCESS;
++                    case CONSUME -> net.minecraft.world.InteractionResult.CONSUME;
++                    case CONSUME_PARTIAL -> net.minecraft.world.InteractionResult.CONSUME_PARTIAL;
++                    case PASS -> net.minecraft.world.InteractionResult.PASS;
++                    case FAIL -> net.minecraft.world.InteractionResult.FAIL;
++                };
++            }
++
++            @Override
++            public de.verdox.mccreativelab.InteractionResult nmsToBukkitValue(net.minecraft.world.InteractionResult nmsValue) {
++                return switch (nmsValue){
++                    case SUCCESS -> de.verdox.mccreativelab.InteractionResult.SUCCESS;
++                    case CONSUME -> de.verdox.mccreativelab.InteractionResult.CONSUME;
++                    case CONSUME_PARTIAL -> de.verdox.mccreativelab.InteractionResult.CONSUME_PARTIAL;
++                    case PASS -> de.verdox.mccreativelab.InteractionResult.PASS;
++                    case FAIL -> de.verdox.mccreativelab.InteractionResult.FAIL;
++                };
++            }
++        }
++        class BlockData implements Converter<org.bukkit.block.data.BlockData, BlockState>{
++            public static final BlockData INSTANCE = new BlockData();
++
++            @Override
++            public BlockState bukkitToNMS(org.bukkit.block.data.BlockData bukkitValue) {
++                return ((CraftBlockData)bukkitValue).getState();
++            }
++
++            @Override
++            public CraftBlockData nmsToBukkitValue(BlockState nmsValue) {
++                return nmsValue.createCraftBlockData();
++            }
++        }
++        class FoodProperties implements Converter<org.bukkit.inventory.FoodProperties, net.minecraft.world.food.FoodProperties>{
++            public static final FoodProperties INSTANCE = new FoodProperties();
++
++            @Override
++            public net.minecraft.world.food.FoodProperties bukkitToNMS(org.bukkit.inventory.FoodProperties bukkitValue) {
++                return CraftFoodProperties.toNMS(bukkitValue);
++            }
++
++            @Override
++            public org.bukkit.inventory.FoodProperties nmsToBukkitValue(net.minecraft.world.food.FoodProperties nmsValue) {
++                return CraftFoodProperties.toBukkit(nmsValue);
++            }
++        }
++
++        R bukkitToNMS(I bukkitValue);
++
++        I nmsToBukkitValue(R nmsValue);
++    }
++}
 diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/BlockBehaviourUtil.java b/src/main/java/de/verdox/mccreativelab/behaviour/BlockBehaviourUtil.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..227d514063a391c01d4f1738d9fae97090405f89
+index 0000000000000000000000000000000000000000..6d102398a329fd6d51f566582e7df791afaad628
 --- /dev/null
 +++ b/src/main/java/de/verdox/mccreativelab/behaviour/BlockBehaviourUtil.java
-@@ -0,0 +1,213 @@
+@@ -0,0 +1,175 @@
 +package de.verdox.mccreativelab.behaviour;
 +
 +import de.verdox.mccreativelab.random.CraftVanillaRandomSource;
@@ -106,6 +244,7 @@ index 0000000000000000000000000000000000000000..227d514063a391c01d4f1738d9fae970
 +import org.bukkit.Material;
 +import org.bukkit.block.Block;
 +import org.bukkit.block.BlockFace;
++import org.bukkit.block.data.BlockData;
 +import org.bukkit.craftbukkit.block.data.CraftBlockData;
 +import org.bukkit.inventory.EquipmentSlot;
 +import org.bukkit.util.RayTraceResult;
@@ -116,55 +255,47 @@ index 0000000000000000000000000000000000000000..227d514063a391c01d4f1738d9fae970
 +
 +public class BlockBehaviourUtil extends BehaviourUtil{
 +    public static boolean isVanillaRandomTickReplaced(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        BehaviourResult.Void voidResult = evaluate(BehaviourResult.Void.DEFAULT_INSTANCE, BlockBehaviour.BLOCK_BEHAVIOUR, BlockBehaviourUtil.getMaterial(state), blockBehaviour -> blockBehaviour.randomTick(world
++        return runIfVanillaLogicReplaced(BlockBehaviour.BLOCK_BEHAVIOUR, BlockBehaviourUtil.getMaterial(state), blockBehaviour -> blockBehaviour.randomTick(world
 +            .getWorld().getBlockAt(pos.getX(), pos.getY(), pos.getZ()), new CraftVanillaRandomSource(random)));
-+        return voidResult.replaceVanillaLogic();
 +    }
 +
 +    public static boolean isStepOnLogicReplaced(Level world, BlockPos pos, BlockState state, Entity entity) {
-+        BehaviourResult.Void voidResult = evaluate(BehaviourResult.Void.DEFAULT_INSTANCE, BlockBehaviour.BLOCK_BEHAVIOUR, BlockBehaviourUtil.getMaterial(state), blockBehaviour -> blockBehaviour.stepOn(world
++        return runIfVanillaLogicReplaced(BlockBehaviour.BLOCK_BEHAVIOUR, BlockBehaviourUtil.getMaterial(state), blockBehaviour -> blockBehaviour.stepOn(world
 +            .getWorld()
 +            .getBlockAt(pos.getX(), pos.getY(), pos.getZ()), state.createCraftBlockData(), entity.getBukkitEntity()));
-+        return voidResult.replaceVanillaLogic();
 +    }
 +
 +    public static boolean isVanillaTickReplaced(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
-+        BehaviourResult.Void voidResult = evaluate(BehaviourResult.Void.DEFAULT_INSTANCE, BlockBehaviour.BLOCK_BEHAVIOUR, BlockBehaviourUtil.getMaterial(state), blockBehaviour -> blockBehaviour.tick(world
++        return runIfVanillaLogicReplaced(BlockBehaviour.BLOCK_BEHAVIOUR, BlockBehaviourUtil.getMaterial(state), blockBehaviour -> blockBehaviour.tick(world
 +            .getWorld().getBlockAt(pos.getX(), pos.getY(), pos.getZ()), new CraftVanillaRandomSource(random)));
-+        return voidResult.replaceVanillaLogic();
 +    }
 +
 +    public static boolean isVanillaBlockAttackReplaced(BlockState state, Level world, BlockPos pos, Player player){
-+        BehaviourResult.Void voidResult = evaluate(BehaviourResult.Void.DEFAULT_INSTANCE, BlockBehaviour.BLOCK_BEHAVIOUR, BlockBehaviourUtil.getMaterial(state), blockBehaviour ->
++        return runIfVanillaLogicReplaced(BlockBehaviour.BLOCK_BEHAVIOUR, BlockBehaviourUtil.getMaterial(state), blockBehaviour ->
 +            blockBehaviour.attack(world.getWorld().getBlockAt(pos.getX(), pos.getY(), pos.getZ()), (org.bukkit.entity.Player) player.getBukkitEntity()));
-+        return voidResult.replaceVanillaLogic();
 +    }
 +
 +    public static boolean isVanillaNeighbourBlockUpdateReplaced(BlockState state, Level world, BlockPos pos, net.minecraft.world.level.block.Block sourceBlock, BlockPos sourcePos, boolean notify){
-+        BehaviourResult.Void voidResult = evaluate(BehaviourResult.Void.DEFAULT_INSTANCE, BlockBehaviour.BLOCK_BEHAVIOUR, BlockBehaviourUtil.getMaterial(state), blockBehaviour ->
++        return runIfVanillaLogicReplaced(BlockBehaviour.BLOCK_BEHAVIOUR, BlockBehaviourUtil.getMaterial(state), blockBehaviour ->
 +            blockBehaviour.onNeighbourBlockUpdate(world.getWorld().getBlockAt(pos.getX(), pos.getY(), pos.getZ()), world.getWorld().getBlockAt(sourcePos.getX(), sourcePos.getY(), sourcePos.getZ()), notify));
-+        return voidResult.replaceVanillaLogic();
 +    }
 +
 +    public static boolean isRandomlyTicking(BlockState blockState, boolean vanillaValue) {
-+        BehaviourResult.Bool bool = BlockBehaviourUtil.evaluate(BehaviourResult.Bool.DEFAULT_INSTANCE, BlockBehaviour.BLOCK_BEHAVIOUR, getMaterial(blockState), blockBehaviour -> blockBehaviour.isBlockDataRandomlyTicking(blockState.createCraftBlockData()));
-+        return bool.evaluate(vanillaValue);
++        return BlockBehaviourUtil.evaluateBoolean(BlockBehaviour.BLOCK_BEHAVIOUR, getMaterial(blockState), blockBehaviour -> blockBehaviour.isBlockDataRandomlyTicking(blockState.createCraftBlockData()));
 +    }
 +
 +    public static boolean isRandomlyTicking(Level world, int x, int y, int z, BlockState blockState, boolean vanillaValue) {
-+        BehaviourResult.Bool bool = BlockBehaviourUtil.evaluate(BehaviourResult.Bool.DEFAULT_INSTANCE, BlockBehaviour.BLOCK_BEHAVIOUR, getMaterial(blockState), blockBehaviour -> blockBehaviour.isBlockRandomlyTicking(world
++        return BlockBehaviourUtil.evaluateBoolean(BlockBehaviour.BLOCK_BEHAVIOUR, getMaterial(blockState), blockBehaviour -> blockBehaviour.isBlockRandomlyTicking(world
 +            .getWorld().getBlockAt(x, y, z), blockState.createCraftBlockData()));
-+        return bool.evaluate(vanillaValue);
 +    }
 +
 +    public static boolean canSurvive(BlockState state, LevelReader world, BlockPos pos, boolean vanillaValue) {
-+        BehaviourResult.Bool bool = BlockBehaviourUtil.evaluate(BehaviourResult.Bool.DEFAULT_INSTANCE, BlockBehaviour.BLOCK_BEHAVIOUR, getMaterial(state), blockBehaviour -> {
++        return BlockBehaviourUtil.evaluateBoolean(BlockBehaviour.BLOCK_BEHAVIOUR, getMaterial(state), blockBehaviour -> {
 +            if (!(world instanceof ServerLevel serverLevel))
 +                return BehaviourResult.Bool.DEFAULT_INSTANCE;
 +            return blockBehaviour.canSurvive(serverLevel.getWorld()
 +                                                        .getBlockAt(pos.getX(), pos.getY(), pos.getZ()), serverLevel.getWorld());
 +        });
-+        return bool.evaluate(vanillaValue);
 +    }
 +
 +    public static boolean canSurvive(BlockState state, LevelReader world, BlockPos pos, Supplier<Boolean> vanillaLogic) {
@@ -177,7 +308,7 @@ index 0000000000000000000000000000000000000000..227d514063a391c01d4f1738d9fae970
 +    }
 +
 +    public static InteractionResult use(BlockState state, Level world, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit, Supplier<InteractionResult> vanillaLogic){
-+        BehaviourResult.Object<de.verdox.mccreativelab.InteractionResult> result = BlockBehaviourUtil.evaluate(BehaviourResult.Object.DEFAULT_INSTANCE, BlockBehaviour.BLOCK_BEHAVIOUR, getMaterial(state), blockBehaviour -> {
++        return BlockBehaviourUtil.evaluate(BlockBehaviour.BLOCK_BEHAVIOUR, getMaterial(state), blockBehaviour -> {
 +            Block block = world.getWorld().getBlockAt(pos.getX(), pos.getY(), pos.getZ());
 +            BlockFace blockFace = toBukkitBlockFace(hit.getDirection());
 +            EquipmentSlot equipmentSlot = hand.equals(InteractionHand.MAIN_HAND) ? EquipmentSlot.HAND : EquipmentSlot.OFF_HAND;
@@ -185,66 +316,55 @@ index 0000000000000000000000000000000000000000..227d514063a391c01d4f1738d9fae970
 +                                                                                                    .y(), hit
 +                .getLocation().z()), block, blockFace);
 +            return blockBehaviour.use(block, (org.bukkit.entity.Player) player.getBukkitEntity(), equipmentSlot, rayTraceResult);
-+        });
-+
-+        return toNMS(result.returnRightValue(() -> toBukkit(vanillaLogic.get())));
++        }, vanillaLogic, Converter.InteractionResult.INSTANCE);
 +    }
 +
 +    public static void onPlaceCallback(BlockState state, Level world, BlockPos pos, BlockState oldState, boolean notify) {
-+        BlockBehaviourUtil.evaluate(BehaviourResult.Callback.DEFAULT_INSTANCE, BlockBehaviour.BLOCK_BEHAVIOUR, getMaterial(state), blockBehaviour ->
++        BlockBehaviourUtil.evaluateCallback(BlockBehaviour.BLOCK_BEHAVIOUR, getMaterial(state), blockBehaviour ->
 +            blockBehaviour.onPlace(new Location(world.getWorld(), pos.getX(), pos.getY(), pos.getZ()), state.createCraftBlockData(), oldState.createCraftBlockData(), notify));
 +    }
 +
 +    public static void onPlayerPlaceCallback(Player player, BlockState placedState, Level world, BlockPos pos) {
-+        BlockBehaviourUtil.evaluate(BehaviourResult.Callback.DEFAULT_INSTANCE, BlockBehaviour.BLOCK_BEHAVIOUR, getMaterial(placedState), blockBehaviour ->
++        BlockBehaviourUtil.evaluateCallback(BlockBehaviour.BLOCK_BEHAVIOUR, getMaterial(placedState), blockBehaviour ->
 +            blockBehaviour.onPlayerPlace((org.bukkit.entity.Player) player.getBukkitEntity(), new Location(world.getWorld(), pos.getX(), pos.getY(), pos.getZ()), placedState.createCraftBlockData()));
 +    }
 +
 +    public static void onPlayerBreakCallback(Player player, BlockState brokenState, Level world, BlockPos pos) {
-+        BlockBehaviourUtil.evaluate(BehaviourResult.Callback.DEFAULT_INSTANCE, BlockBehaviour.BLOCK_BEHAVIOUR, getMaterial(brokenState), blockBehaviour ->
++        BlockBehaviourUtil.evaluateCallback(BlockBehaviour.BLOCK_BEHAVIOUR, getMaterial(brokenState), blockBehaviour ->
 +            blockBehaviour.onPlayerBreak((org.bukkit.entity.Player) player.getBukkitEntity(), new Location(world.getWorld(), pos.getX(), pos.getY(), pos.getZ()), brokenState.createCraftBlockData()));
 +    }
 +
 +    public static float getExplosionResistance(BlockGetter world, BlockPos pos, BlockState blockState, float vanillaValue) {
 +        return BlockBehaviourUtil
-+            .evaluate(FLOAT_DEFAULT, BlockBehaviour.BLOCK_BEHAVIOUR, getMaterial(blockState), blockBehaviour -> {
++            .evaluate(BlockBehaviour.BLOCK_BEHAVIOUR, getMaterial(blockState), blockBehaviour -> {
 +                if (!(world instanceof ServerLevel serverLevel))
 +                    return FLOAT_DEFAULT;
 +                Block block = ((ServerLevel) world).getWorld().getBlockAt(pos.getX(), pos.getY(), pos.getZ());
 +
 +                return blockBehaviour.getExplosionResistance(block, blockState.createCraftBlockData());
-+            }).returnRightValue(vanillaValue);
++            }, () -> vanillaValue, Converter.DummyConverter.getInstance(Float.class));
 +    }
 +
 +    public static BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos, BlockState vanillaValue) {
-+        CraftBlockData blockData = (CraftBlockData) BlockBehaviourUtil
-+            .evaluate(BehaviourResult.Object.DEFAULT_INSTANCE, BlockBehaviour.BLOCK_BEHAVIOUR, getMaterial(state), blockBehaviour -> {
-+                if (!(world instanceof ServerLevel serverLevel))
-+                    return BehaviourResult.Object.DEFAULT_INSTANCE;
-+                BlockFace blockFace = toBukkitBlockFace(direction);
-+                return blockBehaviour.blockUpdate(new Location(serverLevel.getWorld(), pos.getX(), pos.getY(), pos.getZ()), state.createCraftBlockData(), blockFace, neighborState.createCraftBlockData(), new Location(serverLevel.getWorld(), neighborPos.getX(), neighborPos.getY(), neighborPos.getZ()));
-+            }).returnRightValue(vanillaValue.createCraftBlockData());
-+        return blockData.getState();
++        return updateShape(state, direction, neighborState, world, pos, neighborPos, () -> vanillaValue);
 +    }
 +
 +    public static BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos, Supplier<BlockState> vanillaLogic) {
-+        CraftBlockData blockData = (CraftBlockData) BlockBehaviourUtil
-+            .evaluate(BehaviourResult.Object.DEFAULT_INSTANCE, BlockBehaviour.BLOCK_BEHAVIOUR, getMaterial(state), blockBehaviour -> {
++        return BlockBehaviourUtil.evaluate(BlockBehaviour.BLOCK_BEHAVIOUR, getMaterial(state), blockBehaviour -> {
 +                if (!(world instanceof ServerLevel serverLevel))
 +                    return BehaviourResult.Object.DEFAULT_INSTANCE;
 +                BlockFace blockFace = toBukkitBlockFace(direction);
 +                return blockBehaviour.blockUpdate(new Location(serverLevel.getWorld(), pos.getX(), pos.getY(), pos.getZ()), state.createCraftBlockData(), blockFace, neighborState.createCraftBlockData(), new Location(serverLevel.getWorld(), neighborPos.getX(), neighborPos.getY(), neighborPos.getZ()));
-+            }).returnRightValue(() -> vanillaLogic.get().createCraftBlockData());
-+        return blockData.getState();
++            }, vanillaLogic, Converter.BlockData.INSTANCE);
 +    }
 +
 +    public static void onRemoveCallback(BlockState state, Level world, BlockPos pos, BlockState newState, boolean moved) {
-+        BlockBehaviourUtil.evaluate(BehaviourResult.Callback.DEFAULT_INSTANCE, BlockBehaviour.BLOCK_BEHAVIOUR, getMaterial(state), blockBehaviour ->
++        BlockBehaviourUtil.evaluateCallback(BlockBehaviour.BLOCK_BEHAVIOUR, getMaterial(state), blockBehaviour ->
 +            blockBehaviour.onRemove(new Location(world.getWorld(), pos.getX(), pos.getY(), pos.getZ()), newState.createCraftBlockData(), state.createCraftBlockData(), moved));
 +    }
 +
 +    public static void onUseCallback(BlockState state, Level world, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
-+        BlockBehaviourUtil.evaluate(BehaviourResult.Callback.DEFAULT_INSTANCE, BlockBehaviour.BLOCK_BEHAVIOUR, getMaterial(state), blockBehaviour -> {
++        BlockBehaviourUtil.evaluateCallback(BlockBehaviour.BLOCK_BEHAVIOUR, getMaterial(state), blockBehaviour -> {
 +            Block block = world.getWorld().getBlockAt(pos.getX(), pos.getY(), pos.getZ());
 +            BlockFace blockFace = toBukkitBlockFace(hit.getDirection());
 +            EquipmentSlot equipmentSlot = hand.equals(InteractionHand.MAIN_HAND) ? EquipmentSlot.HAND : EquipmentSlot.OFF_HAND;
@@ -264,27 +384,7 @@ index 0000000000000000000000000000000000000000..227d514063a391c01d4f1738d9fae970
 +        };
 +    }
 +
-+    private static de.verdox.mccreativelab.InteractionResult toBukkit(InteractionResult interactionResult){
-+        return switch (interactionResult){
-+            case SUCCESS -> de.verdox.mccreativelab.InteractionResult.SUCCESS;
-+            case CONSUME -> de.verdox.mccreativelab.InteractionResult.CONSUME;
-+            case CONSUME_PARTIAL -> de.verdox.mccreativelab.InteractionResult.CONSUME_PARTIAL;
-+            case PASS -> de.verdox.mccreativelab.InteractionResult.PASS;
-+            case FAIL -> de.verdox.mccreativelab.InteractionResult.FAIL;
-+        };
-+    }
 +
-+    private static InteractionResult toNMS(de.verdox.mccreativelab.InteractionResult interactionResult){
-+        if(interactionResult == null)
-+            return InteractionResult.PASS;
-+        return switch (interactionResult){
-+            case SUCCESS -> InteractionResult.SUCCESS;
-+            case CONSUME -> InteractionResult.CONSUME;
-+            case CONSUME_PARTIAL -> InteractionResult.CONSUME_PARTIAL;
-+            case PASS -> InteractionResult.PASS;
-+            case FAIL -> InteractionResult.FAIL;
-+        };
-+    }
 +
 +    private static Material getMaterial(BlockState blockState) {
 +        Material material;
@@ -295,6 +395,147 @@ index 0000000000000000000000000000000000000000..227d514063a391c01d4f1738d9fae970
 +                                                                   .toUpperCase(Locale.ROOT));
 +        return material;
 +    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/ItemBehaviourUtil.java b/src/main/java/de/verdox/mccreativelab/behaviour/ItemBehaviourUtil.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..d24c6372973996a34bd75128dd68e036d0a3d07f
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/behaviour/ItemBehaviourUtil.java
+@@ -0,0 +1,135 @@
++package de.verdox.mccreativelab.behaviour;
++
++import de.verdox.mccreativelab.recipe.CustomItemData;
++import net.minecraft.core.BlockPos;
++import net.minecraft.stats.Stats;
++import net.minecraft.world.InteractionHand;
++import net.minecraft.world.InteractionResult;
++import net.minecraft.world.entity.LivingEntity;
++import net.minecraft.world.entity.item.ItemEntity;
++import net.minecraft.world.entity.player.Player;
++import net.minecraft.world.food.FoodProperties;
++import net.minecraft.world.item.Item;
++import net.minecraft.world.item.ItemStack;
++import net.minecraft.world.level.Level;
++import net.minecraft.world.level.block.state.BlockState;
++import org.bukkit.craftbukkit.entity.CraftItem;
++import org.bukkit.craftbukkit.entity.CraftPlayer;
++import org.bukkit.inventory.EquipmentSlot;
++
++import javax.annotation.Nullable;
++
++public class ItemBehaviourUtil extends BehaviourUtil {
++    public static void main(String[] args) {
++
++    }
++    public static ItemStack finishUsingItem(ItemStack stack, Level world, LivingEntity user) {
++        return evaluate(ItemBehaviour.ITEM_BEHAVIOUR, fromStack(stack),
++            itemBehaviour -> itemBehaviour.finishUsingItem(user.getBukkitLivingEntity(), stack.asBukkitMirror()),
++            () -> stack.getItem().finishUsingItem(stack, world, user),
++            Converter.ItemStack.INSTANCE
++        );
++    }
++
++    public static int getMaxStackSize(ItemStack stack){
++        return evaluateInteger(ItemBehaviour.ITEM_BEHAVIOUR, fromStack(stack),
++            itemBehaviour -> itemBehaviour.getMaxStackSize(stack.asBukkitMirror()),
++            () -> stack.getItem().getMaxStackSize()
++        );
++    }
++
++    public static int getMaxDamage(ItemStack stack){
++        return evaluateInteger(ItemBehaviour.ITEM_BEHAVIOUR, fromStack(stack),
++            itemBehaviour -> itemBehaviour.getMaxDamage(stack.asBukkitMirror()),
++            () -> stack.getItem().getMaxDamage()
++        );
++    }
++
++    public static boolean isCorrectToolForDrops(ItemStack stack, BlockState blockState){
++        return evaluateBoolean(ItemBehaviour.ITEM_BEHAVIOUR, fromStack(stack),
++            itemBehaviour -> itemBehaviour.isCorrectToolForDrops(stack.asBukkitMirror(), blockState.createCraftBlockData()),
++            () -> stack.getItem().isCorrectToolForDrops(blockState)
++        );
++    }
++
++    public static void mineBlock(ItemStack stack, Level world, net.minecraft.world.level.block.state.BlockState state, BlockPos pos, Player miner){
++        boolean mined = evaluateBoolean(ItemBehaviour.ITEM_BEHAVIOUR, fromStack(stack),
++            itemBehaviour -> itemBehaviour.mineBlock(stack.asBukkitMirror(), world.getWorld().getBlockAt(pos.getX(), pos.getY(), pos.getZ()), (CraftPlayer) miner.getBukkitEntity()),
++            () -> {
++                Item item = stack.getItem();
++                return item.mineBlock(stack, world, state, pos, miner);
++            });
++        if(mined)
++            miner.awardStat(Stats.ITEM_USED.get(stack.getItem()));
++    }
++
++    public static InteractionResult interactLivingEntity(ItemStack stack, Player player, LivingEntity livingEntity, InteractionHand interactionHand){
++        return evaluate(ItemBehaviour.ITEM_BEHAVIOUR, fromStack(stack),
++            itemBehaviour -> itemBehaviour.interactLivingEntity(stack.asBukkitMirror(), (CraftPlayer) player.getBukkitEntity(), livingEntity.getBukkitLivingEntity(),
++            interactionHand.equals(InteractionHand.MAIN_HAND) ? EquipmentSlot.HAND : EquipmentSlot.OFF_HAND),
++            () -> stack.getItem().interactLivingEntity(stack, player, livingEntity, interactionHand)
++            , Converter.InteractionResult.INSTANCE);
++    }
++
++    public static void onCraftedBy(ItemStack stack, Level world, Player player, int amount){
++        evaluateVoid(ItemBehaviour.ITEM_BEHAVIOUR, fromStack(stack),
++            itemBehaviour -> itemBehaviour.onCraftedBy(stack.asBukkitMirror(), (CraftPlayer) player.getBukkitEntity(), amount),
++            () -> stack.getItem().onCraftedBy(stack, world, player));
++        player.awardStat(Stats.ITEM_CRAFTED.get(stack.getItem()), amount);
++    }
++
++    public static void onDestroyed(ItemStack stack, ItemEntity entity){
++        evaluateVoid(ItemBehaviour.ITEM_BEHAVIOUR, fromStack(stack),
++            itemBehaviour -> itemBehaviour.onDestroyed(stack.asBukkitMirror(), (CraftItem) entity.getBukkitEntity()),
++            () -> stack.getItem().onDestroyed(entity));
++    }
++
++    public static boolean isEdible(ItemStack stack){
++        return evaluateBoolean(ItemBehaviour.ITEM_BEHAVIOUR, fromStack(stack),
++            itemBehaviour -> itemBehaviour.isEdible(stack.asBukkitMirror()),
++            () -> stack.getItem().isEdible());
++    }
++
++    public static FoodProperties getFoodProperties(ItemStack stack){
++        return evaluate(ItemBehaviour.ITEM_BEHAVIOUR, fromStack(stack),
++            itemBehaviour -> itemBehaviour.getFoodProperties(stack.asBukkitMirror()),
++            () -> stack.getItem().getFoodProperties(),
++            Converter.FoodProperties.INSTANCE
++        );
++    }
++
++    public static @Nullable ItemStack getCraftRemainingItem(ItemStack stack){
++        return evaluate(ItemBehaviour.ITEM_BEHAVIOUR, fromStack(stack),
++            itemBehaviour -> itemBehaviour.getCraftRemainingItem(stack.asBukkitMirror()),
++            () -> {
++            Item item = stack.getItem().getCraftingRemainingItem();
++            if(item != null)
++                return new ItemStack(item);
++            else return null;
++            },
++            Converter.ItemStack.INSTANCE
++        );
++    }
++
++    public static boolean isFireResistant(ItemStack stack){
++        return evaluateBoolean(ItemBehaviour.ITEM_BEHAVIOUR, fromStack(stack),
++            itemBehaviour -> itemBehaviour.isFireResistant(stack.asBukkitMirror()),
++            () -> stack.getItem().isFireResistant());
++    }
++
++    public static boolean canFitInsideContainerItems(ItemStack stack){
++        return evaluateBoolean(ItemBehaviour.ITEM_BEHAVIOUR, fromStack(stack),
++            itemBehaviour -> itemBehaviour.canFitInsideContainerItems(stack.asBukkitMirror()),
++            () -> stack.getItem().canFitInsideContainerItems());
++    }
++
++
++
++
++
++    public static CustomItemData fromStack(ItemStack stack) {
++        return CustomItemData.fromItemStack(stack.getBukkitStack());
++    }
++
++
 +}
 diff --git a/src/main/java/de/verdox/mccreativelab/event/EventToPacketFactory.java b/src/main/java/de/verdox/mccreativelab/event/EventToPacketFactory.java
 new file mode 100644
@@ -830,6 +1071,147 @@ index f20ae9153b7098980ce6c0e75fcbbb4da652661b..7484cc8b4458590aebd939326227fe32
      }
  
      public boolean isSilent() {
+diff --git a/src/main/java/net/minecraft/world/entity/LivingEntity.java b/src/main/java/net/minecraft/world/entity/LivingEntity.java
+index 77a1c7dfbaccc2e74da5c78ce4dfcd1717a7ac65..0442f018200b502a503bc23db319eab5cf759505 100644
+--- a/src/main/java/net/minecraft/world/entity/LivingEntity.java
++++ b/src/main/java/net/minecraft/world/entity/LivingEntity.java
+@@ -3836,7 +3836,7 @@ public abstract class LivingEntity extends Entity implements Attackable {
+ 
+         // Paper start - lag compensate eating
+         // we add 1 to the expected time to avoid lag compensating when we should not
+-        boolean shouldLagCompensate = this.useItem.getItem().isEdible() && this.eatStartTime != -1 && (System.nanoTime() - this.eatStartTime) > ((1 + this.totalEatTimeTicks) * 50 * (1000 * 1000));
++        boolean shouldLagCompensate = this.useItem.isEdible() && this.eatStartTime != -1 && (System.nanoTime() - this.eatStartTime) > ((1 + this.totalEatTimeTicks) * 50 * (1000 * 1000));
+         if ((--this.useItemRemaining == 0 || shouldLagCompensate) && !this.level().isClientSide && !stack.useOnRelease()) {
+             this.useItemRemaining = 0;
+             // Paper end
+@@ -3847,7 +3847,7 @@ public abstract class LivingEntity extends Entity implements Attackable {
+ 
+     private boolean shouldTriggerItemUseEffects() {
+         int i = this.getUseItemRemainingTicks();
+-        FoodProperties foodinfo = this.useItem.getItem().getFoodProperties();
++        FoodProperties foodinfo = this.useItem.getFoodProperties();
+         boolean flag = foodinfo != null && foodinfo.isFastFood();
+ 
+         flag |= i <= this.useItem.getUseDuration() - 7;
+@@ -4382,8 +4382,8 @@ public abstract class LivingEntity extends Entity implements Attackable {
+     private void addEatEffect(ItemStack stack, Level world, LivingEntity targetEntity) {
+         Item item = stack.getItem();
+ 
+-        if (item.isEdible()) {
+-            List<Pair<MobEffectInstance, Float>> list = item.getFoodProperties().getEffects();
++        if (stack.isEdible()) {
++            List<Pair<MobEffectInstance, Float>> list = stack.getFoodProperties().getEffects();
+             Iterator iterator = list.iterator();
+ 
+             while (iterator.hasNext()) {
+diff --git a/src/main/java/net/minecraft/world/entity/animal/Cat.java b/src/main/java/net/minecraft/world/entity/animal/Cat.java
+index de51ce9875e12961e6e549e87d76f492d2f19787..4c7460de115b8cf7193f6a38f9cf7f38b8749db0 100644
+--- a/src/main/java/net/minecraft/world/entity/animal/Cat.java
++++ b/src/main/java/net/minecraft/world/entity/animal/Cat.java
+@@ -385,9 +385,9 @@ public class Cat extends TamableAnimal implements VariantHolder<CatVariant> {
+             if (this.isTame()) {
+                 if (this.isOwnedBy(player)) {
+                     if (!(item instanceof DyeItem)) {
+-                        if (item.isEdible() && this.isFood(itemstack) && this.getHealth() < this.getMaxHealth()) {
++                        if (itemstack.isEdible() && this.isFood(itemstack) && this.getHealth() < this.getMaxHealth()) {
+                             this.usePlayerItem(player, hand, itemstack);
+-                            this.heal((float) item.getFoodProperties().getNutrition(), org.bukkit.event.entity.EntityRegainHealthEvent.RegainReason.EATING); // Paper
++                            this.heal((float) itemstack.getFoodProperties().getNutrition(), org.bukkit.event.entity.EntityRegainHealthEvent.RegainReason.EATING); // Paper
+                             return InteractionResult.CONSUME;
+                         }
+ 
+diff --git a/src/main/java/net/minecraft/world/entity/animal/Fox.java b/src/main/java/net/minecraft/world/entity/animal/Fox.java
+index 31d4683f5e158f076ce9a416b7003478af293688..c92ccddfcb8ad488c77fde453d337f0561ecec17 100644
+--- a/src/main/java/net/minecraft/world/entity/animal/Fox.java
++++ b/src/main/java/net/minecraft/world/entity/animal/Fox.java
+@@ -247,7 +247,7 @@ public class Fox extends Animal implements VariantHolder<Fox.Type> {
+     }
+ 
+     private boolean canEat(ItemStack stack) {
+-        return stack.getItem().isEdible() && this.getTarget() == null && this.onGround() && !this.isSleeping();
++        return stack.isEdible() && this.getTarget() == null && this.onGround() && !this.isSleeping();
+     }
+ 
+     @Override
+@@ -505,7 +505,7 @@ public class Fox extends Animal implements VariantHolder<Fox.Type> {
+         Item item = stack.getItem();
+         ItemStack itemstack1 = this.getItemBySlot(EquipmentSlot.MAINHAND);
+ 
+-        return itemstack1.isEmpty() || this.ticksSinceEaten > 0 && item.isEdible() && !itemstack1.getItem().isEdible();
++        return itemstack1.isEmpty() || this.ticksSinceEaten > 0 && stack.isEdible() && !itemstack1.isEdible();
+     }
+ 
+     private void spitOutItem(ItemStack stack) {
+diff --git a/src/main/java/net/minecraft/world/entity/animal/Wolf.java b/src/main/java/net/minecraft/world/entity/animal/Wolf.java
+index eecb7511582e5e316b71fa4a4734881424be5ca7..e541f7551e1640f2a5bea28c3444152909a9c770 100644
+--- a/src/main/java/net/minecraft/world/entity/animal/Wolf.java
++++ b/src/main/java/net/minecraft/world/entity/animal/Wolf.java
+@@ -359,7 +359,7 @@ public class Wolf extends TamableAnimal implements NeutralMob {
+                     itemstack.shrink(1);
+                 }
+ 
+-                this.heal((float) item.getFoodProperties().getNutrition(), EntityRegainHealthEvent.RegainReason.EATING); // CraftBukkit
++                this.heal((float) itemstack.getFoodProperties().getNutrition(), EntityRegainHealthEvent.RegainReason.EATING); // CraftBukkit
+                 return InteractionResult.SUCCESS;
+             } else {
+                 if (item instanceof DyeItem) {
+@@ -445,7 +445,7 @@ public class Wolf extends TamableAnimal implements NeutralMob {
+     public boolean isFood(ItemStack stack) {
+         Item item = stack.getItem();
+ 
+-        return item.isEdible() && item.getFoodProperties().isMeat();
++        return stack.isEdible() && stack.getFoodProperties().isMeat();
+     }
+ 
+     @Override
+diff --git a/src/main/java/net/minecraft/world/entity/item/ItemEntity.java b/src/main/java/net/minecraft/world/entity/item/ItemEntity.java
+index eb0351aa12eebcefab1d1d14641fc3c60cbbcab8..9d017797a34b44cff6e2e7c48d28c6fe13d230e2 100644
+--- a/src/main/java/net/minecraft/world/entity/item/ItemEntity.java
++++ b/src/main/java/net/minecraft/world/entity/item/ItemEntity.java
+@@ -341,7 +341,7 @@ public class ItemEntity extends Entity implements TraceableEntity {
+ 
+     @Override
+     public boolean fireImmune() {
+-        return this.getItem().getItem().isFireResistant() || super.fireImmune();
++        return this.getItem().isFireResistant() || super.fireImmune();
+     }
+ 
+     @Override
+@@ -350,7 +350,7 @@ public class ItemEntity extends Entity implements TraceableEntity {
+             return false;
+         } else if (!this.getItem().isEmpty() && this.getItem().is(Items.NETHER_STAR) && source.is(DamageTypeTags.IS_EXPLOSION)) {
+             return false;
+-        } else if (!this.getItem().getItem().canBeHurtBy(source)) {
++        } else if (!this.getItem().canBeHurtBy(source)) {
+             return false;
+         } else if (this.level().isClientSide) {
+             return true;
+diff --git a/src/main/java/net/minecraft/world/entity/monster/Creeper.java b/src/main/java/net/minecraft/world/entity/monster/Creeper.java
+index fd1b5a1beea7594fa65decfdcccfa15781fc005b..16a6ea45b3e0c8266988e1c2f0f4149f4968a760 100644
+--- a/src/main/java/net/minecraft/world/entity/monster/Creeper.java
++++ b/src/main/java/net/minecraft/world/entity/monster/Creeper.java
+@@ -248,7 +248,7 @@ public class Creeper extends Monster implements PowerableMob {
+             this.level().playSound(player, this.getX(), this.getY(), this.getZ(), soundeffect, this.getSoundSource(), 1.0F, this.random.nextFloat() * 0.4F + 0.8F);
+             if (!this.level().isClientSide) {
+                 this.ignite();
+-                if (itemstack.getItem().getMaxDamage() == 0) { // Paper - fix MC-264285, only shrink the stack if the item type actually has no durability
++                if (itemstack.getMaxDamage() == 0) { // Paper - fix MC-264285, only shrink the stack if the item type actually has no durability
+                     itemstack.shrink(1);
+                 } else {
+                     itemstack.hurtAndBreak(1, player, (entityhuman1) -> {
+diff --git a/src/main/java/net/minecraft/world/entity/player/Inventory.java b/src/main/java/net/minecraft/world/entity/player/Inventory.java
+index 96d664c28738d6090f7067761c2978dd1aa0fd0e..e7b87c3a926a657cafc99dcf3f1e7bba234244f6 100644
+--- a/src/main/java/net/minecraft/world/entity/player/Inventory.java
++++ b/src/main/java/net/minecraft/world/entity/player/Inventory.java
+@@ -644,7 +644,7 @@ public class Inventory implements Container, Nameable {
+                 int k = aint1[j];
+                 ItemStack itemstack = (ItemStack) this.armor.get(k);
+ 
+-                if ((!damageSource.is(DamageTypeTags.IS_FIRE) || !itemstack.getItem().isFireResistant()) && itemstack.getItem() instanceof ArmorItem) {
++                if ((!damageSource.is(DamageTypeTags.IS_FIRE) || !itemstack.isFireResistant()) && itemstack.getItem() instanceof ArmorItem) {
+                     itemstack.hurtAndBreak((int) amount, this.player, (entityhuman) -> {
+                         entityhuman.broadcastBreakEvent(EquipmentSlot.byTypeAndIndex(EquipmentSlot.Type.ARMOR, k));
+                     });
 diff --git a/src/main/java/net/minecraft/world/entity/player/Player.java b/src/main/java/net/minecraft/world/entity/player/Player.java
 index d58b4c0dbe651b5068212e5f14dce3164ee520f5..1ae3876c4d14254caef5ecf9373bb2c3d4a10995 100644
 --- a/src/main/java/net/minecraft/world/entity/player/Player.java
@@ -875,6 +1257,102 @@ index d58b4c0dbe651b5068212e5f14dce3164ee520f5..1ae3876c4d14254caef5ecf9373bb2c3
                  } else {
                      super.playStepSound(blockposition1, iblockdata1);
                  }
+diff --git a/src/main/java/net/minecraft/world/food/FoodData.java b/src/main/java/net/minecraft/world/food/FoodData.java
+index b130a06ea984dde1704d650645d59385334e4b65..2965012e78d757d7e618aa20761f12f54655a029 100644
+--- a/src/main/java/net/minecraft/world/food/FoodData.java
++++ b/src/main/java/net/minecraft/world/food/FoodData.java
+@@ -38,8 +38,8 @@ public class FoodData {
+     }
+ 
+     public void eat(Item item, ItemStack stack) {
+-        if (item.isEdible()) {
+-            FoodProperties foodinfo = item.getFoodProperties();
++        if (stack.isEdible()) {
++            FoodProperties foodinfo = stack.getFoodProperties();
+             // CraftBukkit start
+             int oldFoodLevel = this.foodLevel;
+ 
+diff --git a/src/main/java/net/minecraft/world/inventory/AbstractContainerMenu.java b/src/main/java/net/minecraft/world/inventory/AbstractContainerMenu.java
+index ffd349c1b80df0f1e8c02bda23700184825170fd..17c58b8c3310e380a03442ac6f94fc8ef836c411 100644
+--- a/src/main/java/net/minecraft/world/inventory/AbstractContainerMenu.java
++++ b/src/main/java/net/minecraft/world/inventory/AbstractContainerMenu.java
+@@ -925,7 +925,7 @@ public abstract class AbstractContainerMenu {
+                 j = 1;
+                 break;
+             case 2:
+-                j = stack.getItem().getMaxStackSize();
++                j = stack.getMaxStackSize();
+                 break;
+             default:
+                 j = stack.getCount();
+diff --git a/src/main/java/net/minecraft/world/inventory/CartographyTableMenu.java b/src/main/java/net/minecraft/world/inventory/CartographyTableMenu.java
+index 09be5db3c09262e8bc56c4e20a48fe648f09237c..f276e82f281096b1b1755922d715139b9e8f9140 100644
+--- a/src/main/java/net/minecraft/world/inventory/CartographyTableMenu.java
++++ b/src/main/java/net/minecraft/world/inventory/CartographyTableMenu.java
+@@ -103,7 +103,7 @@ public class CartographyTableMenu extends AbstractContainerMenu {
+             public void onTake(net.minecraft.world.entity.player.Player player, ItemStack stack) {
+                 ((Slot) CartographyTableMenu.this.slots.get(0)).remove(1);
+                 ((Slot) CartographyTableMenu.this.slots.get(1)).remove(1);
+-                stack.getItem().onCraftedBy(stack, player.level(), player);
++                stack.onCraftedBy(player.level(), player);
+                 context.execute((world, blockposition) -> {
+                     long j = world.getGameTime();
+ 
+@@ -203,7 +203,7 @@ public class CartographyTableMenu extends AbstractContainerMenu {
+ 
+             itemstack = itemstack1.copy();
+             if (slot == 2) {
+-                itemstack1.getItem().onCraftedBy(itemstack1, player.level(), player);
++                itemstack1.onCraftedBy(player.level(), player);
+                 if (!this.moveItemStackTo(itemstack1, 3, 39, true)) {
+                     return ItemStack.EMPTY;
+                 }
+diff --git a/src/main/java/net/minecraft/world/inventory/CraftingMenu.java b/src/main/java/net/minecraft/world/inventory/CraftingMenu.java
+index 4c8ce073094e55ea0df67fe02c0d1cc8aef76562..aad33f40a579717594e552df0904a399c9394f6a 100644
+--- a/src/main/java/net/minecraft/world/inventory/CraftingMenu.java
++++ b/src/main/java/net/minecraft/world/inventory/CraftingMenu.java
+@@ -147,7 +147,7 @@ public class CraftingMenu extends RecipeBookMenu<CraftingContainer> {
+             itemstack = itemstack1.copy();
+             if (slot == 0) {
+                 this.access.execute((world, blockposition) -> {
+-                    itemstack1.getItem().onCraftedBy(itemstack1, world, player);
++                    itemstack1.onCraftedBy(world, player);
+                 });
+                 if (!this.moveItemStackTo(itemstack1, 10, 46, true)) {
+                     return ItemStack.EMPTY;
+diff --git a/src/main/java/net/minecraft/world/inventory/GrindstoneMenu.java b/src/main/java/net/minecraft/world/inventory/GrindstoneMenu.java
+index a21eadcdfbdc4be803c5793bc97996db3e706071..0d1f9ab79ce94d86ba970361ad8720d8e8073e78 100644
+--- a/src/main/java/net/minecraft/world/inventory/GrindstoneMenu.java
++++ b/src/main/java/net/minecraft/world/inventory/GrindstoneMenu.java
+@@ -191,11 +191,11 @@ public class GrindstoneMenu extends AbstractContainerMenu {
+                 }
+ 
+                 Item item = itemstack.getItem();
+-                int j = item.getMaxDamage() - itemstack.getDamageValue();
+-                int k = item.getMaxDamage() - itemstack1.getDamageValue();
+-                int l = j + k + item.getMaxDamage() * 5 / 100;
++                int j = itemstack.getMaxDamage() - itemstack.getDamageValue();
++                int k = itemstack.getMaxDamage() - itemstack1.getDamageValue();
++                int l = j + k + itemstack.getMaxDamage() * 5 / 100;
+ 
+-                i = Math.max(item.getMaxDamage() - l, 0);
++                i = Math.max(itemstack.getMaxDamage() - l, 0);
+                 itemstack2 = this.mergeEnchants(itemstack, itemstack1);
+                 if (!itemstack2.isDamageableItem()) {
+                     if (!ItemStack.matches(itemstack, itemstack1) || (itemstack2.getMaxStackSize() == 1 && !io.papermc.paper.configuration.GlobalConfiguration.get().unsupportedSettings.allowGrindstoneOverstacking)) { // Paper - add max stack size check & config value
+diff --git a/src/main/java/net/minecraft/world/inventory/StonecutterMenu.java b/src/main/java/net/minecraft/world/inventory/StonecutterMenu.java
+index f8129dcdcae12ed66ec58e8c749fa88ec3cd85d8..28a3dbddf9697613daf5c77571913c690c6fc1fb 100644
+--- a/src/main/java/net/minecraft/world/inventory/StonecutterMenu.java
++++ b/src/main/java/net/minecraft/world/inventory/StonecutterMenu.java
+@@ -259,7 +259,7 @@ public class StonecutterMenu extends AbstractContainerMenu {
+ 
+             itemstack = itemstack1.copy();
+             if (slot == 1) {
+-                item.onCraftedBy(itemstack1, player.level(), player);
++                itemstack1.onCraftedBy(player.level(), player);
+                 if (!this.moveItemStackTo(itemstack1, 2, 38, true)) {
+                     return ItemStack.EMPTY;
+                 }
 diff --git a/src/main/java/net/minecraft/world/item/BlockItem.java b/src/main/java/net/minecraft/world/item/BlockItem.java
 index e483186a5292b3b53bfb1af4d56f55fcc1a6106c..3f29e5140f5e525544b4ad2c6a7a284a0e9514fd 100644
 --- a/src/main/java/net/minecraft/world/item/BlockItem.java
@@ -897,8 +1375,82 @@ index e483186a5292b3b53bfb1af4d56f55fcc1a6106c..3f29e5140f5e525544b4ad2c6a7a284a
                      return InteractionResult.sidedSuccess(world.isClientSide);
                  }
              }
+diff --git a/src/main/java/net/minecraft/world/item/BundleItem.java b/src/main/java/net/minecraft/world/item/BundleItem.java
+index ac0bc87f60c4e1562d1301522183e449558d42f8..d78bca25d9c954b90e8012adb02afef04471bef4 100644
+--- a/src/main/java/net/minecraft/world/item/BundleItem.java
++++ b/src/main/java/net/minecraft/world/item/BundleItem.java
+@@ -50,7 +50,7 @@ public class BundleItem extends Item {
+                 removeOne(stack).ifPresent((removedStack) -> {
+                     add(stack, slot.safeInsert(removedStack));
+                 });
+-            } else if (itemStack.getItem().canFitInsideContainerItems()) {
++            } else if (itemStack.canFitInsideContainerItems()) {
+                 int i = (64 - getContentWeight(stack)) / getWeight(itemStack);
+                 int j = add(stack, slot.safeTake(itemStack.getCount(), Math.max(0, i), player)); // Paper - prevent item addition on overfilled bundles - safeTake will yield EMPTY for amount == 0.
+                 if (j > 0) {
+@@ -112,7 +112,7 @@ public class BundleItem extends Item {
+     }
+ 
+     private static int add(ItemStack bundle, ItemStack stack) {
+-        if (!stack.isEmpty() && stack.getItem().canFitInsideContainerItems()) {
++        if (!stack.isEmpty() && stack.canFitInsideContainerItems()) {
+             CompoundTag compoundTag = bundle.getOrCreateTag();
+             if (!compoundTag.contains("Items")) {
+                 compoundTag.put("Items", new ListTag());
+diff --git a/src/main/java/net/minecraft/world/item/Item.java b/src/main/java/net/minecraft/world/item/Item.java
+index dd2f6c67533cc3344a171fe3ae9b3704796d8c50..b3b37cd4f271281a3ee92f040056d5f4c82f0400 100644
+--- a/src/main/java/net/minecraft/world/item/Item.java
++++ b/src/main/java/net/minecraft/world/item/Item.java
+@@ -135,9 +135,9 @@ public class Item implements FeatureElement, ItemLike {
+     }
+ 
+     public InteractionResultHolder<ItemStack> use(Level world, Player user, InteractionHand hand) {
+-        if (this.isEdible()) {
+-            ItemStack itemStack = user.getItemInHand(hand);
+-            if (user.canEat(this.getFoodProperties().canAlwaysEat())) {
++        ItemStack itemStack = user.getItemInHand(hand);
++        if (itemStack.isEdible()) {
++            if (user.canEat(itemStack.getFoodProperties().canAlwaysEat())) {
+                 user.startUsingItem(hand);
+                 return InteractionResultHolder.consume(itemStack);
+             } else {
+@@ -250,12 +250,12 @@ public class Item implements FeatureElement, ItemLike {
+     }
+ 
+     public UseAnim getUseAnimation(ItemStack stack) {
+-        return stack.getItem().isEdible() ? UseAnim.EAT : UseAnim.NONE;
++        return stack.isEdible() ? UseAnim.EAT : UseAnim.NONE;
+     }
+ 
+     public int getUseDuration(ItemStack stack) {
+-        if (stack.getItem().isEdible()) {
+-            return this.getFoodProperties().isFastFood() ? 16 : 32;
++        if (stack.isEdible()) {
++            return stack.getFoodProperties().isFastFood() ? 16 : 32;
+         } else {
+             return 0;
+         }
+@@ -352,15 +352,17 @@ public class Item implements FeatureElement, ItemLike {
+         return SoundEvents.GENERIC_EAT;
+     }
+ 
++
+     public boolean isFireResistant() {
+         return this.isFireResistant;
+     }
+ 
+     public boolean canBeHurtBy(DamageSource source) {
+-        return !this.isFireResistant || !source.is(DamageTypeTags.IS_FIRE);
++        return !this.isFireResistant() || !source.is(DamageTypeTags.IS_FIRE);
+     }
+ 
+     public boolean canFitInsideContainerItems() {
++        //TODO: ItemBehaviour
+         return true;
+     }
+ 
 diff --git a/src/main/java/net/minecraft/world/item/ItemStack.java b/src/main/java/net/minecraft/world/item/ItemStack.java
-index c057c0138cad7c3ee221b3a30d8713231ccd03ab..d8df11e957c1a75b196f969085d8c6f9dfaaaebd 100644
+index c057c0138cad7c3ee221b3a30d8713231ccd03ab..24cd911deeb4e4a2b7d14269a521a7216a8bdd40 100644
 --- a/src/main/java/net/minecraft/world/item/ItemStack.java
 +++ b/src/main/java/net/minecraft/world/item/ItemStack.java
 @@ -21,6 +21,8 @@ import java.util.function.Predicate;
@@ -910,7 +1462,30 @@ index c057c0138cad7c3ee221b3a30d8713231ccd03ab..d8df11e957c1a75b196f969085d8c6f9
  import net.minecraft.ChatFormatting;
  import net.minecraft.Util;
  import net.minecraft.advancements.CriteriaTriggers;
-@@ -80,7 +82,7 @@ import org.slf4j.Logger;
+@@ -44,12 +46,14 @@ import net.minecraft.network.chat.MutableComponent;
+ import net.minecraft.network.chat.Style;
+ import net.minecraft.network.protocol.game.ClientboundBlockUpdatePacket;
+ import net.minecraft.resources.ResourceLocation;
++import net.minecraft.tags.DamageTypeTags;
+ import net.minecraft.tags.TagKey;
+ import net.minecraft.util.RandomSource;
+ import net.minecraft.util.datafix.fixes.References;
+ import net.minecraft.world.InteractionHand;
+ import net.minecraft.world.InteractionResult;
+ import net.minecraft.world.InteractionResultHolder;
++import net.minecraft.world.damagesource.DamageSource;
+ import net.minecraft.world.entity.Entity;
+ import net.minecraft.world.entity.EquipmentSlot;
+ import net.minecraft.world.entity.LivingEntity;
+@@ -61,6 +65,7 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
+ import net.minecraft.world.entity.decoration.ItemFrame;
+ import net.minecraft.world.entity.item.ItemEntity;
+ import net.minecraft.world.flag.FeatureFlagSet;
++import net.minecraft.world.food.FoodProperties;
+ import net.minecraft.world.inventory.ClickAction;
+ import net.minecraft.world.inventory.Slot;
+ import net.minecraft.world.inventory.tooltip.TooltipComponent;
+@@ -80,7 +85,7 @@ import org.slf4j.Logger;
  // CraftBukkit start
  import com.mojang.serialization.Dynamic;
  import java.util.Map;
@@ -919,7 +1494,7 @@ index c057c0138cad7c3ee221b3a30d8713231ccd03ab..d8df11e957c1a75b196f969085d8c6f9
  import net.minecraft.server.MinecraftServer;
  import net.minecraft.server.level.ServerLevel;
  import net.minecraft.server.level.ServerPlayer;
-@@ -369,6 +371,7 @@ public final class ItemStack {
+@@ -369,6 +374,7 @@ public final class ItemStack {
              }
              InteractionResult enuminteractionresult;
              try {
@@ -927,7 +1502,7 @@ index c057c0138cad7c3ee221b3a30d8713231ccd03ab..d8df11e957c1a75b196f969085d8c6f9
                  enuminteractionresult = item.useOn(context);
              } finally {
                  world.captureBlockStates = false;
-@@ -443,6 +446,8 @@ public final class ItemStack {
+@@ -443,6 +449,8 @@ public final class ItemStack {
                          ((ServerPlayer) entityhuman).connection.send(new ClientboundBlockUpdatePacket(world, placedPos.relative(dir)));
                      }
                      SignItem.openSign = null; // SPIGOT-6758 - Reset on early return
@@ -936,20 +1511,7 @@ index c057c0138cad7c3ee221b3a30d8713231ccd03ab..d8df11e957c1a75b196f969085d8c6f9
                  } else {
                      // Change the stack to its new contents if it hasn't been tampered with.
                      if (this.getCount() == oldCount && Objects.equals(this.tag, oldData)) {
-@@ -531,6 +536,7 @@ public final class ItemStack {
-                         net.minecraft.world.level.block.state.BlockState blockData = world.getBlockState(position);
-                         SoundType soundeffecttype = blockData.getSoundType();
-                         // Paper end
-+                        //TODO: ItemStack Behaviour
-                         world.playSound(entityhuman, blockposition, soundeffecttype.getPlaceSound(), SoundSource.BLOCKS, (soundeffecttype.getVolume() + 1.0F) / 2.0F, soundeffecttype.getPitch() * 0.8F);
-                     }
- 
-@@ -546,14 +552,17 @@ public final class ItemStack {
-     }
- 
-     public float getDestroySpeed(net.minecraft.world.level.block.state.BlockState state) {
-+        //TODO: ItemStack Behaviour
-         return this.getItem().getDestroySpeed(this, state);
+@@ -550,11 +558,12 @@ public final class ItemStack {
      }
  
      public InteractionResultHolder<ItemStack> use(Level world, net.minecraft.world.entity.player.Player user, InteractionHand hand) {
@@ -958,29 +1520,41 @@ index c057c0138cad7c3ee221b3a30d8713231ccd03ab..d8df11e957c1a75b196f969085d8c6f9
      }
  
      public ItemStack finishUsingItem(Level world, LivingEntity user) {
-+        //TODO: ItemStack Behaviour
-         return this.getItem().finishUsingItem(this, world, user);
+-        return this.getItem().finishUsingItem(this, world, user);
++        return de.verdox.mccreativelab.behaviour.ItemBehaviourUtil.finishUsingItem(this, world, user); // MCCreativeLab - Adding ItemBehaviour
      }
  
-@@ -569,6 +578,7 @@ public final class ItemStack {
-         return nbt;
+     public CompoundTag save(CompoundTag nbt) {
+@@ -570,15 +579,17 @@ public final class ItemStack {
      }
  
-+    //TODO: ItemStack Behaviour
      public int getMaxStackSize() {
-         return this.getItem().getMaxStackSize();
+-        return this.getItem().getMaxStackSize();
++        return de.verdox.mccreativelab.behaviour.ItemBehaviourUtil.getMaxStackSize(this); // MCCreativeLab - Adding ItemBehaviour
      }
-@@ -577,7 +587,9 @@ public final class ItemStack {
+ 
+     public boolean isStackable() {
          return this.getMaxStackSize() > 1 && (!this.isDamageableItem() || !this.isDamaged());
      }
  
-+    //TODO: ItemStack Behaviour
-     public boolean isDamageableItem() {
 +
-         if (!this.isEmpty() && this.getItem().getMaxDamage() > 0) {
+     public boolean isDamageableItem() {
+-        if (!this.isEmpty() && this.getItem().getMaxDamage() > 0) {
++
++        if (!this.isEmpty() && this.getMaxDamage() > 0) {
              CompoundTag nbttagcompound = this.getTag();
  
-@@ -704,6 +716,7 @@ public final class ItemStack {
+             return nbttagcompound == null || !nbttagcompound.getBoolean("Unbreakable");
+@@ -600,7 +611,7 @@ public final class ItemStack {
+     }
+ 
+     public int getMaxDamage() {
+-        return this.getItem().getMaxDamage();
++        return de.verdox.mccreativelab.behaviour.ItemBehaviourUtil.getMaxDamage(this); // MCCreativeLab - Adding ItemBehaviour
+     }
+ 
+     public boolean hurt(int amount, RandomSource random, @Nullable LivingEntity player) { // Paper - allow any living entity instead of only ServerPlayers
+@@ -704,6 +715,7 @@ public final class ItemStack {
      }
  
      public void hurtEnemy(LivingEntity target, net.minecraft.world.entity.player.Player attacker) {
@@ -988,33 +1562,41 @@ index c057c0138cad7c3ee221b3a30d8713231ccd03ab..d8df11e957c1a75b196f969085d8c6f9
          Item item = this.getItem();
  
          if (item.hurtEnemy(this, target, attacker)) {
-@@ -713,6 +726,7 @@ public final class ItemStack {
+@@ -713,20 +725,15 @@ public final class ItemStack {
      }
  
      public void mineBlock(Level world, net.minecraft.world.level.block.state.BlockState state, BlockPos pos, net.minecraft.world.entity.player.Player miner) {
-+        //TODO: ItemStack Behaviour
-         Item item = this.getItem();
- 
-         if (item.mineBlock(this, world, state, pos, miner)) {
-@@ -722,10 +736,12 @@ public final class ItemStack {
+-        Item item = this.getItem();
+-
+-        if (item.mineBlock(this, world, state, pos, miner)) {
+-            miner.awardStat(Stats.ITEM_USED.get(item));
+-        }
+-
++        de.verdox.mccreativelab.behaviour.ItemBehaviourUtil.mineBlock(this, world, state, pos, miner); // MCCreativeLab - Adding ItemBehaviour
      }
  
      public boolean isCorrectToolForDrops(net.minecraft.world.level.block.state.BlockState state) {
-+        //TODO: ItemStack Behaviour
-         return this.getItem().isCorrectToolForDrops(state);
+-        return this.getItem().isCorrectToolForDrops(state);
++        return de.verdox.mccreativelab.behaviour.ItemBehaviourUtil.isCorrectToolForDrops(this, state); // MCCreativeLab - Adding ItemBehaviour
      }
  
      public InteractionResult interactLivingEntity(net.minecraft.world.entity.player.Player user, LivingEntity entity, InteractionHand hand) {
-+        //TODO: ItemStack Behaviour
-         return this.getItem().interactLivingEntity(this, user, entity, hand);
+-        return this.getItem().interactLivingEntity(this, user, entity, hand);
++        return de.verdox.mccreativelab.behaviour.ItemBehaviourUtil.interactLivingEntity(this, user, entity, hand); // MCCreativeLab - Adding ItemBehaviour
      }
  
-@@ -796,10 +812,12 @@ public final class ItemStack {
+     public ItemStack copy() {
+@@ -795,11 +802,15 @@ public final class ItemStack {
+     }
  
      public void onCraftedBy(Level world, net.minecraft.world.entity.player.Player player, int amount) {
-         player.awardStat(Stats.ITEM_CRAFTED.get(this.getItem()), amount);
-+        //TODO: ItemStack Behaviour
-         this.getItem().onCraftedBy(this, world, player);
+-        player.awardStat(Stats.ITEM_CRAFTED.get(this.getItem()), amount);
+-        this.getItem().onCraftedBy(this, world, player);
++        de.verdox.mccreativelab.behaviour.ItemBehaviourUtil.onCraftedBy(this, world, player, amount); // MCCreativeLab - Adding ItemBehaviour
++    }
++
++    public void onCraftedBy(Level world, net.minecraft.world.entity.player.Player player) {
++        onCraftedBy(world, player, 1);
      }
  
      public int getUseDuration() {
@@ -1022,7 +1604,7 @@ index c057c0138cad7c3ee221b3a30d8713231ccd03ab..d8df11e957c1a75b196f969085d8c6f9
          return this.getItem().getUseDuration(this);
      }
  
-@@ -1180,6 +1198,7 @@ public final class ItemStack {
+@@ -1180,6 +1191,7 @@ public final class ItemStack {
      }
  
      public boolean isEnchantable() {
@@ -1030,7 +1612,7 @@ index c057c0138cad7c3ee221b3a30d8713231ccd03ab..d8df11e957c1a75b196f969085d8c6f9
          return !this.getItem().isEnchantable(this) ? false : !this.isEnchanted();
      }
  
-@@ -1347,14 +1366,17 @@ public final class ItemStack {
+@@ -1347,15 +1359,16 @@ public final class ItemStack {
      }
  
      public void onUseTick(Level world, LivingEntity user, int remainingUseTicks) {
@@ -1039,13 +1621,132 @@ index c057c0138cad7c3ee221b3a30d8713231ccd03ab..d8df11e957c1a75b196f969085d8c6f9
      }
  
      public void onDestroyed(ItemEntity entity) {
-+        //TODO: ItemStack Behaviour
-         this.getItem().onDestroyed(entity);
+-        this.getItem().onDestroyed(entity);
++        de.verdox.mccreativelab.behaviour.ItemBehaviourUtil.onDestroyed(this, entity); // MCCreativeLab - Adding ItemBehaviour
      }
  
      public boolean isEdible() {
-+        //TODO: ItemStack Behaviour
-         return this.getItem().isEdible();
+-        return this.getItem().isEdible();
++        return de.verdox.mccreativelab.behaviour.ItemBehaviourUtil.isEdible(this); // MCCreativeLab - Adding ItemBehaviour
+     }
+ 
+     public SoundEvent getDrinkingSound() {
+@@ -1378,4 +1391,37 @@ public final class ItemStack {
+             return this.mask;
+         }
+     }
++
++    //MCCreativeLab start - Adding ItemBehaviour
++    @Nullable
++    public FoodProperties getFoodProperties() {
++        return de.verdox.mccreativelab.behaviour.ItemBehaviourUtil.getFoodProperties(this);
++    }
++
++    @Nullable private ItemStack craftRemainingItemInstance;
++    @Nullable
++    public ItemStack getCraftingRemainingItem(){
++        if(craftRemainingItemInstance == null)
++            craftRemainingItemInstance = de.verdox.mccreativelab.behaviour.ItemBehaviourUtil.getCraftRemainingItem(this);
++        return craftRemainingItemInstance != null ? craftRemainingItemInstance.copy() : null;
++    }
++
++    public boolean isFireResistant(){
++        return de.verdox.mccreativelab.behaviour.ItemBehaviourUtil.isFireResistant(this);
++    }
++
++    public boolean hasCraftingRemainingItem(){
++        return getCraftingRemainingItem() != null;
++    }
++
++    public boolean canBeHurtBy(DamageSource source) {
++        return !this.isFireResistant() || !source.is(DamageTypeTags.IS_FIRE);
++    }
++
++    public boolean canFitInsideContainerItems() {
++        return de.verdox.mccreativelab.behaviour.ItemBehaviourUtil.canFitInsideContainerItems(this);
++    }
++
++
++    //MCCreativeLab end - Adding ItemBehaviour
+ }
+diff --git a/src/main/java/net/minecraft/world/item/crafting/BannerDuplicateRecipe.java b/src/main/java/net/minecraft/world/item/crafting/BannerDuplicateRecipe.java
+index 7dab1b896ad86be9457311727ebd25d99358352c..59836a24f4360b853d63835ef9b7eed4b0e9b9b8 100644
+--- a/src/main/java/net/minecraft/world/item/crafting/BannerDuplicateRecipe.java
++++ b/src/main/java/net/minecraft/world/item/crafting/BannerDuplicateRecipe.java
+@@ -82,8 +82,8 @@ public class BannerDuplicateRecipe extends CustomRecipe {
+         for(int i = 0; i < nonNullList.size(); ++i) {
+             ItemStack itemStack = inventory.getItem(i);
+             if (!itemStack.isEmpty()) {
+-                if (itemStack.getItem().hasCraftingRemainingItem()) {
+-                    nonNullList.set(i, new ItemStack(itemStack.getItem().getCraftingRemainingItem()));
++                if (itemStack.hasCraftingRemainingItem()) {
++                    nonNullList.set(i, itemStack.getCraftingRemainingItem());
+                 } else if (itemStack.hasTag() && BannerBlockEntity.getPatternCount(itemStack) > 0) {
+                     nonNullList.set(i, itemStack.copyWithCount(1));
+                 }
+diff --git a/src/main/java/net/minecraft/world/item/crafting/BookCloningRecipe.java b/src/main/java/net/minecraft/world/item/crafting/BookCloningRecipe.java
+index 2f5471b23c48d4b8f0229450757d430041ebdc8d..76f63eec36d8d21c7c01dc06305e584d71285dd8 100644
+--- a/src/main/java/net/minecraft/world/item/crafting/BookCloningRecipe.java
++++ b/src/main/java/net/minecraft/world/item/crafting/BookCloningRecipe.java
+@@ -82,8 +82,8 @@ public class BookCloningRecipe extends CustomRecipe {
+ 
+         for(int i = 0; i < nonNullList.size(); ++i) {
+             ItemStack itemStack = inventory.getItem(i);
+-            if (itemStack.getItem().hasCraftingRemainingItem()) {
+-                nonNullList.set(i, new ItemStack(itemStack.getItem().getCraftingRemainingItem()));
++            if (itemStack.hasCraftingRemainingItem()) {
++                nonNullList.set(i, itemStack.getCraftingRemainingItem());
+             } else if (itemStack.getItem() instanceof WrittenBookItem) {
+                 nonNullList.set(i, itemStack.copyWithCount(1));
+                 // MCCLab - start
+diff --git a/src/main/java/net/minecraft/world/item/crafting/Recipe.java b/src/main/java/net/minecraft/world/item/crafting/Recipe.java
+index 0dfe7760da7e4e6aea2dbaee9a214bec2cd5bc2a..ffa5483d7f5fd4d8be20399a0b246e64f04b3ea3 100644
+--- a/src/main/java/net/minecraft/world/item/crafting/Recipe.java
++++ b/src/main/java/net/minecraft/world/item/crafting/Recipe.java
+@@ -41,9 +41,10 @@ public interface Recipe<C extends Container> {
+         NonNullList<ItemStack> nonnulllist = NonNullList.withSize(inventory.getContainerSize(), ItemStack.EMPTY);
+ 
+         for (int i = 0; i < nonnulllist.size(); ++i) {
+-            Item item = inventory.getItem(i).getItem();
+-            if (item.hasCraftingRemainingItem()) {
+-                nonnulllist.set(i, new ItemStack(item.getCraftingRemainingItem()));
++            ItemStack stack = inventory.getItem(i);
++            Item item = stack.getItem();
++            if (stack.hasCraftingRemainingItem()) {
++                nonnulllist.set(i, stack.getCraftingRemainingItem());
+             }
+             // MCCLab - start
+             useCustomRemainingItemsLogic(inventory, recipeHolder, nonnulllist, i);
+diff --git a/src/main/java/net/minecraft/world/item/crafting/RepairItemRecipe.java b/src/main/java/net/minecraft/world/item/crafting/RepairItemRecipe.java
+index 15394aa4d7836ca140e52e061fde08ca5e7151b0..3e9d17303d53186a0b354dd26fcef78e241c2553 100644
+--- a/src/main/java/net/minecraft/world/item/crafting/RepairItemRecipe.java
++++ b/src/main/java/net/minecraft/world/item/crafting/RepairItemRecipe.java
+@@ -60,10 +60,10 @@ public class RepairItemRecipe extends CustomRecipe {
+             ItemStack itemStack4 = list.get(1);
+             if (itemStack3.is(itemStack4.getItem()) && itemStack3.getCount() == 1 && itemStack4.getCount() == 1 && itemStack3.getItem().canBeDepleted()) {
+                 Item item = itemStack3.getItem();
+-                int j = item.getMaxDamage() - itemStack3.getDamageValue();
+-                int k = item.getMaxDamage() - itemStack4.getDamageValue();
+-                int l = j + k + item.getMaxDamage() * 5 / 100;
+-                int m = item.getMaxDamage() - l;
++                int j = itemStack3.getMaxDamage() - itemStack3.getDamageValue();
++                int k = itemStack3.getMaxDamage() - itemStack4.getDamageValue();
++                int l = j + k + itemStack3.getMaxDamage() * 5 / 100;
++                int m = itemStack3.getMaxDamage() - l;
+                 if (m < 0) {
+                     m = 0;
+                 }
+diff --git a/src/main/java/net/minecraft/world/item/trading/MerchantOffer.java b/src/main/java/net/minecraft/world/item/trading/MerchantOffer.java
+index 4f7457578ab3118d10e0d5dfc23d79c9b20c2f44..77a6257dd47d9f6bd63c282c235474c1c56fe5b0 100644
+--- a/src/main/java/net/minecraft/world/item/trading/MerchantOffer.java
++++ b/src/main/java/net/minecraft/world/item/trading/MerchantOffer.java
+@@ -136,7 +136,7 @@ public class MerchantOffer {
+             if (i <= 0) return ItemStack.EMPTY; // CraftBukkit - SPIGOT-5476
+             int j = Math.max(0, Mth.floor((float) (i * this.demand) * this.priceMultiplier));
+ 
+-            return this.baseCostA.copyWithCount(Mth.clamp(i + j + this.specialPriceDiff, 1, this.baseCostA.getItem().getMaxStackSize()));
++            return this.baseCostA.copyWithCount(Mth.clamp(i + j + this.specialPriceDiff, 1, this.baseCostA.getMaxStackSize()));
+         }
      }
  
 diff --git a/src/main/java/net/minecraft/world/level/ExplosionDamageCalculator.java b/src/main/java/net/minecraft/world/level/ExplosionDamageCalculator.java
@@ -7183,6 +7884,37 @@ index 728a607bb28f10955397744970554efe297ea5ca..8a5ab3fb41140e2e00db5887ceb8c299
          this.onRandomTick(state, world, pos, random);
      }
  
+diff --git a/src/main/java/net/minecraft/world/level/block/entity/AbstractFurnaceBlockEntity.java b/src/main/java/net/minecraft/world/level/block/entity/AbstractFurnaceBlockEntity.java
+index a3c46f29d95d71913406217cda8666cdb4bca90e..a1375ddd7f918b9230624dbefab1320774527238 100644
+--- a/src/main/java/net/minecraft/world/level/block/entity/AbstractFurnaceBlockEntity.java
++++ b/src/main/java/net/minecraft/world/level/block/entity/AbstractFurnaceBlockEntity.java
+@@ -363,9 +363,9 @@ public abstract class AbstractFurnaceBlockEntity extends BaseContainerBlockEntit
+ 
+                         itemstack.shrink(1);
+                         if (itemstack.isEmpty()) {
+-                            Item item1 = item.getCraftingRemainingItem();
++                            ItemStack item1 = itemstack.getCraftingRemainingItem();
+ 
+-                            blockEntity.items.set(1, item1 == null ? ItemStack.EMPTY : new ItemStack(item1));
++                            blockEntity.items.set(1, item1 == null ? ItemStack.EMPTY : item1);
+                         }
+                     }
+                 }
+diff --git a/src/main/java/net/minecraft/world/level/block/entity/BrewingStandBlockEntity.java b/src/main/java/net/minecraft/world/level/block/entity/BrewingStandBlockEntity.java
+index c57efcb9a79337ec791e4e8f6671612f0a82b441..dac6df6708ebcf897443890716d847a90fee9a37 100644
+--- a/src/main/java/net/minecraft/world/level/block/entity/BrewingStandBlockEntity.java
++++ b/src/main/java/net/minecraft/world/level/block/entity/BrewingStandBlockEntity.java
+@@ -280,8 +280,8 @@ public class BrewingStandBlockEntity extends BaseContainerBlockEntity implements
+         }
+ 
+         itemstack.shrink(1);
+-        if (itemstack.getItem().hasCraftingRemainingItem()) {
+-            ItemStack itemstack1 = new ItemStack(itemstack.getItem().getCraftingRemainingItem());
++        if (itemstack.hasCraftingRemainingItem()) {
++            ItemStack itemstack1 = itemstack.getCraftingRemainingItem();
+ 
+             if (itemstack.isEmpty()) {
+                 itemstack = itemstack1;
 diff --git a/src/main/java/net/minecraft/world/level/block/piston/PistonBaseBlock.java b/src/main/java/net/minecraft/world/level/block/piston/PistonBaseBlock.java
 index 5acf0e1fba2967e67bdb208ef73ae8fa84ffe35d..f469588501207607c1700b26c901faa136700fea 100644
 --- a/src/main/java/net/minecraft/world/level/block/piston/PistonBaseBlock.java
@@ -7454,8 +8186,72 @@ index f0de72afad4bb571153436399386a6a8a70582a6..f5bc52019b0e4748cc97c3098dcb5598
                      this.tickingBlockCount = (short)(this.tickingBlockCount + 1);
                      this.tickingList.add(i, iblockdata);
                  }
+diff --git a/src/main/java/org/bukkit/craftbukkit/CraftFoodProperties.java b/src/main/java/org/bukkit/craftbukkit/CraftFoodProperties.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..1f204e8b4890d74f800ce4dfc10af5a22d073ec9
+--- /dev/null
++++ b/src/main/java/org/bukkit/craftbukkit/CraftFoodProperties.java
+@@ -0,0 +1,58 @@
++package org.bukkit.craftbukkit;
++
++import it.unimi.dsi.fastutil.Pair;
++import net.minecraft.world.effect.MobEffectInstance;
++import org.bukkit.craftbukkit.potion.CraftPotionUtil;
++import org.bukkit.inventory.FoodProperties;
++import org.bukkit.potion.PotionEffect;
++
++import java.util.List;
++import java.util.stream.Collectors;
++
++public class CraftFoodProperties implements FoodProperties {
++    public static net.minecraft.world.food.FoodProperties toNMS(FoodProperties foodProperties){
++        return ((CraftFoodProperties) foodProperties).handle;
++    }
++
++    public static FoodProperties toBukkit(net.minecraft.world.food.FoodProperties foodProperties){
++        return new CraftFoodProperties(foodProperties);
++    }
++
++    private final net.minecraft.world.food.FoodProperties handle;
++    public CraftFoodProperties(net.minecraft.world.food.FoodProperties handle){
++        this.handle = handle;
++    }
++    @Override
++    public int getNutrition() {
++        return handle.getNutrition();
++    }
++
++    @Override
++    public float getSaturationModifier() {
++        return handle.getSaturationModifier();
++    }
++
++    @Override
++    public boolean isMeat() {
++        return handle.isMeat();
++    }
++
++    @Override
++    public boolean canAlwaysEat() {
++        return handle.canAlwaysEat();
++    }
++
++    @Override
++    public boolean isFastFood() {
++        return handle.isFastFood();
++    }
++
++    @Override
++    public List<Pair<PotionEffect, Float>> getEffects() {
++        return handle.getEffects().stream().map(potionEffectFloatPair -> {
++            MobEffectInstance mobEffectInstance = potionEffectFloatPair.getFirst();
++            float value = potionEffectFloatPair.getSecond();
++            return Pair.of(CraftPotionUtil.toBukkit(mobEffectInstance), value);
++        }).collect(Collectors.toList());
++    }
++}
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-index fbbced3e47263c2cb24cb26681ea3098ec0bb4cc..ee5e901d71e0f4e266106e49f54078709271d8b5 100644
+index fbbced3e47263c2cb24cb26681ea3098ec0bb4cc..944dd0806fc9c18e72ad73f764b893b8690ee84a 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
 @@ -1099,6 +1099,7 @@ public final class CraftServer implements Server {
@@ -7466,6 +8262,17 @@ index fbbced3e47263c2cb24cb26681ea3098ec0bb4cc..ee5e901d71e0f4e266106e49f5407870
          this.enablePlugins(PluginLoadOrder.POSTWORLD);
          this.getPluginManager().callEvent(new ServerLoadEvent(ServerLoadEvent.LoadType.RELOAD));
          org.spigotmc.WatchdogThread.hasStarted = true; // Paper - Disable watchdog early timeout on reload
+@@ -1612,8 +1613,8 @@ public final class CraftServer implements Server {
+ 
+         // Set the resulting matrix items
+         for (int i = 0; i < craftingMatrix.length; i++) {
+-            Item remaining = inventoryCrafting.getContents().get(i).getItem().getCraftingRemainingItem();
+-            craftingMatrix[i] = (remaining != null) ? CraftItemStack.asBukkitCopy(remaining.getDefaultInstance()) : null;
++            net.minecraft.world.item.ItemStack remaining = inventoryCrafting.getContents().get(i).getCraftingRemainingItem();
++            craftingMatrix[i] = (remaining != null) ? CraftItemStack.asBukkitCopy(remaining) : null;
+         }
+ 
+         return CraftItemStack.asBukkitCopy(result);
 diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
 index e188bb3ba5d2ec28421947c0b66b25eecb569bfe..409b0b2275878f16152a6992ea054029ab1e80c7 100644
 --- a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
@@ -7564,3 +8371,16 @@ index e188bb3ba5d2ec28421947c0b66b25eecb569bfe..409b0b2275878f16152a6992ea054029
          this.getHandle().containerMenu.sendAllDataToRemote();
      }
  
+diff --git a/src/main/java/org/bukkit/craftbukkit/inventory/CraftItemStack.java b/src/main/java/org/bukkit/craftbukkit/inventory/CraftItemStack.java
+index 15d0f3c3b8892bcd423ccff282fd459b0673af0d..0448b9f634158a89d27fb26758fa89a28a2da2b1 100644
+--- a/src/main/java/org/bukkit/craftbukkit/inventory/CraftItemStack.java
++++ b/src/main/java/org/bukkit/craftbukkit/inventory/CraftItemStack.java
+@@ -202,7 +202,7 @@ public final class CraftItemStack extends ItemStack {
+ 
+     @Override
+     public int getMaxStackSize() {
+-        return (this.handle == null) ? Material.AIR.getMaxStackSize() : this.handle.getItem().getMaxStackSize();
++        return (this.handle == null) ? Material.AIR.getMaxStackSize() : this.handle.getMaxStackSize();
+     }
+ 
+     // Paper start
