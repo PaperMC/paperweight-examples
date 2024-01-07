@@ -4,6 +4,28 @@ Date: Sun, 7 Jan 2024 14:38:05 +0100
 Subject: [PATCH] Adding ItemBehaviour
 
 
+diff --git a/src/main/java/net/minecraft/world/entity/LivingEntity.java b/src/main/java/net/minecraft/world/entity/LivingEntity.java
+index 1fc6c3c8b2ad338bbb97d13b5fc3e12a368c5a11..c92d1137c4dc1c794e2ca26138b938cfa6fb8ea8 100644
+--- a/src/main/java/net/minecraft/world/entity/LivingEntity.java
++++ b/src/main/java/net/minecraft/world/entity/LivingEntity.java
+@@ -3836,7 +3836,7 @@ public abstract class LivingEntity extends Entity implements Attackable {
+ 
+         // Paper start - lag compensate eating
+         // we add 1 to the expected time to avoid lag compensating when we should not
+-        boolean shouldLagCompensate = this.useItem.getItem().isEdible() && this.eatStartTime != -1 && (System.nanoTime() - this.eatStartTime) > ((1 + this.totalEatTimeTicks) * 50 * (1000 * 1000));
++        boolean shouldLagCompensate = this.useItem.isEdible() && this.eatStartTime != -1 && (System.nanoTime() - this.eatStartTime) > ((1 + this.totalEatTimeTicks) * 50 * (1000 * 1000));
+         if ((--this.useItemRemaining == 0 || shouldLagCompensate) && !this.level().isClientSide && !stack.useOnRelease()) {
+             this.useItemRemaining = 0;
+             // Paper end
+@@ -3847,7 +3847,7 @@ public abstract class LivingEntity extends Entity implements Attackable {
+ 
+     private boolean shouldTriggerItemUseEffects() {
+         int i = this.getUseItemRemainingTicks();
+-        FoodProperties foodinfo = this.useItem.getItem().getFoodProperties();
++        FoodProperties foodinfo = this.useItem.getFoodProperties();
+         boolean flag = foodinfo != null && foodinfo.isFastFood();
+ 
+         flag |= i <= this.useItem.getUseDuration() - 7;
 diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/ItemBehaviourUtil.java b/src/main/java/de/verdox/mccreativelab/behaviour/ItemBehaviourUtil.java
 new file mode 100644
 index 0000000000000000000000000000000000000000..cf729ffdb6c31a28b5fe78362abffbd67a4e9aeb
@@ -554,7 +576,7 @@ index c057c0138cad7c3ee221b3a30d8713231ccd03ab..c758cc841da8359a5ac4ef27978e02d1
  
      public boolean isEnchantable() {
 -        return !this.getItem().isEnchantable(this) ? false : !this.isEnchanted();
-+        return !de.verdox.mccreativelab.behaviour.ItemBehaviourUtil.isEnchantable(this, entity) ? false : !this.isEnchanted(); //MCCLab - Adding ItemBehaviour
++        return !de.verdox.mccreativelab.behaviour.ItemBehaviourUtil.isEnchantable(this) ? false : !this.isEnchanted(); //MCCLab - Adding ItemBehaviour
      }
  
      public void enchant(Enchantment enchantment, int level) {
