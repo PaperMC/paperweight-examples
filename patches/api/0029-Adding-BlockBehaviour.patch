@@ -1,0 +1,1186 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <mail.ysp@web.de>
+Date: Sun, 7 Jan 2024 16:18:18 +0100
+Subject: [PATCH] Adding BlockBehaviour
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/CustomBehaviour.java b/src/main/java/de/verdox/mccreativelab/CustomBehaviour.java
+index 2f9981a67d72f575fb2ac37b8b6c2bde4d0733ed..65f0b720ca3cca54440f90b0f6e26f444396cd0b 100644
+--- a/src/main/java/de/verdox/mccreativelab/CustomBehaviour.java
++++ b/src/main/java/de/verdox/mccreativelab/CustomBehaviour.java
+@@ -19,6 +19,10 @@ public class CustomBehaviour<T> {
+         this.key = key;
+     }
+ 
++    public String getKey() {
++        return key;
++    }
++
+     /**
+      * Used to set a new behaviour.
+      * @param behaviour The new implementation
+diff --git a/src/main/java/de/verdox/mccreativelab/MultiCustomBehaviour.java b/src/main/java/de/verdox/mccreativelab/MultiCustomBehaviour.java
+index 5db6debc33b781afff966bfc86db11d5b17273da..f3f6272c3e6a56a1ead0ea8484a077ac9d7d21cb 100644
+--- a/src/main/java/de/verdox/mccreativelab/MultiCustomBehaviour.java
++++ b/src/main/java/de/verdox/mccreativelab/MultiCustomBehaviour.java
+@@ -17,6 +17,10 @@ public class MultiCustomBehaviour<K, T> {
+         this.key = key;
+     }
+ 
++    public String getKey() {
++        return key;
++    }
++
+     /**
+      * Used to set a new behaviour.
+      *
+diff --git a/src/main/java/de/verdox/mccreativelab/ai/EntityBrain.java b/src/main/java/de/verdox/mccreativelab/ai/EntityBrain.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..98eeba9031f61892ae8d2a6042c2739fe9bb2bf2
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/ai/EntityBrain.java
+@@ -0,0 +1,46 @@
++package de.verdox.mccreativelab.ai;
++
++import de.verdox.mccreativelab.ai.behaviour.AIBehaviour;
++import de.verdox.mccreativelab.ai.behaviour.MemoryStatus;
++import de.verdox.mccreativelab.ai.behaviour.PaperAIBehaviour;
++import org.bukkit.EntityActivity;
++import org.bukkit.EntitySchedule;
++import org.bukkit.World;
++import org.bukkit.entity.LivingEntity;
++import org.bukkit.entity.memory.MemoryKey;
++
++import javax.annotation.Nullable;
++import java.util.*;
++import java.util.function.Consumer;
++
++public interface EntityBrain<E extends LivingEntity> {
++    <U> void eraseMemory(MemoryKey<U> memoryKey);
++    <U> void setMemory(MemoryKey<U> type, @Nullable U value);
++    <U> void setMemoryWithExpiry(MemoryKey<U> type, U value, long expiry);
++    <U> Optional<U> getMemory(MemoryKey<U> type);
++    <U> long getTimeUntilExpiry(MemoryKey<U> type);
++    <U> boolean isMemoryValue(MemoryKey<U> type, U value);
++    boolean checkMemory(MemoryKey<?> type, MemoryStatus state);
++    EntitySchedule getSchedule();
++    void setSchedule(EntitySchedule schedule);
++    void setCoreActivities(Set<EntityActivity> coreActivities);
++    void useDefaultActivity();
++    Optional<EntityActivity> getActiveNonCoreActivity();
++    void setActiveActivityIfPossible(EntityActivity activity);
++    void updateActivityFromSchedule(long timeOfDay, long time);
++    void setActiveActivityToFirstValid(List<EntityActivity> activities);
++    void setDefaultActivity(EntityActivity activity);
++    void addActivity(ActivityBuilder<E> activityBuilder);
++    void addActivity(EntityActivity activity, Consumer<ActivityBuilder<E>> activityBuilder);
++    boolean isActive(EntityActivity activity);
++    EntityBrain<E> copyWithoutBehaviours();
++    void stopAll(World world, E entity);
++
++    ActivityBuilder<E> createActivityBuilder(EntityActivity entityActivity);
++
++    interface ActivityBuilder<E extends LivingEntity>{
++        ActivityBuilder<E> withBehaviour(int priority, PaperAIBehaviour<E> aiBehaviour);
++        ActivityBuilder<E> withRequiredMemory(MemoryKey<?> requiredMemoryKey, MemoryStatus memoryStatus);
++        ActivityBuilder<E> withForgettingMemoriesWhenStopped(MemoryKey<?> forgettingMemoryKey);
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/ai/behaviour/AIBehaviour.java b/src/main/java/de/verdox/mccreativelab/ai/behaviour/AIBehaviour.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..3812941e39c3c061843bc134c62246abbe268b65
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/ai/behaviour/AIBehaviour.java
+@@ -0,0 +1,30 @@
++package de.verdox.mccreativelab.ai.behaviour;
++
++import org.bukkit.World;
++import org.bukkit.entity.LivingEntity;
++import org.bukkit.entity.memory.MemoryKey;
++
++import java.util.Map;
++
++public interface AIBehaviour<E extends LivingEntity> {
++    int getMinDuration();
++
++    int getMaxDuration();
++
++    Map<MemoryKey<?>, MemoryStatus> getRequiredMemoryStates();
++
++    void start(World world, E entity, long time);
++    void tick(World world, E entity, long time);
++
++    void stop(World world, E entity, long time);
++
++    boolean canStillUse(World world, E entity, long time);
++
++    boolean checkExtraStartConditions(World world, E entity, long time);
++    Class<? extends E> getEntityType();
++
++    enum Status {
++        STOPPED,
++        RUNNING,
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/ai/behaviour/MemoryStatus.java b/src/main/java/de/verdox/mccreativelab/ai/behaviour/MemoryStatus.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..77805bd6bec0ea906f8c94c5cb78c12be72c94a4
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/ai/behaviour/MemoryStatus.java
+@@ -0,0 +1,7 @@
++package de.verdox.mccreativelab.ai.behaviour;
++
++public enum MemoryStatus {
++    VALUE_PRESENT,
++    VALUE_ABSENT,
++    REGISTERED;
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/ai/behaviour/PaperAIBehaviour.java b/src/main/java/de/verdox/mccreativelab/ai/behaviour/PaperAIBehaviour.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..08da2f169d21f59f606f042458feb6b110f1d290
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/ai/behaviour/PaperAIBehaviour.java
+@@ -0,0 +1,50 @@
++package de.verdox.mccreativelab.ai.behaviour;
++
++import org.bukkit.entity.LivingEntity;
++import org.bukkit.entity.memory.MemoryKey;
++
++import java.util.HashMap;
++import java.util.Map;
++
++public abstract class PaperAIBehaviour<E extends LivingEntity> implements AIBehaviour<E> {
++    private final Class<? extends E> entityType;
++    private final Map<MemoryKey<?>, MemoryStatus> requiredMemoryState;
++    private final int minRunTime;
++    private final int maxRunTime;
++    private Status status = Status.STOPPED;
++
++    public PaperAIBehaviour(Class<? extends E> entityType, Map<MemoryKey<?>, MemoryStatus> requiredMemoryState, int minRunTime, int maxRunTime){
++        this.entityType = entityType;
++        this.requiredMemoryState = requiredMemoryState;
++        this.minRunTime = minRunTime;
++        this.maxRunTime = maxRunTime;
++    }
++
++    public PaperAIBehaviour(Class<? extends E> entityType, Map<MemoryKey<?>, MemoryStatus> requiredMemoryState) {
++        this(entityType, requiredMemoryState, 60);
++    }
++
++    public PaperAIBehaviour(Class<? extends E> entityType, Map<MemoryKey<?>, MemoryStatus> requiredMemoryState, int runTime) {
++        this(entityType, requiredMemoryState, runTime, runTime);
++    }
++
++    @Override
++    public final int getMinDuration() {
++        return minRunTime;
++    }
++
++    @Override
++    public final int getMaxDuration() {
++        return maxRunTime;
++    }
++
++    @Override
++    public final Map<MemoryKey<?>, MemoryStatus> getRequiredMemoryStates() {
++        return new HashMap<>(requiredMemoryState);
++    }
++
++    @Override
++    public final Class<? extends E> getEntityType() {
++        return entityType;
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/BehaviourResult.java b/src/main/java/de/verdox/mccreativelab/behaviour/BehaviourResult.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..adfef7680d03193d829e8aedf17a97e2d66b56e1
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/behaviour/BehaviourResult.java
+@@ -0,0 +1,132 @@
++package de.verdox.mccreativelab.behaviour;
++
++import java.util.function.Supplier;
++
++/**
++ * @param <T> The actual return value of a behaviour that was run.
++ * @param <R> The Result Type
++ */
++public abstract class BehaviourResult<T, R extends Enum<?>> {
++    private final T value;
++    private final R result;
++
++    BehaviourResult(T value, R result) {
++        this.value = value;
++        this.result = result;
++    }
++
++    protected T getValue() {
++        return value;
++    }
++
++    protected R getResult() {
++        return result;
++    }
++
++    protected abstract T evaluateReturnValue(Supplier<T> vanillaLogic);
++    protected abstract boolean replaceVanillaLogic();
++
++    public static class Callback extends BehaviourResult<java.lang.Void, Callback.Type> {
++        public static final Callback DEFAULT_INSTANCE = new Callback();
++
++        Callback() {
++            super(null, Type.NONE);
++        }
++
++        @Override
++        protected java.lang.Void evaluateReturnValue(Supplier<java.lang.Void> vanillaLogic) {
++            return null;
++        }
++
++        @Override
++        protected boolean replaceVanillaLogic() {
++            return false;
++        }
++
++        public enum Type {
++            NONE,
++        }
++    }
++
++    public static class Void extends BehaviourResult<java.lang.Void, Void.Type> {
++        public static final Void DEFAULT_INSTANCE = new Void(Void.Type.USE_VANILLA);
++
++        public Void(Type result) {
++            super(null, result);
++        }
++
++        public boolean replaceVanillaLogic() {
++            return Type.REPLACE_VANILLA.equals(getResult());
++        }
++
++        @Override
++        protected java.lang.Void evaluateReturnValue(Supplier<java.lang.Void> vanillaLogic) {
++            if (!Type.REPLACE_VANILLA.equals(getResult()))
++                return vanillaLogic.get();
++            else
++                return getValue();
++        }
++
++        public enum Type {
++            REPLACE_VANILLA,
++            USE_VANILLA
++        }
++    }
++
++    public static class Bool extends BehaviourResult<Boolean, Bool.Type> {
++        public static final Bool DEFAULT_INSTANCE = new Bool(false, Type.ONLY_VANILLA);
++
++        public Bool(Boolean value, Type result) {
++            super(value, result);
++        }
++
++        @Override
++        protected Boolean evaluateReturnValue(Supplier<Boolean> vanillaLogic) {
++            return switch (getResult()) {
++                case AND -> vanillaLogic.get() && getValue();
++                case OR -> vanillaLogic.get() || getValue();
++                case XOR -> vanillaLogic.get() ^ getValue();
++                case REPLACE_VANILLA -> getValue();
++                case ONLY_VANILLA -> vanillaLogic.get();
++            };
++        }
++
++        @Override
++        protected boolean replaceVanillaLogic() {
++            return Bool.Type.REPLACE_VANILLA.equals(getResult());
++        }
++        public enum Type {
++            AND,
++            OR,
++            XOR,
++            REPLACE_VANILLA,
++            ONLY_VANILLA,
++        }
++    }
++
++    public static class Object<T> extends BehaviourResult<T, Object.Type> {
++        public static final Object DEFAULT_INSTANCE = new Object(null, Type.USE_VANILLA);
++
++        public Object(T value, Type result) {
++            super(value, result);
++        }
++
++        @Override
++        protected T evaluateReturnValue(Supplier<T> vanillaLogic) {
++            return switch (getResult()) {
++                case REPLACE_VANILLA -> getValue();
++                case USE_VANILLA -> vanillaLogic.get();
++            };
++        }
++
++        @Override
++        protected boolean replaceVanillaLogic() {
++            return Object.Type.REPLACE_VANILLA.equals(getResult());
++        }
++
++        public enum Type {
++            REPLACE_VANILLA,
++            USE_VANILLA
++        }
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/BlockBehaviour.java b/src/main/java/de/verdox/mccreativelab/behaviour/BlockBehaviour.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..db69e6d95c2537309b62d1a898df2c5b11b003d1
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/behaviour/BlockBehaviour.java
+@@ -0,0 +1,214 @@
++package de.verdox.mccreativelab.behaviour;
++
++import de.verdox.mccreativelab.InteractionResult;
++import de.verdox.mccreativelab.MultiCustomBehaviour;
++import de.verdox.mccreativelab.random.VanillaRandomSource;
++import org.bukkit.Location;
++import org.bukkit.Material;
++import org.bukkit.World;
++import org.bukkit.block.Block;
++import org.bukkit.block.BlockFace;
++import org.bukkit.block.data.BlockData;
++import org.bukkit.entity.Entity;
++import org.bukkit.entity.Player;
++import org.bukkit.inventory.EquipmentSlot;
++import org.bukkit.util.RayTraceResult;
++
++public interface BlockBehaviour {
++    MultiCustomBehaviour<Material, BlockBehaviour> BLOCK_BEHAVIOUR = new MultiCustomBehaviour<>("MCCLab - BlockBehaviour");
++
++    /**
++     * This method is called to get the explosion resistance of a block
++     *
++     * @param block     The block
++     * @param blockData The blockData of the block
++     * @return float result
++     */
++    default BehaviourResult.Object<Float> getExplosionResistance(Block block, BlockData blockData) {
++        return BehaviourResult.Object.DEFAULT_INSTANCE;
++    }
++
++    /**
++     * This method is called everytime the block receives a block update due to any reason.
++     * Normally this happens when a block next to this block was changed. If you want to implement any custom behaviour on environmental changes use this method.
++     *
++     * @param location           The location of the block
++     * @param blockData          The blockData of the block
++     * @param direction          The direction of the Blockupdate
++     * @param neighbourBlockData The neighbour blockdata that issued the block update
++     * @param neighbourLocation  The neighbour location
++     * @return The blockdata that results from this update.
++     */
++    default BehaviourResult.Object<BlockData> blockUpdate(Location location, BlockData blockData, BlockFace direction, BlockData neighbourBlockData, Location neighbourLocation) {
++        return BehaviourResult.Object.DEFAULT_INSTANCE;
++    }
++
++    /**
++     * This method is called everytime the block recognizes a neighbour block update
++     * Normally this happens when a block next to this block was changed. If you want to implement any custom behaviour on environmental changes use this method.
++     *
++     * @param block           The block recognizing the neighbour update
++     * @param sourceBlock     The neighbour block receiving the block update
++     * @param notify          The Notify flag
++     */
++    default BehaviourResult.Void onNeighbourBlockUpdate(Block block, Block sourceBlock, boolean notify) {
++        return BehaviourResult.Void.DEFAULT_INSTANCE;
++    }
++
++    /**
++     * This method is called whenever an entity steps on a block
++     *
++     * @param block     The block
++     * @param blockData The blockData of the block
++     * @param entity    The Entity stepping on the block
++     * @return void result
++     */
++    default BehaviourResult.Void stepOn(Block block, BlockData blockData, Entity entity) {
++        return BehaviourResult.Void.DEFAULT_INSTANCE;
++    }
++
++    /**
++     * This method is called every time the server software tries to randomly tick a block.
++     *
++     * @param block               The randomly ticked block
++     * @param vanillaRandomSource The vanilla random source
++     */
++    default BehaviourResult.Void randomTick(Block block, VanillaRandomSource vanillaRandomSource) {
++        return BehaviourResult.Void.DEFAULT_INSTANCE;
++    }
++
++    /**
++     * This method is called to check if a blockdata is randomly ticking regardless of it being placed in a world right now.
++     *
++     * @param blockData The block data of the block
++     * @return A boolean result
++     */
++    default BehaviourResult.Bool isBlockDataRandomlyTicking(BlockData blockData) {
++        return BehaviourResult.Bool.DEFAULT_INSTANCE;
++    }
++
++    /**
++     * This method is called to check if a block in a world is randomly ticking
++     *
++     * @param block     The block
++     * @param blockData The block data of the block
++     * @return A boolean result
++     */
++    default BehaviourResult.Bool isBlockRandomlyTicking(Block block, BlockData blockData) {
++        return BehaviourResult.Bool.DEFAULT_INSTANCE;
++    }
++
++    /**
++     * This callback is run after the server placed a block due to any reason
++     *
++     * @param location     The location
++     * @param newBlockData The new block data
++     * @param oldBlockData The old block data
++     * @param notify       Whether this notifies the world
++     * @return callback
++     */
++    default BehaviourResult.Callback onPlace(Location location, BlockData newBlockData, BlockData oldBlockData, boolean notify) {
++        return BehaviourResult.Callback.DEFAULT_INSTANCE;
++    }
++
++    /**
++     * This callback is run after a player placed a block
++     *
++     * @param player   The player
++     * @param location The location
++     * @return callback
++     */
++    default BehaviourResult.Callback onPlayerPlace(Player player, Location location, BlockData thePlacedState) {
++        return BehaviourResult.Callback.DEFAULT_INSTANCE;
++    }
++
++    /**
++     * This callback is run after a player breaks a block
++     *
++     * @param player      The player
++     * @param location    The location
++     * @param brokenState The broken block state
++     * @return callback
++     */
++    default BehaviourResult.Callback onPlayerBreak(Player player, Location location, BlockData brokenState) {
++        return BehaviourResult.Callback.DEFAULT_INSTANCE;
++    }
++
++
++    /**
++     * This callback is run after the server removes a block due to any reason
++     *
++     * @param location     The location
++     * @param newBlockData The new block data
++     * @param oldBlockData The old block data
++     * @param moved        Whether the block was moved
++     * @return callback
++     */
++    default BehaviourResult.Callback onRemove(Location location, BlockData newBlockData, BlockData oldBlockData, boolean moved) {
++        return BehaviourResult.Callback.DEFAULT_INSTANCE;
++    }
++
++    /**
++     * This callback is run after a player interacted with this block. This method is not run on blocks that call bukkit events! Only on those that do not define any specific onUse Behaviour
++     *
++     * @param block          The block
++     * @param player         The player
++     * @param hand           The Hand used to interact
++     * @param rayTraceResult The interaction info
++     * @return callback
++     */
++    default BehaviourResult.Callback onUse(Block block, Player player, EquipmentSlot hand, RayTraceResult rayTraceResult) {
++        return BehaviourResult.Callback.DEFAULT_INSTANCE;
++    }
++
++    /**
++     * This method is run when a player interacts with a block in any way.
++     *
++     * @param block          The block
++     * @param player         The player
++     * @param hand           The Hand used to interact
++     * @param rayTraceResult The interaction info
++     * @return The result of this interaction
++     */
++    default BehaviourResult.Object<InteractionResult> use(Block block, Player player, EquipmentSlot hand, RayTraceResult rayTraceResult){
++        return BehaviourResult.Object.DEFAULT_INSTANCE;
++    }
++
++    /**
++     * This method is called every time the server software ticks a block.
++     * <p>
++     * Some blocks may not be ticked in vanilla by default. For example Stone blocks don't receive ticks.
++     * Please use the blockUpdate method to implement any custom logic or to call this method.
++     *
++     * @param block               The ticked block
++     * @param vanillaRandomSource The vanilla random source
++     */
++    default BehaviourResult.Void tick(Block block, VanillaRandomSource vanillaRandomSource) {
++        return BehaviourResult.Void.DEFAULT_INSTANCE;
++    }
++
++    /**
++     * This method is called to check if a block can survive in the current environment
++     * <p>
++     * Some blocks may not use this method by default.
++     * Please use the blockUpdate method to implement any custom logic or to call this method.
++     *
++     * @param block The block
++     * @param world The world
++     * @return A boolean result
++     */
++    default BehaviourResult.Bool canSurvive(Block block, World world) {
++        return BehaviourResult.Bool.DEFAULT_INSTANCE;
++    }
++
++    /**
++     * This method is called every time a user left-clicks a block.
++     * <p>
++     *
++     * @param block  The clicked block
++     * @param player The player
++     */
++    default BehaviourResult.Void attack(Block block, Player player) {
++        return BehaviourResult.Void.DEFAULT_INSTANCE;
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/RandomTickBehaviour.java b/src/main/java/de/verdox/mccreativelab/behaviour/RandomTickBehaviour.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..28db22a347fdccbfb23aefd8696cd187a9e68c02
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/behaviour/RandomTickBehaviour.java
+@@ -0,0 +1,24 @@
++package de.verdox.mccreativelab.behaviour;
++
++import de.verdox.mccreativelab.MultiCustomBehaviour;
++import de.verdox.mccreativelab.random.VanillaRandomSource;
++import org.bukkit.Material;
++import org.bukkit.block.Block;
++import org.bukkit.block.data.BlockData;
++
++@Deprecated
++public interface RandomTickBehaviour {
++    MultiCustomBehaviour<Material, RandomTickBehaviour> RANDOM_TICK_BEHAVIOUR = new MultiCustomBehaviour<>("MCCLab - RandomTickBehaviour");
++    /**
++     * This method is called every time the server software checks whether a particular blockdata is randomly ticking.
++     * @param blockData The Blockdata
++     * @return true if the block is a valid bonemeal target
++     */
++    boolean isRandomlyTicking(BlockData blockData);
++    /**
++     * This method is called every time the server software tries to randomly tick a block.
++     * @param block The randomly ticked block
++     * @param vanillaRandomSource The vanilla random source
++     */
++    void randomTick(Block block, VanillaRandomSource vanillaRandomSource);
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/randomtick/VanillaBambooSaplingBlock.java b/src/main/java/de/verdox/mccreativelab/behaviour/randomtick/VanillaBambooSaplingBlock.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..85860c91897a8c37e763c15a3b24ff0fc4806659
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/behaviour/randomtick/VanillaBambooSaplingBlock.java
+@@ -0,0 +1,18 @@
++package de.verdox.mccreativelab.behaviour.randomtick;
++
++import de.verdox.mccreativelab.behaviour.RandomTickBehaviour;
++import de.verdox.mccreativelab.random.VanillaRandomSource;
++import org.bukkit.block.Block;
++import org.bukkit.block.data.BlockData;
++
++public class VanillaBambooSaplingBlock implements RandomTickBehaviour {
++    @Override
++    public boolean isRandomlyTicking(BlockData blockData) {
++        return false;
++    }
++
++    @Override
++    public void randomTick(Block block, VanillaRandomSource vanillaRandomSource) {
++
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/randomtick/VanillaCropBlockRandomTick.java b/src/main/java/de/verdox/mccreativelab/behaviour/randomtick/VanillaCropBlockRandomTick.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..73a11f2212bbb1a98d76840fca2bdb38135989a2
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/behaviour/randomtick/VanillaCropBlockRandomTick.java
+@@ -0,0 +1,160 @@
++package de.verdox.mccreativelab.behaviour.randomtick;
++
++import de.verdox.mccreativelab.behaviour.RandomTickBehaviour;
++import de.verdox.mccreativelab.random.VanillaRandomSource;
++import org.bukkit.Bukkit;
++import org.bukkit.Location;
++import org.bukkit.Material;
++import org.bukkit.block.Block;
++import org.bukkit.block.BlockFace;
++import org.bukkit.block.BlockState;
++import org.bukkit.block.data.Ageable;
++import org.bukkit.block.data.BlockData;
++import org.bukkit.block.data.type.Farmland;
++import org.bukkit.event.block.BlockGrowEvent;
++
++import java.util.concurrent.ThreadLocalRandom;
++
++public class VanillaCropBlockRandomTick implements RandomTickBehaviour {
++    @Override
++    public void randomTick(Block block, VanillaRandomSource vanillaRandomSource) {
++        var lightLevel = block.getLightLevel();
++        if (lightLevel < 9)
++            return;
++
++        Ageable ageable = (Ageable) block.getBlockData();
++        var age = ageable.getAge();
++
++        if (age < ageable.getMaximumAge()) {
++            float growthSpeed = calculateCropGrowthSpeed(block);
++
++            int modifier;
++            if (block.getType().equals(Material.BEETROOT))
++                modifier = getAndValidateGrowth("Beetroot");
++            else if (block.getType().equals(Material.CARROT))
++                modifier = getAndValidateGrowth("Carrot");
++            else if (block.getType().equals(Material.POTATO))
++                modifier = getAndValidateGrowth("Potato");
++            else if (block.getType().equals(Material.TORCHFLOWER_CROP))
++                modifier = getAndValidateGrowth("TorchFlower");
++            else
++                modifier = getAndValidateGrowth("Wheat");
++
++            var randomNumber = drawRandomNumber();
++
++            if(canGrow(block, growthSpeed, modifier, randomNumber)){
++                ageUpAndCallBlockGrowEvent(block, ageable);
++            }
++        }
++    }
++
++    protected void ageUpAndCallBlockGrowEvent(Block block, Ageable ageable) {
++        var stateSnapshot = block.getState();
++        ageable.setAge(Math.min(ageable.getMaximumAge(), ageable.getAge() + 1));
++        stateSnapshot.setBlockData(ageable);
++        handleBlockGrowEvent(block, stateSnapshot);
++    }
++
++    protected boolean handleBlockGrowEvent(Block block, BlockState newBlockState){
++        BlockGrowEvent event = new BlockGrowEvent(block, newBlockState);
++        Bukkit.getPluginManager().callEvent(event);
++
++        if (!event.isCancelled()) {
++            block.setBlockData(newBlockState.getBlockData());
++        }
++        return !event.isCancelled();
++    }
++
++    protected boolean handleBlockGrowEvent(Block block, BlockData blockData){
++        var blockState = block.getState(true);
++        blockState.setBlockData(blockData);
++        return handleBlockGrowEvent(block, blockState);
++    }
++
++    protected float drawRandomNumber(){
++        return ThreadLocalRandom.current().nextFloat();
++    }
++
++    @Override
++    public boolean isRandomlyTicking(BlockData blockData) {
++        if(!(blockData instanceof Ageable ageable))
++            return false;
++        return ageable.getAge() < ageable.getMaximumAge();
++    }
++
++    protected boolean canGrow(Block block, float growthSpeed, float spigotConfigModifier, float minecraftRandomNumber){
++        return minecraftRandomNumber < (spigotConfigModifier / (100.0f * (Math.floor((25.0F / growthSpeed) + 1))));
++    }
++
++    protected float calculateCropGrowthSpeed(Block block) {
++        float growthSpeed = 1.0F;
++        var pos = block.getLocation();
++        var world = block.getWorld();
++        var farmLandPos = pos.getBlock().getRelative(BlockFace.DOWN).getLocation();
++
++        for (int i = -1; i <= 1; ++i) {
++            for (int j = -1; j <= 1; ++j) {
++                float tempGrowthSpeedValueThisBlock = 0.0F;
++                var blockState = world.getBlockState(farmLandPos.clone().add(i, 0, j));
++
++                if (blockState.getType().equals(Material.FARMLAND)) {
++                    var farmLand = ((Farmland) blockState.getBlockData());
++                    tempGrowthSpeedValueThisBlock = calculateGrowthSpeedValueBasedOnFarmland(farmLand);
++                }
++
++                if (i != 0 || j != 0)
++                    tempGrowthSpeedValueThisBlock /= 4.0F;
++
++
++                growthSpeed += tempGrowthSpeedValueThisBlock;
++            }
++        }
++
++        var northBlockPos = getRelative(pos, BlockFace.NORTH);
++        var southBlockPos = getRelative(pos, BlockFace.SOUTH);
++        var westBlockPos = getRelative(pos, BlockFace.WEST);
++        var eastBlockPos = getRelative(pos, BlockFace.EAST);
++        boolean westOrEastSameCrop = isSameCrop(block, westBlockPos) || isSameCrop(block, eastBlockPos);
++        boolean northOrWestSameCrop = isSameCrop(block, northBlockPos) || isSameCrop(block, southBlockPos);
++
++        if (westOrEastSameCrop && northOrWestSameCrop)
++            growthSpeed /= 2.0F;
++        else {
++            boolean sameCropDiagonal =
++                isSameCrop(block, getRelative(westBlockPos, BlockFace.NORTH))
++                    || isSameCrop(block, getRelative(eastBlockPos, BlockFace.NORTH))
++                    || isSameCrop(block, getRelative(eastBlockPos, BlockFace.SOUTH))
++                    || isSameCrop(block, getRelative(westBlockPos, BlockFace.SOUTH));
++
++            if (sameCropDiagonal)
++                growthSpeed /= 2.0F;
++        }
++
++        return growthSpeed;
++    }
++
++    protected float calculateGrowthSpeedValueBasedOnFarmland(Farmland farmLand) {
++        float tempGrowthSpeedValueThisBlock;
++        tempGrowthSpeedValueThisBlock = 1.0F;
++        if (farmLand.getMoisture() > 0) {
++            tempGrowthSpeedValueThisBlock = 3.0F;
++        }
++        return tempGrowthSpeedValueThisBlock;
++    }
++
++    protected final Location getRelative(Location location, BlockFace face) {
++        return location.getBlock().getRelative(face).getLocation();
++    }
++
++    protected final int getAndValidateGrowth(String crop) {
++        var config = Bukkit.spigot().getSpigotConfig();
++        int modifier = config.getInt("growth." + crop.toLowerCase(java.util.Locale.ENGLISH) + "-modifier", 100);
++        if (modifier == 0)
++            modifier = 100;
++        return modifier;
++    }
++
++    protected boolean isSameCrop(Block block, Location relativePos) {
++        return block.getWorld().getBlockState(relativePos).getType().equals(block.getType());
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/randomtick/VanillaFarmBlockTickBehaviour.java b/src/main/java/de/verdox/mccreativelab/behaviour/randomtick/VanillaFarmBlockTickBehaviour.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..3e02cb17beeb341d99ba79ed61f71272fc41cc28
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/behaviour/randomtick/VanillaFarmBlockTickBehaviour.java
+@@ -0,0 +1,103 @@
++package de.verdox.mccreativelab.behaviour.randomtick;
++
++import de.verdox.mccreativelab.behaviour.RandomTickBehaviour;
++import de.verdox.mccreativelab.random.VanillaRandomSource;
++import org.bukkit.Bukkit;
++import org.bukkit.GameEvent;
++import org.bukkit.Material;
++import org.bukkit.Tag;
++import org.bukkit.block.Block;
++import org.bukkit.block.BlockState;
++import org.bukkit.block.data.BlockData;
++import org.bukkit.block.data.type.Farmland;
++import org.bukkit.event.block.BlockFadeEvent;
++import org.bukkit.event.block.MoistureChangeEvent;
++import org.bukkit.util.BlockVector;
++
++public class VanillaFarmBlockTickBehaviour implements RandomTickBehaviour {
++    private static int FARMLAND_WATER_RADIUS = 4;
++
++    @Override
++    public void randomTick(Block block, VanillaRandomSource vanillaRandomSource) {
++        Farmland farmlandData = (Farmland) block.getBlockData();
++        int moisture = farmlandData.getMoisture();
++
++        if (isNearWater(block, FARMLAND_WATER_RADIUS) || block.getWorld()
++                                                              .isRainingAt(above(block).getLocation())) {
++            if (moisture >= 7)
++                return;
++            handleMoistureChangeEvent(block, 7);
++            return;
++        }
++
++        if (moisture > 0)
++            handleMoistureChangeEvent(block, moisture - 1);
++        else if (!shouldMaintainFarmland(block))
++            turnToDirt(block);
++    }
++
++    @Override
++    public boolean isRandomlyTicking(BlockData blockData) {
++        return true;
++    }
++
++    private static boolean shouldMaintainFarmland(Block block) {
++        return Tag.MAINTAINS_FARMLAND.isTagged(above(block).getType());
++    }
++
++    private static Block above(Block block) {
++        return block.getRelative(0, 1, 0);
++    }
++
++    private static boolean isNearWater(Block block, int horizontalRadius) {
++        int xOff = block.getX();
++        int yOff = block.getY();
++        int zOff = block.getZ();
++
++        for (int dz = -horizontalRadius; dz <= horizontalRadius; ++dz) {
++            int z = dz + zOff;
++            for (int dx = -horizontalRadius; dx <= horizontalRadius; ++dx) {
++                int x = xOff + dx;
++                for (int dy = 0; dy <= 1; ++dy) {
++                    int y = dy + yOff;
++                    Block nearBlock = block.getWorld().getBlockAt(x, y, z);
++                    if (nearBlock.getType().equals(Material.WATER))
++                        return true;
++                }
++            }
++        }
++
++        return false;
++    }
++
++    private static boolean handleMoistureChangeEvent(Block block, int newMoistureLevel) {
++        Farmland farmland = (Farmland) block.getBlockData();
++        if (newMoistureLevel == farmland.getMoisture() || newMoistureLevel > farmland.getMaximumMoisture())
++            return false;
++
++        farmland.setMoisture(newMoistureLevel);
++        var newState = block.getState();
++        newState.setBlockData(farmland);
++
++        MoistureChangeEvent event = new MoistureChangeEvent(block, newState);
++        Bukkit.getPluginManager().callEvent(event);
++
++        if (!event.isCancelled()) {
++            block.setBlockData(newState.getBlockData());
++        }
++        return !event.isCancelled();
++    }
++
++    private static void turnToDirt(Block block){
++        BlockState newState = block.getState();
++        newState.setType(Material.DIRT);
++
++        BlockFadeEvent event = new BlockFadeEvent(block, newState);
++        Bukkit.getPluginManager().callEvent(event);
++        if(event.isCancelled())
++            return;
++
++        block.setType(Material.DIRT, true);
++        block.getWorld().sendGameEvent(null, GameEvent.BLOCK_CHANGE, new BlockVector(block.getX(), block.getY(), block.getZ()));
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/randomtick/VanillaSaplingBlockBehaviour.java b/src/main/java/de/verdox/mccreativelab/behaviour/randomtick/VanillaSaplingBlockBehaviour.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..9c9175bf3fdbd9893c29ecfab5ea31e2f247f1fb
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/behaviour/randomtick/VanillaSaplingBlockBehaviour.java
+@@ -0,0 +1,28 @@
++package de.verdox.mccreativelab.behaviour.randomtick;
++
++import de.verdox.mccreativelab.random.VanillaRandomSource;
++import org.bukkit.block.Block;
++import org.bukkit.block.data.BlockData;
++import org.bukkit.block.data.type.Sapling;
++
++public class VanillaSaplingBlockBehaviour extends VanillaCropBlockRandomTick {
++    @Override
++    public void randomTick(Block block, VanillaRandomSource vanillaRandomSource) {
++        if(block.getLightLevel() >= 9 && drawRandomNumber() < (getAndValidateGrowth("Sapling") / (100.0f * 7))){
++            var sapling = (Sapling) block.getBlockData();
++            var stage = sapling.getStage();
++            if(stage == 0){
++                sapling.setStage(1);
++                handleBlockGrowEvent(block, sapling);
++            }
++            else {
++                block.getWorld().growTreeIfSapling(block.getLocation());
++            }
++        }
++    }
++
++    @Override
++    public boolean isRandomlyTicking(BlockData blockData) {
++        return true;
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/randomtick/VanillaStemBlockBehaviour.java b/src/main/java/de/verdox/mccreativelab/behaviour/randomtick/VanillaStemBlockBehaviour.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..448eecfb9cbfa8db18d20a1333705f19e345c018
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/behaviour/randomtick/VanillaStemBlockBehaviour.java
+@@ -0,0 +1,71 @@
++package de.verdox.mccreativelab.behaviour.randomtick;
++
++import de.verdox.mccreativelab.random.VanillaRandomSource;
++import org.bukkit.Bukkit;
++import org.bukkit.Material;
++import org.bukkit.block.Block;
++import org.bukkit.block.BlockFace;
++import org.bukkit.block.data.Ageable;
++import org.bukkit.block.data.BlockData;
++import org.bukkit.block.data.Directional;
++
++import java.util.concurrent.ThreadLocalRandom;
++
++public class VanillaStemBlockBehaviour extends VanillaCropBlockRandomTick {
++    public static BlockFace[] HORIZONTAL_PLANE = new BlockFace[]{BlockFace.NORTH, BlockFace.SOUTH, BlockFace.EAST, BlockFace.WEST};
++
++    @Override
++    public void randomTick(Block block, VanillaRandomSource vanillaRandomSource) {
++        var lightLevel = block.getLightLevel();
++        if (lightLevel < 9)
++            return;
++
++        float growthSpeed = calculateCropGrowthSpeed(block);
++        var randomNumber = drawRandomNumber();
++
++        int modifier;
++        Material fruit;
++        Material attachedStem;
++        if (block.getType().equals(Material.PUMPKIN_STEM)) {
++            modifier = getAndValidateGrowth("Pumpkin");
++            fruit = Material.PUMPKIN;
++            attachedStem = Material.ATTACHED_PUMPKIN_STEM;
++        }
++        else {
++            modifier = getAndValidateGrowth("Melon");
++            fruit = Material.MELON;
++            attachedStem = Material.ATTACHED_MELON_STEM;
++        }
++
++        if (randomNumber >= (modifier) / (100.0f * (Math.floor((25.0F / growthSpeed) + 1))))
++            return;
++
++        var ageable = (Ageable) block.getBlockData();
++        var age = ageable.getAge();
++        var maxAge = ageable.getMaximumAge();
++
++        if (age < maxAge) {
++            ageUpAndCallBlockGrowEvent(block, ageable);
++            return;
++        }
++        var randomBlockFace = HORIZONTAL_PLANE[ThreadLocalRandom.current().nextInt(HORIZONTAL_PLANE.length)];
++        var relativeBlockPos = getRelative(block.getLocation(), randomBlockFace);
++        var relativeBlock = relativeBlockPos.getBlock();
++        var belowRelativPos = relativeBlock.getRelative(0, -1, 0);
++
++        if (belowRelativPos.getType().isAir() && (relativeBlock.getType().equals(Material.FARMLAND) || relativeBlock
++            .getType().equals(Material.DIRT))) {
++
++            if(!handleBlockGrowEvent(relativeBlock, Bukkit.createBlockData(fruit)))
++                return;
++
++            var stemBlockData = Bukkit.createBlockData(attachedStem, blockData -> ((Directional) blockData).setFacing(randomBlockFace));
++            block.setBlockData(stemBlockData, true);
++        }
++    }
++
++    @Override
++    public boolean isRandomlyTicking(BlockData blockData) {
++        return true;
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/randomtick/VanillaSugarCaneBlockBehaviour.java b/src/main/java/de/verdox/mccreativelab/behaviour/randomtick/VanillaSugarCaneBlockBehaviour.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..a7615978914b2d9f306cebd54207a06c5b85a7f6
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/behaviour/randomtick/VanillaSugarCaneBlockBehaviour.java
+@@ -0,0 +1,42 @@
++package de.verdox.mccreativelab.behaviour.randomtick;
++
++import de.verdox.mccreativelab.random.VanillaRandomSource;
++import org.bukkit.Bukkit;
++import org.bukkit.Material;
++import org.bukkit.block.Block;
++import org.bukkit.block.data.Ageable;
++import org.bukkit.block.data.BlockData;
++
++public class VanillaSugarCaneBlockBehaviour extends VanillaCropBlockRandomTick {
++    @Override
++    public void randomTick(Block block, VanillaRandomSource vanillaRandomSource) {
++        if (!block.getRelative(0, 1, 0).getType().isAir())
++            return;
++        var heightCounter = 0;
++        for(heightCounter = 1; block.getRelative(0, heightCounter,0).getType().equals(Material.SUGAR_CANE); heightCounter++){
++            ;
++        }
++        var modifier = getAndValidateGrowth("Cane");
++        var ageable = (Ageable) block.getBlockData();
++        var age = ageable.getAge();
++        var maxAge = ageable.getMaximumAge();
++
++        if(heightCounter < 3){
++
++            if(age >= 15 || (modifier != 100 && drawRandomNumber() < (modifier / (100f * 16)))){
++                handleBlockGrowEvent(block.getRelative(0,1,0), Bukkit.createBlockData(Material.SUGAR_CANE));
++                ageable.setAge(0);
++                block.setBlockData(ageable);
++            }
++            else if(modifier == 100 || drawRandomNumber() < (modifier / (100.0f * 16))){
++                ageable.setAge(Math.min(maxAge, ageable.getAge() + 1));
++                block.setBlockData(ageable);
++            }
++        }
++    }
++
++    @Override
++    public boolean isRandomlyTicking(BlockData blockData) {
++        return true;
++    }
++}
+diff --git a/src/main/java/org/bukkit/EntityActivity.java b/src/main/java/org/bukkit/EntityActivity.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..b92f17064ddfadc7c74caffd6545d0cb11cf528e
+--- /dev/null
++++ b/src/main/java/org/bukkit/EntityActivity.java
+@@ -0,0 +1,46 @@
++package org.bukkit;
++
++import com.google.common.base.Preconditions;
++import org.jetbrains.annotations.NotNull;
++
++public interface EntityActivity extends Keyed {
++    EntityActivity CORE = getActivity("core");
++    EntityActivity IDLE = getActivity("idle");
++    EntityActivity WORK = getActivity("work");
++    EntityActivity PLAY = getActivity("play");
++    EntityActivity REST = getActivity("rest");
++    EntityActivity MEET = getActivity("meet");
++    EntityActivity PANIC = getActivity("panic");
++    EntityActivity RAID = getActivity("raid");
++    EntityActivity PRE_RAID = getActivity("pre_raid");
++    EntityActivity HIDE = getActivity("hide");
++    EntityActivity FIGHT = getActivity("fight");
++    EntityActivity CELEBRATE = getActivity("celebrate");
++    EntityActivity ADMIRE_ITEM = getActivity("admire_item");
++    EntityActivity AVOID = getActivity("avoid");
++    EntityActivity RIDE = getActivity("ride");
++    EntityActivity PLAY_DEAD = getActivity("play_dead");
++    EntityActivity LONG_JUMP = getActivity("long_jump");
++    EntityActivity RAM = getActivity("ram");
++    EntityActivity TONGUE = getActivity("tongue");
++    EntityActivity SWIM = getActivity("swim");
++    EntityActivity LAY_SPAWN = getActivity("lay_spawn");
++    EntityActivity SNIFF = getActivity("sniff");
++    EntityActivity INVESTIGATE = getActivity("investigate");
++    EntityActivity ROAR = getActivity("roar");
++    EntityActivity EMERGE = getActivity("emerge");
++    EntityActivity DIG = getActivity("dig");
++
++    @NotNull
++    static EntityActivity getActivity(@NotNull NamespacedKey namespacedKey) {
++        EntityActivity entityActivity = Registry.ENTITY_ACTIVITY.get(namespacedKey);
++        Preconditions.checkNotNull(entityActivity, "No EntityActivity found for %s", namespacedKey);
++        return entityActivity;
++    }
++
++    @NotNull
++    static EntityActivity getActivity(@NotNull String key) {
++        return getActivity(NamespacedKey.minecraft(key));
++    }
++    
++}
+diff --git a/src/main/java/org/bukkit/EntitySchedule.java b/src/main/java/org/bukkit/EntitySchedule.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..7f13fb04cd2749ca7ee416dd36abf9fc431b643a
+--- /dev/null
++++ b/src/main/java/org/bukkit/EntitySchedule.java
+@@ -0,0 +1,24 @@
++package org.bukkit;
++
++import com.google.common.base.Preconditions;
++import org.jetbrains.annotations.NotNull;
++
++public interface EntitySchedule extends Keyed {
++
++    EntitySchedule EMPTY = getSchedule("empty");
++    EntitySchedule SIMPLE = getSchedule("simple");
++    EntitySchedule VILLAGER_BABY = getSchedule("villager_baby");
++    EntitySchedule VILLAGER_DEFAULT = getSchedule("villager_default");
++
++    @NotNull
++    static EntitySchedule getSchedule(@NotNull NamespacedKey namespacedKey) {
++        EntitySchedule entitySchedule = Registry.ENTITY_SCHEDULE.get(namespacedKey);
++        Preconditions.checkNotNull(entitySchedule, "No EntitySchedule found for %s", namespacedKey);
++        return entitySchedule;
++    }
++
++    @NotNull
++    static EntitySchedule getSchedule(@NotNull String key) {
++        return getSchedule(NamespacedKey.minecraft(key));
++    }
++}
+diff --git a/src/main/java/org/bukkit/Registry.java b/src/main/java/org/bukkit/Registry.java
+index 6077122e4be10a4915e0c1023cc1fc418341545a..e8a20ad3828e95d0f700f85a138652d6b01e459d 100644
+--- a/src/main/java/org/bukkit/Registry.java
++++ b/src/main/java/org/bukkit/Registry.java
+@@ -10,6 +10,7 @@ import java.util.Objects;
+ import java.util.function.Predicate;
+ import java.util.stream.Stream;
+ import java.util.stream.StreamSupport;
++
+ import org.bukkit.advancement.Advancement;
+ import org.bukkit.attribute.Attribute;
+ import org.bukkit.block.Biome;
+@@ -131,12 +132,25 @@ public interface Registry<T extends Keyed> extends Iterable<T> {
+             return Arrays.asList(Enchantment.values()).iterator();
+         }
+     };
++    /**
++     * Entity Activities.
++     *
++     * @see EntityActivity
++     */
++    Registry<EntityActivity> ENTITY_ACTIVITY = Objects.requireNonNull(Bukkit.getRegistry(EntityActivity.class), "No registry present for EntityActivity. This is a bug.");
+     /**
+      * Server entity types.
+      *
+      * @see EntityType
+      */
+     Registry<EntityType> ENTITY_TYPE = new SimpleRegistry<>(EntityType.class, (entity) -> entity != EntityType.UNKNOWN);
++    /**
++     * Entity Schedules.
++     *
++     * @see EntitySchedule
++     */
++    Registry<EntitySchedule> ENTITY_SCHEDULE = Objects.requireNonNull(Bukkit.getRegistry(EntitySchedule.class), "No registry present for EntitySchedule. This is a bug.");
++
+     /**
+      * Server instruments.
+      *
+diff --git a/src/main/java/org/bukkit/entity/LivingEntity.java b/src/main/java/org/bukkit/entity/LivingEntity.java
+index 19e58e62ae442ef9be02ca7fa2f55e370a54afa4..47f687b59e3ca64143913ea332912e5d08464c5b 100644
+--- a/src/main/java/org/bukkit/entity/LivingEntity.java
++++ b/src/main/java/org/bukkit/entity/LivingEntity.java
+@@ -4,6 +4,7 @@ import java.util.Collection;
+ import java.util.List;
+ import java.util.Set;
+ import java.util.UUID;
++
+ import org.bukkit.FluidCollisionMode;
+ import org.bukkit.Location;
+ import org.bukkit.Material;
+@@ -863,6 +864,14 @@ public interface LivingEntity extends Attributable, Damageable, ProjectileSource
+      */
+     <T> void setMemory(@NotNull MemoryKey<T> memoryKey, @Nullable T memoryValue);
+ 
++    // MCCLab start - Adding EntityBrain
++    /**
++     * Gets the brain of this entity
++     * @return The brain
++     */
++    <T extends LivingEntity> de.verdox.mccreativelab.ai.EntityBrain<T> getBrain(Class<? extends T> type);
++    //MCCLab end - Adding EntityBrain
++
+     /**
+      * Get the {@link Sound} this entity will make when damaged.
+      *
