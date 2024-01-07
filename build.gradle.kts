@@ -8,7 +8,7 @@ plugins {
     id("com.github.johnrengelman.shadow") version "8.1.1" apply false
 
     // In general, keep this version in sync with upstream. Sometimes a newer version than upstream might work, but an older version is extremely likely to break.
-    id("io.papermc.paperweight.patcher") version "1.5.9"
+    id("io.papermc.paperweight.patcher") version "1.5.11"
 }
 
 val paperMavenPublicUrl = "https://repo.papermc.io/repository/maven-public/"
@@ -21,7 +21,7 @@ repositories {
 }
 
 dependencies {
-    remapper("net.fabricmc:tiny-remapper:0.8.6:fat") // Must be kept in sync with upstream
+    remapper("net.fabricmc:tiny-remapper:0.8.10:fat") // Must be kept in sync with upstream
     decompiler("net.minecraftforge:forgeflower:2.0.627.2") // Must be kept in sync with upstream
     paperclip("io.papermc:paperclip:3.0.3") // You probably want this to be kept in sync with upstream
 }
@@ -32,7 +32,7 @@ allprojects {
 
     java {
         toolchain {
-            languageVersion.set(JavaLanguageVersion.of(17))
+            languageVersion = JavaLanguageVersion.of(17)
         }
     }
 }
@@ -40,7 +40,7 @@ allprojects {
 subprojects {
     tasks.withType<JavaCompile> {
         options.encoding = Charsets.UTF_8.name()
-        options.release.set(17)
+        options.release = 17
     }
     tasks.withType<Javadoc> {
         options.encoding = Charsets.UTF_8.name()
@@ -64,29 +64,35 @@ val initSubmodules by tasks.registering {
 }
 
 paperweight {
-    serverProject.set(project(":forktest-server"))
+    serverProject = project(":forktest-server")
 
-    remapRepo.set(paperMavenPublicUrl)
-    decompileRepo.set(paperMavenPublicUrl)
+    remapRepo = paperMavenPublicUrl
+    decompileRepo = paperMavenPublicUrl
 
     upstreams {
         register("paper") {
             upstreamDataTask {
                 dependsOn(initSubmodules)
-                projectDir.set(paperDir)
+                projectDir = paperDir
             }
 
             patchTasks {
                 register("api") {
-                    upstreamDir.set(paperDir.dir("Paper-API"))
-                    patchDir.set(layout.projectDirectory.dir("patches/api"))
-                    outputDir.set(layout.projectDirectory.dir("forktest-api"))
+                    upstreamDir = paperDir.dir("Paper-API")
+                    patchDir = layout.projectDirectory.dir("patches/api")
+                    outputDir = layout.projectDirectory.dir("forktest-api")
                 }
                 register("server") {
-                    upstreamDir.set(paperDir.dir("Paper-Server"))
-                    patchDir.set(layout.projectDirectory.dir("patches/server"))
-                    outputDir.set(layout.projectDirectory.dir("forktest-server"))
-                    importMcDev.set(true)
+                    upstreamDir = paperDir.dir("Paper-Server")
+                    patchDir = layout.projectDirectory.dir("patches/server")
+                    outputDir = layout.projectDirectory.dir("forktest-server")
+                    importMcDev = true
+                }
+                register("generatedApi") {
+                    isBareDirectory = true
+                    upstreamDir = paperDir.dir("paper-api-generator/generated")
+                    patchDir = layout.projectDirectory.dir("patches/generatedApi")
+                    outputDir = layout.projectDirectory.dir("paper-api-generator/generated")
                 }
             }
         }
@@ -98,14 +104,12 @@ paperweight {
 //
 
 tasks.generateDevelopmentBundle {
-    apiCoordinates.set("com.example.paperfork:forktest-api")
-    mojangApiCoordinates.set("io.papermc.paper:paper-mojangapi")
-    libraryRepositories.set(
-        listOf(
-            "https://repo.maven.apache.org/maven2/",
-            paperMavenPublicUrl,
-            // "https://my.repo/", // This should be a repo hosting your API (in this example, 'com.example.paperfork:forktest-api')
-        )
+    apiCoordinates = "com.example.paperfork:forktest-api"
+    mojangApiCoordinates = "io.papermc.paper:paper-mojangapi"
+    libraryRepositories = listOf(
+        "https://repo.maven.apache.org/maven2/",
+        paperMavenPublicUrl,
+        // "https://my.repo/", // This should be a repo hosting your API (in this example, 'com.example.paperfork:forktest-api')
     )
 }
 
