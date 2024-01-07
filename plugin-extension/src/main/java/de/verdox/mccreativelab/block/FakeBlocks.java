@@ -9,7 +9,7 @@ import org.bukkit.NamespacedKey;
 
 public class FakeBlocks {
     public static final FakeBlock DEBUG_BLOCK = MCCreativeLabExtension
-        .getCustomBlockRegistry()
+        .getFakeBlockRegistry()
         .register(new FakeBlock.Builder<>(new NamespacedKey("mccreativelab", "test_fake_block"), CustomOreBlock.class)
             .withBlockState(builder ->
                 builder
@@ -26,7 +26,7 @@ public class FakeBlocks {
         );
 
     public static final FakeBlock DEBUG_BLOCK_USING_NOTE_BLOCK = MCCreativeLabExtension
-        .getCustomBlockRegistry()
+        .getFakeBlockRegistry()
         .register(new FakeBlock.Builder<>(new NamespacedKey("mccreativelab", "test_fake_block2"), CustomOreBlock.class)
             .withBlockState(builder ->
                 builder

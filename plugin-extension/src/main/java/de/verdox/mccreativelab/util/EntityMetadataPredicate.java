@@ -76,6 +76,8 @@ public abstract class EntityMetadataPredicate<T> {
 
         @Override
         protected boolean test(Location storedValue, Location currentValue) {
+            if(!storedValue.getWorld().equals(currentValue.getWorld()))
+                return true;
             return storedValue.distanceSquared(currentValue) >= minDistance;
         }
     }

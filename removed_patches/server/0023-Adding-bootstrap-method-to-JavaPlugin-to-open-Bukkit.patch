@@ -1,0 +1,198 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <lukasjonsson@outlook.de>
+Date: Thu, 23 Nov 2023 01:03:18 +0100
+Subject: [PATCH] Adding bootstrap method to JavaPlugin to open
+ BukkitDataFactory to API. This makes it possible to create bukkit data in the
+ future through Builder Patterns.
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/RegistryUtil.java b/src/main/java/de/verdox/mccreativelab/RegistryUtil.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..de31895ce5fd3ecb772eab093d70a33f0b6e8113
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/RegistryUtil.java
+@@ -0,0 +1,27 @@
++package de.verdox.mccreativelab;
++
++import net.minecraft.core.MappedRegistry;
++import net.minecraft.core.Registry;
++import net.minecraft.core.registries.BuiltInRegistries;
++import net.minecraft.server.MinecraftServer;
++
++import java.util.HashMap;
++
++public class RegistryUtil {
++    public static void unfreezeAllRegistries(){
++        MinecraftServer.LOGGER.debug("Unfreezing registries");
++        BuiltInRegistries.REGISTRY.forEach(objects -> {
++            if(objects instanceof MappedRegistry mappedRegistry) {
++                mappedRegistry.frozen = false;
++                if(mappedRegistry.unregisteredIntrusiveHolders != null)
++                    mappedRegistry.unregisteredIntrusiveHolders = new HashMap<>();
++            }
++        });
++    }
++
++    public static void freezeAllRegistries() {
++        MinecraftServer.LOGGER.debug("Freezing registries");
++        BuiltInRegistries.REGISTRY.freeze();
++        BuiltInRegistries.REGISTRY.forEach(Registry::freeze);
++    }
++}
+diff --git a/src/main/java/io/papermc/paper/plugin/storage/ServerPluginProviderStorage.java b/src/main/java/io/papermc/paper/plugin/storage/ServerPluginProviderStorage.java
+index cb9b13522a976b82bcb71cef486f11f4172e3e99..39c40c50550cd849ba01c05688ea9cd7ce32c58d 100644
+--- a/src/main/java/io/papermc/paper/plugin/storage/ServerPluginProviderStorage.java
++++ b/src/main/java/io/papermc/paper/plugin/storage/ServerPluginProviderStorage.java
+@@ -1,14 +1,13 @@
+ package io.papermc.paper.plugin.storage;
+ 
+ import com.mojang.logging.LogUtils;
+-import io.papermc.paper.plugin.provider.entrypoint.DependencyContext;
+ import io.papermc.paper.plugin.entrypoint.dependency.DependencyContextHolder;
+ import io.papermc.paper.plugin.entrypoint.strategy.ProviderConfiguration;
+ import io.papermc.paper.plugin.manager.PaperPluginManagerImpl;
+ import io.papermc.paper.plugin.provider.PluginProvider;
+-import io.papermc.paper.plugin.provider.ProviderStatus;
+-import io.papermc.paper.plugin.provider.ProviderStatusHolder;
++import io.papermc.paper.plugin.provider.entrypoint.DependencyContext;
+ import io.papermc.paper.plugin.provider.type.paper.PaperPluginParent;
++import org.bukkit.craftbukkit.datafactory.CraftRegistryBootstrapManipulator;
+ import org.bukkit.plugin.Plugin;
+ import org.bukkit.plugin.java.JavaPlugin;
+ import org.slf4j.Logger;
+@@ -56,6 +55,7 @@ public class ServerPluginProviderStorage extends ConfiguredProviderStorage<JavaP
+     public void processProvided(PluginProvider<JavaPlugin> provider, JavaPlugin provided) {
+         try {
+             provided.getLogger().info(String.format("Loading server plugin %s", provided.getPluginMeta().getDisplayName()));
++            provided.bootstrap(new CraftRegistryBootstrapManipulator());
+             provided.onLoad();
+         } catch (Throwable ex) {
+             // Don't mark that provider as ERRORED, as this apparently still needs to run the onEnable logic.
+diff --git a/src/main/java/net/minecraft/core/MappedRegistry.java b/src/main/java/net/minecraft/core/MappedRegistry.java
+index 26b92e27de1f079ab8440538c65377ed80e8b6ef..8b1c5ab243cf1b67f5f0d7e009155d4b04f153c1 100644
+--- a/src/main/java/net/minecraft/core/MappedRegistry.java
++++ b/src/main/java/net/minecraft/core/MappedRegistry.java
+@@ -43,9 +43,9 @@ public class MappedRegistry<T> implements WritableRegistry<T> {
+     private final Map<T, Lifecycle> lifecycles = new IdentityHashMap<>(2048); // Paper - use bigger expected size to reduce collisions
+     private Lifecycle registryLifecycle;
+     private volatile Map<TagKey<T>, HolderSet.Named<T>> tags = new IdentityHashMap<>();
+-    private boolean frozen;
++    public boolean frozen;
+     @Nullable
+-    private Map<T, Holder.Reference<T>> unregisteredIntrusiveHolders;
++    public Map<T, Holder.Reference<T>> unregisteredIntrusiveHolders;
+     @Nullable
+     private List<Holder.Reference<T>> holdersInOrder;
+     private int nextId;
+diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
+index b4077b0f4da2ee2e2aaffb1331a86e0580bdee3a..fbbced3e47263c2cb24cb26681ea3098ec0bb4cc 100644
+--- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
++++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
+@@ -15,6 +15,7 @@ import com.mojang.brigadier.tree.LiteralCommandNode;
+ import com.mojang.datafixers.util.Pair;
+ import com.mojang.serialization.DynamicOps;
+ import com.mojang.serialization.Lifecycle;
++import de.verdox.mccreativelab.RegistryUtil;
+ import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
+ import java.awt.image.BufferedImage;
+ import java.io.ByteArrayOutputStream;
+@@ -509,7 +510,9 @@ public final class CraftServer implements Server {
+     }
+ 
+     public void loadPlugins() {
++        RegistryUtil.unfreezeAllRegistries();
+         io.papermc.paper.plugin.entrypoint.LaunchEntryPointHandler.INSTANCE.enter(io.papermc.paper.plugin.entrypoint.Entrypoint.PLUGIN); // Paper - replace implementation
++        RegistryUtil.freezeAllRegistries();
+     }
+ 
+     // Paper start
+diff --git a/src/main/java/org/bukkit/craftbukkit/datafactory/CraftDataFactory.java b/src/main/java/org/bukkit/craftbukkit/datafactory/CraftDataFactory.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..9769c9bb1244bbd188460be93091d02d4ed0508d
+--- /dev/null
++++ b/src/main/java/org/bukkit/craftbukkit/datafactory/CraftDataFactory.java
+@@ -0,0 +1,10 @@
++package org.bukkit.craftbukkit.datafactory;
++
++import org.bukkit.craftbukkit.datafactory.builder.CraftAttributeBuilder;
++import org.bukkit.craftbukkit.datafactory.builder.CraftVillagerProfessionBuilder;
++import org.bukkit.datafactory.BukkitDataFactory;
++import org.bukkit.datafactory.builder.AttributeBuilder;
++import org.bukkit.datafactory.builder.VillagerProfessionBuilder;
++
++public class CraftDataFactory implements BukkitDataFactory {
++}
+diff --git a/src/main/java/org/bukkit/craftbukkit/datafactory/CraftElementBuilder.java b/src/main/java/org/bukkit/craftbukkit/datafactory/CraftElementBuilder.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..291bb0ccca3acd2482cd7327a2d508dddd9999b8
+--- /dev/null
++++ b/src/main/java/org/bukkit/craftbukkit/datafactory/CraftElementBuilder.java
+@@ -0,0 +1,10 @@
++package org.bukkit.craftbukkit.datafactory;
++
++import net.minecraft.core.Registry;
++import org.bukkit.Keyed;
++import org.bukkit.datafactory.BukkitDataFactory;
++
++public abstract class CraftElementBuilder<B extends Keyed, V> implements BukkitDataFactory.ElementBuilder<B> {
++    public abstract V getHandle();
++    public abstract Registry<V> getNMSRegistry();
++}
+diff --git a/src/main/java/org/bukkit/craftbukkit/datafactory/CraftRegistryBootstrapManipulator.java b/src/main/java/org/bukkit/craftbukkit/datafactory/CraftRegistryBootstrapManipulator.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..b3a8e209e2a3b2b19c86a55bc510605bbf389f09
+--- /dev/null
++++ b/src/main/java/org/bukkit/craftbukkit/datafactory/CraftRegistryBootstrapManipulator.java
+@@ -0,0 +1,28 @@
++package org.bukkit.craftbukkit.datafactory;
++
++import net.minecraft.core.Registry;
++import net.minecraft.resources.ResourceKey;
++import net.minecraft.server.MinecraftServer;
++import org.bukkit.Keyed;
++import org.bukkit.NamespacedKey;
++import org.bukkit.datafactory.BukkitDataFactory;
++import org.bukkit.datafactory.RegistryBootstrapManipulator;
++import org.bukkit.craftbukkit.util.CraftNamespacedKey;
++
++public class CraftRegistryBootstrapManipulator implements RegistryBootstrapManipulator {
++    @Override
++    public <B extends Keyed, V> void register(NamespacedKey namespacedKey, BukkitDataFactory.ElementBuilder<B> builder) {
++        CraftElementBuilder<B,V> craftElementBuilder = (CraftElementBuilder<B, V>) builder;
++        builder.build(namespacedKey);
++        var nmsObject = craftElementBuilder.getHandle();
++        if(nmsObject == null)
++            throw new IllegalStateException("Builder could not build an nms object. This is a bug");
++        Registry.register(craftElementBuilder.getNMSRegistry(), ResourceKey.create(craftElementBuilder.getNMSRegistry().key(), CraftNamespacedKey.toMinecraft(namespacedKey)), nmsObject);
++        MinecraftServer.LOGGER.debug("Registering additional data "+nmsObject.getClass().getSimpleName()+" with key "+namespacedKey);
++    }
++
++    @Override
++    public BukkitDataFactory factory() {
++        return new CraftDataFactory();
++    }
++}
+diff --git a/src/main/java/org/bukkit/craftbukkit/scheduler/MinecraftInternalPlugin.java b/src/main/java/org/bukkit/craftbukkit/scheduler/MinecraftInternalPlugin.java
+index d96399e9bf1a58db5a4a22e58abb99e7660e0694..48be4d4161d9ab40914e10b97784f0a0b87e7ba2 100644
+--- a/src/main/java/org/bukkit/craftbukkit/scheduler/MinecraftInternalPlugin.java
++++ b/src/main/java/org/bukkit/craftbukkit/scheduler/MinecraftInternalPlugin.java
+@@ -5,6 +5,7 @@ import org.bukkit.Server;
+ import org.bukkit.command.Command;
+ import org.bukkit.command.CommandSender;
+ import org.bukkit.configuration.file.FileConfiguration;
++import org.bukkit.datafactory.RegistryBootstrapManipulator;
+ import org.bukkit.generator.BiomeProvider;
+ import org.bukkit.generator.ChunkGenerator;
+ import org.bukkit.plugin.PluginBase;
+@@ -109,6 +110,11 @@ public class MinecraftInternalPlugin extends PluginBase {
+         throw new UnsupportedOperationException("Not supported.");
+     }
+ 
++    @Override
++    public void bootstrap(RegistryBootstrapManipulator registryBootstrapManipulator) {
++
++    }
++
+     @Override
+     public void onEnable() {
+         throw new UnsupportedOperationException("Not supported.");

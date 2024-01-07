@@ -94,7 +94,7 @@ public class BlockBreakSpeedModifier implements Listener {
         cancellable.setCancelled(true);
         map.put(player, new BlockBreakProgress(player, block, customBlockHardness, blockFace, fakeBlockState));
         player.addPotionEffect(new PotionEffect(PotionEffectType.SLOW_DIGGING, 2, -1, false, false, false));
-        CustomBlockRegistry.fakeBlockDamage.sendBlockDamage(block, 0);
+        FakeBlockRegistry.fakeBlockDamage.sendBlockDamage(block, 0);
         FakeBlockSoundManager.simulateDiggingSound(player, block, fakeBlockState);
         System.out.println("Start BlockBreakAction");
     }
@@ -213,7 +213,7 @@ public class BlockBreakSpeedModifier implements Listener {
                 player.sendBlockDamage(block.getLocation(), progress, entityId);
             }
             if (fakeBlockState != null)
-                CustomBlockRegistry.fakeBlockDamage.sendBlockDamage(block, stage);
+                FakeBlockRegistry.fakeBlockDamage.sendBlockDamage(block, stage);
         }
 
         // This formula is taken from

@@ -1,0 +1,90 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <lukasjonsson@outlook.de>
+Date: Thu, 23 Nov 2023 01:03:18 +0100
+Subject: [PATCH] Adding bootstrap method to JavaPlugin to open
+ BukkitDataFactory to API. This makes it possible to create bukkit data in the
+ future through Builder Patterns.
+
+
+diff --git a/src/main/java/org/bukkit/datafactory/BukkitDataFactory.java b/src/main/java/org/bukkit/datafactory/BukkitDataFactory.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..8cbb87204ef9e7c46b2e22274412dd8932e3f3f3
+--- /dev/null
++++ b/src/main/java/org/bukkit/datafactory/BukkitDataFactory.java
+@@ -0,0 +1,12 @@
++package org.bukkit.datafactory;
++
++import org.bukkit.Keyed;
++import org.bukkit.NamespacedKey;
++import org.bukkit.datafactory.builder.AttributeBuilder;
++import org.bukkit.datafactory.builder.VillagerProfessionBuilder;
++
++public interface BukkitDataFactory {
++    interface ElementBuilder<B extends Keyed> {
++        B build(NamespacedKey namespacedKey);
++    }
++}
+diff --git a/src/main/java/org/bukkit/datafactory/RegistryBootstrapManipulator.java b/src/main/java/org/bukkit/datafactory/RegistryBootstrapManipulator.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..cda7ac90d448beb0981b62c6bd8bfa2b0ad5390c
+--- /dev/null
++++ b/src/main/java/org/bukkit/datafactory/RegistryBootstrapManipulator.java
+@@ -0,0 +1,9 @@
++package org.bukkit.datafactory;
++
++import org.bukkit.Keyed;
++import org.bukkit.NamespacedKey;
++
++public interface RegistryBootstrapManipulator {
++    <B extends Keyed, V> void register(NamespacedKey namespacedKey, BukkitDataFactory.ElementBuilder<B> builder);
++    BukkitDataFactory factory();
++}
+diff --git a/src/main/java/org/bukkit/plugin/Plugin.java b/src/main/java/org/bukkit/plugin/Plugin.java
+index 4eb639fbb46a0848be207149ea433455550fae1c..13bc148db8687551456f621c94377f13e3e69571 100644
+--- a/src/main/java/org/bukkit/plugin/Plugin.java
++++ b/src/main/java/org/bukkit/plugin/Plugin.java
+@@ -6,6 +6,7 @@ import java.util.logging.Logger;
+ import org.bukkit.Server;
+ import org.bukkit.command.TabExecutor;
+ import org.bukkit.configuration.file.FileConfiguration;
++import org.bukkit.datafactory.RegistryBootstrapManipulator;
+ import org.bukkit.generator.BiomeProvider;
+ import org.bukkit.generator.ChunkGenerator;
+ import org.jetbrains.annotations.NotNull;
+@@ -138,6 +139,14 @@ public interface Plugin extends TabExecutor {
+      */
+     public void onLoad();
+ 
++    /**
++     * Called after a plugin is loaded but before it has been enabled.
++     * <p>
++     * When multiple plugins are loaded, the bootstrap() for all plugins is
++     * called before any bootstrap() is called.
++     */
++    public void bootstrap(RegistryBootstrapManipulator registryBootstrapManipulator);
++
+     /**
+      * Called when this plugin is enabled
+      */
+diff --git a/src/main/java/org/bukkit/plugin/java/JavaPlugin.java b/src/main/java/org/bukkit/plugin/java/JavaPlugin.java
+index 5cd236965de12392d8c7aa81307c0ff1cc8673b1..fb9cade71899e8ba35ee7e57ed186d2c5d19e570 100644
+--- a/src/main/java/org/bukkit/plugin/java/JavaPlugin.java
++++ b/src/main/java/org/bukkit/plugin/java/JavaPlugin.java
+@@ -20,6 +20,7 @@ import org.bukkit.command.CommandSender;
+ import org.bukkit.command.PluginCommand;
+ import org.bukkit.configuration.file.FileConfiguration;
+ import org.bukkit.configuration.file.YamlConfiguration;
++import org.bukkit.datafactory.RegistryBootstrapManipulator;
+ import org.bukkit.generator.BiomeProvider;
+ import org.bukkit.generator.ChunkGenerator;
+ import org.bukkit.plugin.PluginBase;
+@@ -351,6 +352,9 @@ public abstract class JavaPlugin extends PluginBase {
+     @Override
+     public void onLoad() {}
+ 
++    @Override
++    public void bootstrap(RegistryBootstrapManipulator registryBootstrapManipulator) {}
++
+     @Override
+     public void onDisable() {}
+ 

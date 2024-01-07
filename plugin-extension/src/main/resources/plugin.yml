@@ -8,3 +8,5 @@ load: STARTUP
 commands:
   fakeblock:
     description: "Fake Block command"
+  debug:
+    description: "Debug command"

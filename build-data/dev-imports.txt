@@ -11,6 +11,8 @@
 
 minecraft net.minecraft.world.level.block.AbstractCauldronBlock
 
+minecraft net.minecraft.world.inventory.ShulkerBoxSlot
+
 minecraft net.minecraft.world.level.block.AttachedStemBlock
 
 minecraft net.minecraft.world.level.block.BarrelBlock
@@ -152,3 +154,6 @@ minecraft net.minecraft.world.level.block.WeepingVinesPlantBlock
 minecraft net.minecraft.world.level.block.WetSpongeBlock
 minecraft net.minecraft.world.level.block.WitherWallSkullBlock
 minecraft net.minecraft.world.level.block.WoolCarpetBlock
+
+minecraft net.minecraft.world.item.Item
+minecraft net.minecraft.world.item.crafting.RepairItemRecipe

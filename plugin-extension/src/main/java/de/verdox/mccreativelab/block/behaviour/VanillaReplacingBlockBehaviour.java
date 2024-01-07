@@ -14,7 +14,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.util.RayTraceResult;
 
-public interface VanillaReplacingBehaviour extends BlockBehaviour {
+public interface VanillaReplacingBlockBehaviour extends BlockBehaviour {
 
     BehaviourResult.Void VOID_DEFAULT = new BehaviourResult.Void(BehaviourResult.Void.Type.REPLACE_VANILLA);
 

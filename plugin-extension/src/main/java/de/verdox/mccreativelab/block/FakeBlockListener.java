@@ -22,22 +22,6 @@ public class FakeBlockListener implements Listener {
         FakeBlockSoundManager.simulateBlockPlaceSound(e.getPlayer(), e.getBlock(), fakeBlockState);
     }
 
-/*    @EventHandler
-    public void soundEvent(WorldSoundEvent e) {
-        e.setExcept(null);
-        if (e.getSound().getKey().contains("block"))
-            Bukkit.getLogger()
-                  .info("Playing sound: " + e.getSound() + " at pos " + e.getSoundLocation().toBlock() + " (" + e
-                      .getSoundLocation().getBlock().getState().getBlockData() + ")");
-    }
-
-    @EventHandler
-    public void worldEvent(WorldEffectEvent e) {
-        Bukkit.getLogger().info("Effect: " + e.getEffect().name());
-        if(e.getEffect().equals(Effect.STEP_SOUND))
-            e.setCancelled(true);
-    }*/
-
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
     public void doNotDropVanillaLootForFakeBlocks(BlockBreakEvent e) {
         FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockStateOrThrow(e.getBlock()

@@ -61,8 +61,10 @@ public record Asset<C extends CustomPack<C>>(Supplier<InputStream> assetInputStr
             throw new IllegalStateException("InputStream of asset is not valid");
         try (InputStream stream = assetInputStream.get()) {
 
-            if (stream == null)
+            if (stream == null) {
+                Bukkit.getLogger().info("InputStream of asset "+namespacedKey+" is empty");
                 return null;
+            }
 
 
             AssetPath savePath = getPathRelativeToPack(customPack, namespacedKey, assetType).withNewParentPath(customPack.getPathToSavePackDataTo());

@@ -3,7 +3,7 @@ package de.verdox.mccreativelab.block.behaviour;
 import de.verdox.mccreativelab.InteractionResult;
 import de.verdox.mccreativelab.behaviour.BehaviourResult;
 import de.verdox.mccreativelab.behaviour.BlockBehaviour;
-import de.verdox.mccreativelab.block.CustomBlockRegistry;
+import de.verdox.mccreativelab.block.FakeBlockRegistry;
 import de.verdox.mccreativelab.block.FakeBlock;
 import de.verdox.mccreativelab.block.FakeBlockStorage;
 import de.verdox.mccreativelab.block.FakeBlockUtil;
@@ -191,7 +191,7 @@ public class FakeBlockBehaviour implements BlockBehaviour {
 
     @Nullable
     private FakeBlock.FakeBlockState setFakeBlockStateIfReplacesVanillaBlockState(Block block){
-        FakeBlock.FakeBlockState fakeBlockState = CustomBlockRegistry.getFakeBlockStateFromBlockData(block.getBlockData());
+        FakeBlock.FakeBlockState fakeBlockState = FakeBlockRegistry.getFakeBlockStateFromBlockData(block.getBlockData());
         if(fakeBlockState == null)
             return null;
         FakeBlockStorage.setFakeBlockState(block.getLocation(), fakeBlockState, false);

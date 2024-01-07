@@ -48,7 +48,7 @@ public abstract class FakeBlockVisualStrategy<T extends FakeBlockVisualStrategy.
         }
 
         FakeBlock.FakeBlockState fakeBlockStateAtLocation = FakeBlockStorage.getFakeBlockState(fakeBlockLocation, false);
-        FakeBlock storedFakeBlock = MCCreativeLabExtension.getCustomBlockRegistry().get(linkedFakeBlockID);
+        FakeBlock storedFakeBlock = MCCreativeLabExtension.getFakeBlockRegistry().get(linkedFakeBlockID);
 
         // Stored fake block is unknown.
         if (storedFakeBlock == null) {
@@ -79,7 +79,7 @@ public abstract class FakeBlockVisualStrategy<T extends FakeBlockVisualStrategy.
     protected abstract void loadItemDisplayAsBlockDisplay(PotentialItemDisplay potentialItemDisplay);
 
     protected void setupItemDisplayNBT(ItemDisplay itemDisplay, ItemTextureData itemTextureData, Block block, FakeBlock.FakeBlockState fakeBlockState) {
-        int fakeBlockID = MCCreativeLabExtension.getCustomBlockRegistry().getId(fakeBlockState.getFakeBlock().getKey());
+        int fakeBlockID = MCCreativeLabExtension.getFakeBlockRegistry().getId(fakeBlockState.getFakeBlock().getKey());
         itemDisplay.setItemStack(itemTextureData.createItem());
 
         itemDisplay.getPersistentDataContainer()

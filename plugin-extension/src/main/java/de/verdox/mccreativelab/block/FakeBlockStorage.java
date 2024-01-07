@@ -121,14 +121,14 @@ public class FakeBlockStorage {
 
     FakeBlockPalettedContainer createData(World world, long chunkKey) {
         ChunkEntry chunkEntry = new ChunkEntry(world.getName(), chunkKey);
-        FakeBlockPalettedContainer fakeBlockPaletteContainer = new FakeBlockPalettedContainer(CustomBlockRegistry.FAKE_BLOCK_STATE_ID_MAP, 16, PaletteUtil.getMaxYPaletteFromWorldLimits(world), 16);
+        FakeBlockPalettedContainer fakeBlockPaletteContainer = new FakeBlockPalettedContainer(FakeBlockRegistry.FAKE_BLOCK_STATE_ID_MAP, 16, PaletteUtil.getMaxYPaletteFromWorldLimits(world), 16);
         fakeBlockPalettes.put(chunkEntry, fakeBlockPaletteContainer);
         return fakeBlockPaletteContainer;
     }
 
     void loadChunk(Chunk chunk, PersistentDataContainer persistentDataContainer) {
         ChunkEntry chunkEntry = new ChunkEntry(chunk.getWorld().getName(), chunk.getChunkKey());
-        FakeBlockPalettedContainer fakeBlockPaletteContainer = new FakeBlockPalettedContainer(CustomBlockRegistry.FAKE_BLOCK_STATE_ID_MAP, 16, PaletteUtil.getMaxYPaletteFromWorldLimits(chunk.getWorld()), 16);
+        FakeBlockPalettedContainer fakeBlockPaletteContainer = new FakeBlockPalettedContainer(FakeBlockRegistry.FAKE_BLOCK_STATE_ID_MAP, 16, PaletteUtil.getMaxYPaletteFromWorldLimits(chunk.getWorld()), 16);
 
         if (persistentDataContainer.has(FAKE_BLOCK_PALETTE_KEY)) {
             PersistentDataContainer fakeBlockPaletteNBT = persistentDataContainer.get(FAKE_BLOCK_PALETTE_KEY, PersistentDataType.TAG_CONTAINER);
@@ -165,7 +165,7 @@ public class FakeBlockStorage {
             int blockStateID = fakeBlock.getBlockStateID(data);
             if (blockStateID == -1)
                 return null;
-            NamespacedKey blockKey = MCCreativeLabExtension.getCustomBlockRegistry().getKey(fakeBlock);
+            NamespacedKey blockKey = MCCreativeLabExtension.getFakeBlockRegistry().getKey(fakeBlock);
 
             blockStateData.set(BLOCK_STATE_BLOCK_KEY, PersistentDataType.STRING, blockKey.asString());
             blockStateData.set(BLOCK_STATE_ID, PersistentDataType.INTEGER, blockStateID);
@@ -183,7 +183,7 @@ public class FakeBlockStorage {
             int blockStateSubId = persistentDataContainer.get(BLOCK_STATE_ID, PersistentDataType.INTEGER).intValue();
 
             NamespacedKey namespacedKey = NamespacedKey.fromString(blockKeyAsString);
-            FakeBlock foundFakeBlock = MCCreativeLabExtension.getCustomBlockRegistry().get(namespacedKey);
+            FakeBlock foundFakeBlock = MCCreativeLabExtension.getFakeBlockRegistry().get(namespacedKey);
             if (foundFakeBlock == null)
                 return null;
             return foundFakeBlock.getBlockState(blockStateSubId);

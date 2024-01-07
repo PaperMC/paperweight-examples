@@ -27,7 +27,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class CustomBlockRegistry extends CustomRegistry<FakeBlock> {
+public class FakeBlockRegistry extends CustomRegistry<FakeBlock> {
     public static final IdMap<FakeBlock.FakeBlockState> FAKE_BLOCK_STATE_ID_MAP = new IdMap<>();
 
     public static BlockBehaviour SOLID_BLOCK_BEHAVIOUR = new BlockBehaviour() {
@@ -57,7 +57,7 @@ public class CustomBlockRegistry extends CustomRegistry<FakeBlock> {
         Asset<CustomResourcePack> purple_stained_glass_texture = new Asset<>("/replaced/blocks/purple_stained_glass.png");
 
         MCCreativeLabExtension
-            .getCustomBlockRegistry()
+            .getFakeBlockRegistry()
             .register(new FakeBlock.Builder<>(solidBlockKey, FakeBlock.class)
                 .withBlockState(builder ->
                     builder
@@ -70,7 +70,7 @@ public class CustomBlockRegistry extends CustomRegistry<FakeBlock> {
             );
 
         MCCreativeLabExtension
-            .getCustomBlockRegistry()
+            .getFakeBlockRegistry()
             .register(new FakeBlock.Builder<>(transparentBlockKey, FakeBlock.class)
                 .withBlockState(builder ->
                     builder
@@ -159,7 +159,7 @@ public class CustomBlockRegistry extends CustomRegistry<FakeBlock> {
         public void sendBlockDamage(Block block, int damage) {
             if(true)
                 return;
-            if (!CustomBlockRegistry.hasTransparentTexture(block.getType()))
+            if (!FakeBlockRegistry.hasTransparentTexture(block.getType()))
                 return;
             if (damage >= 0 && damage <= 9) {
                 ItemDisplay damageDisplay;

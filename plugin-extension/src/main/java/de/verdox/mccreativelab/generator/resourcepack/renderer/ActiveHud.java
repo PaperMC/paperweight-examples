@@ -95,4 +95,8 @@ public class ActiveHud {
         this.renderedElements.put(id, renderedElement);
         this.hudElementToRenderedElementMapping.put(hudElement, renderedElement);
     }
+
+    public Player getPlayer() {
+        return player;
+    }
 }

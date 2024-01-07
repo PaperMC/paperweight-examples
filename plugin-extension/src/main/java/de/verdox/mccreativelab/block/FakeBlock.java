@@ -1,9 +1,7 @@
 package de.verdox.mccreativelab.block;
 
 import de.verdox.mccreativelab.Wrappers;
-import de.verdox.mccreativelab.behaviour.BehaviourResult;
-import de.verdox.mccreativelab.behaviour.BlockBehaviour;
-import de.verdox.mccreativelab.block.behaviour.VanillaReplacingBehaviour;
+import de.verdox.mccreativelab.block.behaviour.VanillaReplacingBlockBehaviour;
 import de.verdox.mccreativelab.block.visual.DummyBlockVisualStrategy;
 import de.verdox.mccreativelab.block.visual.FakeBlockVisualStrategy;
 import de.verdox.mccreativelab.block.visual.TransparentBlockVisualStrategy;
@@ -15,14 +13,12 @@ import de.verdox.mccreativelab.generator.resourcepack.ResourcePackAssetTypes;
 import de.verdox.mccreativelab.generator.resourcepack.ResourcePackResource;
 import de.verdox.mccreativelab.generator.resourcepack.types.ItemTextureData;
 import de.verdox.mccreativelab.generator.resourcepack.types.sound.SoundData;
-import de.verdox.mccreativelab.random.VanillaRandomSource;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.PistonMoveReaction;
 import org.bukkit.block.data.Ageable;
 import org.bukkit.block.data.BlockData;
-import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
@@ -34,7 +30,7 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
-public class FakeBlock implements Keyed, VanillaReplacingBehaviour {
+public class FakeBlock implements Keyed, VanillaReplacingBlockBehaviour {
     private final FakeBlockState[] fakeBlockStates;
     private final Map<FakeBlockState, Integer> blockStateToIdMapping = new HashMap<>();
     private NamespacedKey key;

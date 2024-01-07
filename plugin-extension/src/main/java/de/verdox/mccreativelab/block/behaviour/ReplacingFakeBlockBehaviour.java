@@ -4,7 +4,6 @@ import de.verdox.mccreativelab.InteractionResult;
 import de.verdox.mccreativelab.MCCreativeLabExtension;
 import de.verdox.mccreativelab.behaviour.BehaviourResult;
 import de.verdox.mccreativelab.behaviour.BlockBehaviour;
-import de.verdox.mccreativelab.block.CustomBlockRegistry;
 import de.verdox.mccreativelab.block.FakeBlock;
 import de.verdox.mccreativelab.block.FakeBlockStorage;
 import de.verdox.mccreativelab.random.VanillaRandomSource;
@@ -16,7 +15,6 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.util.RayTraceResult;
@@ -159,7 +157,7 @@ public class ReplacingFakeBlockBehaviour extends FakeBlockBehaviour {
     private void replaceVanillaWithFakeBlock(Block block) {
         if(fakeBlockKey == null)
             return;
-        FakeBlock fakeBlock = MCCreativeLabExtension.getCustomBlockRegistry().get(fakeBlockKey);
+        FakeBlock fakeBlock = MCCreativeLabExtension.getFakeBlockRegistry().get(fakeBlockKey);
         if (fakeBlock == null)
             return;
         FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockStateOrThrow(block.getLocation(), false);

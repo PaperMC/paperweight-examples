@@ -44,7 +44,7 @@ public class FakeBlockCommand extends Command {
                         return true;
                     }
 
-                    player.sendMessage(Component.text("Found fake block: "+ MCCreativeLabExtension.getCustomBlockRegistry().getKey(fakeBlock)+" | "+fakeBlock.getBlockStateID(fakeBlockState)));
+                    player.sendMessage(Component.text("Found fake block: "+ MCCreativeLabExtension.getFakeBlockRegistry().getKey(fakeBlock)+" | "+fakeBlock.getBlockStateID(fakeBlockState)));
                     return true;
                 } catch (PaletteValueUnknownException e) {
                     throw new RuntimeException(e);
