@@ -43,6 +43,8 @@ public class BlockBreakSpeedModifier implements Listener {
     public void onInteract(PlayerInteractEvent e) {
         if (e.getClickedBlock() == null || e.getAction().isRightClick())
             stopBlockBreakAction(e.getPlayer());
+        if(e.getClickedBlock() != null && e.getAction().isLeftClick())
+            startBlockBreakAction(e.getPlayer(), e.getClickedBlock(), e.getBlockFace(), e);
     }
 
     @EventHandler
@@ -83,11 +85,9 @@ public class BlockBreakSpeedModifier implements Listener {
             customBlockHardness = fakeBlockState.getProperties().getHardness();
         else if (BlockBreakSpeedSettings.hasCustomBlockHardness(bukkitMaterial))
             customBlockHardness = BlockBreakSpeedSettings.getCustomBlockHardness(block.getType());
-        else if (FakeBlockSoundManager.isBlockWithoutStandardSound(block))
-            customBlockHardness = block.getType().getHardness();
 
         if (customBlockHardness == -1) {
-            player.setMetadata("isBreakingNormalBlock", new FixedMetadataValue(MCCreativeLabExtension.getInstance(), true));
+            player.setMetadata("isBreakingNormalBlock", new FixedMetadataValue(MCCreativeLabExtension.getInstance(), block));
             return;
         }
 
@@ -109,8 +109,15 @@ public class BlockBreakSpeedModifier implements Listener {
     }
 
     public static void tick(Player player) {
-        if (player.getInventory().getItemInMainHand().getType().name().contains("AXE"))
+        if (player.getInventory().getItemInMainHand().getType().name().contains("AXE") && !player.hasMetadata("isBreakingNormalBlock"))
             player.addPotionEffect(new PotionEffect(PotionEffectType.SLOW_DIGGING, 1, -1, false, false, false));
+
+        if(player.hasMetadata("isBreakingNormalBlock")){
+            Block block = (Block) player.getMetadata("isBreakingNormalBlock").get(0).value();
+            if(block != null && FakeBlockSoundManager.isBlockWithoutStandardSound(block))
+                FakeBlockSoundManager.simulateDiggingSound(player, block, null);
+        }
+
         if (!map.containsKey(player))
             return;
         var data = map.get(player);

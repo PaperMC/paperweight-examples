@@ -8,6 +8,7 @@ import io.papermc.paper.event.entity.EntityMoveEvent;
 import net.kyori.adventure.sound.Sound;
 import org.bukkit.*;
 import org.bukkit.block.Block;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Enemy;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
@@ -32,7 +33,11 @@ public class FakeBlockSoundManager implements Listener {
      * @return true if it has no sound
      */
     public static boolean isBlockWithoutStandardSound(Block block) {
-        return ReplacedSoundGroups.wasSoundReplaced(block.getBlockSoundGroup());
+        return isBlockWithoutStandardSound(block.getBlockData());
+    }
+
+    public static boolean isBlockWithoutStandardSound(BlockData data) {
+        return ReplacedSoundGroups.wasSoundReplaced(data.getSoundGroup());
     }
 
     @EventHandler
@@ -70,8 +75,7 @@ public class FakeBlockSoundManager implements Listener {
         if (!DIGGING_SOUND_DELAY.isAllowed(player))
             return;
         Wrappers.SoundGroup soundGroup = getSoundGroup(block, fakeBlockState);
-        net.kyori.adventure.sound.Sound sound = soundGroup.getStepSound()
-                                                          .asSound(net.kyori.adventure.sound.Sound.Source.BLOCK, 0.45f, 0.5f);
+        net.kyori.adventure.sound.Sound sound = soundGroup.getStepSound().asSound(net.kyori.adventure.sound.Sound.Source.BLOCK, 0.15f, soundGroup.getPitch() * 0.5F);
         player.playSound(sound, block.getX(), block.getY(), block.getZ());
         DIGGING_SOUND_DELAY.reset(player);
     }
