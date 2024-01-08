@@ -1,0 +1,474 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <mail.ysp@web.de>
+Date: Mon, 8 Jan 2024 18:02:38 +0100
+Subject: [PATCH] Add BlockBehaviour
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/BlockBehaviourUtil.java b/src/main/java/de/verdox/mccreativelab/behaviour/BlockBehaviourUtil.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..1dad387f8756669ae70817c477502340391f9784
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/behaviour/BlockBehaviourUtil.java
+@@ -0,0 +1,169 @@
++package de.verdox.mccreativelab.behaviour;
++
++import de.verdox.mccreativelab.random.CraftVanillaRandomSource;
++import net.minecraft.core.BlockPos;
++import net.minecraft.core.Direction;
++import net.minecraft.core.registries.BuiltInRegistries;
++import net.minecraft.server.MinecraftServer;
++import net.minecraft.server.level.ServerLevel;
++import net.minecraft.util.RandomSource;
++import net.minecraft.world.InteractionHand;
++import net.minecraft.world.InteractionResult;
++import net.minecraft.world.entity.Entity;
++import net.minecraft.world.entity.player.Player;
++import net.minecraft.world.level.BlockGetter;
++import net.minecraft.world.level.Level;
++import net.minecraft.world.level.LevelAccessor;
++import net.minecraft.world.level.LevelReader;
++import net.minecraft.world.level.block.state.BlockState;
++import net.minecraft.world.phys.BlockHitResult;
++import org.bukkit.Location;
++import org.bukkit.Material;
++import org.bukkit.block.Block;
++import org.bukkit.block.BlockFace;
++import org.bukkit.block.data.BlockData;
++import org.bukkit.craftbukkit.block.data.CraftBlockData;
++import org.bukkit.inventory.EquipmentSlot;
++import org.bukkit.util.RayTraceResult;
++import org.bukkit.util.Vector;
++
++import java.util.Locale;
++import java.util.function.Supplier;
++
++public class BlockBehaviourUtil extends BehaviourUtil{
++    public static BlockBehaviourUtil INSTANCE;
++    public static BlockBehaviourUtil getInstance() {
++        if(INSTANCE == null)
++            INSTANCE = new BlockBehaviourUtil();
++        return INSTANCE;
++    }
++
++    public boolean isVanillaRandomTickReplaced(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
++        return runIfVanillaLogicReplaced(BlockBehaviour.BLOCK_BEHAVIOUR, BlockBehaviourUtil.getMaterial(state), blockBehaviour -> blockBehaviour.randomTick(world
++            .getWorld().getBlockAt(pos.getX(), pos.getY(), pos.getZ()), new CraftVanillaRandomSource(random)));
++    }
++
++    public boolean isStepOnLogicReplaced(Level world, BlockPos pos, BlockState state, Entity entity) {
++        return runIfVanillaLogicReplaced(BlockBehaviour.BLOCK_BEHAVIOUR, BlockBehaviourUtil.getMaterial(state), blockBehaviour -> blockBehaviour.stepOn(world
++            .getWorld()
++            .getBlockAt(pos.getX(), pos.getY(), pos.getZ()), state.createCraftBlockData(), entity.getBukkitEntity()));
++    }
++
++    public boolean isVanillaTickReplaced(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
++        return runIfVanillaLogicReplaced(BlockBehaviour.BLOCK_BEHAVIOUR, BlockBehaviourUtil.getMaterial(state), blockBehaviour -> blockBehaviour.tick(world
++            .getWorld().getBlockAt(pos.getX(), pos.getY(), pos.getZ()), new CraftVanillaRandomSource(random)));
++    }
++
++    public boolean isVanillaBlockAttackReplaced(BlockState state, Level world, BlockPos pos, Player player){
++        return runIfVanillaLogicReplaced(BlockBehaviour.BLOCK_BEHAVIOUR, BlockBehaviourUtil.getMaterial(state), blockBehaviour ->
++            blockBehaviour.attack(world.getWorld().getBlockAt(pos.getX(), pos.getY(), pos.getZ()), (org.bukkit.entity.Player) player.getBukkitEntity()));
++    }
++
++    public boolean isVanillaNeighbourBlockUpdateReplaced(BlockState state, Level world, BlockPos pos, net.minecraft.world.level.block.Block sourceBlock, BlockPos sourcePos, boolean notify){
++        return runIfVanillaLogicReplaced(BlockBehaviour.BLOCK_BEHAVIOUR, BlockBehaviourUtil.getMaterial(state), blockBehaviour ->
++            blockBehaviour.onNeighbourBlockUpdate(world.getWorld().getBlockAt(pos.getX(), pos.getY(), pos.getZ()), world.getWorld().getBlockAt(sourcePos.getX(), sourcePos.getY(), sourcePos.getZ()), notify));
++    }
++
++    public boolean isRandomlyTicking(BlockState blockState, boolean vanillaValue) {
++        return BlockBehaviourUtil.evaluateBoolean(BlockBehaviour.BLOCK_BEHAVIOUR, getMaterial(blockState), blockBehaviour -> blockBehaviour.isBlockDataRandomlyTicking(blockState.createCraftBlockData()), () -> vanillaValue);
++    }
++
++    public boolean isRandomlyTicking(Level world, int x, int y, int z, BlockState blockState, boolean vanillaValue) {
++        return BlockBehaviourUtil.evaluateBoolean(BlockBehaviour.BLOCK_BEHAVIOUR, getMaterial(blockState), blockBehaviour -> blockBehaviour.isBlockRandomlyTicking(world
++            .getWorld().getBlockAt(x, y, z), blockState.createCraftBlockData()), () -> vanillaValue);
++    }
++
++    public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos, Supplier<Boolean> vanillaLogic) {
++        return BlockBehaviourUtil.evaluateBoolean(BlockBehaviour.BLOCK_BEHAVIOUR, getMaterial(state), blockBehaviour -> {
++            if (!(world instanceof ServerLevel serverLevel))
++                return BehaviourResult.Bool.DEFAULT_INSTANCE;
++            return blockBehaviour.canSurvive(serverLevel.getWorld()
++                                                        .getBlockAt(pos.getX(), pos.getY(), pos.getZ()), serverLevel.getWorld());
++        }, vanillaLogic);
++    }
++
++    public InteractionResult use(BlockState state, Level world, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit, Supplier<InteractionResult> vanillaLogic){
++        return BlockBehaviourUtil.evaluate(BlockBehaviour.BLOCK_BEHAVIOUR, getMaterial(state), blockBehaviour -> {
++            Block block = world.getWorld().getBlockAt(pos.getX(), pos.getY(), pos.getZ());
++            BlockFace blockFace = toBukkitBlockFace(hit.getDirection());
++            EquipmentSlot equipmentSlot = hand.equals(InteractionHand.MAIN_HAND) ? EquipmentSlot.HAND : EquipmentSlot.OFF_HAND;
++            RayTraceResult rayTraceResult = new RayTraceResult(new Vector(hit.getLocation().x(), hit.getLocation()
++                                                                                                    .y(), hit
++                .getLocation().z()), block, blockFace);
++            return blockBehaviour.use(block, (org.bukkit.entity.Player) player.getBukkitEntity(), equipmentSlot, rayTraceResult);
++        }, vanillaLogic, Converter.InteractionResult.INSTANCE);
++    }
++
++    public void onPlaceCallback(BlockState state, Level world, BlockPos pos, BlockState oldState, boolean notify) {
++        BlockBehaviourUtil.evaluateCallback(BlockBehaviour.BLOCK_BEHAVIOUR, getMaterial(state), blockBehaviour ->
++            blockBehaviour.onPlace(new Location(world.getWorld(), pos.getX(), pos.getY(), pos.getZ()), state.createCraftBlockData(), oldState.createCraftBlockData(), notify));
++    }
++
++    public void onPlayerPlaceCallback(Player player, BlockState placedState, Level world, BlockPos pos) {
++        BlockBehaviourUtil.evaluateCallback(BlockBehaviour.BLOCK_BEHAVIOUR, getMaterial(placedState), blockBehaviour ->
++            blockBehaviour.onPlayerPlace((org.bukkit.entity.Player) player.getBukkitEntity(), new Location(world.getWorld(), pos.getX(), pos.getY(), pos.getZ()), placedState.createCraftBlockData()));
++    }
++
++    public void onPlayerBreakCallback(Player player, BlockState brokenState, Level world, BlockPos pos) {
++        BlockBehaviourUtil.evaluateCallback(BlockBehaviour.BLOCK_BEHAVIOUR, getMaterial(brokenState), blockBehaviour ->
++            blockBehaviour.onPlayerBreak((org.bukkit.entity.Player) player.getBukkitEntity(), new Location(world.getWorld(), pos.getX(), pos.getY(), pos.getZ()), brokenState.createCraftBlockData()));
++    }
++
++    public float getExplosionResistance(BlockGetter world, BlockPos pos, BlockState blockState, float vanillaValue) {
++        return BlockBehaviourUtil
++            .evaluate(BlockBehaviour.BLOCK_BEHAVIOUR, getMaterial(blockState), blockBehaviour -> {
++                if (!(world instanceof ServerLevel serverLevel))
++                    return FLOAT_DEFAULT;
++                Block block = ((ServerLevel) world).getWorld().getBlockAt(pos.getX(), pos.getY(), pos.getZ());
++
++                return blockBehaviour.getExplosionResistance(block, blockState.createCraftBlockData());
++            }, () -> vanillaValue, Converter.DummyConverter.getInstance(Float.class));
++    }
++
++    public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos, Supplier<BlockState> vanillaLogic) {
++        return BlockBehaviourUtil.evaluate(BlockBehaviour.BLOCK_BEHAVIOUR, getMaterial(state), blockBehaviour -> {
++                if (!(world instanceof ServerLevel serverLevel))
++                    return BehaviourResult.Object.DEFAULT_INSTANCE;
++                BlockFace blockFace = toBukkitBlockFace(direction);
++                return blockBehaviour.blockUpdate(new Location(serverLevel.getWorld(), pos.getX(), pos.getY(), pos.getZ()), state.createCraftBlockData(), blockFace, neighborState.createCraftBlockData(), new Location(serverLevel.getWorld(), neighborPos.getX(), neighborPos.getY(), neighborPos.getZ()));
++            }, vanillaLogic, Converter.BlockData.INSTANCE);
++    }
++
++    public void onRemoveCallback(BlockState state, Level world, BlockPos pos, BlockState newState, boolean moved) {
++        BlockBehaviourUtil.evaluateCallback(BlockBehaviour.BLOCK_BEHAVIOUR, getMaterial(state), blockBehaviour ->
++            blockBehaviour.onRemove(new Location(world.getWorld(), pos.getX(), pos.getY(), pos.getZ()), newState.createCraftBlockData(), state.createCraftBlockData(), moved));
++    }
++
++    public void onUseCallback(BlockState state, Level world, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
++        BlockBehaviourUtil.evaluateCallback(BlockBehaviour.BLOCK_BEHAVIOUR, getMaterial(state), blockBehaviour -> {
++            Block block = world.getWorld().getBlockAt(pos.getX(), pos.getY(), pos.getZ());
++            BlockFace blockFace = toBukkitBlockFace(hit.getDirection());
++            EquipmentSlot equipmentSlot = hand.equals(InteractionHand.MAIN_HAND) ? EquipmentSlot.HAND : EquipmentSlot.OFF_HAND;
++            RayTraceResult rayTraceResult = new RayTraceResult(new Vector(hit.getLocation().x(), hit.getLocation().y(), hit.getLocation().z()), block, blockFace);
++            return blockBehaviour.onUse(block, (org.bukkit.entity.Player) player.getBukkitEntity(), equipmentSlot, rayTraceResult);
++        });
++    }
++
++    private static BlockFace toBukkitBlockFace(Direction direction) {
++        return switch (direction) {
++            case DOWN -> BlockFace.DOWN;
++            case UP -> BlockFace.UP;
++            case NORTH -> BlockFace.NORTH;
++            case SOUTH -> BlockFace.SOUTH;
++            case WEST -> BlockFace.WEST;
++            case EAST -> BlockFace.EAST;
++        };
++    }
++
++
++
++    private static Material getMaterial(BlockState blockState) {
++        Material material;
++        if (MinecraftServer.getServer() != null && MinecraftServer.getServer().isReady())
++            material = blockState.getBukkitMaterial();
++        else
++            material = Material.getMaterial(BuiltInRegistries.BLOCK.getKey(blockState.getBlock()).getPath()
++                                                                   .toUpperCase(Locale.ROOT));
++        return material;
++    }
++}
+diff --git a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
+index dbccbcb9b44e4efacdf53c2d161115cc20b36cff..af52a2111995d832aad98bbf15382246d43af547 100644
+--- a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
++++ b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
+@@ -273,6 +273,7 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
+         server.loadPlugins();
+         server.enablePlugins(org.bukkit.plugin.PluginLoadOrder.STARTUP);
+         // CraftBukkit end
++        net.minecraft.world.level.block.Blocks.rebuildCache(); // MCCLab - Add BlockBehaviour
+ 
+         // Paper start
+         boolean usingProxy = org.spigotmc.SpigotConfig.bungee || io.papermc.paper.configuration.GlobalConfiguration.get().proxies.velocity.enabled;
+diff --git a/src/main/java/net/minecraft/server/level/ServerPlayerGameMode.java b/src/main/java/net/minecraft/server/level/ServerPlayerGameMode.java
+index b2c2bd5ec0afd479973f7237a5c610f21231c505..cbd93dbaa4647bfc72654bbd7bb6403356b02ec9 100644
+--- a/src/main/java/net/minecraft/server/level/ServerPlayerGameMode.java
++++ b/src/main/java/net/minecraft/server/level/ServerPlayerGameMode.java
+@@ -464,6 +464,7 @@ public class ServerPlayerGameMode {
+                 }
+                 // Paper end
+ 
++                de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.getInstance().onPlayerBreakCallback(player, iblockdata, level, pos); // MCCLab - Add BlockBehaviour
+                 return true;
+                 // CraftBukkit end
+             }
+diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
+index f20ae9153b7098980ce6c0e75fcbbb4da652661b..ccdf362a00214ad017d9e4105843a488db06f302 100644
+--- a/src/main/java/net/minecraft/world/entity/Entity.java
++++ b/src/main/java/net/minecraft/world/entity/Entity.java
+@@ -1145,6 +1145,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+                 // CraftBukkit end
+ 
+                 if (this.onGround()) {
++                    if(!block.blockBehaviour().isStepOnLogicReplaced(this.level(), blockposition, iblockdata, this)) // MCCLab start - Adding BlockBehaviour)
+                     block.stepOn(this.level(), blockposition, iblockdata, this);
+                 }
+ 
+diff --git a/src/main/java/net/minecraft/world/item/BlockItem.java b/src/main/java/net/minecraft/world/item/BlockItem.java
+index e483186a5292b3b53bfb1af4d56f55fcc1a6106c..0bca96cb28aea0cb26d93fd05c8949d4b4fa5ae7 100644
+--- a/src/main/java/net/minecraft/world/item/BlockItem.java
++++ b/src/main/java/net/minecraft/world/item/BlockItem.java
+@@ -137,6 +137,7 @@ public class BlockItem extends Item {
+                         itemstack.shrink(1);
+                     }
+ 
++                    if(entityhuman != null) de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.getInstance().onPlayerPlaceCallback(entityhuman, iblockdata, world, blockposition); // MCCLab - Add BlockBehaviour
+                     return InteractionResult.sidedSuccess(world.isClientSide);
+                 }
+             }
+diff --git a/src/main/java/net/minecraft/world/item/ItemStack.java b/src/main/java/net/minecraft/world/item/ItemStack.java
+index e7a28374d9ce87bdffad1c98ad73cb00eee1b235..9d8602344517a3ce7ec555eae7488cc6c5b53883 100644
+--- a/src/main/java/net/minecraft/world/item/ItemStack.java
++++ b/src/main/java/net/minecraft/world/item/ItemStack.java
+@@ -444,7 +444,7 @@ public final class ItemStack {
+                         ((ServerPlayer) entityhuman).connection.send(new ClientboundBlockUpdatePacket(world, placedPos.relative(dir)));
+                     }
+                     SignItem.openSign = null; // SPIGOT-6758 - Reset on early return
+-                    BlockBehaviourUtil.onPlayerPlaceCallback(entityhuman, world.getBlockState(blockposition), world, blockposition);
++                    de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.getInstance().onPlayerPlaceCallback(entityhuman, world.getBlockState(blockposition), world, blockposition); // MCCLab - Add BlockBehaviour
+                 } else {
+                     // Change the stack to its new contents if it hasn't been tampered with.
+                     if (this.getCount() == oldCount && Objects.equals(this.tag, oldData)) {
+diff --git a/src/main/java/net/minecraft/world/level/ExplosionDamageCalculator.java b/src/main/java/net/minecraft/world/level/ExplosionDamageCalculator.java
+index 44c3f0ceea4b4464873302ecdc53f7eb1cc83052..c55a065ca8709cd9115a676c34bb9ef4a6350281 100644
+--- a/src/main/java/net/minecraft/world/level/ExplosionDamageCalculator.java
++++ b/src/main/java/net/minecraft/world/level/ExplosionDamageCalculator.java
+@@ -7,7 +7,7 @@ import net.minecraft.world.level.material.FluidState;
+ 
+ public class ExplosionDamageCalculator {
+     public Optional<Float> getBlockExplosionResistance(Explosion explosion, BlockGetter world, BlockPos pos, BlockState blockState, FluidState fluidState) {
+-        return blockState.isAir() && fluidState.isEmpty() ? Optional.empty() : Optional.of(Math.max(blockState.getBlock().getExplosionResistance(), fluidState.getExplosionResistance()));
++        return blockState.isAir() && fluidState.isEmpty() ? Optional.empty() : Optional.of(Math.max(blockState.getBlock().getExplosionResistance(world, pos, blockState), fluidState.getExplosionResistance())); // MCCLab - Add BlockBehaviour
+     }
+ 
+     public boolean shouldBlockExplode(Explosion explosion, BlockGetter world, BlockPos pos, BlockState state, float power) {
+diff --git a/src/main/java/net/minecraft/world/level/block/Block.java b/src/main/java/net/minecraft/world/level/block/Block.java
+index d4cbff18adb62073a1dceb189043789620af6877..acbafd465f8444e441a8c70017d45a04bcfbd558 100644
+--- a/src/main/java/net/minecraft/world/level/block/Block.java
++++ b/src/main/java/net/minecraft/world/level/block/Block.java
+@@ -403,13 +403,21 @@ public class Block extends BlockBehaviour implements ItemLike {
+ 
+     }
+ 
++    // MCCLab start - Add BlockBehaviour
++    public float getExplosionResistance(BlockGetter world, BlockPos pos, BlockState blockState){
++        return blockBehaviour().getExplosionResistance(world, pos, blockState, getExplosionResistance());
++    }
++    // MCCLab end - Add BlockBehaviour
++
+     public float getExplosionResistance() {
+         return this.explosionResistance;
+     }
+ 
+     public void wasExploded(Level world, BlockPos pos, Explosion explosion) {}
+ 
+-    public void stepOn(Level world, BlockPos pos, BlockState state, Entity entity) {}
++    public void stepOn(Level world, BlockPos pos, BlockState state, Entity entity) {
++
++    }
+ 
+     @Nullable
+     public BlockState getStateForPlacement(BlockPlaceContext ctx) {
+diff --git a/src/main/java/net/minecraft/world/level/block/state/BlockBehaviour.java b/src/main/java/net/minecraft/world/level/block/state/BlockBehaviour.java
+index e6a4a5898ffdcb2aa2bc01371a6d7dbc06d610ce..c75a032d4340ce56e45b289112af63adae5438f0 100644
+--- a/src/main/java/net/minecraft/world/level/block/state/BlockBehaviour.java
++++ b/src/main/java/net/minecraft/world/level/block/state/BlockBehaviour.java
+@@ -420,6 +420,11 @@ public abstract class BlockBehaviour implements FeatureElement {
+         return this.properties.destroyTime;
+     }
+ 
++    // MCCLab start - Adding BlockBehaviour
++    public static de.verdox.mccreativelab.behaviour.BlockBehaviourUtil blockBehaviour(){
++        return de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.getInstance();
++    }
++    // MCCLab end - Adding BlockBehaviour
+     public static class Properties {
+ 
+         Function<BlockState, MapColor> mapColor = (iblockdata) -> {
+@@ -916,7 +921,7 @@ public abstract class BlockBehaviour implements FeatureElement {
+ 
+         public void initCache() {
+             this.fluidState = ((Block) this.owner).getFluidState(this.asState());
+-            this.isRandomlyTicking = ((Block) this.owner).isRandomlyTicking(this.asState());
++            this.isRandomlyTicking = blockBehaviour().isRandomlyTicking(this.asState(), ((Block) this.owner).isRandomlyTicking(this.asState())); // MCCLab - Add BlockBehaviour
+             if (!this.getBlock().hasDynamicShape()) {
+                 this.cache = new BlockBehaviour.BlockStateBase.Cache(this.asState());
+             }
+@@ -1164,6 +1169,7 @@ public abstract class BlockBehaviour implements FeatureElement {
+         /** @deprecated */
+         @Deprecated
+         public void neighborChanged(Level world, BlockPos pos, Block sourceBlock, BlockPos sourcePos, boolean notify) {
++            if(blockBehaviour().isVanillaNeighbourBlockUpdateReplaced(asState(), world, pos, sourceBlock, sourcePos, notify)) return;  // MCCLab - Add custom Block behaviour
+             this.getBlock().neighborChanged(this.asState(), world, pos, sourceBlock, sourcePos, notify);
+         }
+ 
+@@ -1195,17 +1201,21 @@ public abstract class BlockBehaviour implements FeatureElement {
+ 
+         public void onPlace(Level world, BlockPos pos, BlockState state, boolean notify) {
+             this.getBlock().onPlace(this.asState(), world, pos, state, notify);
++            blockBehaviour().onPlaceCallback(this.asState(), world, pos, state, notify); // MCCLab - Add Block behaviour
+         }
+ 
+         public void onRemove(Level world, BlockPos pos, BlockState state, boolean moved) {
+             this.getBlock().onRemove(this.asState(), world, pos, state, moved);
++            blockBehaviour().onRemoveCallback(state, world, pos, state, moved); // MCCLab - Add Block behaviour
+         }
+ 
+         public void tick(ServerLevel world, BlockPos pos, RandomSource random) {
++            if(blockBehaviour().isVanillaTickReplaced(asState(), world, pos, random)) return; // MCCLab - Add custom Block behaviour
+             this.getBlock().tick(this.asState(), world, pos, random);
+         }
+ 
+         public void randomTick(ServerLevel world, BlockPos pos, RandomSource random) {
++            if(blockBehaviour().isVanillaRandomTickReplaced(asState(), world, pos, random)) return; // MCCLab - Add custom Block behaviour
+             this.getBlock().randomTick(this.asState(), world, pos, random);
+         }
+ 
+@@ -1222,10 +1232,13 @@ public abstract class BlockBehaviour implements FeatureElement {
+         }
+ 
+         public InteractionResult use(Level world, Player player, InteractionHand hand, BlockHitResult hit) {
++            return blockBehaviour().use(asState(), world, hit.getBlockPos(), player, hand, hit, () -> { // MCCLab - Add BlockBehaviour
+             return this.getBlock().use(this.asState(), world, hit.getBlockPos(), player, hand, hit);
++            }); // MCCLab - Add BlockBehaviour
+         }
+ 
+         public void attack(Level world, BlockPos pos, Player player) {
++            if(blockBehaviour().isVanillaBlockAttackReplaced(asState(), world, pos, player)) return;  // MCCLab - Add custom Block behaviour
+             this.getBlock().attack(this.asState(), world, pos, player);
+         }
+ 
+@@ -1238,7 +1251,9 @@ public abstract class BlockBehaviour implements FeatureElement {
+         }
+ 
+         public BlockState updateShape(Direction direction, BlockState neighborState, LevelAccessor world, BlockPos pos, BlockPos neighborPos) {
++            return blockBehaviour().updateShape(asState(), direction, neighborState, world, pos, neighborPos, () -> { // MCCLab - Add BlockBehaviour
+             return this.getBlock().updateShape(this.asState(), direction, neighborState, world, pos, neighborPos);
++            }); // MCCLab - Add BlockBehaviour
+         }
+ 
+         public boolean isPathfindable(BlockGetter world, BlockPos pos, PathComputationType type) {
+@@ -1258,7 +1273,9 @@ public abstract class BlockBehaviour implements FeatureElement {
+         }
+ 
+         public boolean canSurvive(LevelReader world, BlockPos pos) {
++            return blockBehaviour().canSurvive(asState(), world, pos, () -> { // MCCLab - Adding BlockBehaviour
+             return this.getBlock().canSurvive(this.asState(), world, pos);
++            }); // MCCLab - Adding BlockBehaviour
+         }
+ 
+         public boolean hasPostProcess(BlockGetter world, BlockPos pos) {
+@@ -1296,6 +1313,7 @@ public abstract class BlockBehaviour implements FeatureElement {
+ 
+         @Nullable
+         public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level world, BlockEntityType<T> blockEntityType) {
++            //TODO: Enable / disable block entity ticking in BlockBehaviour
+             return this.getBlock() instanceof EntityBlock ? ((EntityBlock) this.getBlock()).getTicker(world, this.asState(), blockEntityType) : null;
+         }
+ 
+@@ -1311,6 +1329,15 @@ public abstract class BlockBehaviour implements FeatureElement {
+             return this.isRandomlyTicking;
+         }
+ 
++        // MCCLab start - Add BlockBehaviour
++        public final boolean isRandomlyTicking(Level world, int x, int y, int z, BlockState blockState){
++            if(world == null || x == -1 || z == -1 || blockState == null)
++                return this.isRandomlyTicking();
++            return blockBehaviour().isRandomlyTicking(world, x, y,z,blockState, this.isRandomlyTicking());
++        }
++
++        // MCCLab end - Add BlockBehaviour
++
+         public long getSeed(BlockPos pos) {
+             return this.getBlock().getSeed(this.asState(), pos);
+         }
+diff --git a/src/main/java/net/minecraft/world/level/chunk/LevelChunkSection.java b/src/main/java/net/minecraft/world/level/chunk/LevelChunkSection.java
+index f0de72afad4bb571153436399386a6a8a70582a6..562cba19c445e04bf833326f9498ee095fcfb88e 100644
+--- a/src/main/java/net/minecraft/world/level/chunk/LevelChunkSection.java
++++ b/src/main/java/net/minecraft/world/level/chunk/LevelChunkSection.java
+@@ -28,6 +28,11 @@ public class LevelChunkSection {
+     public final com.destroystokyo.paper.util.maplist.IBlockDataList tickingList = new com.destroystokyo.paper.util.maplist.IBlockDataList(); // Paper
+     // Paper start - optimise collisions
+     private int specialCollidingBlocks;
++    // MCCLab start - Add BlockBehaviour
++    private net.minecraft.world.level.Level level;
++    private net.minecraft.world.level.ChunkPos chunkPos;
++    private int chunkSectionY;
++    // MCCLab end - Add BlockBehaviour
+ 
+     private void updateBlockCallback(final int x, final int y, final int z, final BlockState oldState, final BlockState newState) {
+         if (io.papermc.paper.util.CollisionUtil.isSpecialCollidingBlock(newState)) {
+@@ -56,6 +61,11 @@ public class LevelChunkSection {
+         // Paper end
+         this.states = new PalettedContainer<>(Block.BLOCK_STATE_REGISTRY, Blocks.AIR.defaultBlockState(), PalettedContainer.Strategy.SECTION_STATES, level == null || level.chunkPacketBlockController == null ? null : level.chunkPacketBlockController.getPresetBlockStates(level, chunkPos, chunkSectionY)); // Paper - Anti-Xray - Add preset block states
+         this.biomes = new PalettedContainer<>(biomeRegistry.asHolderIdMap(), biomeRegistry.getHolderOrThrow(Biomes.PLAINS), PalettedContainer.Strategy.SECTION_BIOMES, null); // Paper - Anti-Xray - Add preset biomes
++        // MCCLab start - Add BlockBehaviour
++        this.level = level;
++        this.chunkPos = chunkPos;
++        this.chunkSectionY = chunkSectionY;
++        // MCCLab end - Add BlockBehaviour
+     }
+ 
+     public BlockState getBlockState(int x, int y, int z) {
+@@ -87,12 +97,18 @@ public class LevelChunkSection {
+             iblockdata1 = (BlockState) this.states.getAndSetUnchecked(x, y, z, state);
+         }
+ 
++        // MCCLab start - Add BlockBehaviour
++        int globalX = chunkPos != null ? chunkPos.x * 16 + x : -1;
++        int globalY = chunkSectionY << 4 + y;
++        int globalZ = chunkPos != null ? chunkPos.z * 16 + z : -1;
++        // MCCLab end - Add BlockBehaviour
++
+         FluidState fluid = iblockdata1.getFluidState();
+         FluidState fluid1 = state.getFluidState();
+ 
+         if (!iblockdata1.isAir()) {
+             --this.nonEmptyBlockCount;
+-            if (iblockdata1.isRandomlyTicking()) {
++            if (iblockdata1.isRandomlyTicking(level, globalX, globalY, globalZ, state)) { // MCCLab start - Add BlockBehaviour
+                 --this.tickingBlockCount;
+                 // Paper start
+                 this.tickingList.remove(x, y, z);
+@@ -106,7 +122,7 @@ public class LevelChunkSection {
+ 
+         if (!state.isAir()) {
+             ++this.nonEmptyBlockCount;
+-            if (state.isRandomlyTicking()) {
++            if (state.isRandomlyTicking(level, globalX, globalY, globalZ, state)) { // MCCLab start - Add BlockBehaviour
+                 ++this.tickingBlockCount;
+                 // Paper start
+                 this.tickingList.add(x, y, z, state);
+@@ -148,9 +164,20 @@ public class LevelChunkSection {
+         this.states.forEachLocation((BlockState iblockdata, int i) -> {
+             FluidState fluid = iblockdata.getFluidState();
+ 
++            // MCCLab start - Add BlockBehaviour
++            int sizedBitsOfBlockStatePalette = 4;
++            int x = i & ((1 << sizedBitsOfBlockStatePalette) - 1);
++            int z = (i >> sizedBitsOfBlockStatePalette) & ((1 << sizedBitsOfBlockStatePalette) - 1);
++            int y = (i >> (sizedBitsOfBlockStatePalette * 2)) & ((1 << sizedBitsOfBlockStatePalette) - 1);
++
++            int globalX = chunkPos != null ? chunkPos.x * 16 + x : -1;
++            int globalY = chunkSectionY << 4 + y;
++            int globalZ = chunkPos != null ? chunkPos.z * 16 + z : -1;
++            // MCCLab end - Add BlockBehaviour
++
+             if (!iblockdata.isAir()) {
+                 this.nonEmptyBlockCount = (short) (this.nonEmptyBlockCount + 1);
+-                if (iblockdata.isRandomlyTicking()) {
++                if (iblockdata.isRandomlyTicking(level, globalX, globalY, globalZ, iblockdata)) { // MCCLab start - Add BlockBehaviour
+                     this.tickingBlockCount = (short)(this.tickingBlockCount + 1);
+                     this.tickingList.add(i, iblockdata);
+                 }

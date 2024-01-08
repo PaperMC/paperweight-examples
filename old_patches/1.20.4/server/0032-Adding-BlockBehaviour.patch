@@ -200,9 +200,8 @@ index dbccbcb9b44e4efacdf53c2d161115cc20b36cff..69bc806d2a600074a18546ac06273e4c
          // this.setPlayerList(new DedicatedPlayerList(this, this.registries(), this.playerDataStorage)); // Spigot - moved up
          server.loadPlugins();
          server.enablePlugins(org.bukkit.plugin.PluginLoadOrder.STARTUP);
-+        net.minecraft.world.level.block.Blocks.rebuildCache(); // MCCLab - Add BlockBehaviour
          // CraftBukkit end
- 
++        net.minecraft.world.level.block.Blocks.rebuildCache(); // MCCLab - Add BlockBehaviour
          // Paper start
 diff --git a/src/main/java/net/minecraft/server/level/ServerPlayerGameMode.java b/src/main/java/net/minecraft/server/level/ServerPlayerGameMode.java
 index b2c2bd5ec0afd479973f7237a5c610f21231c505..cbd93dbaa4647bfc72654bbd7bb6403356b02ec9 100644
@@ -5073,13 +5072,13 @@ index e6a4a5898ffdcb2aa2bc01371a6d7dbc06d610ce..ce6fb51f27894b84cf3882b223d66291
      }
  
      /** @deprecated */
-@@ -349,12 +351,15 @@ public abstract class BlockBehaviour implements FeatureElement {
+@@ -349,10 +351,14 @@ public abstract class BlockBehaviour implements FeatureElement {
      /** @deprecated */
      @Deprecated
-     public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
+-    public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {}
++    public void randomTick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
 +        if(blockBehaviour().isVanillaRandomTickReplaced(state, world, pos, random)) return; // MCCLab - Add custom Block behaviour
-         this.tick(state, world, pos, random);
-     }
++    }
  
      /** @deprecated */
      @Deprecated
