@@ -9,7 +9,7 @@ new file mode 100644
 index 0000000000000000000000000000000000000000..2f9981a67d72f575fb2ac37b8b6c2bde4d0733ed
 --- /dev/null
 +++ b/src/main/java/de/verdox/mccreativelab/CustomBehaviour.java
-@@ -0,0 +1,49 @@
+@@ -0,0 +1,45 @@
 +package de.verdox.mccreativelab;
 +
 +import org.bukkit.Bukkit;
@@ -29,10 +29,6 @@ index 0000000000000000000000000000000000000000..2f9981a67d72f575fb2ac37b8b6c2bde
 +    private final String key;
 +    public CustomBehaviour(String key){
 +        this.key = key;
-+    }
-+
-+    public String getKey() {
-+        return key;
 +    }
 +
 +    /**

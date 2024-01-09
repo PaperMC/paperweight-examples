@@ -1,0 +1,98 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <lukasjonsson@outlook.de>
+Date: Mon, 13 Nov 2023 21:26:23 +0100
+Subject: [PATCH] Adding alwaysTick flag for Chunks, so they can tick with no
+ nearby player.
+
+
+diff --git a/src/main/java/net/minecraft/server/level/ServerChunkCache.java b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
+index 17b6925b46f8386dcfc561483693de516465ec12..bdf768cf725dd20dc80d2b59e64e1d9a7d8f8156 100644
+--- a/src/main/java/net/minecraft/server/level/ServerChunkCache.java
++++ b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
+@@ -622,23 +622,27 @@ public class ServerChunkCache extends ChunkSource {
+                 // Paper start - optimise chunk tick iteration
+                 com.destroystokyo.paper.util.maplist.ReferenceList<ServerPlayer> playersNearby
+                     = nearbyPlayers.getPlayers(chunkcoordintpair, io.papermc.paper.util.player.NearbyPlayers.NearbyMapType.SPAWN_RANGE);
+-                if (playersNearby == null) {
++                // MCLab - start
++                if (playersNearby == null && !chunk1.isAlwaysTicking()) {
+                     continue;
+                 }
+-                Object[] rawData = playersNearby.getRawData();
+                 boolean spawn = false;
+                 boolean tick = false;
+-                for (int itr = 0, len = playersNearby.size(); itr < len; ++itr) {
+-                    ServerPlayer player = (ServerPlayer)rawData[itr];
+-                    if (player.isSpectator()) {
+-                        continue;
+-                    }
++                if(playersNearby != null){
++                    Object[] rawData = playersNearby.getRawData();
++
++                    for (int itr = 0, len = playersNearby.size(); itr < len; ++itr) {
++                        ServerPlayer player = (ServerPlayer)rawData[itr];
++                        if (player.isSpectator()) {
++                            continue;
++                        }
+ 
+-                    double distance = ChunkMap.euclideanDistanceSquared(chunkcoordintpair, player);
+-                    spawn |= player.lastEntitySpawnRadiusSquared >= distance;
+-                    tick |= ((double)io.papermc.paper.util.player.NearbyPlayers.SPAWN_RANGE_VIEW_DISTANCE_BLOCKS) * ((double)io.papermc.paper.util.player.NearbyPlayers.SPAWN_RANGE_VIEW_DISTANCE_BLOCKS) >= distance;
+-                    if (spawn & tick) {
+-                        break;
++                        double distance = ChunkMap.euclideanDistanceSquared(chunkcoordintpair, player);
++                        spawn |= player.lastEntitySpawnRadiusSquared >= distance;
++                        tick |= ((double)io.papermc.paper.util.player.NearbyPlayers.SPAWN_RANGE_VIEW_DISTANCE_BLOCKS) * ((double)io.papermc.paper.util.player.NearbyPlayers.SPAWN_RANGE_VIEW_DISTANCE_BLOCKS) >= distance;
++                        if (spawn & tick) {
++                            break;
++                        }
+                     }
+                 }
+                 // Paper end - optimise chunk tick iteration
+diff --git a/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java b/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
+index 4abec88caab4116cfa318f7b66c6b1a8346a7401..1f8a12c0a32f233fb66e9618db1b2d938c57d090 100644
+--- a/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
++++ b/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
+@@ -1219,4 +1219,19 @@ public class LevelChunk extends ChunkAccess {
+             return "Level ticker for " + s + "@" + this.getPos();
+         }
+     }
++
++    // MCCLab - start
++
++    private boolean alwaysTicking;
++
++    public void setAlwaysTicking(boolean alwaysTicking) {
++        this.alwaysTicking = alwaysTicking;
++    }
++
++    public boolean isAlwaysTicking() {
++        return alwaysTicking;
++    }
++
++    // MCCLab - end
++
+ }
+diff --git a/src/main/java/org/bukkit/craftbukkit/CraftChunk.java b/src/main/java/org/bukkit/craftbukkit/CraftChunk.java
+index 2b138ee73efb8365aa362e08bfb785e3c1aedabb..3499514a38fbb3f46c8617ed0d093f242afae6da 100644
+--- a/src/main/java/org/bukkit/craftbukkit/CraftChunk.java
++++ b/src/main/java/org/bukkit/craftbukkit/CraftChunk.java
+@@ -404,4 +404,18 @@ public class CraftChunk implements Chunk {
+     static {
+         Arrays.fill(emptyLight, (byte) 0xFF);
+     }
++
++    // MCLab - start
++
++    @Override
++    public void setAlwaysTicking(boolean alwaysTicking) {
++        worldServer.getChunk(getX(), getZ()).setAlwaysTicking(alwaysTicking);
++    }
++
++    @Override
++    public boolean isAlwaysTicking() {
++        return worldServer.getChunk(getX(), getZ()).isAlwaysTicking();
++    }
++
++    // MCLab - end
+ }

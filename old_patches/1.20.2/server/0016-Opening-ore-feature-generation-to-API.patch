@@ -1,0 +1,75 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <lukasjonsson@outlook.de>
+Date: Sat, 18 Nov 2023 14:16:10 +0100
+Subject: [PATCH] Opening ore feature generation to API
+
+
+diff --git a/src/main/java/net/minecraft/world/level/chunk/BulkSectionAccess.java b/src/main/java/net/minecraft/world/level/chunk/BulkSectionAccess.java
+index da12d1f274844cbd874f58cc802b6904d9061f72..91ea5be0d424edfb383c6e8d4cd4fd9ac50b4612 100644
+--- a/src/main/java/net/minecraft/world/level/chunk/BulkSectionAccess.java
++++ b/src/main/java/net/minecraft/world/level/chunk/BulkSectionAccess.java
+@@ -60,4 +60,29 @@ public class BulkSectionAccess implements AutoCloseable {
+         }
+ 
+     }
++
++
++    // MCCLab - start
++    @Nullable private ChunkAccess lastChunkAccess;
++    @Nullable
++    public com.mojang.datafixers.util.Pair<LevelChunkSection, ChunkAccess> getSectionAndChunkAccess(BlockPos pos) {
++        int i = this.level.getSectionIndex(pos.getY());
++        if (i >= 0 && i < this.level.getSectionsCount()) {
++            long l = SectionPos.asLong(pos);
++            if (this.lastSection == null || this.lastSectionKey != l) {
++                this.lastSection = this.acquiredSections.computeIfAbsent(l, (lx) -> {
++                    ChunkAccess chunkAccess = this.level.getChunk(SectionPos.blockToSectionCoord(pos.getX()), SectionPos.blockToSectionCoord(pos.getZ()));
++                    LevelChunkSection levelChunkSection = chunkAccess.getSection(i);
++                    levelChunkSection.acquire();
++                    this.lastChunkAccess = chunkAccess;
++                    return levelChunkSection;
++                });
++                this.lastSectionKey = l;
++            }
++            return com.mojang.datafixers.util.Pair.of(this.lastSection, this.lastChunkAccess);
++        } else {
++            return null;
++        }
++    }
++    // MCCLab - end
+ }
+diff --git a/src/main/java/net/minecraft/world/level/levelgen/feature/OreFeature.java b/src/main/java/net/minecraft/world/level/levelgen/feature/OreFeature.java
+index 4be60b8d321d8f8cdd97deee16f4b42e428e57cf..afc3ba883227a1e76126a5df2c280ca9184ca65b 100644
+--- a/src/main/java/net/minecraft/world/level/levelgen/feature/OreFeature.java
++++ b/src/main/java/net/minecraft/world/level/levelgen/feature/OreFeature.java
+@@ -120,7 +120,18 @@ public class OreFeature extends Feature<OreConfiguration> {
+                                                 bitSet.set(am);
+                                                 mutableBlockPos.set(ag, ai, ak);
+                                                 if (world.ensureCanWrite(mutableBlockPos)) {
+-                                                    LevelChunkSection levelChunkSection = bulkSectionAccess.getSection(mutableBlockPos);
++                                                    // MCCLab - start
++                                                    var pair = bulkSectionAccess.getSectionAndChunkAccess(mutableBlockPos);
++                                                    LevelChunkSection levelChunkSection;
++                                                    net.minecraft.world.level.chunk.ChunkAccess chunkAccess = null;
++                                                    if (pair != null) {
++                                                        levelChunkSection = pair.getFirst();
++                                                        chunkAccess = pair.getSecond();
++                                                    }
++                                                    else
++                                                        levelChunkSection = bulkSectionAccess.getSection(mutableBlockPos);
++                                                    //LevelChunkSection levelChunkSection = bulkSectionAccess.getSection(mutableBlockPos);
++                                                    // MCCLab - end
+                                                     if (levelChunkSection != null) {
+                                                         int an = SectionPos.sectionRelative(ag);
+                                                         int ao = SectionPos.sectionRelative(ai);
+@@ -130,6 +141,10 @@ public class OreFeature extends Feature<OreConfiguration> {
+                                                         for(OreConfiguration.TargetBlockState targetBlockState : config.targetStates) {
+                                                             if (canPlaceOre(blockState, bulkSectionAccess::getBlockState, random, config, targetBlockState, mutableBlockPos)) {
+                                                                 levelChunkSection.setBlockState(an, ao, ap, targetBlockState.state, false);
++                                                                // MCCLab - start
++                                                                if(chunkAccess != null)
++                                                                    de.verdox.mccreativelab.worldgen.WorldGenerationCallbackUtil.executeWorldGenCallbacks(de.verdox.mccreativelab.behaviour.WorldGenerationBehaviour.FeatureType.ORE_FEATURE, world, new BlockPos(an, ao, ap), targetBlockState.state, chunkAccess);
++                                                                // MCCLab - end
+                                                                 ++i;
+                                                                 break;
+                                                             }

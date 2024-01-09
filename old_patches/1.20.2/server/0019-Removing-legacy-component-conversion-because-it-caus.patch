@@ -1,0 +1,20 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <lukasjonsson@outlook.de>
+Date: Mon, 20 Nov 2023 18:07:51 +0100
+Subject: [PATCH] Removing legacy component conversion because it causes item
+ stacking bugs.
+
+
+diff --git a/src/main/java/net/minecraft/world/item/ItemStack.java b/src/main/java/net/minecraft/world/item/ItemStack.java
+index 40bfcb1fe51a8713a8d2c0ffa4bb1291ffd1afca..c057c0138cad7c3ee221b3a30d8713231ccd03ab 100644
+--- a/src/main/java/net/minecraft/world/item/ItemStack.java
++++ b/src/main/java/net/minecraft/world/item/ItemStack.java
+@@ -206,7 +206,7 @@ public final class ItemStack {
+         Component component = Component.Serializer.fromJson(json);
+         if (component.getContents() instanceof net.minecraft.network.chat.contents.LiteralContents literalContents && literalContents.text().contains("\u00A7") && component.getSiblings().isEmpty()) {
+             // Only convert if the root component is a single comp with legacy in it, don't convert already normal components
+-            component = org.bukkit.craftbukkit.util.CraftChatMessage.fromString(literalContents.text())[0];
++            //component = org.bukkit.craftbukkit.util.CraftChatMessage.fromString(literalContents.text())[0];
+         }
+         return net.minecraft.nbt.StringTag.valueOf(org.bukkit.craftbukkit.util.CraftChatMessage.toJSON(component));
+     }

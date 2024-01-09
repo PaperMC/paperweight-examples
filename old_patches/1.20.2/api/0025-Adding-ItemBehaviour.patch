@@ -1,0 +1,106 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <mail.ysp@web.de>
+Date: Sun, 7 Jan 2024 14:38:06 +0100
+Subject: [PATCH] Adding ItemBehaviour
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/ItemBehaviour.java b/src/main/java/de/verdox/mccreativelab/behaviour/ItemBehaviour.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..7309db3192d3cacafdacef126215037129fa91aa
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/behaviour/ItemBehaviour.java
+@@ -0,0 +1,73 @@
++package de.verdox.mccreativelab.behaviour;
++
++import de.verdox.mccreativelab.InteractionResult;
++import de.verdox.mccreativelab.MultiCustomBehaviour;
++import de.verdox.mccreativelab.recipe.CustomItemData;
++import org.bukkit.block.Block;
++import org.bukkit.block.data.BlockData;
++import org.bukkit.entity.Item;
++import org.bukkit.entity.LivingEntity;
++import org.bukkit.entity.Player;
++import org.bukkit.inventory.EquipmentSlot;
++import org.bukkit.inventory.FoodProperties;
++import org.bukkit.inventory.ItemStack;
++
++public interface ItemBehaviour {
++    MultiCustomBehaviour<CustomItemData, ItemBehaviour> ITEM_BEHAVIOUR = new MultiCustomBehaviour<>("MCCLab - ItemBehaviour");
++
++    default BehaviourResult.Object<ItemStack> finishUsingItem(LivingEntity livingEntity, ItemStack usedItem){
++        return BehaviourResult.Object.DEFAULT_INSTANCE;
++    }
++
++    default BehaviourResult.Object<Integer> getMaxStackSize(ItemStack stack){
++        return BehaviourResult.Object.DEFAULT_INSTANCE;
++    }
++
++    default BehaviourResult.Object<Integer> getMaxDamage(ItemStack stack){
++        return BehaviourResult.Object.DEFAULT_INSTANCE;
++    }
++
++    default BehaviourResult.Bool mineBlock(ItemStack stack, Block block, Player miner){
++        return BehaviourResult.Bool.DEFAULT_INSTANCE;
++    }
++
++    default BehaviourResult.Bool isCorrectToolForDrops(ItemStack stack, BlockData blockData){
++        return BehaviourResult.Bool.DEFAULT_INSTANCE;
++    }
++
++    default BehaviourResult.Void onCraftedBy(ItemStack stack, Player player, int amount){
++        return BehaviourResult.Void.DEFAULT_INSTANCE;
++    }
++
++    default BehaviourResult.Void onDestroyed(ItemStack stack, Item item){
++        return BehaviourResult.Void.DEFAULT_INSTANCE;
++    }
++
++    default BehaviourResult.Bool isEdible(ItemStack stack){
++        return BehaviourResult.Bool.DEFAULT_INSTANCE;
++    }
++
++    default BehaviourResult.Object<InteractionResult> interactLivingEntity(ItemStack stack, Player player, LivingEntity livingEntity, EquipmentSlot equipmentSlot){
++        return BehaviourResult.Object.DEFAULT_INSTANCE;
++    }
++
++    default BehaviourResult.Object<FoodProperties> getFoodProperties(ItemStack stack){
++        return BehaviourResult.Object.DEFAULT_INSTANCE;
++    }
++
++    default BehaviourResult.Object<ItemStack> getCraftRemainingItem(ItemStack stack){
++        return BehaviourResult.Object.DEFAULT_INSTANCE;
++    }
++
++    default BehaviourResult.Bool isFireResistant(ItemStack stack){
++        return BehaviourResult.Bool.DEFAULT_INSTANCE;
++    }
++
++    default BehaviourResult.Bool canFitInsideContainerItems(ItemStack stack){
++        return BehaviourResult.Bool.DEFAULT_INSTANCE;
++    }
++
++    default BehaviourResult.Bool isEnchantable(ItemStack stack){
++        return BehaviourResult.Bool.DEFAULT_INSTANCE;
++    }
++}
+diff --git a/src/main/java/org/bukkit/inventory/FoodProperties.java b/src/main/java/org/bukkit/inventory/FoodProperties.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..5f141daee39ac344774b73856cbc09fd35c319eb
+--- /dev/null
++++ b/src/main/java/org/bukkit/inventory/FoodProperties.java
+@@ -0,0 +1,15 @@
++package org.bukkit.inventory;
++
++import it.unimi.dsi.fastutil.Pair;
++import org.bukkit.potion.PotionEffect;
++
++import java.util.List;
++
++public interface FoodProperties {
++    int getNutrition();
++    float getSaturationModifier();
++    boolean isMeat();
++    boolean canAlwaysEat();
++    boolean isFastFood();
++    List<Pair<PotionEffect, Float>> getEffects();
++}

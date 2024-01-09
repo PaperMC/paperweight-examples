@@ -1,0 +1,39 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <lukasjonsson@outlook.de>
+Date: Sat, 18 Nov 2023 17:59:11 +0100
+Subject: [PATCH] Opening vanilla RandomSource to API
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/random/VanillaRandomSource.java b/src/main/java/de/verdox/mccreativelab/random/VanillaRandomSource.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..0582bc507241e76964573502b880d16497ee9a0a
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/random/VanillaRandomSource.java
+@@ -0,0 +1,27 @@
++package de.verdox.mccreativelab.random;
++
++public interface VanillaRandomSource {
++    void setSeed(long seed);
++
++    int nextInt();
++
++    int nextInt(int bound);
++
++    int nextIntBetweenInclusive(int min, int max);
++
++    long nextLong();
++
++    boolean nextBoolean();
++
++    float nextFloat();
++
++    double nextDouble();
++
++    double nextGaussian();
++
++    double triangle(double mode, double deviation);
++
++    void consumeCount(int count);
++
++    int nextInt(int min, int max);
++}

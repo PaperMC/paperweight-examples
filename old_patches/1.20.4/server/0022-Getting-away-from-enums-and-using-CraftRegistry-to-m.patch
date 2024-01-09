@@ -84,20 +84,26 @@ index 2c23b3b2c84f61b1c64ffe4f99c09299019cf9bf..13650485a4000daf33994e0101218848
          // Paper start - remove this after a while along with all ConfiguredStructure stuff
          if (bukkitClass == io.papermc.paper.world.structure.ConfiguredStructure.class) {
 diff --git a/src/main/java/org/bukkit/craftbukkit/block/CraftBiome.java b/src/main/java/org/bukkit/craftbukkit/block/CraftBiome.java
-index 33d2e89ac40465b0c4633f9c51378b80f7c397a9..63934e778fb6808e908ee526e9c55983e4d4f8b9 100644
+index 33d2e89ac40465b0c4633f9c51378b80f7c397a9..1095c70ec8470f07c714c6eebab15437037fd747 100644
 --- a/src/main/java/org/bukkit/craftbukkit/block/CraftBiome.java
 +++ b/src/main/java/org/bukkit/craftbukkit/block/CraftBiome.java
-@@ -8,8 +8,21 @@ import org.bukkit.Registry;
+@@ -4,12 +4,27 @@ import com.google.common.base.Preconditions;
+ import net.minecraft.core.Holder;
+ import net.minecraft.core.registries.Registries;
+ import net.minecraft.resources.ResourceKey;
++
+ import org.bukkit.Registry;
  import org.bukkit.block.Biome;
++
  import org.bukkit.craftbukkit.CraftRegistry;
  import org.bukkit.craftbukkit.util.CraftNamespacedKey;
 +import org.jetbrains.annotations.NotNull;
 +import org.bukkit.craftbukkit.BukkitToNMSMapping;
 +import org.bukkit.NamespacedKey;
++
++import java.util.HashMap;
  
 -public class CraftBiome {
-+import java.util.HashMap;
-+
 +public class CraftBiome extends BukkitToNMSMapping<net.minecraft.world.level.biome.Biome> implements Biome {
 +    public CraftBiome(NamespacedKey key, net.minecraft.world.level.biome.Biome handle) {
 +        super(key, handle);
@@ -110,7 +116,7 @@ index 33d2e89ac40465b0c4633f9c51378b80f7c397a9..63934e778fb6808e908ee526e9c55983
  
      public static Biome minecraftToBukkit(net.minecraft.world.level.biome.Biome minecraft) {
          Preconditions.checkArgument(minecraft != null);
-@@ -28,7 +41,7 @@ public class CraftBiome {
+@@ -28,7 +43,7 @@ public class CraftBiome {
          return CraftBiome.minecraftToBukkit(minecraft.value());
      }
  
@@ -181,23 +187,3 @@ index 74e07d120a15a09e511c2a5f416b1f0196549f0c..ccf20600fd2517f1c41359f5dff9e849
                  // MCCLab - end
                  if (attribute == null) {
                      continue;
-diff --git a/src/main/java/org/bukkit/craftbukkit/attribute/CraftAttribute.java b/src/main/java/org/bukkit/craftbukkit/attribute/CraftAttribute.java
-index 8c9ce07f6a9c2799ce4d8b6a7d8eccd37cce6d43..e5f21f66f3bb29c52b33ef953992fc0c7d3a05e4 100644
---- a/src/main/java/org/bukkit/craftbukkit/attribute/CraftAttribute.java
-+++ b/src/main/java/org/bukkit/craftbukkit/attribute/CraftAttribute.java
-@@ -8,7 +8,14 @@ import org.bukkit.attribute.Attribute;
- import org.bukkit.craftbukkit.CraftRegistry;
- import org.bukkit.craftbukkit.util.CraftNamespacedKey;
- 
--public class CraftAttribute {
-+public class CraftAttribute extends org.bukkit.craftbukkit.BukkitToNMSMapping<net.minecraft.world.entity.ai.attributes.Attribute> implements Attribute{
-+    public CraftAttribute(NamespacedKey key, net.minecraft.world.entity.ai.attributes.Attribute handle) {
-+        super(key, handle);
-+    }
-+    @Override
-+    public @org.jetbrains.annotations.NotNull String translationKey() {
-+        return "attribute.name." + this.getKey().getKey();
-+    }
- 
-     public static Attribute minecraftToBukkit(net.minecraft.world.entity.ai.attributes.Attribute minecraft) {
-         Preconditions.checkArgument(minecraft != null);

@@ -1,0 +1,33 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <lukasjonsson@outlook.de>
+Date: Thu, 23 Nov 2023 00:41:03 +0100
+Subject: [PATCH] Adding Utility class for MCCreativeLab
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/CreativeLab.java b/src/main/java/de/verdox/mccreativelab/CreativeLab.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..23b191be5376ad1dc3cf8ab4f2e82aa471bf98a3
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/CreativeLab.java
+@@ -0,0 +1,4 @@
++package de.verdox.mccreativelab;
++
++public interface CreativeLab {
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/MCCreativeLab.java b/src/main/java/de/verdox/mccreativelab/MCCreativeLab.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..67b250ac2ae34d11c634d9ea0d9044308826b472
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/MCCreativeLab.java
+@@ -0,0 +1,11 @@
++package de.verdox.mccreativelab;
++
++public final class MCCreativeLab{
++    private static CreativeLab creativeLab;
++    public static void setCreativeLab(CreativeLab creativeLab) {
++        if(MCCreativeLab.creativeLab != null)
++            throw new UnsupportedOperationException("Cannot redefine singleton CreativeLab");
++
++        MCCreativeLab.creativeLab = creativeLab;
++    }
++}

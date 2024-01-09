@@ -1,0 +1,123 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <lukasjonsson@outlook.de>
+Date: Sat, 18 Nov 2023 00:32:57 +0100
+Subject: [PATCH] Opening CraftingBehaviour to API
+
+
+diff --git a/src/main/java/net/minecraft/world/item/crafting/BannerDuplicateRecipe.java b/src/main/java/net/minecraft/world/item/crafting/BannerDuplicateRecipe.java
+index 046e9ea3434a1ed80a863a4dd295be0121f83993..7dab1b896ad86be9457311727ebd25d99358352c 100644
+--- a/src/main/java/net/minecraft/world/item/crafting/BannerDuplicateRecipe.java
++++ b/src/main/java/net/minecraft/world/item/crafting/BannerDuplicateRecipe.java
+@@ -76,7 +76,7 @@ public class BannerDuplicateRecipe extends CustomRecipe {
+     }
+ 
+     @Override
+-    public NonNullList<ItemStack> getRemainingItems(CraftingContainer inventory) {
++    public NonNullList<ItemStack> getRemainingItems(CraftingContainer inventory, RecipeHolder<?> recipeHolder) {
+         NonNullList<ItemStack> nonNullList = NonNullList.withSize(inventory.getContainerSize(), ItemStack.EMPTY);
+ 
+         for(int i = 0; i < nonNullList.size(); ++i) {
+@@ -88,6 +88,9 @@ public class BannerDuplicateRecipe extends CustomRecipe {
+                     nonNullList.set(i, itemStack.copyWithCount(1));
+                 }
+             }
++            // MCCLab - start
++            useCustomRemainingItemsLogic(inventory, recipeHolder, nonNullList, i);
++            // MCCLab - end
+         }
+ 
+         return nonNullList;
+diff --git a/src/main/java/net/minecraft/world/item/crafting/BookCloningRecipe.java b/src/main/java/net/minecraft/world/item/crafting/BookCloningRecipe.java
+index 5a3b8cb9e275f747c82cf13a2a911a7654de8fc6..2f5471b23c48d4b8f0229450757d430041ebdc8d 100644
+--- a/src/main/java/net/minecraft/world/item/crafting/BookCloningRecipe.java
++++ b/src/main/java/net/minecraft/world/item/crafting/BookCloningRecipe.java
+@@ -77,7 +77,7 @@ public class BookCloningRecipe extends CustomRecipe {
+     }
+ 
+     @Override
+-    public NonNullList<ItemStack> getRemainingItems(CraftingContainer inventory) {
++    public NonNullList<ItemStack> getRemainingItems(CraftingContainer inventory, RecipeHolder<?> recipeHolder) {
+         NonNullList<ItemStack> nonNullList = NonNullList.withSize(inventory.getContainerSize(), ItemStack.EMPTY);
+ 
+         for(int i = 0; i < nonNullList.size(); ++i) {
+@@ -86,8 +86,14 @@ public class BookCloningRecipe extends CustomRecipe {
+                 nonNullList.set(i, new ItemStack(itemStack.getItem().getCraftingRemainingItem()));
+             } else if (itemStack.getItem() instanceof WrittenBookItem) {
+                 nonNullList.set(i, itemStack.copyWithCount(1));
++                // MCCLab - start
++                useCustomRemainingItemsLogic(inventory, recipeHolder, nonNullList, i);
++                // MCCLab - end
+                 break;
+             }
++            // MCCLab - start
++            useCustomRemainingItemsLogic(inventory, recipeHolder, nonNullList, i);
++            // MCCLab - end
+         }
+ 
+         return nonNullList;
+diff --git a/src/main/java/net/minecraft/world/item/crafting/Recipe.java b/src/main/java/net/minecraft/world/item/crafting/Recipe.java
+index 80387cd1bee2bd4c024073cee74222828f9f2c17..0b0f844b520acb0fd1aa2e49dd270a590bf375a5 100644
+--- a/src/main/java/net/minecraft/world/item/crafting/Recipe.java
++++ b/src/main/java/net/minecraft/world/item/crafting/Recipe.java
+@@ -7,8 +8,26 @@ import net.minecraft.world.item.Item;
+ import net.minecraft.world.item.ItemStack;
+ import net.minecraft.world.level.Level;
+ import net.minecraft.world.level.block.Blocks;
++import org.bukkit.craftbukkit.inventory.CraftItemStack;
+ 
+ public interface Recipe<C extends Container> {
++    // MCCLab - start
++    default boolean useCustomRemainingItemsLogic(C inventory, RecipeHolder<?> recipeHolder, NonNullList<ItemStack> matrix, int currentIndex) {
++        ItemStack itemStack = inventory.getItem(currentIndex);
++        if (!de.verdox.mccreativelab.behaviour.CraftingBehaviour.CRAFTING_BEHAVIOUR.isImplemented())
++            return false;
++        de.verdox.mccreativelab.behaviour.CraftingBehaviour craftingBehaviour = CraftingBehaviour.CRAFTING_BEHAVIOUR.getBehaviour();
++        org.bukkit.inventory.Recipe bukkitRecipe = recipeHolder.toBukkitRecipe();
++        CraftItemStack bukkitItemStack = CraftItemStack.asCraftMirror(itemStack);
++
++        if (craftingBehaviour.hasRemainingItem(bukkitRecipe, bukkitItemStack)) {
++            var remainingItem = craftingBehaviour.getRemainingItem(bukkitRecipe, bukkitItemStack);
++            if (remainingItem != null)
++                matrix.set(currentIndex, CraftItemStack.asNMSCopy(remainingItem));
++        }
++        return true;
++    }
++    // MCCLab - end
+ 
+     boolean matches(C inventory, Level world);
+ 
+@@ -18,15 +37,17 @@ public interface Recipe<C extends Container> {
+ 
+     ItemStack getResultItem(RegistryAccess registryManager);
+ 
+-    default NonNullList<ItemStack> getRemainingItems(C inventory) {
++    default NonNullList<ItemStack> getRemainingItems(C inventory, RecipeHolder<?> recipeHolder) {
+         NonNullList<ItemStack> nonnulllist = NonNullList.withSize(inventory.getContainerSize(), ItemStack.EMPTY);
+ 
+         for (int i = 0; i < nonnulllist.size(); ++i) {
+             Item item = inventory.getItem(i).getItem();
+-
+             if (item.hasCraftingRemainingItem()) {
+                 nonnulllist.set(i, new ItemStack(item.getCraftingRemainingItem()));
+             }
++            // MCCLab - start
++            useCustomRemainingItemsLogic(inventory, recipeHolder, nonnulllist, i);
++            // MCCLab - end
+         }
+ 
+         return nonnulllist;
+diff --git a/src/main/java/net/minecraft/world/item/crafting/RecipeManager.java b/src/main/java/net/minecraft/world/item/crafting/RecipeManager.java
+index 666fc85bc2079cb367b340f2605f29fe002f4d22..b9453c0629676ac6f378e6b97b1ded8e5e54dd18 100644
+--- a/src/main/java/net/minecraft/world/item/crafting/RecipeManager.java
++++ b/src/main/java/net/minecraft/world/item/crafting/RecipeManager.java
+@@ -161,7 +161,9 @@ public class RecipeManager extends SimpleJsonResourceReloadListener {
+         // Paper end
+ 
+         if (optional.isPresent()) {
+-            return ((RecipeHolder) optional.get()).value().getRemainingItems(inventory);
++            // MCCLab - start
++            return ((RecipeHolder) optional.get()).value().getRemainingItems(inventory, optional.get());
++            // MCCLab - end
+         } else {
+             NonNullList<ItemStack> nonnulllist = NonNullList.withSize(inventory.getContainerSize(), ItemStack.EMPTY);
+ 

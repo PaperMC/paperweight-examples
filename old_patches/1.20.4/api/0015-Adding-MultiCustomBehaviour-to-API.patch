@@ -9,7 +9,7 @@ new file mode 100644
 index 0000000000000000000000000000000000000000..5db6debc33b781afff966bfc86db11d5b17273da
 --- /dev/null
 +++ b/src/main/java/de/verdox/mccreativelab/MultiCustomBehaviour.java
-@@ -0,0 +1,51 @@
+@@ -0,0 +1,47 @@
 +package de.verdox.mccreativelab;
 +
 +import org.bukkit.Bukkit;
@@ -27,10 +27,6 @@ index 0000000000000000000000000000000000000000..5db6debc33b781afff966bfc86db11d5
 +
 +    public MultiCustomBehaviour(String key) {
 +        this.key = key;
-+    }
-+
-+    public String getKey() {
-+        return key;
 +    }
 +
 +    /**
