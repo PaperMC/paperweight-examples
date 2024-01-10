@@ -1,6 +1,7 @@
-package de.verdox.mccreativelab.block.visual;
+package de.verdox.mccreativelab.block.display.strategy;
 
 import de.verdox.mccreativelab.block.FakeBlock;
+import de.verdox.mccreativelab.block.display.SolidFullBlockEntityDisplay;
 import de.verdox.mccreativelab.generator.resourcepack.types.ItemTextureData;
 import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
@@ -19,16 +20,16 @@ import java.util.Objects;
 /**
  * This Display Strategy spawns the block faces at the neighbour block to fix lighting issues
  */
-public class SolidBlockVisualStrategy extends FakeBlockVisualStrategy<SolidBlockVisualStrategy.FakeBlockFaces> {
-    public static final SolidBlockVisualStrategy INSTANCE = new SolidBlockVisualStrategy();
+public class SolidFullBlockEntityBasedDisplayStrategy extends FakeBlockVisualStrategy<SolidFullBlockEntityBasedDisplayStrategy.FakeBlockFaces> {
+    public static final SolidFullBlockEntityBasedDisplayStrategy INSTANCE = new SolidFullBlockEntityBasedDisplayStrategy();
     private static final NamespacedKey ITEM_DISPLAY_BLOCK_FACE_KEY = new NamespacedKey("mccreativelab", "linked_fake_block_face");
 
     @Override
     public void spawnFakeBlockDisplay(Block block, FakeBlock.FakeBlockState fakeBlockState) {
+        if(!(fakeBlockState.getFakeBlockDisplay() instanceof SolidFullBlockEntityDisplay solidFullBlockEntityDisplay))
+            return;
         FakeBlockFaces fakeBlockFaces = getOrCreateFakeBlockDisplayData(block);
-        for (Map.Entry<BlockFace, ItemTextureData> blockFaceItemTextureDataEntry : fakeBlockState.getFakeBlockDisplay()
-                                                                                                 .getItemTextureDataPerBlockFace()
-                                                                                                 .entrySet()) {
+        for (Map.Entry<BlockFace, ItemTextureData> blockFaceItemTextureDataEntry : solidFullBlockEntityDisplay.getItemTextureDataPerBlockFace().entrySet()) {
             ItemTextureData itemTextureData = blockFaceItemTextureDataEntry.getValue();
             BlockFace blockFace = blockFaceItemTextureDataEntry.getKey();
             ItemDisplay fakeBlockFace = createFakeBlockFace(blockFace, itemTextureData, block, fakeBlockState);
@@ -38,14 +39,18 @@ public class SolidBlockVisualStrategy extends FakeBlockVisualStrategy<SolidBlock
 
     @Override
     public void blockUpdate(Block block, FakeBlock.FakeBlockState fakeBlockState, BlockFace direction, BlockData neighbourBlockData) {
+        if(!(fakeBlockState.getFakeBlockDisplay() instanceof SolidFullBlockEntityDisplay solidFullBlockEntityDisplay))
+            return;
         if (!neighbourBlockData.isOccluding())
-            spawnFakeBlockFace(block, direction, fakeBlockState);
+            spawnFakeBlockFace(block, direction, fakeBlockState, solidFullBlockEntityDisplay);
         else
             removeFakeBlockFace(block, direction);
     }
 
     @Override
     public void loadItemDisplayAsBlockDisplay(PotentialItemDisplay potentialItemDisplay) {
+        if(!(potentialItemDisplay.fakeBlockState().getFakeBlockDisplay() instanceof SolidFullBlockEntityDisplay solidFullBlockEntityDisplay))
+            return;
         Block block = potentialItemDisplay.block();
         ItemDisplay itemDisplay = potentialItemDisplay.itemDisplay();
         FakeBlock.FakeBlockState fakeBlockState = potentialItemDisplay.fakeBlockState();
@@ -56,7 +61,7 @@ public class SolidBlockVisualStrategy extends FakeBlockVisualStrategy<SolidBlock
             return;
         }
 
-        ItemTextureData blockFaceItemTextureData = fakeBlockState.getFakeBlockDisplay()
+        ItemTextureData blockFaceItemTextureData = solidFullBlockEntityDisplay
                                                                  .getItemTextureDataPerBlockFace()
                                                                  .getOrDefault(blockFace, null);
 
@@ -85,8 +90,8 @@ public class SolidBlockVisualStrategy extends FakeBlockVisualStrategy<SolidBlock
         return itemDisplay;
     }
 
-    private void spawnFakeBlockFace(Block block, BlockFace blockFace, FakeBlock.FakeBlockState fakeBlockState) {
-        ItemTextureData itemTextureData = fakeBlockState.getFakeBlockDisplay().getItemTextureDataPerBlockFace()
+    private void spawnFakeBlockFace(Block block, BlockFace blockFace, FakeBlock.FakeBlockState fakeBlockState, SolidFullBlockEntityDisplay solidFullBlockEntityDisplay) {
+        ItemTextureData itemTextureData = solidFullBlockEntityDisplay.getItemTextureDataPerBlockFace()
                                                         .getOrDefault(blockFace, null);
         if (itemTextureData == null)
             return;

@@ -17,9 +17,9 @@ public class LegacyCombatSystem extends LegacyFeature{
     protected void onEnable() {
         CustomResourcePack customResourcePack = MCCreativeLabExtension.getInstance().getCustomResourcePack();
         Asset<CustomResourcePack> empty = new Asset<>("/empty_block/textures/empty.png");
-        customResourcePack.register(new AssetBasedResourcePackResource(empty, new NamespacedKey("minecraft", "gui/sprites/hud/crosshair_attack_indicator_background"), ResourcePackAssetTypes.TEXTURES, "png"));
-        customResourcePack.register(new AssetBasedResourcePackResource(empty, new NamespacedKey("minecraft", "gui/sprites/hud/crosshair_attack_indicator_full"), ResourcePackAssetTypes.TEXTURES, "png"));
-        customResourcePack.register(new AssetBasedResourcePackResource(empty, new NamespacedKey("minecraft", "gui/sprites/hud/crosshair_attack_indicator_progress"), ResourcePackAssetTypes.TEXTURES, "png"));
+        customResourcePack.register(new AssetBasedResourcePackResource(new NamespacedKey("minecraft", "gui/sprites/hud/crosshair_attack_indicator_background"), empty, ResourcePackAssetTypes.TEXTURES, "png"));
+        customResourcePack.register(new AssetBasedResourcePackResource(new NamespacedKey("minecraft", "gui/sprites/hud/crosshair_attack_indicator_full"), empty,ResourcePackAssetTypes.TEXTURES, "png"));
+        customResourcePack.register(new AssetBasedResourcePackResource(new NamespacedKey("minecraft", "gui/sprites/hud/crosshair_attack_indicator_progress"), empty,ResourcePackAssetTypes.TEXTURES, "png"));
         //TODO
         // Paper config -> Disable Player crits
 

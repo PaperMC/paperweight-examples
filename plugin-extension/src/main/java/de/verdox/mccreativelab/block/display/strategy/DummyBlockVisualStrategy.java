@@ -1,4 +1,4 @@
-package de.verdox.mccreativelab.block.visual;
+package de.verdox.mccreativelab.block.display.strategy;
 
 import de.verdox.mccreativelab.block.FakeBlock;
 import org.bukkit.block.Block;

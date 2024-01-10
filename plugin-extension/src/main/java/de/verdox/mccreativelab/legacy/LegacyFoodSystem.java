@@ -56,12 +56,12 @@ public class LegacyFoodSystem extends LegacyFeature {
 
         CustomResourcePack customResourcePack = MCCreativeLabExtension.getCustomResourcePack();
         Asset<CustomResourcePack> empty = new Asset<>("/empty_block/textures/empty.png");
-        customResourcePack.register(new AssetBasedResourcePackResource(empty, new NamespacedKey("minecraft", "gui/sprites/hud/food_empty"), ResourcePackAssetTypes.TEXTURES, "png"));
-        customResourcePack.register(new AssetBasedResourcePackResource(empty, new NamespacedKey("minecraft", "gui/sprites/hud/food_empty_hunger"), ResourcePackAssetTypes.TEXTURES, "png"));
-        customResourcePack.register(new AssetBasedResourcePackResource(empty, new NamespacedKey("minecraft", "gui/sprites/hud/food_full"), ResourcePackAssetTypes.TEXTURES, "png"));
-        customResourcePack.register(new AssetBasedResourcePackResource(empty, new NamespacedKey("minecraft", "gui/sprites/hud/food_full_hunger"), ResourcePackAssetTypes.TEXTURES, "png"));
-        customResourcePack.register(new AssetBasedResourcePackResource(empty, new NamespacedKey("minecraft", "gui/sprites/hud/food_half"), ResourcePackAssetTypes.TEXTURES, "png"));
-        customResourcePack.register(new AssetBasedResourcePackResource(empty, new NamespacedKey("minecraft", "gui/sprites/hud/food_half_hunger"), ResourcePackAssetTypes.TEXTURES, "png"));
+        customResourcePack.register(new AssetBasedResourcePackResource(new NamespacedKey("minecraft", "gui/sprites/hud/food_empty"), empty, ResourcePackAssetTypes.TEXTURES, "png"));
+        customResourcePack.register(new AssetBasedResourcePackResource(new NamespacedKey("minecraft", "gui/sprites/hud/food_empty_hunger"), empty, ResourcePackAssetTypes.TEXTURES, "png"));
+        customResourcePack.register(new AssetBasedResourcePackResource(new NamespacedKey("minecraft", "gui/sprites/hud/food_full"), empty, ResourcePackAssetTypes.TEXTURES, "png"));
+        customResourcePack.register(new AssetBasedResourcePackResource(new NamespacedKey("minecraft", "gui/sprites/hud/food_full_hunger"), empty, ResourcePackAssetTypes.TEXTURES, "png"));
+        customResourcePack.register(new AssetBasedResourcePackResource(new NamespacedKey("minecraft", "gui/sprites/hud/food_half"), empty, ResourcePackAssetTypes.TEXTURES, "png"));
+        customResourcePack.register(new AssetBasedResourcePackResource(new NamespacedKey("minecraft", "gui/sprites/hud/food_half_hunger"), empty, ResourcePackAssetTypes.TEXTURES, "png"));
 
         ItemBehaviour legacyFoodItemBehaviour = new ItemBehaviour() {
             @Override
@@ -108,7 +108,7 @@ public class LegacyFoodSystem extends LegacyFeature {
     }
 
     @EventHandler
-    public void onPlayerRespawn(PlayerPostRespawnEvent e){
+    public void onPlayerRespawn(PlayerPostRespawnEvent e) {
         setAllowSprinting(e.getPlayer(), false);
     }
 

@@ -21,8 +21,8 @@ public class FakeBlockUtil {
     public static void simulateBlockBreakWithParticlesAndSound(@Nullable FakeBlock.FakeBlockState fakeBlockState, Block block) {
         BlockData destroyParticleBlockData = block.getBlockData();
 
-        if(fakeBlockState != null)
-            destroyParticleBlockData = fakeBlockState.getFakeBlockDisplay().getDestroyParticles();
+        if(fakeBlockState != null && fakeBlockState.getFakeBlockDisplay().getDestroyParticleData() != null)
+            destroyParticleBlockData = fakeBlockState.getFakeBlockDisplay().getDestroyParticleData();
 
         FakeBlockSoundManager.simulateBreakSound(block, fakeBlockState);
         block.getWorld().spawnParticle(Particle.BLOCK_CRACK,
@@ -113,7 +113,7 @@ public class FakeBlockUtil {
                       .add(0.5, 0.5, 0.5)
                       .add(xPos, yPos, zPos)
                       .add(normalOfBlockFace.multiply(0.05)), 1, xOffset, yOffset, zOffset, 0.01, fakeBlockState
-                     .getFakeBlockDisplay().getDestroyParticles());
+                     .getFakeBlockDisplay().getDestroyParticleData());
     }
 
     public static void removeFakeBlockIfPossible(Block block) {

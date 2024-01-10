@@ -2,20 +2,15 @@ package de.verdox.mccreativelab.block;
 
 import com.destroystokyo.paper.event.entity.EntityAddToWorldEvent;
 import de.verdox.mccreativelab.MCCreativeLabExtension;
-import de.verdox.mccreativelab.block.visual.FakeBlockVisualStrategy;
+import de.verdox.mccreativelab.block.display.strategy.FakeBlockVisualStrategy;
 import de.verdox.mccreativelab.events.ChunkDataCreateEvent;
 import de.verdox.mccreativelab.events.ChunkDataLoadEvent;
 import de.verdox.mccreativelab.events.ChunkDataSaveEvent;
-import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
-import org.bukkit.Location;
-import org.bukkit.World;
 import org.bukkit.entity.ItemDisplay;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.world.WorldInitEvent;
 import org.bukkit.event.world.WorldSaveEvent;
-import org.bukkit.metadata.FixedMetadataValue;
 
 public class FakeBlockCacheHandler implements Listener {
     private static FakeBlockCacheHandler INSTANCE;

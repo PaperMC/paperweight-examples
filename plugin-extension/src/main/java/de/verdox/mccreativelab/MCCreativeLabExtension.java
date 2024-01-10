@@ -7,14 +7,14 @@ import de.verdox.mccreativelab.blockbreak.BlockBreakSpeedSettings;
 import de.verdox.mccreativelab.debug.Debug;
 import de.verdox.mccreativelab.debug.DebugCommand;
 import de.verdox.mccreativelab.debug.FakeBlockCommand;
+import de.verdox.mccreativelab.debug.FakeItemCommand;
 import de.verdox.mccreativelab.event.MCCreativeLabReloadEvent;
 import de.verdox.mccreativelab.generator.AssetPath;
 import de.verdox.mccreativelab.generator.ResourcePackFileHoster;
-import de.verdox.mccreativelab.generator.listener.ResourcePackListener;
 import de.verdox.mccreativelab.generator.resourcepack.CustomResourcePack;
+import de.verdox.mccreativelab.generator.resourcepack.ResourcePackScanner;
 import de.verdox.mccreativelab.generator.resourcepack.renderer.HudRendererImpl;
 import de.verdox.mccreativelab.generator.resourcepack.renderer.element.HudRenderer;
-import de.verdox.mccreativelab.debug.FakeItemCommand;
 import de.verdox.mccreativelab.item.FakeItemRegistry;
 import de.verdox.mccreativelab.item.fuel.FuelSettings;
 import de.verdox.mccreativelab.legacy.LegacyFeatures;
@@ -28,6 +28,9 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.stream.Stream;
 
 public class MCCreativeLabExtension extends JavaPlugin implements Listener {
     public static MCCreativeLabExtension getInstance() {
@@ -58,13 +61,13 @@ public class MCCreativeLabExtension extends JavaPlugin implements Listener {
 
     @Override
     public void onLoad() {
-        if(isServerSoftware())
+        if (isServerSoftware())
             Bukkit.getLogger().info("§eFound MCCreativeLab Server Software");
         else
             Bukkit.getLogger().info("§cConsider running MCCreativeLab Server Software");
         INSTANCE = this;
         fuelSettings = new FuelSettings();
-        if(isServerSoftware()) Debug.init();
+        if (isServerSoftware()) Debug.init();
     }
 
     @Override
@@ -76,7 +79,8 @@ public class MCCreativeLabExtension extends JavaPlugin implements Listener {
             Bukkit.getCommandMap().register("fakeblock", "mccreativelab", new FakeBlockCommand());
             Bukkit.getCommandMap().register("fakeitem", "mccreativelab", new FakeItemCommand());
         }
-        Bukkit.getPluginManager().registerEvents(new ResourcePackListener(), this);
+        Bukkit.getPluginManager().registerEvents(resourcePackFileHoster, this);
+        Bukkit.getPluginManager().registerEvents(new Debug(), this);
         Bukkit.getPluginManager().registerEvents(new BlockBreakSpeedModifier(), this);
         Bukkit.getPluginManager().registerEvents(new FakeBlockSoundManager(), this);
         Bukkit.getPluginManager().registerEvents(fuelSettings, this);
@@ -93,6 +97,16 @@ public class MCCreativeLabExtension extends JavaPlugin implements Listener {
         hudRenderer.addTickToRenderQueue(Bukkit.getOnlinePlayers());
     }
 
+    @EventHandler
+    public void buildPackOnServerLoad(ServerLoadEvent e) {
+        onServerLoad(e.getType());
+    }
+
+    @EventHandler
+    public void onPluginReload(MCCreativeLabReloadEvent ignored) {
+        onServerLoad(ServerLoadEvent.LoadType.RELOAD);
+    }
+
     public void onServerLoad(ServerLoadEvent.LoadType loadType) {
         FakeBlockRegistry.setupFakeBlocks();
         if (createResourcePack())
@@ -101,7 +115,7 @@ public class MCCreativeLabExtension extends JavaPlugin implements Listener {
     }
 
     private boolean createResourcePack() {
-        if(isServerSoftware()) {
+        if (isServerSoftware()) {
             getFakeBlockRegistry().values().forEachRemaining(fakeBlock -> {
                 for (FakeBlock.FakeBlockState fakeBlockState : fakeBlock.getFakeBlockStates())
                     customResourcePack.register(fakeBlockState.getFakeBlockDisplay());
@@ -113,10 +127,11 @@ public class MCCreativeLabExtension extends JavaPlugin implements Listener {
 
     private boolean buildPackAndZipFiles() {
         try {
+            mergeOtherPacksIntoMainPack(getCustomResourcePack().getPathToSavePackDataTo().toPath().toFile(), getCustomResourcePack());
             File installed = getCustomResourcePack().installPack();
             if (!getFakeBlockRegistry().isEmpty()) {
                 try {
-                    if(usesMCCreativeLabFork && FakeBlockRegistry.USE_ALTERNATE_FAKE_BLOCK_ENGINE)
+                    if (usesMCCreativeLabFork && FakeBlockRegistry.USE_ALTERNATE_FAKE_BLOCK_ENGINE)
                         FakeBlock.FakeBlockHitbox.makeHitBoxesInvisible(getCustomResourcePack());
                 } catch (IOException e) {
                     throw new RuntimeException(e);
@@ -124,12 +139,32 @@ public class MCCreativeLabExtension extends JavaPlugin implements Listener {
             }
             if (installed == null)
                 return false;
-            MCCreativeLabExtension.getInstance().getResourcePackFileHoster().createResourcePackZipFiles();
+
+            getResourcePackFileHoster().createResourcePackZipFiles();
         } catch (IOException ex) {
             ex.printStackTrace();
             return false;
         }
         return true;
+    }
+
+    private void mergeOtherPacksIntoMainPack(File mainPackFolder, CustomResourcePack customResourcePack) throws IOException {
+        try(Stream<Path> stream = Files.walk(CustomResourcePack.resourcePacksFolder.toPath(), 1)){
+            stream.skip(1).forEach(path -> {
+                if(path.equals(mainPackFolder.toPath()))
+                    return;
+                if(!path.toFile().isDirectory())
+                    return;
+                Bukkit.getLogger().info("Merging "+path+" into main pack");
+                try {
+                    ResourcePackScanner resourcePackScanner = new ResourcePackScanner(path);
+                    resourcePackScanner.scan();
+                    resourcePackScanner.getResources().forEach(customResourcePack::register);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            });
+        }
     }
 
     @Override

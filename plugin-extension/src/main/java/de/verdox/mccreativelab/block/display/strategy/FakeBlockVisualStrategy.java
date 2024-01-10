@@ -1,4 +1,4 @@
-package de.verdox.mccreativelab.block.visual;
+package de.verdox.mccreativelab.block.display.strategy;
 
 import de.verdox.mccreativelab.MCCreativeLabExtension;
 import de.verdox.mccreativelab.block.FakeBlock;
@@ -137,7 +137,7 @@ public abstract class FakeBlockVisualStrategy<T extends FakeBlockVisualStrategy.
         }
     }
 
-    protected abstract static class FakeBlockDisplayData {
+    public abstract static class FakeBlockDisplayData {
         protected FakeBlockDisplayData() {
         }
 

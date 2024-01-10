@@ -18,6 +18,8 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 public class ItemTextureData extends ResourcePackResource {
@@ -101,14 +103,14 @@ public class ItemTextureData extends ResourcePackResource {
     }
 
     private static JsonObject createModelJson(Material material, NamespacedKey key, @Nullable ModelType modelType) {
-        JsonObject jsonToWriteToFile;
+        JsonObject jsonToWriteToFile = new JsonObject();
         if (modelType != null)
-            jsonToWriteToFile = modelType.modelCreator().apply(key);
+            modelType.modelCreator().accept(key, jsonToWriteToFile);
         else {
             if (isHandheldItem(material))
-                jsonToWriteToFile = ModelType.HAND_HELD.modelCreator.apply(key);
+                ModelType.HAND_HELD.modelCreator.accept(key, jsonToWriteToFile);
             else
-                jsonToWriteToFile = ModelType.GENERATED_ITEM.modelCreator.apply(key);
+                ModelType.GENERATED_ITEM.modelCreator.accept(key, jsonToWriteToFile);
         }
         return jsonToWriteToFile;
     }
@@ -119,10 +121,24 @@ public class ItemTextureData extends ResourcePackResource {
             .name().contains("SHOVEL") || material.equals(Material.FISHING_ROD);
     }
 
-    public record ModelType(String modelName, Function<NamespacedKey, JsonObject> modelCreator) {
+    public record ModelType(String modelName, BiConsumer<NamespacedKey, JsonObject> modelCreator) {
+        public static ModelType modifyExistingModelType(ModelType modelType, BiConsumer<NamespacedKey, JsonObject> modelCreator) {
+            return new ModelType(modelType.modelName, (namespacedKey, jsonObject) -> {
+                modelType.modelCreator().accept(namespacedKey, jsonObject);
+                modelCreator.accept(namespacedKey, jsonObject);
+            });
+        }
+
         public static ModelType createModelForBlockItem(String modelName, NamespacedKey blockModel) {
-            return new ModelType(modelName, namespacedKey ->
-                JsonObjectBuilder.create().add("parent", blockModel.toString())
+            return new ModelType(modelName, (namespacedKey, jsonObject) ->
+                JsonObjectBuilder.create(jsonObject).add("parent", blockModel.toString())
+                                 .build());
+        }
+
+        public static ModelType createFullCubeModel(NamespacedKey resourceKey) {
+            return new ModelType("minecraft:block/cube_all", (namespacedKey, jsonObject) ->
+                JsonObjectBuilder.create().add("parent", "minecraft:block/cube_all")
+                                 .add("textures", JsonObjectBuilder.create().add("all", resourceKey.toString()))
                                  .build());
         }
 
@@ -137,10 +153,9 @@ public class ItemTextureData extends ResourcePackResource {
                 textures.add("particle", itemTextureData.key().toString());
             });
 
-            return new ModelType("", namespacedKey ->
-                JsonObjectBuilder.create().add("parent", "block/cube")
-                                 .add("textures", textures)
-                                 .build());
+            return new ModelType("", (namespacedKey, jsonObject) ->
+                JsonObjectBuilder.create(jsonObject).add("parent", "block/cube")
+                                 .add("textures", textures));
 
         }
 
@@ -210,8 +225,8 @@ public class ItemTextureData extends ResourcePackResource {
                                            );
 
 
-            return new ModelType("", namespacedKey ->
-                JsonObjectBuilder.create().add("parent", "block/block")
+            return new ModelType("", (namespacedKey, jsonObject) ->
+                JsonObjectBuilder.create(jsonObject).add("parent", "block/block")
                                  .add("elements", JsonArrayBuilder.create().add(element))
                                  .add("textures",
                                      JsonObjectBuilder.create()
@@ -227,31 +242,31 @@ public class ItemTextureData extends ResourcePackResource {
                                  .build());
         }
 
-        public static final ModelType GENERATED_ITEM = new ModelType("item/generated", namespacedKey ->
-            JsonObjectBuilder.create().add("parent", "item/generated")
+        public static final ModelType GENERATED_ITEM = new ModelType("item/generated", (namespacedKey, jsonObject) ->
+            JsonObjectBuilder.create(jsonObject).add("parent", "item/generated")
                              .add("textures", JsonObjectBuilder.create().add("layer0", namespacedKey.toString()))
                              .build());
-        public static final ModelType HAND_HELD = new ModelType("item/handheld", namespacedKey ->
-            JsonObjectBuilder.create().add("parent", "item/handheld")
+        public static final ModelType HAND_HELD = new ModelType("item/handheld", (namespacedKey, jsonObject) ->
+            JsonObjectBuilder.create(jsonObject).add("parent", "item/handheld")
                              .add("textures", JsonObjectBuilder.create().add("layer0", namespacedKey.toString()))
                              .build());
-        public static final ModelType FAKE_CROP = new ModelType("minecraft:block/crop", namespacedKey ->
-            JsonObjectBuilder.create().add("parent", "minecraft:block/crop")
+        public static final ModelType FAKE_CROP = new ModelType("minecraft:block/crop", (namespacedKey, jsonObject) ->
+            JsonObjectBuilder.create(jsonObject).add("parent", "minecraft:block/crop")
                              .add("textures", JsonObjectBuilder.create().add("crop", namespacedKey.toString()))
                              .build());
 
-        public static final ModelType CUBE_ALL = new ModelType("minecraft:block/cube_all", namespacedKey ->
-            JsonObjectBuilder.create().add("parent", "minecraft:block/cube_all")
+        public static final ModelType CUBE_ALL = new ModelType("minecraft:block/cube_all", (namespacedKey, jsonObject) ->
+            JsonObjectBuilder.create(jsonObject).add("parent", "minecraft:block/cube_all")
                              .add("textures", JsonObjectBuilder.create().add("all", namespacedKey.toString()))
                              .build());
 
-        public static final ModelType CUBE_ONLY_FACE_UP = new ModelType("minecraft:block/cube_all", namespacedKey ->
-            JsonObjectBuilder.create().add("parent", "minecraft:block/cube_all")
+        public static final ModelType CUBE_ONLY_FACE_UP = new ModelType("minecraft:block/cube_all", (namespacedKey, jsonObject) ->
+            JsonObjectBuilder.create(jsonObject).add("parent", "minecraft:block/cube_all")
                              .add("textures", JsonObjectBuilder.create().add("all", namespacedKey.toString()))
                              .build());
 
-        public static final ModelType CLICKABLE_ITEM = new ModelType("clickable_item", namespacedKey ->
-            JsonObjectBuilder.create().add("parent", "item/generated")
+        public static final ModelType CLICKABLE_ITEM = new ModelType("clickable_item", (namespacedKey, jsonObject) ->
+            JsonObjectBuilder.create(jsonObject).add("parent", "item/generated")
                              .add("textures", JsonObjectBuilder.create().add("layer0", namespacedKey.toString()))
                              .add("display",
                                  JsonObjectBuilder.create().add("gui",

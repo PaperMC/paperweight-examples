@@ -11,7 +11,7 @@ public class AssetBasedResourcePackResource extends ResourcePackResource{
     private final AssetType<CustomResourcePack> assetType;
     private final String fileEnding;
 
-    public AssetBasedResourcePackResource(Asset<CustomResourcePack> asset, NamespacedKey namespacedKey, AssetType<CustomResourcePack> assetType, String fileEnding) {
+    public AssetBasedResourcePackResource(NamespacedKey namespacedKey, Asset<CustomResourcePack> asset, AssetType<CustomResourcePack> assetType, String fileEnding) {
         super(namespacedKey);
         this.asset = asset;
         this.assetType = assetType;
@@ -21,5 +21,14 @@ public class AssetBasedResourcePackResource extends ResourcePackResource{
     @Override
     public void installResourceToPack(CustomResourcePack customPack) throws IOException {
         asset.installAsset(customPack, getKey(), assetType, fileEnding);
+    }
+
+    @Override
+    public String toString() {
+        return "AssetBasedResourcePackResource{" +
+            "asset=" + asset +
+            ", assetType=" + assetType +
+            ", fileEnding='" + fileEnding + '\'' +
+            '}';
     }
 }

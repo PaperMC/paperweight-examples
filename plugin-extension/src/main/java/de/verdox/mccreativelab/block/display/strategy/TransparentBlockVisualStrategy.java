@@ -1,6 +1,7 @@
-package de.verdox.mccreativelab.block.visual;
+package de.verdox.mccreativelab.block.display.strategy;
 
 import de.verdox.mccreativelab.block.FakeBlock;
+import de.verdox.mccreativelab.block.display.TransparentFullBlockEntityDisplay;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -13,12 +14,14 @@ public class TransparentBlockVisualStrategy extends FakeBlockVisualStrategy<Tran
     public static final TransparentBlockVisualStrategy INSTANCE = new TransparentBlockVisualStrategy();
     @Override
     public void spawnFakeBlockDisplay(Block block, FakeBlock.FakeBlockState fakeBlockState) {
+        if(!(fakeBlockState.getFakeBlockDisplay() instanceof TransparentFullBlockEntityDisplay transparentFullBlockEntityDisplay))
+            return;
         FakeBlockFullDisplay fakeBlockFullDisplay = getOrCreateFakeBlockDisplayData(block);
 
         Location blockCenter = block.getLocation().clone().add(0.5, 0.5, 0.5);
 
         ItemDisplay itemDisplay = (ItemDisplay) block.getWorld().spawnEntity(blockCenter, EntityType.ITEM_DISPLAY);
-        setupItemDisplayNBT(itemDisplay, fakeBlockState.getFakeBlockDisplay().getFullBlockTexture(), block, fakeBlockState);
+        setupItemDisplayNBT(itemDisplay, transparentFullBlockEntityDisplay.getFullBlockFakeItem(), block, fakeBlockState);
         fakeBlockFullDisplay.setStoredItemDisplay(itemDisplay);
     }
 
@@ -27,11 +30,13 @@ public class TransparentBlockVisualStrategy extends FakeBlockVisualStrategy<Tran
 
     @Override
     protected void loadItemDisplayAsBlockDisplay(PotentialItemDisplay potentialItemDisplay) {
+        if(!(potentialItemDisplay.fakeBlockState().getFakeBlockDisplay() instanceof TransparentFullBlockEntityDisplay transparentFullBlockEntityDisplay))
+            return;
         Block block = potentialItemDisplay.block();
         ItemDisplay itemDisplay = potentialItemDisplay.itemDisplay();
         FakeBlock.FakeBlockState fakeBlockState = potentialItemDisplay.fakeBlockState();
 
-        setupItemDisplayNBT(itemDisplay, fakeBlockState.getFakeBlockDisplay().getFullBlockTexture(), block, fakeBlockState);
+        setupItemDisplayNBT(itemDisplay, transparentFullBlockEntityDisplay.getFullBlockFakeItem(), block, fakeBlockState);
         getOrCreateFakeBlockDisplayData(block).setStoredItemDisplay(itemDisplay);
     }
 
@@ -45,11 +50,6 @@ public class TransparentBlockVisualStrategy extends FakeBlockVisualStrategy<Tran
         private ItemDisplay storedItemDisplay;
 
         FakeBlockFullDisplay(){}
-
-        @Nullable
-        public ItemDisplay getStoredItemDisplay() {
-            return storedItemDisplay;
-        }
 
         public void setStoredItemDisplay(ItemDisplay storedItemDisplay) {
             if(this.storedItemDisplay != null && !this.storedItemDisplay.equals(storedItemDisplay))

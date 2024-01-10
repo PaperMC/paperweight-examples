@@ -2,20 +2,14 @@ package de.verdox.mccreativelab.block;
 
 import de.verdox.mccreativelab.Wrappers;
 import de.verdox.mccreativelab.block.behaviour.VanillaReplacingBlockBehaviour;
-import de.verdox.mccreativelab.block.visual.DummyBlockVisualStrategy;
-import de.verdox.mccreativelab.block.visual.FakeBlockVisualStrategy;
-import de.verdox.mccreativelab.block.visual.TransparentBlockVisualStrategy;
+import de.verdox.mccreativelab.block.display.FakeBlockDisplay;
 import de.verdox.mccreativelab.generator.Asset;
-import de.verdox.mccreativelab.generator.UnusedBlockStates;
-import de.verdox.mccreativelab.generator.resourcepack.AlternateBlockStateModel;
 import de.verdox.mccreativelab.generator.resourcepack.CustomResourcePack;
 import de.verdox.mccreativelab.generator.resourcepack.ResourcePackAssetTypes;
 import de.verdox.mccreativelab.generator.resourcepack.ResourcePackResource;
-import de.verdox.mccreativelab.generator.resourcepack.types.ItemTextureData;
 import de.verdox.mccreativelab.generator.resourcepack.types.sound.SoundData;
 import org.bukkit.*;
 import org.bukkit.block.Block;
-import org.bukkit.block.BlockFace;
 import org.bukkit.block.PistonMoveReaction;
 import org.bukkit.block.data.Ageable;
 import org.bukkit.block.data.BlockData;
@@ -27,7 +21,6 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 public class FakeBlock implements Keyed, VanillaReplacingBlockBehaviour {
@@ -195,10 +188,8 @@ public class FakeBlock implements Keyed, VanillaReplacingBlockBehaviour {
                 return this;
             }
 
-            public Builder withBlockDisplay(Consumer<FakeBlockDisplay.Builder> builderConsumer) {
-                FakeBlockDisplay.Builder builder = new FakeBlockDisplay.Builder(namespacedKey);
-                builderConsumer.accept(builder);
-                this.fakeBlockDisplay = builder.build();
+            public Builder withBlockDisplay(FakeBlockDisplay.Builder<?> builder){
+                this.fakeBlockDisplay = builder.build(namespacedKey);
                 return this;
             }
 
@@ -218,7 +209,7 @@ public class FakeBlock implements Keyed, VanillaReplacingBlockBehaviour {
         }
     }
 
-    public static class FakeBlockDisplay extends ResourcePackResource {
+/*    public static class FakeBlockDisplay extends ResourcePackResource {
         private static final AtomicInteger ID_COUNTER = new AtomicInteger(9999);
         private final FakeBlockHitbox hitBox;
         private final BlockData destroyParticles;
@@ -385,12 +376,10 @@ public class FakeBlock implements Keyed, VanillaReplacingBlockBehaviour {
             }
 
             FakeBlockDisplay build() {
-
-
                 return new FakeBlockDisplay(namespacedKey, destroyParticleData, fakeBlockHitbox, texturesPerBlockFace, modelsPerBlockFace, fakeBlockVisualStrategy, isReusingMinecraftBlockState);
             }
         }
-    }
+    }*/
 
     public static class FakeBlockSoundGroup extends ResourcePackResource {
         private final SoundData hitSound;
@@ -481,6 +470,10 @@ public class FakeBlock implements Keyed, VanillaReplacingBlockBehaviour {
 
             Asset<CustomResourcePack> emptyBlockTexture = new Asset<>(() -> CustomResourcePack.class.getResourceAsStream("/empty_block/textures/empty.png"));
             emptyBlockTexture.installAsset(customResourcePack, new NamespacedKey("minecraft", "block/empty"), ResourcePackAssetTypes.TEXTURES, "png");
+        }
+
+        public static FakeBlockHitbox createFakeBlockHitbox(BlockData blockData){
+            return new FakeBlockHitbox(blockData);
         }
 
         @Override

@@ -1,5 +1,14 @@
 package de.verdox.mccreativelab.generator.resourcepack.renderer;
 
+/**
+ *
+ * @param x - The x Coordinate at the players screen. Left to right
+ * @param y - The y Coordinate at the players screen. Bottom to top.
+ * @param xOffset - The relative x offset calculated from the x coordinate
+ * @param yOffset
+ * @param layer
+ * @param textType
+ */
 public record ScreenPosition(int x, int y, float xOffset, float yOffset, int layer, TextType textType) {
     public ScreenPosition(int x, int y, float xOffset, float yOffset, int layer) {
         this(x, y, xOffset, yOffset, layer, TextType.ACTION_BAR);

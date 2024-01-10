@@ -5,6 +5,7 @@ import de.verdox.mccreativelab.MCCreativeLabExtension;
 import de.verdox.mccreativelab.Wrappers;
 import de.verdox.mccreativelab.behaviour.BlockBehaviour;
 import de.verdox.mccreativelab.block.behaviour.ReplacingFakeBlockBehaviour;
+import de.verdox.mccreativelab.block.display.ReusedBlockStateDisplay;
 import de.verdox.mccreativelab.generator.Asset;
 import de.verdox.mccreativelab.generator.resourcepack.CustomResourcePack;
 import de.verdox.mccreativelab.generator.resourcepack.types.ItemTextureData;
@@ -42,7 +43,7 @@ public class FakeBlockRegistry extends CustomRegistry<FakeBlock> {
     public static final FakeBlockDamage fakeBlockDamage = new FakeBlockDamage();
 
     public static void setupFakeBlocks() {
-        if(USE_ALTERNATE_FAKE_BLOCK_ENGINE){
+        /*if(USE_ALTERNATE_FAKE_BLOCK_ENGINE){
             fakeBlockDamage.init(MCCreativeLabExtension.getInstance().getCustomResourcePack());
 
             Material solidBlockMaterial = FakeBlock.FakeBlockHitbox.SOLID_BLOCK.getBlockData().getMaterial();
@@ -87,7 +88,7 @@ public class FakeBlockRegistry extends CustomRegistry<FakeBlock> {
             Wrappers.SoundGroup newAncientDebrisSoundGroup = Wrappers.of(Wrappers.of(Sound.BLOCK_STONE_HIT), Wrappers.of(Sound.BLOCK_STONE_STEP), Wrappers.of(Sound.BLOCK_STONE_BREAK), Wrappers.of(Sound.BLOCK_STONE_PLACE), Wrappers.of(Sound.BLOCK_STONE_FALL));
             MCCreativeLabExtension.getReplacedSoundGroups().replaceSoundGroup("block.ancient_debris", Material.ANCIENT_DEBRIS.createBlockData()
                                                                                                  .getSoundGroup(), newAncientDebrisSoundGroup);
-        }
+        }*/
         BlockBehaviour.BLOCK_BEHAVIOUR.setBehaviour(Material.NOTE_BLOCK, new ReplacingFakeBlockBehaviour(Material.NOTE_BLOCK));
     }
 
@@ -104,8 +105,8 @@ public class FakeBlockRegistry extends CustomRegistry<FakeBlock> {
             fakeBlockState.linkFakeBlock(fakeBlock);
             fakeBlockState.getProperties().makeImmutable();
             FAKE_BLOCK_STATE_ID_MAP.add(fakeBlockState);
-            if(fakeBlockState.getFakeBlockDisplay().isReusingMinecraftBlockstate())
-                reusedBlockStates.put(fakeBlockState.getFakeBlockDisplay().getHitBox().getBlockData(),fakeBlockState);
+            if(fakeBlockState.getFakeBlockDisplay() instanceof ReusedBlockStateDisplay reusedBlockStateDisplay)
+                reusedBlockStates.put(reusedBlockStateDisplay.getHitBox().getBlockData(),fakeBlockState);
         }
         fakeBlock.setKey(fakeBlockBuilder.namespacedKey);
         Bukkit.getLogger().info("Registering fake block " + fakeBlockBuilder.namespacedKey);

@@ -78,7 +78,6 @@ public class FakeBlockSoundManager implements Listener {
         Wrappers.SoundGroup soundGroup = getSoundGroup(block, fakeBlockState);
         net.kyori.adventure.sound.Sound sound = soundGroup.getStepSound().asSound(net.kyori.adventure.sound.Sound.Source.BLOCK, 0.15f, soundGroup.getPitch() * 0.5F);
         player.playSound(sound, block.getX(), block.getY(), block.getZ());
-        Bukkit.getLogger().info("Send Digging Sound");
         DIGGING_SOUND_DELAY.reset(player);
     }
 

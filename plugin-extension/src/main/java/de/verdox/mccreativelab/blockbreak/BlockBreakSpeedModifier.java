@@ -44,6 +44,8 @@ public class BlockBreakSpeedModifier implements Listener {
     public void onInteract(PlayerInteractEvent e) {
         if (e.getClickedBlock() == null || e.getAction().isRightClick())
             stopBlockBreakAction(e.getPlayer());
+        if(e.getPlayer().getGameMode().equals(GameMode.CREATIVE))
+            return;
         if(e.getClickedBlock() != null && e.getAction().isLeftClick())
             startBlockBreakAction(e.getPlayer(), e.getClickedBlock(), e.getBlockFace(), e);
     }
@@ -126,11 +128,11 @@ public class BlockBreakSpeedModifier implements Listener {
         if (player.getInventory().getItemInMainHand().getType().name().contains("AXE") && !player.hasMetadata("isBreakingNormalBlock"))
             player.addPotionEffect(new PotionEffect(PotionEffectType.SLOW_DIGGING, 1, -1, false, false, false));
 
-        if(player.hasMetadata("isBreakingNormalBlock")){
+/*        if(player.hasMetadata("isBreakingNormalBlock")){
             Block block = (Block) player.getMetadata("isBreakingNormalBlock").get(0).value();
             if(block != null && FakeBlockSoundManager.isBlockWithoutStandardSound(block))
                 FakeBlockSoundManager.simulateDiggingSound(player, block, null);
-        }
+        }*/
 
         if (!map.containsKey(player))
             return;
@@ -189,7 +191,7 @@ public class BlockBreakSpeedModifier implements Listener {
                 stopBlockBreakAction(player);
                 DELAY_BETWEEN_BLOCK_BREAKS.reset(player);
             } else if (FakeBlockSoundManager.isBlockWithoutStandardSound(block)) {
-                FakeBlockSoundManager.simulateDiggingSound(player, block, fakeBlockState);
+                //FakeBlockSoundManager.simulateDiggingSound(player, block, fakeBlockState);
                 if (fakeBlockState != null && DELAY_BETWEEN_BREAK_PARTICLES.isAllowed(player)) {
 
                     RayTraceResult rayTraceResult = player.rayTraceBlocks(7);
@@ -198,7 +200,7 @@ public class BlockBreakSpeedModifier implements Listener {
                         faceToSpawnParticles = rayTraceResult.getHitBlockFace();
                     Vector normalOfBlockFace = faceToSpawnParticles.getDirection();
 
-                    if (!fakeBlockState.getFakeBlockDisplay().isReusingMinecraftBlockstate())
+                    if (fakeBlockState.getFakeBlockDisplay().simulateDiggingParticles())
                         FakeBlockUtil.spawnDiggingParticles(player, block, fakeBlockState, normalOfBlockFace);
 
                     DELAY_BETWEEN_BREAK_PARTICLES.reset(player);

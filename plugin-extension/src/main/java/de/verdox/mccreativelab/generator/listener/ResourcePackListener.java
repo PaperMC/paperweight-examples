@@ -14,13 +14,22 @@ import org.bukkit.event.server.ServerLoadEvent;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Collection;
+import java.util.*;
 
 public class ResourcePackListener implements Listener {
+    private final Map<Player, Set<UUID>> loadedResourcePacks = new HashMap<>();
+
     @EventHandler
     public void kickPlayersIfResourcePackWasNotAppliedButIsRequired(PlayerResourcePackStatusEvent e) {
         switch (e.getStatus()) {
-            case DECLINED, FAILED_DOWNLOAD -> e.getPlayer().kick(null, PlayerKickEvent.Cause.RESOURCE_PACK_REJECTION);
+            case DECLINED, FAILED_DOWNLOAD, FAILED_RELOAD, INVALID_URL ->
+                e.getPlayer().kick(null, PlayerKickEvent.Cause.RESOURCE_PACK_REJECTION);
+            case SUCCESSFULLY_LOADED -> {
+                loadedResourcePacks.computeIfAbsent(e.getPlayer(), player -> new HashSet<>()).add(e.getID());
+                MCCreativeLabExtension.getResourcePackFileHoster().sendDefaultResourcePackToPlayer(e.getPlayer());
+            }
+            case DISCARDED ->
+                loadedResourcePacks.computeIfAbsent(e.getPlayer(), player -> new HashSet<>()).remove(e.getID());
         }
     }
 
@@ -35,7 +44,7 @@ public class ResourcePackListener implements Listener {
     }
 
     @EventHandler
-    public void onPluginReload(MCCreativeLabReloadEvent ignored){
+    public void onPluginReload(MCCreativeLabReloadEvent ignored) {
         MCCreativeLabExtension.getInstance().onServerLoad(ServerLoadEvent.LoadType.RELOAD);
     }
 }
