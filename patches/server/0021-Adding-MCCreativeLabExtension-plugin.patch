@@ -1,0 +1,31 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <mail.ysp@web.de>
+Date: Tue, 5 Dec 2023 21:21:01 +0100
+Subject: [PATCH] Adding MCCreativeLabExtension plugin
+
+
+diff --git a/build.gradle.kts b/build.gradle.kts
+index 88d0cdf15106664857b4121967f2d9e5cc976e42..f9aaf05e01f680e5ac4411d229071957963b45c6 100644
+--- a/build.gradle.kts
++++ b/build.gradle.kts
+@@ -199,12 +199,14 @@ tasks.registerRunTask("runShadow") {
+     description = "Spin up a test server from the shadowJar archiveFile"
+     classpath(tasks.shadowJar.flatMap { it.archiveFile })
+     classpath(runtimeClasspathWithoutVanillaServer)
++    dependsOn(":plugin-extension:build")
+ }
+ 
+ tasks.registerRunTask("runReobf") {
+     description = "Spin up a test server from the reobfJar output jar"
+     classpath(tasks.reobfJar.flatMap { it.outputJar })
+     classpath(runtimeClasspathWithoutVanillaServer)
++    dependsOn(":plugin-extension:build")
+ }
+ 
+ val runtimeClasspathForRunDev = sourceSets.main.flatMap { src ->
+@@ -217,4 +219,5 @@ tasks.registerRunTask("runDev") {
+     classpath(tasks.filterProjectDir.flatMap { it.outputJar })
+     classpath(runtimeClasspathForRunDev)
+     jvmArgs("-DPaper.isRunDev=true")
++    dependsOn(":plugin-extension:build")
+ }

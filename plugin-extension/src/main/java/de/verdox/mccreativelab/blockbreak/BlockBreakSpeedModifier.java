@@ -5,6 +5,7 @@ import de.verdox.mccreativelab.MCCreativeLabExtension;
 import de.verdox.mccreativelab.block.*;
 import de.verdox.mccreativelab.util.BlockUtil;
 import de.verdox.mccreativelab.util.EntityMetadataPredicate;
+import io.papermc.paper.event.player.PlayerArmSwingEvent;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -53,6 +54,21 @@ public class BlockBreakSpeedModifier implements Listener {
     }
 
     @EventHandler
+    public void onPlayerDigAnimation(PlayerArmSwingEvent e){
+        Player player = e.getPlayer();
+        if (map.containsKey(player)){
+            BlockBreakProgress blockBreakProgress = map.get(player);
+            FakeBlockSoundManager.simulateDiggingSound(player, blockBreakProgress.block, blockBreakProgress.fakeBlockState);
+        }
+        else if(player.hasMetadata("isBreakingNormalBlock")){
+            Block block = (Block) player.getMetadata("isBreakingNormalBlock").get(0).value();
+            if(block != null && FakeBlockSoundManager.isBlockWithoutStandardSound(block))
+                FakeBlockSoundManager.simulateDiggingSound(player, block, null);
+        }
+
+    }
+
+    @EventHandler
     public void onStopDigging(BlockDamageAbortEvent e) {
         stopBlockBreakAction(e.getPlayer());
     }
@@ -83,8 +99,8 @@ public class BlockBreakSpeedModifier implements Listener {
 
         if (fakeBlockState != null)
             customBlockHardness = fakeBlockState.getProperties().getHardness();
-        else if (BlockBreakSpeedSettings.hasCustomBlockHardness(bukkitMaterial))
-            customBlockHardness = BlockBreakSpeedSettings.getCustomBlockHardness(block.getType());
+        else if (MCCreativeLabExtension.getBlockBreakSpeedSettings().hasCustomBlockHardness(bukkitMaterial))
+            customBlockHardness = MCCreativeLabExtension.getBlockBreakSpeedSettings().getCustomBlockHardness(block.getType());
 
         if (customBlockHardness == -1) {
             player.setMetadata("isBreakingNormalBlock", new FixedMetadataValue(MCCreativeLabExtension.getInstance(), block));
@@ -96,7 +112,6 @@ public class BlockBreakSpeedModifier implements Listener {
         player.addPotionEffect(new PotionEffect(PotionEffectType.SLOW_DIGGING, 2, -1, false, false, false));
         FakeBlockRegistry.fakeBlockDamage.sendBlockDamage(block, 0);
         FakeBlockSoundManager.simulateDiggingSound(player, block, fakeBlockState);
-        System.out.println("Start BlockBreakAction");
     }
 
     public static void stopBlockBreakAction(Player player) {
@@ -104,7 +119,6 @@ public class BlockBreakSpeedModifier implements Listener {
             player.removeMetadata("isBreakingNormalBlock", MCCreativeLabExtension.getInstance());
         if (!map.containsKey(player))
             return;
-        System.out.println("Stop BlockBreakAction");
         map.remove(player).resetBlockDamage();
     }
 

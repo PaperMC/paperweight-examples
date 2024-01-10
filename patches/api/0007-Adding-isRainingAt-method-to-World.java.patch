@@ -5,10 +5,10 @@ Subject: [PATCH] Adding isRainingAt method to World.java
 
 
 diff --git a/src/main/java/org/bukkit/World.java b/src/main/java/org/bukkit/World.java
-index 5654fa6be22156134eec96ca387bc35867a1c688..472c6284e97a390fb2e614b94b70ec9311af169b 100644
+index 5ee160af44fd40a9d6490313c722974f0317f8ab..83323a74edeb410787b28973b61c527fb6038be5 100644
 --- a/src/main/java/org/bukkit/World.java
 +++ b/src/main/java/org/bukkit/World.java
-@@ -50,6 +50,14 @@ import org.jetbrains.annotations.Nullable;
+@@ -51,6 +51,14 @@ import org.jetbrains.annotations.Nullable;
  public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient, Metadatable, PersistentDataHolder, Keyed, net.kyori.adventure.audience.ForwardingAudience { // Paper
  
      // MCCLab - start

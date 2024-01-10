@@ -5,10 +5,10 @@ Subject: [PATCH] Adding isRainingAt method to World.java
 
 
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-index ec28fb750445cc56a36c20ee22aae5c8cf0d0f32..29d24757b1f914eeb42b341f76f371d84472e33e 100644
+index 19912dbe461eec708c2c2a025bf295de093e13b0..6621cb051be5a984b6430e67ec8e2f121571c9da 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-@@ -158,6 +158,10 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+@@ -157,6 +157,10 @@ public class CraftWorld extends CraftRegionAccessor implements World {
  
      // MCCLab - start
      @Override

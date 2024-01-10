@@ -5,10 +5,10 @@ Subject: [PATCH] Attribute API class not an enum anymore.
 
 
 diff --git a/src/main/java/org/bukkit/craftbukkit/inventory/CraftMetaItem.java b/src/main/java/org/bukkit/craftbukkit/inventory/CraftMetaItem.java
-index aeca803cc0434d9de9434987d6e43b70353e305b..74e07d120a15a09e511c2a5f416b1f0196549f0c 100644
+index 91bbea5cb169f96910cc8661151c04dbff057091..cfd2a4ae2b5ebe4c608554f794f78018b08629ed 100644
 --- a/src/main/java/org/bukkit/craftbukkit/inventory/CraftMetaItem.java
 +++ b/src/main/java/org/bukkit/craftbukkit/inventory/CraftMetaItem.java
-@@ -50,6 +50,7 @@ import net.minecraft.world.item.BlockItem;
+@@ -51,6 +51,7 @@ import net.minecraft.world.item.BlockItem;
  import net.minecraft.world.level.block.state.BlockState;
  import org.apache.commons.lang3.EnumUtils;
  import org.bukkit.Material;
@@ -16,7 +16,7 @@ index aeca803cc0434d9de9434987d6e43b70353e305b..74e07d120a15a09e511c2a5f416b1f01
  import org.bukkit.attribute.Attribute;
  import org.bukkit.attribute.AttributeModifier;
  import org.bukkit.block.data.BlockData;
-@@ -686,7 +687,10 @@ class CraftMetaItem implements ItemMeta, Damageable, Repairable, BlockDataMeta {
+@@ -679,7 +680,10 @@ class CraftMetaItem implements ItemMeta, Damageable, Repairable, BlockDataMeta {
                      continue;
                  }
                  AttributeModifier modifier = (AttributeModifier) o;
@@ -28,7 +28,7 @@ index aeca803cc0434d9de9434987d6e43b70353e305b..74e07d120a15a09e511c2a5f416b1f01
                  if (attribute == null) {
                      continue;
                  }
-@@ -1544,7 +1548,10 @@ class CraftMetaItem implements ItemMeta, Damageable, Repairable, BlockDataMeta {
+@@ -1535,7 +1539,10 @@ class CraftMetaItem implements ItemMeta, Damageable, Repairable, BlockDataMeta {
              if (modCollection == null || modCollection.isEmpty()) {
                  continue;
              }

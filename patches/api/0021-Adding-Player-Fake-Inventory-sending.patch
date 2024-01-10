@@ -1,0 +1,37 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <mail.ysp@web.de>
+Date: Sun, 7 Jan 2024 02:08:40 +0100
+Subject: [PATCH] Adding Player Fake Inventory sending
+
+
+diff --git a/src/main/java/org/bukkit/entity/Player.java b/src/main/java/org/bukkit/entity/Player.java
+index ae61a39b25267b84fe0b8766e4b12d9b24b44ded..029866ef32ca8172fa66c534f23a3cd3abb59480 100644
+--- a/src/main/java/org/bukkit/entity/Player.java
++++ b/src/main/java/org/bukkit/entity/Player.java
+@@ -743,6 +743,26 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
+     @Deprecated
+     public void playEffect(@NotNull Location loc, @NotNull Effect effect, int data);
+ 
++    // MCCLab start - Adding Inventory sync flag and fake inventory sending
++    /**
++     * Whether the player inventory synchronizer should be used.
++     * If set to false the player will not send container or inventory changes to the player.
++     * This is useful to send a fake inventory to the player if needed.
++     * @param value - The new value
++     * @return
++     */
++    void doInventorySynchronization(boolean value);
++    // MCCLab end
++
++    void sendFakeInventoryContents(ItemStack[] fakeContents);
++
++    /**
++     * Returns true if the inventory synchronizer of the player is working currently
++     * @return - true if the synchronizer is working
++     */
++    boolean isInventorySynchronization();
++    // MCCLab end - Adding Inventory sync flag and fake inventory sending
++
+     /**
+      * Plays an effect to just this player.
+      *

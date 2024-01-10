@@ -5,10 +5,10 @@ Subject: [PATCH] Adding growTreeIfSapling helper method to Bukkit World class
 
 
 diff --git a/src/main/java/org/bukkit/World.java b/src/main/java/org/bukkit/World.java
-index da524a71af74b02515b037f7fe09ba6988e2c8bf..293fdfee1c097c57c55b7fc8b5b9d925921cb1a4 100644
+index d3081d4445af73c2c7b23c5fc60861f184ac808e..5ee160af44fd40a9d6490313c722974f0317f8ab 100644
 --- a/src/main/java/org/bukkit/World.java
 +++ b/src/main/java/org/bukkit/World.java
-@@ -49,6 +49,17 @@ import org.jetbrains.annotations.Nullable;
+@@ -50,6 +50,17 @@ import org.jetbrains.annotations.Nullable;
   */
  public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient, Metadatable, PersistentDataHolder, Keyed, net.kyori.adventure.audience.ForwardingAudience { // Paper
  

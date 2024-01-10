@@ -9,7 +9,7 @@ new file mode 100644
 index 0000000000000000000000000000000000000000..b5ea3d281bc9fb47b4d22cb3301d8f8b8a4439ad
 --- /dev/null
 +++ b/src/main/java/de/verdox/itemformat/BasicItemFormat.java
-@@ -0,0 +1,50 @@
+@@ -0,0 +1,52 @@
 +package de.verdox.itemformat;
 +
 +import org.bukkit.NamespacedKey;
@@ -47,6 +47,8 @@ index 0000000000000000000000000000000000000000..b5ea3d281bc9fb47b4d22cb3301d8f8b
 +    String randomSessionID = Integer.toHexString(ThreadLocalRandom.current().nextInt(1000000));
 +    NamespacedKey sessionIDKey = new NamespacedKey("mcclab","session_id");
 +    static boolean needsConversion(ItemStack stack){
++        if(org.bukkit.Bukkit.getServer() == null) // When Bukkit has not loaded yet do not use BasicItemFormat
++            return false;
 +        if(stack == null || stack.isEmpty())
 +            return false;
 +        if(!stack.hasItemMeta())

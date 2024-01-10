@@ -54,7 +54,7 @@ public class LegacyFoodSystem extends LegacyFeature {
 
         setHealAmountWhenEaten(Material.COOKIE, 1);
 
-        CustomResourcePack customResourcePack = MCCreativeLabExtension.getInstance().getCustomResourcePack();
+        CustomResourcePack customResourcePack = MCCreativeLabExtension.getCustomResourcePack();
         Asset<CustomResourcePack> empty = new Asset<>("/empty_block/textures/empty.png");
         customResourcePack.register(new AssetBasedResourcePackResource(empty, new NamespacedKey("minecraft", "gui/sprites/hud/food_empty"), ResourcePackAssetTypes.TEXTURES, "png"));
         customResourcePack.register(new AssetBasedResourcePackResource(empty, new NamespacedKey("minecraft", "gui/sprites/hud/food_empty_hunger"), ResourcePackAssetTypes.TEXTURES, "png"));

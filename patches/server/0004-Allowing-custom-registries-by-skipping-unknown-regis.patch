@@ -6,17 +6,14 @@ Subject: [PATCH] Allowing custom registries by skipping unknown registries on
 
 
 diff --git a/src/main/java/net/minecraft/server/ReloadableServerResources.java b/src/main/java/net/minecraft/server/ReloadableServerResources.java
-index 3192ad97889f1a199b4b7b3dc43ff9bbafe748b3..b38bd8ab26868b122e982c40e231d3987dc5afb6 100644
+index 3192ad97889f1a199b4b7b3dc43ff9bbafe748b3..8f5499c359cc1910da68482d5b95f5a75a67a64d 100644
 --- a/src/main/java/net/minecraft/server/ReloadableServerResources.java
 +++ b/src/main/java/net/minecraft/server/ReloadableServerResources.java
-@@ -90,6 +90,9 @@ public class ReloadableServerResources {
+@@ -90,6 +90,6 @@ public class ReloadableServerResources {
          }, (entry) -> {
              return List.copyOf(entry.getValue());
          }));
 -        dynamicRegistryManager.registryOrThrow(resourceKey).bindTags(map);
-+
-+        dynamicRegistryManager.registry(resourceKey).ifPresent(ts -> ts.bindTags(map));
-+
-+        //dynamicRegistryManager.registryOrThrow(resourceKey).bindTags(map);
++        dynamicRegistryManager.registry(resourceKey).ifPresent(ts -> ts.bindTags(map)); // MCCLab - Dont throw exception on unknown registries
      }
  }

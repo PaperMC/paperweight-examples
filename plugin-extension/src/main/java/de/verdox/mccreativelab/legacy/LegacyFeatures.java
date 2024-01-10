@@ -1,11 +1,11 @@
 package de.verdox.mccreativelab.legacy;
 
 public class LegacyFeatures {
-    public static void enableOldFoodSystem(){
+    public void enableOldFoodSystem(){
         new LegacyFoodSystem().enable();
     }
 
-    public static void enableOldCombatSystem(){
+    public void enableOldCombatSystem(){
         new LegacyCombatSystem().enable();
     }
 }

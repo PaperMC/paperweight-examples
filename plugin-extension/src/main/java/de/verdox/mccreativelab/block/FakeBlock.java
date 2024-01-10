@@ -339,6 +339,8 @@ public class FakeBlock implements Keyed, VanillaReplacingBlockBehaviour {
             }
 
             public Builder withFakeBlockVisualStrategy(FakeBlockVisualStrategy fakeBlockVisualStrategy) {
+                if(!FakeBlockRegistry.USE_ALTERNATE_FAKE_BLOCK_ENGINE && !(fakeBlockVisualStrategy instanceof DummyBlockVisualStrategy))
+                    throw new IllegalStateException("Alternate Fake Block Visual Engine not activated.");
                 this.fakeBlockVisualStrategy = fakeBlockVisualStrategy;
                 return this;
             }

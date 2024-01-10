@@ -1,6 +1,7 @@
 package de.verdox.mccreativelab.block;
 
 import com.destroystokyo.paper.event.player.PlayerJumpEvent;
+import de.verdox.mccreativelab.MCCreativeLabExtension;
 import de.verdox.mccreativelab.Wrappers;
 import de.verdox.mccreativelab.sound.ReplacedSoundGroups;
 import de.verdox.mccreativelab.util.EntityMetadataPredicate;
@@ -37,7 +38,7 @@ public class FakeBlockSoundManager implements Listener {
     }
 
     public static boolean isBlockWithoutStandardSound(BlockData data) {
-        return ReplacedSoundGroups.wasSoundReplaced(data.getSoundGroup());
+        return MCCreativeLabExtension.getReplacedSoundGroups().wasSoundReplaced(data.getSoundGroup());
     }
 
     @EventHandler
@@ -77,6 +78,7 @@ public class FakeBlockSoundManager implements Listener {
         Wrappers.SoundGroup soundGroup = getSoundGroup(block, fakeBlockState);
         net.kyori.adventure.sound.Sound sound = soundGroup.getStepSound().asSound(net.kyori.adventure.sound.Sound.Source.BLOCK, 0.15f, soundGroup.getPitch() * 0.5F);
         player.playSound(sound, block.getX(), block.getY(), block.getZ());
+        Bukkit.getLogger().info("Send Digging Sound");
         DIGGING_SOUND_DELAY.reset(player);
     }
 
@@ -121,7 +123,7 @@ public class FakeBlockSoundManager implements Listener {
 
     private static Wrappers.SoundGroup getSoundGroup(@NotNull Block block, @Nullable FakeBlock.FakeBlockState fakeBlockState) {
         if (fakeBlockState == null)
-            return ReplacedSoundGroups.getSoundGroup(block.getBlockData());
+            return MCCreativeLabExtension.getReplacedSoundGroups().getSoundGroup(block.getBlockData());
         else {
             if (fakeBlockState.getFakeBlockSoundGroup() == null)
                 return Wrappers.of(DEFAULT_SOUND_GROUP);

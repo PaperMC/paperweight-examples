@@ -6,15 +6,15 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class BlockBreakSpeedSettings {
-    private static final Map<Material, Float> customHardness = new HashMap<>();
-    public static boolean hasCustomBlockHardness(Material material){
+    private final Map<Material, Float> customHardness = new HashMap<>();
+    public boolean hasCustomBlockHardness(Material material){
         return customHardness.containsKey(material);
     }
-    public static float getCustomBlockHardness(Material material){
+    public float getCustomBlockHardness(Material material){
         return customHardness.getOrDefault(material, material.getHardness());
     }
 
-    public static void setCustomBlockHardness(Material material, float hardness){
+    public void registerCustomBlockHardness(Material material, float hardness){
         customHardness.put(material, hardness);
     }
 }

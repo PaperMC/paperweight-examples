@@ -1,0 +1,1030 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <mail.ysp@web.de>
+Date: Mon, 1 Jan 2024 18:06:02 +0100
+Subject: [PATCH] Adding LightEngineTracker and BlockLightEvent
+
+
+diff --git a/src/main/java/ca/spottedleaf/starlight/common/light/BlockStarLightEngine.java b/src/main/java/ca/spottedleaf/starlight/common/light/BlockStarLightEngine.java
+index 09ddbbfdf656aa347830941abd7c994fac05d1c5..2d294217170cebf86d41e18ad065892809bac55e 100644
+--- a/src/main/java/ca/spottedleaf/starlight/common/light/BlockStarLightEngine.java
++++ b/src/main/java/ca/spottedleaf/starlight/common/light/BlockStarLightEngine.java
+@@ -1,5 +1,6 @@
+ package ca.spottedleaf.starlight.common.light;
+ 
++import de.verdox.mccreativelab.light.LightEngineTracker; // MCCreativeLab - Add BlockLightUpdateEvent
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.world.level.Level;
+ import net.minecraft.world.level.block.state.BlockState;
+@@ -22,6 +23,7 @@ public final class BlockStarLightEngine extends StarLightEngine {
+ 
+     public BlockStarLightEngine(final Level world) {
+         super(false, world);
++        lightType = LightEngineTracker.LightType.BLOCK; // MCCreativeLab - Add BlockLightUpdateEvent
+     }
+ 
+     @Override
+@@ -83,7 +85,7 @@ public final class BlockStarLightEngine extends StarLightEngine {
+     }
+ 
+     @Override
+-    protected final void checkBlock(final LightChunkGetter lightAccess, final int worldX, final int worldY, final int worldZ) {
++    protected final void checkBlock(final LightChunkGetter lightAccess, final int worldX, final int worldY, final int worldZ, @org.jetbrains.annotations.Nullable LightEngineTracker lightEngineTracker) {
+         // blocks can change opacity
+         // blocks can change emitted light
+         // blocks can change direction of propagation
+@@ -95,7 +97,7 @@ public final class BlockStarLightEngine extends StarLightEngine {
+         final BlockState blockState = this.getBlockState(worldX, worldY, worldZ);
+         final int emittedLevel = blockState.getLightEmission() & emittedMask;
+ 
+-        this.setLightLevel(worldX, worldY, worldZ, emittedLevel);
++        this.setLightLevel(worldX, worldY, worldZ, emittedLevel, lightEngineTracker); // MCCreativeLab - Add BlockLightUpdateEvent
+         // this accounts for change in emitted light that would cause an increase
+         if (emittedLevel != 0) {
+             this.appendToIncreaseQueue(
+@@ -193,12 +195,12 @@ public final class BlockStarLightEngine extends StarLightEngine {
+     }
+ 
+     @Override
+-    protected void propagateBlockChanges(final LightChunkGetter lightAccess, final ChunkAccess atChunk, final Set<BlockPos> positions) {
++    protected void propagateBlockChanges(final LightChunkGetter lightAccess, final ChunkAccess atChunk, final Set<BlockPos> positions, @org.jetbrains.annotations.Nullable LightEngineTracker lightEngineTracker) {
+         for (final BlockPos pos : positions) {
+-            this.checkBlock(lightAccess, pos.getX(), pos.getY(), pos.getZ());
++            this.checkBlock(lightAccess, pos.getX(), pos.getY(), pos.getZ(), lightEngineTracker);
+         }
+ 
+-        this.performLightDecrease(lightAccess);
++        this.performLightDecrease(lightAccess, lightEngineTracker);
+     }
+ 
+     protected List<BlockPos> getSources(final LightChunkGetter lightAccess, final ChunkAccess chunk) {
+@@ -238,7 +240,7 @@ public final class BlockStarLightEngine extends StarLightEngine {
+     }
+ 
+     @Override
+-    public void lightChunk(final LightChunkGetter lightAccess, final ChunkAccess chunk, final boolean needsEdgeChecks) {
++    public void lightChunk(final LightChunkGetter lightAccess, final ChunkAccess chunk, final boolean needsEdgeChecks, @org.jetbrains.annotations.Nullable LightEngineTracker lightEngineTracker) {
+         // setup sources
+         final int emittedMask = this.emittedLightMask;
+         final List<BlockPos> positions = this.getSources(lightAccess, chunk);
+@@ -261,19 +263,19 @@ public final class BlockStarLightEngine extends StarLightEngine {
+ 
+ 
+             // propagation wont set this for us
+-            this.setLightLevel(pos.getX(), pos.getY(), pos.getZ(), emittedLight);
++            this.setLightLevel(pos.getX(), pos.getY(), pos.getZ(), emittedLight, lightEngineTracker);
+         }
+ 
+         if (needsEdgeChecks) {
+             // not required to propagate here, but this will reduce the hit of the edge checks
+-            this.performLightIncrease(lightAccess);
++            this.performLightIncrease(lightAccess, lightEngineTracker);
+ 
+             // verify neighbour edges
+-            this.checkChunkEdges(lightAccess, chunk, this.minLightSection, this.maxLightSection);
++            this.checkChunkEdges(lightAccess, chunk, this.minLightSection, this.maxLightSection, lightEngineTracker);
+         } else {
+             this.propagateNeighbourLevels(lightAccess, chunk, this.minLightSection, this.maxLightSection);
+ 
+-            this.performLightIncrease(lightAccess);
++            this.performLightIncrease(lightAccess, lightEngineTracker);
+         }
+     }
+ }
+diff --git a/src/main/java/ca/spottedleaf/starlight/common/light/SkyStarLightEngine.java b/src/main/java/ca/spottedleaf/starlight/common/light/SkyStarLightEngine.java
+index 5f771962afb44175d446f138c8e7453230f48c6c..e7bd65bce81ef8fe74efe169d6c58f819086890b 100644
+--- a/src/main/java/ca/spottedleaf/starlight/common/light/SkyStarLightEngine.java
++++ b/src/main/java/ca/spottedleaf/starlight/common/light/SkyStarLightEngine.java
+@@ -1,6 +1,7 @@
+ package ca.spottedleaf.starlight.common.light;
+ 
+ import ca.spottedleaf.starlight.common.util.WorldUtil;
++import de.verdox.mccreativelab.light.LightEngineTracker;
+ import it.unimi.dsi.fastutil.shorts.ShortCollection;
+ import it.unimi.dsi.fastutil.shorts.ShortIterator;
+ import net.minecraft.core.BlockPos;
+@@ -53,6 +54,7 @@ public final class SkyStarLightEngine extends StarLightEngine {
+     public SkyStarLightEngine(final Level world) {
+         super(true, world);
+         this.nullPropagationCheckCache = new boolean[WorldUtil.getTotalLightSections(world)];
++        lightType = LightEngineTracker.LightType.SKY;
+     }
+ 
+     @Override
+@@ -231,8 +233,7 @@ public final class SkyStarLightEngine extends StarLightEngine {
+     }
+ 
+     @Override
+-    protected void checkChunkEdges(final LightChunkGetter lightAccess, final ChunkAccess chunk, final int fromSection,
+-                                   final int toSection) {
++    protected void checkChunkEdges(final LightChunkGetter lightAccess, final ChunkAccess chunk, final int fromSection, final int toSection, @org.jetbrains.annotations.Nullable LightEngineTracker lightEngineTracker) {
+         Arrays.fill(this.nullPropagationCheckCache, false);
+         this.rewriteNibbleCacheForSkylight(chunk);
+         final int chunkX = chunk.getPos().x;
+@@ -241,11 +242,11 @@ public final class SkyStarLightEngine extends StarLightEngine {
+             this.checkNullSection(chunkX, y, chunkZ, true);
+         }
+ 
+-        super.checkChunkEdges(lightAccess, chunk, fromSection, toSection);
++        super.checkChunkEdges(lightAccess, chunk, fromSection, toSection, lightEngineTracker);
+     }
+ 
+     @Override
+-    protected void checkChunkEdges(final LightChunkGetter lightAccess, final ChunkAccess chunk, final ShortCollection sections) {
++    protected void checkChunkEdges(final LightChunkGetter lightAccess, final ChunkAccess chunk, final ShortCollection sections, @org.jetbrains.annotations.Nullable LightEngineTracker lightEngineTracker) {
+         Arrays.fill(this.nullPropagationCheckCache, false);
+         this.rewriteNibbleCacheForSkylight(chunk);
+         final int chunkX = chunk.getPos().x;
+@@ -255,11 +256,11 @@ public final class SkyStarLightEngine extends StarLightEngine {
+             this.checkNullSection(chunkX, y, chunkZ, true);
+         }
+ 
+-        super.checkChunkEdges(lightAccess, chunk, sections);
++        super.checkChunkEdges(lightAccess, chunk, sections, lightEngineTracker);
+     }
+ 
+     @Override
+-    protected void checkBlock(final LightChunkGetter lightAccess, final int worldX, final int worldY, final int worldZ) {
++    protected void checkBlock(final LightChunkGetter lightAccess, final int worldX, final int worldY, final int worldZ, @org.jetbrains.annotations.Nullable LightEngineTracker lightEngineTracker) {
+         // blocks can change opacity
+         // blocks can change direction of propagation
+ 
+@@ -278,7 +279,7 @@ public final class SkyStarLightEngine extends StarLightEngine {
+                             | FLAG_HAS_SIDED_TRANSPARENT_BLOCKS // don't know if the block is conditionally transparent
+             );
+         } else {
+-            this.setLightLevel(worldX, worldY, worldZ, 0);
++            this.setLightLevel(worldX, worldY, worldZ, 0, lightEngineTracker); // MCCreativeLab - Add BlockLightUpdateEvent
+         }
+ 
+         this.appendToDecreaseQueue(
+@@ -358,7 +359,7 @@ public final class SkyStarLightEngine extends StarLightEngine {
+     }
+ 
+     @Override
+-    protected void propagateBlockChanges(final LightChunkGetter lightAccess, final ChunkAccess atChunk, final Set<BlockPos> positions) {
++    protected void propagateBlockChanges(final LightChunkGetter lightAccess, final ChunkAccess atChunk, final Set<BlockPos> positions, @org.jetbrains.annotations.Nullable LightEngineTracker lightEngineTracker) {
+         this.rewriteNibbleCacheForSkylight(atChunk);
+         Arrays.fill(this.nullPropagationCheckCache, false);
+ 
+@@ -394,7 +395,7 @@ public final class SkyStarLightEngine extends StarLightEngine {
+ 
+             // try and propagate from the above y
+             // delay light set until after processing all sources to setup
+-            final int maxPropagationY = this.tryPropagateSkylight(world, columnX, maxY, columnZ, true, true);
++            final int maxPropagationY = this.tryPropagateSkylight(world, columnX, maxY, columnZ, true, true, lightEngineTracker);
+ 
+             // maxPropagationY is now the highest block that could not be propagated to
+ 
+@@ -439,20 +440,20 @@ public final class SkyStarLightEngine extends StarLightEngine {
+ 
+         // delayed light sets are processed here, and must be processed before checkBlock as checkBlock reads
+         // immediate light value
+-        this.processDelayedIncreases();
+-        this.processDelayedDecreases();
++        this.processDelayedIncreases(lightEngineTracker);
++        this.processDelayedDecreases(lightEngineTracker);
+ 
+         for (final BlockPos pos : positions) {
+-            this.checkBlock(lightAccess, pos.getX(), pos.getY(), pos.getZ());
++            this.checkBlock(lightAccess, pos.getX(), pos.getY(), pos.getZ(), lightEngineTracker);
+         }
+ 
+-        this.performLightDecrease(lightAccess);
++        this.performLightDecrease(lightAccess, lightEngineTracker);
+     }
+ 
+     protected final int[] heightMapGen = new int[32 * 32];
+ 
+     @Override
+-    protected void lightChunk(final LightChunkGetter lightAccess, final ChunkAccess chunk, final boolean needsEdgeChecks) {
++    protected void lightChunk(final LightChunkGetter lightAccess, final ChunkAccess chunk, final boolean needsEdgeChecks, @org.jetbrains.annotations.Nullable LightEngineTracker lightEngineTracker) {
+         this.rewriteNibbleCacheForSkylight(chunk);
+         Arrays.fill(this.nullPropagationCheckCache, false);
+ 
+@@ -542,31 +543,31 @@ public final class SkyStarLightEngine extends StarLightEngine {
+             final int startY = highestNonEmptySection << 4 | 15;
+             for (int currZ = minZ; currZ <= maxZ; ++currZ) {
+                 for (int currX = minX; currX <= maxX; ++currX) {
+-                    this.tryPropagateSkylight(world, currX, startY + 1, currZ, false, false);
++                    this.tryPropagateSkylight(world, currX, startY + 1, currZ, false, false, lightEngineTracker);
+                 }
+             }
+         } // else: apparently the chunk is empty
+ 
+         if (needsEdgeChecks) {
+             // not required to propagate here, but this will reduce the hit of the edge checks
+-            this.performLightIncrease(lightAccess);
++            this.performLightIncrease(lightAccess, lightEngineTracker);
+ 
+             for (int y = highestNonEmptySection; y >= this.minLightSection; --y) {
+                 this.checkNullSection(chunkX, y, chunkZ, false);
+             }
+             // no need to rewrite the nibble cache again
+-            super.checkChunkEdges(lightAccess, chunk, this.minLightSection, highestNonEmptySection);
++            super.checkChunkEdges(lightAccess, chunk, this.minLightSection, highestNonEmptySection, lightEngineTracker);
+         } else {
+             for (int y = highestNonEmptySection; y >= this.minLightSection; --y) {
+                 this.checkNullSection(chunkX, y, chunkZ, false);
+             }
+             this.propagateNeighbourLevels(lightAccess, chunk, this.minLightSection, highestNonEmptySection);
+ 
+-            this.performLightIncrease(lightAccess);
++            this.performLightIncrease(lightAccess, lightEngineTracker);
+         }
+     }
+ 
+-    protected final void processDelayedIncreases() {
++    protected final void processDelayedIncreases(@org.jetbrains.annotations.Nullable LightEngineTracker lightEngineTracker) {
+         // copied from performLightIncrease
+         final long[] queue = this.increaseQueue;
+         final int decodeOffsetX = -this.encodeOffsetX;
+@@ -581,11 +582,11 @@ public final class SkyStarLightEngine extends StarLightEngine {
+             final int posY = (((int)queueValue >>> 12) & ((1 << 16) - 1)) + decodeOffsetY;
+             final int propagatedLightLevel = (int)((queueValue >>> (6 + 6 + 16)) & 0xF);
+ 
+-            this.setLightLevel(posX, posY, posZ, propagatedLightLevel);
++            this.setLightLevel(posX, posY, posZ, propagatedLightLevel, lightEngineTracker); // MCCreativeLab - Add BlockLightUpdateEvent
+         }
+     }
+ 
+-    protected final void processDelayedDecreases() {
++    protected final void processDelayedDecreases(@org.jetbrains.annotations.Nullable LightEngineTracker lightEngineTracker) {
+         // copied from performLightDecrease
+         final long[] queue = this.decreaseQueue;
+         final int decodeOffsetX = -this.encodeOffsetX;
+@@ -599,7 +600,7 @@ public final class SkyStarLightEngine extends StarLightEngine {
+             final int posZ = (((int)queueValue >>> 6) & 63) + decodeOffsetZ;
+             final int posY = (((int)queueValue >>> 12) & ((1 << 16) - 1)) + decodeOffsetY;
+ 
+-            this.setLightLevel(posX, posY, posZ, 0);
++            this.setLightLevel(posX, posY, posZ, 0, lightEngineTracker); // MCCreativeLab - Add BlockLightUpdateEvent
+         }
+     }
+ 
+@@ -607,7 +608,7 @@ public final class SkyStarLightEngine extends StarLightEngine {
+     // while also queueing light at the same time (initialising nibblearrays might depend on nibbles above, so
+     // clobbering the light values will result in broken propagation)
+     protected final int tryPropagateSkylight(final BlockGetter world, final int worldX, int startY, final int worldZ,
+-                                             final boolean extrudeInitialised, final boolean delayLightSet) {
++                                             final boolean extrudeInitialised, final boolean delayLightSet, @org.jetbrains.annotations.Nullable LightEngineTracker lightEngineTracker) {
+         final BlockPos.MutableBlockPos mutablePos = this.mutablePos3;
+         final int encodeOffset = this.coordinateOffset;
+         final long propagateDirection = AxisDirection.POSITIVE_Y.everythingButThisDirection; // just don't check upwards.
+@@ -700,10 +701,14 @@ public final class SkyStarLightEngine extends StarLightEngine {
+                 // make sure this is marked as AIR
+                 above = AIR_BLOCK_STATE;
+             } else if (!delayLightSet) {
+-                this.setLightLevel(worldX, startY, worldZ, 15);
++                this.setLightLevel(worldX, startY, worldZ, 15, lightEngineTracker);
+             }
+         }
+ 
+         return startY;
+     }
++    protected final int tryPropagateSkylight(final BlockGetter world, final int worldX, int startY, final int worldZ,
++                                             final boolean extrudeInitialised, final boolean delayLightSet) {
++        return tryPropagateSkylight(world, worldX, worldZ, startY, extrudeInitialised, delayLightSet, null);
++    }
+ }
+diff --git a/src/main/java/ca/spottedleaf/starlight/common/light/StarLightEngine.java b/src/main/java/ca/spottedleaf/starlight/common/light/StarLightEngine.java
+index ad1eeebe6de219143492b94da309cb54ae9e0a5b..ad7515118c74247275738377289c181eaf6b7aa7 100644
+--- a/src/main/java/ca/spottedleaf/starlight/common/light/StarLightEngine.java
++++ b/src/main/java/ca/spottedleaf/starlight/common/light/StarLightEngine.java
+@@ -3,6 +3,7 @@ package ca.spottedleaf.starlight.common.light;
+ import ca.spottedleaf.starlight.common.util.CoordinateUtils;
+ import ca.spottedleaf.starlight.common.util.IntegerUtil;
+ import ca.spottedleaf.starlight.common.util.WorldUtil;
++
+ import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+ import it.unimi.dsi.fastutil.shorts.ShortCollection;
+ import it.unimi.dsi.fastutil.shorts.ShortIterator;
+@@ -28,6 +29,7 @@ import java.util.Set;
+ import java.util.function.Consumer;
+ import java.util.function.IntConsumer;
+ 
++import de.verdox.mccreativelab.light.LightEngineTracker;
+ public abstract class StarLightEngine {
+ 
+     protected static final BlockState AIR_BLOCK_STATE = Blocks.AIR.defaultBlockState();
+@@ -38,7 +40,6 @@ public abstract class StarLightEngine {
+             AxisDirection.POSITIVE_X, AxisDirection.NEGATIVE_X,
+             AxisDirection.POSITIVE_Z, AxisDirection.NEGATIVE_Z
+     };
+-
+     protected static enum AxisDirection {
+ 
+         // Declaration order is important and relied upon. Do not change without modifying propagation code.
+@@ -312,12 +313,13 @@ public abstract class StarLightEngine {
+         return nibble == null ? 0 : nibble.getUpdating(localIndex);
+     }
+ 
+-    protected final void setLightLevel(final int worldX, final int worldY, final int worldZ, final int level) {
++    protected final void setLightLevel(final int worldX, final int worldY, final int worldZ, final int level, @org.jetbrains.annotations.Nullable LightEngineTracker lightEngineTracker) {
+         final int sectionIndex = (worldX >> 4) + 5 * (worldZ >> 4) + (5 * 5) * (worldY >> 4) + this.chunkSectionIndexOffset;
+         final SWMRNibbleArray nibble = this.nibbleCache[sectionIndex];
+ 
+         if (nibble != null) {
+             nibble.set((worldX & 15) | ((worldZ & 15) << 4) | ((worldY & 15) << 8), level);
++            if(lightEngineTracker != null) lightEngineTracker.trackLightChange(world, worldX, worldY, worldZ, level, this.lightType);
+             if (this.isClientSide) {
+                 int cx1 = (worldX - 1) >> 4;
+                 int cx2 = (worldX + 1) >> 4;
+@@ -408,9 +410,8 @@ public abstract class StarLightEngine {
+     protected abstract void setNibbles(final ChunkAccess chunk, final SWMRNibbleArray[] to);
+ 
+     protected abstract boolean canUseChunk(final ChunkAccess chunk);
+-
+     public final void blocksChangedInChunk(final LightChunkGetter lightAccess, final int chunkX, final int chunkZ,
+-                                           final Set<BlockPos> positions, final Boolean[] changedSections) {
++                                           final Set<BlockPos> positions, final Boolean[] changedSections, @org.jetbrains.annotations.Nullable LightEngineTracker lightEngineTracker) {
+         this.setupCaches(lightAccess, chunkX * 16 + 7, 128, chunkZ * 16 + 7, true, true);
+         try {
+             final ChunkAccess chunk = this.getChunkInCache(chunkX, chunkZ);
+@@ -424,7 +425,7 @@ public abstract class StarLightEngine {
+                 }
+             }
+             if (!positions.isEmpty()) {
+-                this.propagateBlockChanges(lightAccess, chunk, positions);
++                this.propagateBlockChanges(lightAccess, chunk, positions, lightEngineTracker);
+             }
+             this.updateVisible(lightAccess);
+         } finally {
+@@ -434,9 +435,8 @@ public abstract class StarLightEngine {
+ 
+     // subclasses should not initialise caches, as this will always be done by the super call
+     // subclasses should not invoke updateVisible, as this will always be done by the super call
+-    protected abstract void propagateBlockChanges(final LightChunkGetter lightAccess, final ChunkAccess atChunk, final Set<BlockPos> positions);
+-
+-    protected abstract void checkBlock(final LightChunkGetter lightAccess, final int worldX, final int worldY, final int worldZ);
++    protected abstract void propagateBlockChanges(final LightChunkGetter lightAccess, final ChunkAccess atChunk, final Set<BlockPos> positions, @org.jetbrains.annotations.Nullable LightEngineTracker lightEngineTracker);
++    protected abstract void checkBlock(final LightChunkGetter lightAccess, final int worldX, final int worldY, final int worldZ, @org.jetbrains.annotations.Nullable LightEngineTracker lightEngineTracker);
+ 
+     // if ret > expect, then the real value is at least ret (early returns if ret > expect, rather than calculating actual)
+     // if ret == expect, then expect is the correct light value for pos
+@@ -448,7 +448,7 @@ public abstract class StarLightEngine {
+     protected final int[] chunkCheckDelayedUpdatesNeighbour = new int[16 * 16];
+ 
+     protected void checkChunkEdge(final LightChunkGetter lightAccess, final ChunkAccess chunk,
+-                                  final int chunkX, final int chunkY, final int chunkZ) {
++                                  final int chunkX, final int chunkY, final int chunkZ, @org.jetbrains.annotations.Nullable LightEngineTracker lightEngineTracker) {
+         final SWMRNibbleArray currNibble = this.getNibbleFromCache(chunkX, chunkY, chunkZ);
+         if (currNibble == null) {
+             return;
+@@ -546,28 +546,28 @@ public abstract class StarLightEngine {
+                     final int value = this.chunkCheckDelayedUpdatesCenter[i];
+                     this.checkBlock(lightAccess, currentChunkOffX | (value & 15),
+                             chunkOffY | (value >>> 8),
+-                            currentChunkOffZ | ((value >>> 4) & 0xF));
++                            currentChunkOffZ | ((value >>> 4) & 0xF), lightEngineTracker);
+                 }
+                 if (i < neighbourDelayedChecks) {
+                     final int value = this.chunkCheckDelayedUpdatesNeighbour[i];
+                     this.checkBlock(lightAccess, neighbourChunkOffX | (value & 15),
+                             chunkOffY | (value >>> 8),
+-                            neighbourChunkOffZ | ((value >>> 4) & 0xF));
++                            neighbourChunkOffZ | ((value >>> 4) & 0xF), lightEngineTracker);
+                 }
+             }
+         }
+     }
+ 
+-    protected void checkChunkEdges(final LightChunkGetter lightAccess, final ChunkAccess chunk, final ShortCollection sections) {
++    protected void checkChunkEdges(final LightChunkGetter lightAccess, final ChunkAccess chunk, final ShortCollection sections, @org.jetbrains.annotations.Nullable LightEngineTracker lightEngineTracker) {
+         final ChunkPos chunkPos = chunk.getPos();
+         final int chunkX = chunkPos.x;
+         final int chunkZ = chunkPos.z;
+ 
+         for (final ShortIterator iterator = sections.iterator(); iterator.hasNext();) {
+-            this.checkChunkEdge(lightAccess, chunk, chunkX, iterator.nextShort(), chunkZ);
++            this.checkChunkEdge(lightAccess, chunk, chunkX, iterator.nextShort(), chunkZ, lightEngineTracker);
+         }
+ 
+-        this.performLightDecrease(lightAccess);
++        this.performLightDecrease(lightAccess, lightEngineTracker);
+     }
+ 
+     // subclasses should not initialise caches, as this will always be done by the super call
+@@ -575,16 +575,16 @@ public abstract class StarLightEngine {
+     // verifies that light levels on this chunks edges are consistent with this chunk's neighbours
+     // edges. if they are not, they are decreased (effectively performing the logic in checkBlock).
+     // This does not resolve skylight source problems.
+-    protected void checkChunkEdges(final LightChunkGetter lightAccess, final ChunkAccess chunk, final int fromSection, final int toSection) {
++    protected void checkChunkEdges(final LightChunkGetter lightAccess, final ChunkAccess chunk, final int fromSection, final int toSection, @org.jetbrains.annotations.Nullable LightEngineTracker lightEngineTracker) {
+         final ChunkPos chunkPos = chunk.getPos();
+         final int chunkX = chunkPos.x;
+         final int chunkZ = chunkPos.z;
+ 
+         for (int currSectionY = toSection; currSectionY >= fromSection; --currSectionY) {
+-            this.checkChunkEdge(lightAccess, chunk, chunkX, currSectionY, chunkZ);
++            this.checkChunkEdge(lightAccess, chunk, chunkX, currSectionY, chunkZ, lightEngineTracker);
+         }
+ 
+-        this.performLightDecrease(lightAccess);
++        this.performLightDecrease(lightAccess, lightEngineTracker);
+     }
+ 
+     // pulls light from neighbours, and adds them into the increase queue. does not actually propagate.
+@@ -850,28 +850,28 @@ public abstract class StarLightEngine {
+         return ret;
+     }
+ 
+-    public final void checkChunkEdges(final LightChunkGetter lightAccess, final int chunkX, final int chunkZ) {
++    public final void checkChunkEdges(final LightChunkGetter lightAccess, final int chunkX, final int chunkZ, @org.jetbrains.annotations.Nullable LightEngineTracker lightEngineTracker) {
+         this.setupCaches(lightAccess, chunkX * 16 + 7, 128, chunkZ * 16 + 7, true, false);
+         try {
+             final ChunkAccess chunk = this.getChunkInCache(chunkX, chunkZ);
+             if (chunk == null) {
+                 return;
+             }
+-            this.checkChunkEdges(lightAccess, chunk, this.minLightSection, this.maxLightSection);
++            this.checkChunkEdges(lightAccess, chunk, this.minLightSection, this.maxLightSection, lightEngineTracker);
+             this.updateVisible(lightAccess);
+         } finally {
+             this.destroyCaches();
+         }
+     }
+ 
+-    public final void checkChunkEdges(final LightChunkGetter lightAccess, final int chunkX, final int chunkZ, final ShortCollection sections) {
++    public final void checkChunkEdges(final LightChunkGetter lightAccess, final int chunkX, final int chunkZ, final ShortCollection sections, @org.jetbrains.annotations.Nullable LightEngineTracker lightEngineTracker) {
+         this.setupCaches(lightAccess, chunkX * 16 + 7, 128, chunkZ * 16 + 7, true, false);
+         try {
+             final ChunkAccess chunk = this.getChunkInCache(chunkX, chunkZ);
+             if (chunk == null) {
+                 return;
+             }
+-            this.checkChunkEdges(lightAccess, chunk, sections);
++            this.checkChunkEdges(lightAccess, chunk, sections, lightEngineTracker);
+             this.updateVisible(lightAccess);
+         } finally {
+             this.destroyCaches();
+@@ -884,9 +884,9 @@ public abstract class StarLightEngine {
+     // chunks light values with respect to neighbours
+     // subclasses should note that the emptiness changes are propagated BEFORE this is called, so this function
+     // does not need to detect empty chunks itself (and it should do no handling for them either!)
+-    protected abstract void lightChunk(final LightChunkGetter lightAccess, final ChunkAccess chunk, final boolean needsEdgeChecks);
++    protected abstract void lightChunk(final LightChunkGetter lightAccess, final ChunkAccess chunk, final boolean needsEdgeChecks, @org.jetbrains.annotations.Nullable LightEngineTracker lightEngineTracker);
+ 
+-    public final void light(final LightChunkGetter lightAccess, final ChunkAccess chunk, final Boolean[] emptySections) {
++    public final void light(final LightChunkGetter lightAccess, final ChunkAccess chunk, final Boolean[] emptySections, @org.jetbrains.annotations.Nullable LightEngineTracker lightEngineTracker) {
+         final int chunkX = chunk.getPos().x;
+         final int chunkZ = chunk.getPos().z;
+         this.setupCaches(lightAccess, chunkX * 16 + 7, 128, chunkZ * 16 + 7, true, true);
+@@ -903,7 +903,7 @@ public abstract class StarLightEngine {
+             if (ret != null) {
+                 this.setEmptinessMap(chunk, ret);
+             }
+-            this.lightChunk(lightAccess, chunk, true);
++            this.lightChunk(lightAccess, chunk, true, lightEngineTracker);
+             this.setNibbles(chunk, nibbles);
+             this.updateVisible(lightAccess);
+         } finally {
+@@ -912,7 +912,7 @@ public abstract class StarLightEngine {
+     }
+ 
+     public final void relightChunks(final LightChunkGetter lightAccess, final Set<ChunkPos> chunks,
+-                                    final Consumer<ChunkPos> chunkLightCallback, final IntConsumer onComplete) {
++                                    final Consumer<ChunkPos> chunkLightCallback, final IntConsumer onComplete, @org.jetbrains.annotations.Nullable LightEngineTracker lightEngineTracker) {
+         // it's recommended for maximum performance that the set is ordered according to a BFS from the center of
+         // the region of chunks to relight
+         // it's required that tickets are added for each chunk to keep them loaded
+@@ -1003,7 +1003,7 @@ public abstract class StarLightEngine {
+                         this.setEmptinessMap(neighbour, neighbourEmptiness);
+                     }
+ 
+-                    this.lightChunk(lightAccess, neighbour, false);
++                    this.lightChunk(lightAccess, neighbour, false, lightEngineTracker);
+                 } finally {
+                     this.destroyCaches();
+                 }
+@@ -1064,6 +1064,53 @@ public abstract class StarLightEngine {
+         return this.decreaseQueue = Arrays.copyOf(this.decreaseQueue, this.decreaseQueue.length * 2);
+     }
+ 
++    // MCCreativeLab start - Add BlockLightEvent
++
++    public LightEngineTracker.LightType lightType;
++
++    protected final void performLightIncrease(final LightChunkGetter lightAccess){
++        this.performLightIncrease(lightAccess, null);
++    }
++
++    protected final void performLightDecrease(final LightChunkGetter lightAccess) {
++        this.performLightDecrease(lightAccess, null);
++    }
++
++    public final void blocksChangedInChunk(final LightChunkGetter lightAccess, final int chunkX, final int chunkZ,
++                                           final Set<BlockPos> positions, final Boolean[] changedSections) {
++        this.blocksChangedInChunk(lightAccess, chunkX, chunkZ, positions, changedSections, null);
++    }
++
++    protected final void propagateBlockChanges(final LightChunkGetter lightAccess, final ChunkAccess atChunk, final Set<BlockPos> positions){
++        this.propagateBlockChanges(lightAccess, atChunk, positions, null);
++    }
++
++    protected final void checkBlock(final LightChunkGetter lightAccess, final int worldX, final int worldY, final int worldZ){
++        this.checkBlock(lightAccess, worldX, worldY, worldZ, null);
++    }
++
++    protected final void checkChunkEdges(final LightChunkGetter lightAccess, final ChunkAccess chunk, final int fromSection, final int toSection) {
++        this.checkChunkEdges(lightAccess, chunk, fromSection, toSection, null);
++    }
++
++    protected final void checkChunkEdges(final LightChunkGetter lightAccess, final ChunkAccess chunk, final ShortCollection sections) {
++        this.checkChunkEdges(lightAccess, chunk, sections, null);
++    }
++
++    public final void checkChunkEdges(final LightChunkGetter lightAccess, final int chunkX, final int chunkZ, final ShortCollection sections) {
++        this.checkChunkEdges(lightAccess, chunkX, chunkZ, sections, null);
++    }
++
++    public final void checkChunkEdges(final LightChunkGetter lightAccess, final int chunkX, final int chunkZ) {
++        this.checkChunkEdges(lightAccess, chunkX, chunkZ, (LightEngineTracker) null);
++    }
++
++    protected final void lightChunk(final LightChunkGetter lightAccess, final ChunkAccess chunk, final boolean needsEdgeChecks){
++        lightChunk(lightAccess, chunk, needsEdgeChecks, null);
++    }
++
++    // MCCreativeLab stop - Add BlockLightEvent
++
+     protected final void appendToIncreaseQueue(final long value) {
+         final int idx = this.increaseQueueInitialLength++;
+         long[] queue = this.increaseQueue;
+@@ -1098,7 +1145,7 @@ public abstract class StarLightEngine {
+         }
+     }
+ 
+-    protected final void performLightIncrease(final LightChunkGetter lightAccess) {
++    protected final void performLightIncrease(final LightChunkGetter lightAccess, @org.jetbrains.annotations.Nullable LightEngineTracker lightEngineTracker) {
+         final BlockGetter world = lightAccess.getLevel();
+         long[] queue = this.increaseQueue;
+         int queueReadIndex = 0;
+@@ -1126,7 +1173,7 @@ public abstract class StarLightEngine {
+                 }
+             } else if ((queueValue & FLAG_WRITE_LEVEL) != 0L) {
+                 // these are used to restore block sources after a propagation decrease
+-                this.setLightLevel(posX, posY, posZ, propagatedLightLevel);
++                this.setLightLevel(posX, posY, posZ, propagatedLightLevel, lightEngineTracker);
+             }
+ 
+             if ((queueValue & FLAG_HAS_SIDED_TRANSPARENT_BLOCKS) == 0L) {
+@@ -1155,7 +1202,7 @@ public abstract class StarLightEngine {
+                         if (targetLevel > currentLevel) {
+                             currentNibble.set(localIndex, targetLevel);
+                             this.postLightUpdate(offX, offY, offZ);
+-
++                            if(lightEngineTracker != null) lightEngineTracker.trackLightChange(this.world, offX, offY, offZ, targetLevel, this.lightType);
+                             if (targetLevel > 1) {
+                                 if (queueLength >= queue.length) {
+                                     queue = this.resizeIncreaseQueue();
+@@ -1188,6 +1235,7 @@ public abstract class StarLightEngine {
+ 
+                         currentNibble.set(localIndex, targetLevel);
+                         this.postLightUpdate(offX, offY, offZ);
++                        if(lightEngineTracker != null) lightEngineTracker.trackLightChange(this.world, offX, offY, offZ, targetLevel, this.lightType);
+ 
+                         if (targetLevel > 1) {
+                             if (queueLength >= queue.length) {
+@@ -1237,6 +1285,7 @@ public abstract class StarLightEngine {
+                         if (targetLevel > currentLevel) {
+                             currentNibble.set(localIndex, targetLevel);
+                             this.postLightUpdate(offX, offY, offZ);
++                            if(lightEngineTracker != null) lightEngineTracker.trackLightChange(this.world, offX, offY, offZ, targetLevel, this.lightType);
+ 
+                             if (targetLevel > 1) {
+                                 if (queueLength >= queue.length) {
+@@ -1270,6 +1319,7 @@ public abstract class StarLightEngine {
+ 
+                         currentNibble.set(localIndex, targetLevel);
+                         this.postLightUpdate(offX, offY, offZ);
++                        if(lightEngineTracker != null) lightEngineTracker.trackLightChange(this.world, offX, offY, offZ, targetLevel, this.lightType);
+ 
+                         if (targetLevel > 1) {
+                             if (queueLength >= queue.length) {
+@@ -1288,7 +1338,7 @@ public abstract class StarLightEngine {
+         }
+     }
+ 
+-    protected final void performLightDecrease(final LightChunkGetter lightAccess) {
++    protected final void performLightDecrease(final LightChunkGetter lightAccess, @org.jetbrains.annotations.Nullable LightEngineTracker lightEngineTracker) {
+         final BlockGetter world = lightAccess.getLevel();
+         long[] queue = this.decreaseQueue;
+         long[] increaseQueue = this.increaseQueue;
+@@ -1365,6 +1415,7 @@ public abstract class StarLightEngine {
+ 
+                         currentNibble.set(localIndex, 0);
+                         this.postLightUpdate(offX, offY, offZ);
++                        if(lightEngineTracker != null) lightEngineTracker.trackLightChange(this.world, offX, offY, offZ, 0, this.lightType);
+ 
+                         if (targetLevel > 0) { // we actually need to propagate 0 just in case we find a neighbour...
+                             if (queueLength >= queue.length) {
+@@ -1419,6 +1470,7 @@ public abstract class StarLightEngine {
+ 
+                         currentNibble.set(localIndex, 0);
+                         this.postLightUpdate(offX, offY, offZ);
++                        if(lightEngineTracker != null) lightEngineTracker.trackLightChange(this.world, offX, offY, offZ, 0, this.lightType);
+ 
+                         if (targetLevel > 0) {
+                             if (queueLength >= queue.length) {
+@@ -1494,6 +1546,7 @@ public abstract class StarLightEngine {
+ 
+                         currentNibble.set(localIndex, 0);
+                         this.postLightUpdate(offX, offY, offZ);
++                        if(lightEngineTracker != null) lightEngineTracker.trackLightChange(this.world, offX, offY, offZ, 0, this.lightType);
+ 
+                         if (targetLevel > 0) { // we actually need to propagate 0 just in case we find a neighbour...
+                             if (queueLength >= queue.length) {
+@@ -1548,6 +1601,7 @@ public abstract class StarLightEngine {
+ 
+                         currentNibble.set(localIndex, 0);
+                         this.postLightUpdate(offX, offY, offZ);
++                        if(lightEngineTracker != null) lightEngineTracker.trackLightChange(this.world, offX, offY, offZ, 0, this.lightType);
+ 
+                         if (targetLevel > 0) { // we actually need to propagate 0 just in case we find a neighbour...
+                             if (queueLength >= queue.length) {
+@@ -1567,6 +1621,6 @@ public abstract class StarLightEngine {
+ 
+         // propagate sources we clobbered
+         this.increaseQueueInitialLength = increaseQueueLength;
+-        this.performLightIncrease(lightAccess);
++        this.performLightIncrease(lightAccess, lightEngineTracker);
+     }
+ }
+diff --git a/src/main/java/ca/spottedleaf/starlight/common/light/StarLightInterface.java b/src/main/java/ca/spottedleaf/starlight/common/light/StarLightInterface.java
+index ef8ea36b2acefb935afda01396d2699e2921f396..83afc6eb8c214186322379ba12f7fc9fa71cc945 100644
+--- a/src/main/java/ca/spottedleaf/starlight/common/light/StarLightInterface.java
++++ b/src/main/java/ca/spottedleaf/starlight/common/light/StarLightInterface.java
+@@ -2,6 +2,7 @@ package ca.spottedleaf.starlight.common.light;
+ 
+ import ca.spottedleaf.starlight.common.util.CoordinateUtils;
+ import ca.spottedleaf.starlight.common.util.WorldUtil;
++import de.verdox.mccreativelab.light.LightEngineTracker;
+ import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap;
+ import it.unimi.dsi.fastutil.shorts.ShortCollection;
+ import it.unimi.dsi.fastutil.shorts.ShortOpenHashSet;
+@@ -432,16 +433,16 @@ public final class StarLightInterface {
+         }
+     }
+ 
+-    public void lightChunk(final ChunkAccess chunk, final Boolean[] emptySections) {
++    public void lightChunk(final ChunkAccess chunk, final Boolean[] emptySections, @org.jetbrains.annotations.Nullable LightEngineTracker lightEngineTracker) {
+         final SkyStarLightEngine skyEngine = this.getSkyLightEngine();
+         final BlockStarLightEngine blockEngine = this.getBlockLightEngine();
+ 
+         try {
+             if (skyEngine != null) {
+-                skyEngine.light(this.lightAccess, chunk, emptySections);
++                skyEngine.light(this.lightAccess, chunk, emptySections, lightEngineTracker);
+             }
+             if (blockEngine != null) {
+-                blockEngine.light(this.lightAccess, chunk, emptySections);
++                blockEngine.light(this.lightAccess, chunk, emptySections, lightEngineTracker);
+             }
+         } finally {
+             this.releaseSkyLightEngine(skyEngine);
+@@ -450,17 +451,17 @@ public final class StarLightInterface {
+     }
+ 
+     public void relightChunks(final Set<ChunkPos> chunks, final Consumer<ChunkPos> chunkLightCallback,
+-                              final IntConsumer onComplete) {
++                              final IntConsumer onComplete, @org.jetbrains.annotations.Nullable LightEngineTracker lightEngineTracker) {
+         final SkyStarLightEngine skyEngine = this.getSkyLightEngine();
+         final BlockStarLightEngine blockEngine = this.getBlockLightEngine();
+ 
+         try {
+             if (skyEngine != null) {
+                 skyEngine.relightChunks(this.lightAccess, chunks, blockEngine == null ? chunkLightCallback : null,
+-                        blockEngine == null ? onComplete : null);
++                        blockEngine == null ? onComplete : null, lightEngineTracker);
+             }
+             if (blockEngine != null) {
+-                blockEngine.relightChunks(this.lightAccess, chunks, chunkLightCallback, onComplete);
++                blockEngine.relightChunks(this.lightAccess, chunks, chunkLightCallback, onComplete, lightEngineTracker);
+             }
+         } finally {
+             this.releaseSkyLightEngine(skyEngine);
+@@ -468,28 +469,28 @@ public final class StarLightInterface {
+         }
+     }
+ 
+-    public void checkChunkEdges(final int chunkX, final int chunkZ) {
+-        this.checkSkyEdges(chunkX, chunkZ);
+-        this.checkBlockEdges(chunkX, chunkZ);
++    public void checkChunkEdges(final int chunkX, final int chunkZ, @org.jetbrains.annotations.Nullable LightEngineTracker lightEngineTracker) {
++        this.checkSkyEdges(chunkX, chunkZ, lightEngineTracker);
++        this.checkBlockEdges(chunkX, chunkZ, lightEngineTracker);
+     }
+ 
+-    public void checkSkyEdges(final int chunkX, final int chunkZ) {
++    public void checkSkyEdges(final int chunkX, final int chunkZ, @org.jetbrains.annotations.Nullable LightEngineTracker lightEngineTracker) {
+         final SkyStarLightEngine skyEngine = this.getSkyLightEngine();
+ 
+         try {
+             if (skyEngine != null) {
+-                skyEngine.checkChunkEdges(this.lightAccess, chunkX, chunkZ);
++                skyEngine.checkChunkEdges(this.lightAccess, chunkX, chunkZ, lightEngineTracker);
+             }
+         } finally {
+             this.releaseSkyLightEngine(skyEngine);
+         }
+     }
+ 
+-    public void checkBlockEdges(final int chunkX, final int chunkZ) {
++    public void checkBlockEdges(final int chunkX, final int chunkZ, @org.jetbrains.annotations.Nullable LightEngineTracker lightEngineTracker) {
+         final BlockStarLightEngine blockEngine = this.getBlockLightEngine();
+         try {
+             if (blockEngine != null) {
+-                blockEngine.checkChunkEdges(this.lightAccess, chunkX, chunkZ);
++                blockEngine.checkChunkEdges(this.lightAccess, chunkX, chunkZ, lightEngineTracker);
+             }
+         } finally {
+             this.releaseBlockLightEngine(blockEngine);
+diff --git a/src/main/java/de/verdox/mccreativelab/light/LightEngineTrackable.java b/src/main/java/de/verdox/mccreativelab/light/LightEngineTrackable.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..71a216f2bd1802357e0c02ea5de3aee125b1cf92
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/light/LightEngineTrackable.java
+@@ -0,0 +1,5 @@
++package de.verdox.mccreativelab.light;
++
++public interface LightEngineTrackable {
++    LightEngineTracker getTracker();
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/light/LightEngineTracker.java b/src/main/java/de/verdox/mccreativelab/light/LightEngineTracker.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..c438dbe8dd5e64c965b3bc4609e6c8b96baf13df
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/light/LightEngineTracker.java
+@@ -0,0 +1,13 @@
++package de.verdox.mccreativelab.light;
++
++import net.minecraft.world.level.Level;
++
++public interface LightEngineTracker {
++    void trackLightChange(Level world, int worldX, int worldY, int worldZ, int newLightLevel, LightType lightType);
++    void stopTracking();
++
++    enum LightType{
++        SKY,
++        BLOCK
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/light/PaperLightEngineTracker.java b/src/main/java/de/verdox/mccreativelab/light/PaperLightEngineTracker.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..ddbada166f7ea9981614815ec04c380c9962f426
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/light/PaperLightEngineTracker.java
+@@ -0,0 +1,49 @@
++package de.verdox.mccreativelab.light;
++
++import de.verdox.mccreativelab.events.BlockLightEvent;
++import net.minecraft.world.level.Level;
++import org.bukkit.Bukkit;
++import org.bukkit.Location;
++import org.bukkit.World;
++
++import java.util.Map;
++import java.util.concurrent.ConcurrentHashMap;
++
++public class PaperLightEngineTracker implements LightEngineTracker {
++    private final Map<World, Map<Location, int[]>> trackedBlockLightChanges = new ConcurrentHashMap<>();
++    private boolean tracking = true;
++
++    @Override
++    public void trackLightChange(Level world, int worldX, int worldY, int worldZ, int newLightLevel, LightType lightType) {
++        if (!tracking)
++            return;
++
++        Location location = new Location(world.getWorld(), worldX, worldY, worldZ);
++        var worldCache = trackedBlockLightChanges.computeIfAbsent(world.getWorld(), world1 -> new ConcurrentHashMap<>());
++
++        int[] brightness;
++        if (!worldCache.containsKey(location))
++            brightness = worldCache.put(location, new int[]{-1, -1});
++        else
++            brightness = worldCache.get(location);
++
++        if (brightness == null)
++            brightness = new int[]{-1, -1};
++
++        if (lightType.equals(LightType.BLOCK))
++            brightness[0] = newLightLevel;
++        else
++            brightness[1] = newLightLevel;
++
++        worldCache.put(location, brightness);
++    }
++
++    @Override
++    public void stopTracking() {
++        tracking = false;
++        if (BlockLightEvent.getHandlerList().getRegisteredListeners().length == 0)
++            return;
++        trackedBlockLightChanges.forEach((world, locationMap) -> Bukkit.getPluginManager()
++                                                                       .callEvent(new BlockLightEvent(world, locationMap)));
++    }
++}
+diff --git a/src/main/java/io/papermc/paper/adventure/PaperAdventure.java b/src/main/java/io/papermc/paper/adventure/PaperAdventure.java
+index ca80cbe422d766b3d044a5b53ce40bb7f92558e4..9b308c4c6a9ba84cb2ea94058646df8301cc144c 100644
+--- a/src/main/java/io/papermc/paper/adventure/PaperAdventure.java
++++ b/src/main/java/io/papermc/paper/adventure/PaperAdventure.java
+@@ -341,6 +341,20 @@ public final class PaperAdventure {
+         };
+     }
+ 
++    public static Sound.Source asAdventure(final SoundSource source) {
++        return switch (source) {
++            case MASTER -> Sound.Source.MASTER;
++            case MUSIC -> Sound.Source.MUSIC;
++            case RECORDS -> Sound.Source.RECORD;
++            case WEATHER -> Sound.Source.WEATHER;
++            case BLOCKS -> Sound.Source.BLOCK;
++            case HOSTILE -> Sound.Source.HOSTILE;
++            case NEUTRAL -> Sound.Source.NEUTRAL;
++            case PLAYERS -> Sound.Source.PLAYER;
++            case AMBIENT -> Sound.Source.AMBIENT;
++            case VOICE -> Sound.Source.VOICE;
++        };
++    }
+     public static @Nullable SoundSource asVanillaNullable(final Sound.@Nullable Source source) {
+         if (source == null) {
+             return null;
+diff --git a/src/main/java/io/papermc/paper/chunk/system/light/LightQueue.java b/src/main/java/io/papermc/paper/chunk/system/light/LightQueue.java
+index de28d6ee71990da74d9deb360fac8bde5adbc918..986b5f440b7082e4b52b0fcaecb37a3e67396bad 100644
+--- a/src/main/java/io/papermc/paper/chunk/system/light/LightQueue.java
++++ b/src/main/java/io/papermc/paper/chunk/system/light/LightQueue.java
+@@ -13,6 +13,7 @@ import net.minecraft.core.SectionPos;
+ import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.world.level.ChunkPos;
+ import net.minecraft.world.level.chunk.ChunkStatus;
++
+ import java.util.ArrayList;
+ import java.util.HashSet;
+ import java.util.List;
+@@ -237,11 +238,14 @@ public final class LightQueue {
+                 this.queue.chunkTasks.remove(this.chunkCoordinate);
+             }
+ 
++            de.verdox.mccreativelab.light.LightEngineTracker lightEngineTracker = null;
+             boolean litChunk = false;
+             if (this.lightTasks != null) {
+                 for (final BooleanSupplier run : this.lightTasks) {
+                     if (run.getAsBoolean()) {
+                         litChunk = true;
++                        if(run instanceof de.verdox.mccreativelab.light.LightEngineTrackable lightEngineTrackable && lightEngineTrackable.getTracker() != null)
++                            lightEngineTracker = lightEngineTrackable.getTracker();
+                         break;
+                     }
+                 }
+@@ -249,6 +253,8 @@ public final class LightQueue {
+ 
+             final SkyStarLightEngine skyEngine = this.lightEngine.getSkyLightEngine();
+             final BlockStarLightEngine blockEngine = this.lightEngine.getBlockLightEngine();
++            if(lightEngineTracker == null)
++                lightEngineTracker = new de.verdox.mccreativelab.light.PaperLightEngineTracker();
+             try {
+                 final long coordinate = this.chunkCoordinate;
+                 final int chunkX = CoordinateUtils.getChunkX(coordinate);
+@@ -259,24 +265,24 @@ public final class LightQueue {
+ 
+                 if (!litChunk) {
+                     if (skyEngine != null && (!positions.isEmpty() || sectionChanges != null)) {
+-                        skyEngine.blocksChangedInChunk(this.lightEngine.getLightAccess(), chunkX, chunkZ, positions, sectionChanges);
++                        skyEngine.blocksChangedInChunk(this.lightEngine.getLightAccess(), chunkX, chunkZ, positions, sectionChanges, lightEngineTracker);
+                     }
+                     if (blockEngine != null && (!positions.isEmpty() || sectionChanges != null)) {
+-                        blockEngine.blocksChangedInChunk(this.lightEngine.getLightAccess(), chunkX, chunkZ, positions, sectionChanges);
++                        blockEngine.blocksChangedInChunk(this.lightEngine.getLightAccess(), chunkX, chunkZ, positions, sectionChanges, lightEngineTracker);
+                     }
+ 
+                     if (skyEngine != null && this.queuedEdgeChecksSky != null) {
+-                        skyEngine.checkChunkEdges(this.lightEngine.getLightAccess(), chunkX, chunkZ, this.queuedEdgeChecksSky);
++                        skyEngine.checkChunkEdges(this.lightEngine.getLightAccess(), chunkX, chunkZ, this.queuedEdgeChecksSky, lightEngineTracker);
+                     }
+                     if (blockEngine != null && this.queuedEdgeChecksBlock != null) {
+-                        blockEngine.checkChunkEdges(this.lightEngine.getLightAccess(), chunkX, chunkZ, this.queuedEdgeChecksBlock);
++                        blockEngine.checkChunkEdges(this.lightEngine.getLightAccess(), chunkX, chunkZ, this.queuedEdgeChecksBlock, lightEngineTracker);
+                     }
+                 }
+-
+                 this.onComplete.complete(null);
+             } finally {
+                 this.lightEngine.releaseSkyLightEngine(skyEngine);
+                 this.lightEngine.releaseBlockLightEngine(blockEngine);
++                lightEngineTracker.stopTracking();
+             }
+         }
+     }
+diff --git a/src/main/java/io/papermc/paper/chunk/system/scheduling/ChunkLightTask.java b/src/main/java/io/papermc/paper/chunk/system/scheduling/ChunkLightTask.java
+index 53ddd7e9ac05e6a9eb809f329796e6d4f6bb2ab1..34f45a0cc564c59e810a927beb44f00329aeba83 100644
+--- a/src/main/java/io/papermc/paper/chunk/system/scheduling/ChunkLightTask.java
++++ b/src/main/java/io/papermc/paper/chunk/system/scheduling/ChunkLightTask.java
+@@ -11,6 +11,7 @@ import net.minecraft.world.level.chunk.ChunkStatus;
+ import net.minecraft.world.level.chunk.ProtoChunk;
+ import org.apache.logging.log4j.LogManager;
+ import org.apache.logging.log4j.Logger;
++
+ import java.util.function.BooleanSupplier;
+ 
+ public final class ChunkLightTask extends ChunkProgressionTask {
+@@ -126,10 +127,11 @@ public final class ChunkLightTask extends ChunkProgressionTask {
+         }
+     }
+ 
+-    private static final class LightTask implements BooleanSupplier {
++    private static final class LightTask implements BooleanSupplier, de.verdox.mccreativelab.light.LightEngineTrackable {
+ 
+         protected final StarLightInterface lightEngine;
+         protected final ChunkLightTask task;
++        public final de.verdox.mccreativelab.light.LightEngineTracker lightEngineTracker = new de.verdox.mccreativelab.light.PaperLightEngineTracker();
+ 
+         public LightTask(final StarLightInterface lightEngine, final ChunkLightTask task) {
+             this.lightEngine = lightEngine;
+@@ -148,12 +150,13 @@ public final class ChunkLightTask extends ChunkProgressionTask {
+             try {
+                 final Boolean[] emptySections = StarLightEngine.getEmptySectionsForChunk(task.fromChunk);
+ 
++
+                 if (task.fromChunk.isLightCorrect() && task.fromChunk.getStatus().isOrAfter(ChunkStatus.LIGHT)) {
+                     this.lightEngine.forceLoadInChunk(task.fromChunk, emptySections);
+-                    this.lightEngine.checkChunkEdges(task.chunkX, task.chunkZ);
++                    this.lightEngine.checkChunkEdges(task.chunkX, task.chunkZ, lightEngineTracker);
+                 } else {
+                     task.fromChunk.setLightCorrect(false);
+-                    this.lightEngine.lightChunk(task.fromChunk, emptySections);
++                    this.lightEngine.lightChunk(task.fromChunk, emptySections, lightEngineTracker);
+                     task.fromChunk.setLightCorrect(true);
+                 }
+                 // we need to advance status
+@@ -177,5 +180,10 @@ public final class ChunkLightTask extends ChunkProgressionTask {
+             task.complete(task.fromChunk, null);
+             return true;
+         }
++
++        @Override
++        public de.verdox.mccreativelab.light.LightEngineTracker getTracker() {
++            return lightEngineTracker;
++        }
+     }
+ }
+diff --git a/src/main/java/io/papermc/paper/command/subcommands/FixLightCommand.java b/src/main/java/io/papermc/paper/command/subcommands/FixLightCommand.java
+index 463c6d8d5b114816ed9065558285945817c30385..8523422dd68d9bdc5d16fc8d6cc0ab36ef184988 100644
+--- a/src/main/java/io/papermc/paper/command/subcommands/FixLightCommand.java
++++ b/src/main/java/io/papermc/paper/command/subcommands/FixLightCommand.java
+@@ -90,6 +90,7 @@ public final class FixLightCommand implements PaperSubcommand {
+         }
+ 
+         final int[] relitChunks = new int[1];
++        de.verdox.mccreativelab.light.LightEngineTracker lightEngineTracker = new de.verdox.mccreativelab.light.PaperLightEngineTracker();
+         lightengine.relight(chunks,
+             (final ChunkPos chunkPos) -> {
+                 ++relitChunks[0];
+@@ -109,7 +110,8 @@ public final class FixLightCommand implements PaperSubcommand {
+                     done.run();
+                 }
+             }
+-        );
++        , lightEngineTracker);
++        lightEngineTracker.stopTracking();
+         sender.getBukkitEntity().sendMessage(text().color(BLUE).append(text("Relighting "), text(pending[0], DARK_AQUA), text(" chunks")));
+     }
+ }
+diff --git a/src/main/java/net/minecraft/server/level/ThreadedLevelLightEngine.java b/src/main/java/net/minecraft/server/level/ThreadedLevelLightEngine.java
+index f382d138959b34bfc3a114bc9d96e056cccbfc89..d9279f0dd6cbbacf4943810e7df724d2fdc05050 100644
+--- a/src/main/java/net/minecraft/server/level/ThreadedLevelLightEngine.java
++++ b/src/main/java/net/minecraft/server/level/ThreadedLevelLightEngine.java
+@@ -66,8 +66,8 @@ public class ThreadedLevelLightEngine extends LevelLightEngine implements AutoCl
+     protected long relightCounter;
+ 
+     public int relight(java.util.Set<ChunkPos> chunks_param,
+-                        java.util.function.Consumer<ChunkPos> chunkLightCallback,
+-                        java.util.function.IntConsumer onComplete) {
++                       java.util.function.Consumer<ChunkPos> chunkLightCallback,
++                       java.util.function.IntConsumer onComplete, @Nullable de.verdox.mccreativelab.light.LightEngineTracker lightEngineTracker) {
+         if (!org.bukkit.Bukkit.isPrimaryThread()) {
+             throw new IllegalStateException("Must only be called on the main thread");
+         }
+@@ -101,7 +101,7 @@ public class ThreadedLevelLightEngine extends LevelLightEngine implements AutoCl
+                     ((ServerLevel)this.theLightEngine.getWorld()).getChunkSource().chunkMap.getUpdatingChunkIfPresent(chunkPos.toLong()).broadcast(new net.minecraft.network.protocol.game.ClientboundLightUpdatePacket(chunkPos, ThreadedLevelLightEngine.this, null, null), false);
+                     ((ServerLevel)this.theLightEngine.getWorld()).getChunkSource().removeTicketAtLevel(TicketType.CHUNK_RELIGHT, chunkPos, io.papermc.paper.util.MCUtil.getTicketLevelFor(ChunkStatus.LIGHT), ticketIds.get(chunkPos));
+                 });
+-            }, onComplete);
++            }, onComplete, lightEngineTracker);
+         });
+         this.tryScheduleUpdate();
+ 
+diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
+index 1f1c7046d81f9b71cd5e8be04726b9d05c0f2204..7c981140d7471f90cead0b4c78bc2ba1810061d6 100644
+--- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
++++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
+@@ -522,7 +522,9 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+                 chunksToRelight.add(new ChunkPos(chunkX, chunkZ));
+             }
+         }
+-        serverChunkCache.getLightEngine().relight(chunksToRelight, pos -> {}, relit -> {});
++        de.verdox.mccreativelab.light.LightEngineTracker lightEngineTracker = new de.verdox.mccreativelab.light.PaperLightEngineTracker();
++        serverChunkCache.getLightEngine().relight(chunksToRelight, pos -> {}, relit -> {}, lightEngineTracker);
++        lightEngineTracker.stopTracking();
+         return true;
+         // Paper end
+     }

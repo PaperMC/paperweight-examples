@@ -5,25 +5,16 @@ Subject: [PATCH] Ability to open an inventory with a different title
 
 
 diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftHumanEntity.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftHumanEntity.java
-index 017e97c1618b8ee4640b36a0ec1b07026047bfc3..98af2b84c3de48796014387917ac4d1cc52f164c 100644
+index c3dbcb317b7d366feb31f707ad1199c60169f07f..51d6d12cacea21e4fa42759c531346dfc80dbc1e 100644
 --- a/src/main/java/org/bukkit/craftbukkit/entity/CraftHumanEntity.java
 +++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftHumanEntity.java
-@@ -67,6 +67,8 @@ import org.bukkit.permissions.Permission;
- import org.bukkit.permissions.PermissionAttachment;
- import org.bukkit.permissions.PermissionAttachmentInfo;
- import org.bukkit.plugin.Plugin;
-+import org.jetbrains.annotations.NotNull;
-+import org.jetbrains.annotations.Nullable;
- 
- public class CraftHumanEntity extends CraftLivingEntity implements HumanEntity {
-     private CraftInventoryPlayer inventory;
-@@ -311,6 +313,66 @@ public class CraftHumanEntity extends CraftLivingEntity implements HumanEntity {
+@@ -311,6 +311,66 @@ public class CraftHumanEntity extends CraftLivingEntity implements HumanEntity {
          return this.getHandle().containerMenu.getBukkitView();
      }
  
-+    // MCCLab - start
++    // MCCLab start - Open Inventory with different title
 +    @Override
-+    public @Nullable InventoryView openInventory(@NotNull Inventory inventory, net.kyori.adventure.text.Component title) {
++    public @org.jetbrains.annotations.Nullable InventoryView openInventory(@org.jetbrains.annotations.NotNull Inventory inventory, net.kyori.adventure.text.Component title) {
 +        if (!(this.getHandle() instanceof ServerPlayer)) return null;
 +        ServerPlayer player = (ServerPlayer) this.getHandle();
 +        AbstractContainerMenu formerContainer = this.getHandle().containerMenu;
@@ -78,7 +69,7 @@ index 017e97c1618b8ee4640b36a0ec1b07026047bfc3..98af2b84c3de48796014387917ac4d1c
 +        player.initMenu(container);
 +    }
 +
-+    // MCCLab - end
++    // MCCLab end - Open Inventory with different title
 +
 +
      @Override

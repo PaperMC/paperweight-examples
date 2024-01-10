@@ -5,18 +5,18 @@ Subject: [PATCH] Implementing Basic Item Format
 
 
 diff --git a/src/main/java/net/minecraft/world/item/ItemStack.java b/src/main/java/net/minecraft/world/item/ItemStack.java
-index 4697df75fdee2023c41260bed211e3e3d90d2b9b..40bfcb1fe51a8713a8d2c0ffa4bb1291ffd1afca 100644
+index 5b8a1f31e0b55da15daa4ab271317e4393a87e96..3f0b0ef9e4b788828785a718ea6c2adc43ab8cfd 100644
 --- a/src/main/java/net/minecraft/world/item/ItemStack.java
 +++ b/src/main/java/net/minecraft/world/item/ItemStack.java
-@@ -223,6 +223,7 @@ public final class ItemStack {
-     private ItemStack(ItemLike item, int count, Optional<CompoundTag> nbt) {
+@@ -246,6 +246,7 @@ public final class ItemStack {
+     public ItemStack(Holder<Item> item, int count, Optional<CompoundTag> nbt) {
          this(item, count);
          nbt.ifPresent(this::setTag);
 +        de.verdox.itemformat.BasicItemFormat.applyItemFormatAndReturn(getBukkitStack());
      }
  
      public ItemStack(Holder<Item> itemEntry, int count) {
-@@ -235,7 +236,7 @@ public final class ItemStack {
+@@ -258,7 +259,7 @@ public final class ItemStack {
          if (this.item.canBeDepleted()) {
              this.setDamageValue(this.getDamageValue());
          }
@@ -24,8 +24,8 @@ index 4697df75fdee2023c41260bed211e3e3d90d2b9b..40bfcb1fe51a8713a8d2c0ffa4bb1291
 +        de.verdox.itemformat.BasicItemFormat.applyItemFormatAndReturn(getBukkitStack());
      }
  
-     private ItemStack(@Nullable Void ovoid) {
-@@ -273,6 +274,7 @@ public final class ItemStack {
+     private ItemStack(@Nullable Void v) {
+@@ -294,6 +295,7 @@ public final class ItemStack {
  
      private ItemStack(CompoundTag nbt) {
          this.load(nbt);
@@ -34,10 +34,10 @@ index 4697df75fdee2023c41260bed211e3e3d90d2b9b..40bfcb1fe51a8713a8d2c0ffa4bb1291
      }
  
 diff --git a/src/main/java/org/bukkit/craftbukkit/inventory/CraftItemStack.java b/src/main/java/org/bukkit/craftbukkit/inventory/CraftItemStack.java
-index 6556d7ab09826bb5a99f11385eddc26b67e44d68..47363351557d0bc76d2806d3edee25f267d01fc0 100644
+index c1d902c8dd2ec23240ee60ca9e9eaf7c839baed5..0a4c2aae632dbef1998b1e77cfd18f793989fd33 100644
 --- a/src/main/java/org/bukkit/craftbukkit/inventory/CraftItemStack.java
 +++ b/src/main/java/org/bukkit/craftbukkit/inventory/CraftItemStack.java
-@@ -120,6 +120,7 @@ public final class CraftItemStack extends ItemStack {
+@@ -129,6 +129,7 @@ public final class CraftItemStack extends ItemStack {
          this.setAmount(amount);
          this.setDurability(durability);
          this.setItemMeta(itemMeta);

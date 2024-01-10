@@ -39,7 +39,7 @@ public class FakeBlockStorage {
     }
 
     public static boolean setFakeBlockState(Location location, @Nullable FakeBlock.FakeBlockState fakeBlockState, boolean forceLoad) {
-        FakeBlockStorage fakeBlockStorage = MCCreativeLabExtension.getInstance().getFakeBlockStorage();
+        FakeBlockStorage fakeBlockStorage = MCCreativeLabExtension.getFakeBlockStorage();
 
         int localX = PaletteUtil.worldXToPaletteXCoordinate(location.getBlockX());
         int localY = PaletteUtil.worldYCoordinateToPaletteCoordinate(location.getWorld(), location.getBlockY());
