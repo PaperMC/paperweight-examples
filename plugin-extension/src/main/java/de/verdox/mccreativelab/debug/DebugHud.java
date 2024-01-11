@@ -9,7 +9,6 @@ public class DebugHud extends CustomHud {
     public DebugHud(NamespacedKey namespacedKey) {
         super(namespacedKey);
 
-        withText("debugText", new ScreenPosition(0, 0, 0, 0, 0), StringAlign.Alignment.LEFT, 0, 1);
-
+        withText("debugText", new ScreenPosition(100, 1, 0, 10, 0), StringAlign.Alignment.RIGHT, 4, 1);
     }
 }

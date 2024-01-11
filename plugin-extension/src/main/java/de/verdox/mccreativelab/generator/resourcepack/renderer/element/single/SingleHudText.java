@@ -1,5 +1,6 @@
 package de.verdox.mccreativelab.generator.resourcepack.renderer.element.single;
 
+import com.google.common.base.Strings;
 import de.verdox.mccreativelab.generator.resourcepack.renderer.ScreenPosition;
 import de.verdox.mccreativelab.generator.resourcepack.renderer.element.SingleHudElement;
 import de.verdox.mccreativelab.generator.resourcepack.types.CustomHud;
@@ -19,7 +20,8 @@ import org.jetbrains.annotations.VisibleForTesting;
  * @param alignment      Alignment for the text to use
  * @param alignmentWidth alignment width in pixels to adjust the alignment
  */
-public record SingleHudText(Font font, ScreenPosition screenPosition, @Nullable StringAlign.Alignment alignment, int alignmentWidth) implements SingleHudElement {
+public record SingleHudText(Font font, ScreenPosition screenPosition, @Nullable StringAlign.Alignment alignment,
+                            int alignmentWidth) implements SingleHudElement {
 
     @Override
     public RenderedSingleHudText toRenderedElement() {
@@ -35,7 +37,7 @@ public record SingleHudText(Font font, ScreenPosition screenPosition, @Nullable 
 
         @Override
         protected void onVisibilityChange(boolean newVisibility) {
-            if(!newVisibility)
+            if (!newVisibility)
                 this.renderedText = null;
         }
 
@@ -48,8 +50,8 @@ public record SingleHudText(Font font, ScreenPosition screenPosition, @Nullable 
             this.renderedText = renderedText;
         }
 
-        public void setRenderedText(String text){
-            this.setRenderedText(Component.text(text));
+        public void setRenderedText(String text) {
+            this.setRenderedText(Component.text(text.replace(" ", Strings.repeat(" ", 4)))); // TODO: Spaces are not seperated far enough so we append some more. This is a quick fix. Needs revision
         }
 
         public void clearRenderedText() {
@@ -86,7 +88,7 @@ public record SingleHudText(Font font, ScreenPosition screenPosition, @Nullable 
             if (renderedText == null)
                 return Component.empty();
 
-/*            var alignmentPixels = hudText.alignmentWidth() >= renderedText.length() ? hudText.alignmentWidth() : renderedText.length();*/
+            /*            var alignmentPixels = hudText.alignmentWidth() >= renderedText.length() ? hudText.alignmentWidth() : renderedText.length();*/
             var textLength = hudText.font().getPixelWidth(ChatColor.stripColor(renderedText.content()));
 
             TextComponent textToRender = renderedText;

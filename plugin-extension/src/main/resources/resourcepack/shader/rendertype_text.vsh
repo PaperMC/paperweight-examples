@@ -35,10 +35,10 @@ void main() {
 
     vertexDistance = fog_distance(ModelViewMat, IViewRotMat * Position, FogShape);
 
-    vec4 lightColor = minecraft_sample_lightmap(Sampler0, UV2);
-    if (vertexDistance > 800) lightColor = texelFetch(Sampler0, UV2 / 16, 0);
-    vertexColor = Color * lightColor;
-
+    //vec4 lightColor = minecraft_sample_lightmap(Sampler0, UV2);
+    //if (vertexDistance > 800) lightColor = texelFetch(Sampler0, UV2 / 16, 0);
+    //vertexColor = Color * lightColor;
+    vertexColor = Color;
     texCoord0 = UV0;
 
     vec2 pixel = vec2(ProjMat[0][0], ProjMat[1][1]) / 2.0;
