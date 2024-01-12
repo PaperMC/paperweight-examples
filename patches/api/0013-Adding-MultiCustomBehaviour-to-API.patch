@@ -6,10 +6,10 @@ Subject: [PATCH] Adding MultiCustomBehaviour to API
 
 diff --git a/src/main/java/de/verdox/mccreativelab/MultiCustomBehaviour.java b/src/main/java/de/verdox/mccreativelab/MultiCustomBehaviour.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..f3f6272c3e6a56a1ead0ea8484a077ac9d7d21cb
+index 0000000000000000000000000000000000000000..58b9f986c0097848d2708cc6d69500ebd85c6efd
 --- /dev/null
 +++ b/src/main/java/de/verdox/mccreativelab/MultiCustomBehaviour.java
-@@ -0,0 +1,51 @@
+@@ -0,0 +1,50 @@
 +package de.verdox.mccreativelab;
 +
 +import org.bukkit.Bukkit;
@@ -39,7 +39,6 @@ index 0000000000000000000000000000000000000000..f3f6272c3e6a56a1ead0ea8484a077ac
 +     * @param behaviour The new implementation
 +     */
 +    public void setBehaviour(@NotNull K key, @NotNull T behaviour) {
-+        Bukkit.getLogger().info(key + ": Using implementation " + behaviour.getClass().getSimpleName() + " for " + key);
 +        Objects.requireNonNull(key);
 +        Objects.requireNonNull(behaviour);
 +        storedBehaviour.put(key, behaviour);

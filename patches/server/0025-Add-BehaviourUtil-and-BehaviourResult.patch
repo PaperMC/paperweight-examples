@@ -9,7 +9,7 @@ new file mode 100644
 index 0000000000000000000000000000000000000000..e4688e585f1649b4a0fa580066bf89b1cc89b5de
 --- /dev/null
 +++ b/src/main/java/de/verdox/mccreativelab/behaviour/BehaviourUtil.java
-@@ -0,0 +1,190 @@
+@@ -0,0 +1,231 @@
 +package de.verdox.mccreativelab.behaviour;
 +
 +import de.verdox.mccreativelab.MultiCustomBehaviour;
@@ -28,6 +28,62 @@ index 0000000000000000000000000000000000000000..e4688e585f1649b4a0fa580066bf89b1
 +
 +public class BehaviourUtil {
 +    public static final BehaviourResult.Object<Float> FLOAT_DEFAULT = new BehaviourResult.Object<>(0f, BehaviourResult.Object.Type.USE_VANILLA);
++
++    // ### Standard Implementation
++    public static <I, R, T extends BehaviourResult<I, ?>, V> R evaluate(@Nullable V behaviour, @NotNull Function<V, T> logicFunction, Supplier<R> vanillaLogic, @Nullable Converter<I, R> converter) {
++        if (behaviour == null)
++            return vanillaLogic.get();
++        try {
++            BehaviourResult<I, ?> behaviourResult = logicFunction.apply(behaviour);
++            if (converter == null)
++                return vanillaLogic.get();
++            var evaluatedValue = behaviourResult.evaluateReturnValue(() -> {
++                var vanillaValue = vanillaLogic.get();
++                if (vanillaValue == null)
++                    return null;
++                return converter.nmsToBukkitValue(vanillaValue);
++            });
++            if (evaluatedValue == null)
++                return null;
++            return converter.bukkitToNMS(evaluatedValue);
++        } catch (Throwable throwable) {
++            Bukkit.getLogger()
++                  .log(java.util.logging.Level.WARNING, "An error occurred while running custom behaviour logic " + behaviour.getClass(), throwable);
++            return vanillaLogic.get();
++        }
++    }
++
++    public static <V> boolean evaluateBoolean(@Nullable V behaviour, @NotNull Function<V, BehaviourResult.Bool> logicFunction, Supplier<Boolean> vanillaLogic){
++        return evaluate(behaviour, logicFunction, vanillaLogic, Converter.DummyConverter.getInstance(Boolean.class));
++    }
++
++    public static <V> int evaluateInteger(@Nullable V behaviour, @NotNull Function<V, BehaviourResult.Object<Integer>> logicFunction, Supplier<Integer> vanillaLogic){
++        return evaluate(behaviour, logicFunction, vanillaLogic, Converter.DummyConverter.getInstance(Integer.class));
++    }
++
++    public static <V> void evaluateVoid(@Nullable V behaviour, @NotNull Function<V, BehaviourResult.Void> logicFunction, Runnable vanillaLogic){
++        evaluate(behaviour, logicFunction, () -> {
++            vanillaLogic.run();
++            return null;
++        }, Converter.DummyConverter.getInstance(Void.class));
++    }
++
++    public static <V> void evaluateCallback(@Nullable V behaviour, @NotNull Function<V, BehaviourResult.Callback> logicFunction, Runnable vanillaLogic){
++        evaluate(behaviour, logicFunction, () -> {
++            vanillaLogic.run();
++            return null;
++        }, Converter.DummyConverter.getInstance(Void.class));
++    }
++
++    // ### MultiCustomBehaviour
++    public static <I, R, T extends BehaviourResult<I, ?>, K, V> R evaluate(@NotNull MultiCustomBehaviour<K, V> multiCustomBehaviour, @NotNull K key, @NotNull Function<V, T> logicFunction, Supplier<R> vanillaLogic, @Nullable Converter<I, R> converter) {
++        if (!multiCustomBehaviour.isImplemented(key))
++            return vanillaLogic.get();
++
++        V behaviour = multiCustomBehaviour.getBehaviour(key);
++        return evaluate(behaviour, logicFunction, vanillaLogic, converter);
++    }
++
 +    public static <K, V> boolean evaluateBoolean(@NotNull MultiCustomBehaviour<K, V> multiCustomBehaviour, @NotNull K key, @NotNull Function<V, BehaviourResult.Bool> logicFunction, Supplier<Boolean> vanillaLogic) {
 +        return evaluate(multiCustomBehaviour, key, logicFunction, vanillaLogic, Converter.DummyConverter.getInstance(Boolean.class));
 +    }
@@ -49,31 +105,6 @@ index 0000000000000000000000000000000000000000..e4688e585f1649b4a0fa580066bf89b1
 +
 +    public static <K, V> void evaluateCallback(@NotNull MultiCustomBehaviour<K, V> multiCustomBehaviour, @NotNull K key, @NotNull Function<V, BehaviourResult.Callback> logicFunction) {
 +        evaluate(multiCustomBehaviour, key, logicFunction);
-+    }
-+
-+    public static <I, R, T extends BehaviourResult<I, ?>, K, V> R evaluate(@NotNull MultiCustomBehaviour<K, V> multiCustomBehaviour, @NotNull K key, @NotNull Function<V, T> logicFunction, Supplier<R> vanillaLogic, @Nullable Converter<I, R> converter) {
-+        if (!multiCustomBehaviour.isImplemented(key))
-+            return vanillaLogic.get();
-+
-+        V behaviour = multiCustomBehaviour.getBehaviour(key);
-+        try {
-+            BehaviourResult<I, ?> behaviourResult = logicFunction.apply(behaviour);
-+            if(converter == null)
-+                return vanillaLogic.get();
-+            var evaluatedValue = behaviourResult.evaluateReturnValue(() -> {
-+                var vanillaValue = vanillaLogic.get();
-+                if(vanillaValue == null)
-+                    return null;
-+                return converter.nmsToBukkitValue(vanillaValue);
-+            });
-+            if(evaluatedValue == null)
-+                return null;
-+            return converter.bukkitToNMS(evaluatedValue);
-+        } catch (Throwable throwable) {
-+            Bukkit.getLogger()
-+                  .log(java.util.logging.Level.WARNING, "An error occurred while running custom behaviour logic " + multiCustomBehaviour.getKey() + " for key " + key + " with value " + behaviour, throwable);
-+            return vanillaLogic.get();
-+        }
 +    }
 +
 +    public static <T extends BehaviourResult<?, ?>, K, V> boolean runIfVanillaLogicReplaced(@NotNull MultiCustomBehaviour<K, V> multiCustomBehaviour, @NotNull K key, @NotNull Function<V, T> logicFunction) {
@@ -105,6 +136,8 @@ index 0000000000000000000000000000000000000000..e4688e585f1649b4a0fa580066bf89b1
 +        });
 +    }
 +
++
++
 +    /**
 +     * @param <I> The bukkit value
 +     * @param <R> The nms value
@@ -112,7 +145,8 @@ index 0000000000000000000000000000000000000000..e4688e585f1649b4a0fa580066bf89b1
 +    public interface Converter<I, R> {
 +        class DummyConverter<T> implements Converter<T, T> {
 +            private static final Map<Class<?>, DummyConverter<?>> cache = new HashMap<>();
-+            public static <T> DummyConverter<T> getInstance(Class<? extends T> type){
++
++            public static <T> DummyConverter<T> getInstance(Class<? extends T> type) {
 +                return (DummyConverter<T>) cache.computeIfAbsent(type, aClass -> new DummyConverter<T>());
 +            }
 +
@@ -126,6 +160,7 @@ index 0000000000000000000000000000000000000000..e4688e585f1649b4a0fa580066bf89b1
 +                return nmsValue;
 +            }
 +        }
++
 +        class ItemStack implements Converter<org.bukkit.inventory.ItemStack, net.minecraft.world.item.ItemStack> {
 +            public static final ItemStack INSTANCE = new ItemStack();
 +
@@ -141,14 +176,18 @@ index 0000000000000000000000000000000000000000..e4688e585f1649b4a0fa580066bf89b1
 +                return nmsValue.getBukkitStack();
 +            }
 +        }
-+        class InteractionResult implements Converter<de.verdox.mccreativelab.InteractionResult, net.minecraft.world.InteractionResult>{
++
++        class InteractionResult implements Converter<de.verdox.mccreativelab.InteractionResult, net.minecraft.world.InteractionResult> {
 +            public static final InteractionResult INSTANCE = new InteractionResult();
-+            private InteractionResult(){}
++
++            private InteractionResult() {
++            }
++
 +            @Override
 +            public net.minecraft.world.InteractionResult bukkitToNMS(de.verdox.mccreativelab.InteractionResult bukkitValue) {
-+                if(bukkitValue == null)
++                if (bukkitValue == null)
 +                    return net.minecraft.world.InteractionResult.PASS;
-+                return switch (bukkitValue){
++                return switch (bukkitValue) {
 +                    case SUCCESS -> net.minecraft.world.InteractionResult.SUCCESS;
 +                    case CONSUME -> net.minecraft.world.InteractionResult.CONSUME;
 +                    case CONSUME_PARTIAL -> net.minecraft.world.InteractionResult.CONSUME_PARTIAL;
@@ -159,7 +198,7 @@ index 0000000000000000000000000000000000000000..e4688e585f1649b4a0fa580066bf89b1
 +
 +            @Override
 +            public de.verdox.mccreativelab.InteractionResult nmsToBukkitValue(net.minecraft.world.InteractionResult nmsValue) {
-+                return switch (nmsValue){
++                return switch (nmsValue) {
 +                    case SUCCESS -> de.verdox.mccreativelab.InteractionResult.SUCCESS;
 +                    case CONSUME -> de.verdox.mccreativelab.InteractionResult.CONSUME;
 +                    case CONSUME_PARTIAL -> de.verdox.mccreativelab.InteractionResult.CONSUME_PARTIAL;
@@ -168,12 +207,13 @@ index 0000000000000000000000000000000000000000..e4688e585f1649b4a0fa580066bf89b1
 +                };
 +            }
 +        }
-+        class BlockData implements Converter<org.bukkit.block.data.BlockData, BlockState>{
++
++        class BlockData implements Converter<org.bukkit.block.data.BlockData, BlockState> {
 +            public static final BlockData INSTANCE = new BlockData();
 +
 +            @Override
 +            public BlockState bukkitToNMS(org.bukkit.block.data.BlockData bukkitValue) {
-+                return ((CraftBlockData)bukkitValue).getState();
++                return ((CraftBlockData) bukkitValue).getState();
 +            }
 +
 +            @Override
@@ -181,7 +221,8 @@ index 0000000000000000000000000000000000000000..e4688e585f1649b4a0fa580066bf89b1
 +                return nmsValue.createCraftBlockData();
 +            }
 +        }
-+        class FoodProperties implements Converter<org.bukkit.inventory.FoodProperties, net.minecraft.world.food.FoodProperties>{
++
++        class FoodProperties implements Converter<org.bukkit.inventory.FoodProperties, net.minecraft.world.food.FoodProperties> {
 +            public static final FoodProperties INSTANCE = new FoodProperties();
 +
 +            @Override

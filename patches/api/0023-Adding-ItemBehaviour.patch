@@ -104,3 +104,37 @@ index 0000000000000000000000000000000000000000..5f141daee39ac344774b73856cbc09fd
 +    boolean isFastFood();
 +    List<Pair<PotionEffect, Float>> getEffects();
 +}
+diff --git a/src/main/java/org/bukkit/inventory/ItemStack.java b/src/main/java/org/bukkit/inventory/ItemStack.java
+index e2933fa91384a86f1e5326d757abf5cf9b206374..9b23c9a77b445e40307107d8e9b51256c22f0499 100644
+--- a/src/main/java/org/bukkit/inventory/ItemStack.java
++++ b/src/main/java/org/bukkit/inventory/ItemStack.java
+@@ -5,6 +5,7 @@ import com.google.common.collect.ImmutableMap;
+ import java.util.LinkedHashMap;
+ import java.util.List; // Paper
+ import java.util.Map;
++
+ import org.bukkit.Bukkit;
+ import org.bukkit.Material;
+ import org.bukkit.Translatable;
+@@ -842,6 +843,21 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
+         return this;
+     }
+ 
++    // MCCLab start - Add ItemBehaviour as instance to this specific Item Stack
++    @Nullable private de.verdox.mccreativelab.behaviour.ItemBehaviour itemBehaviour;
++    public void setItemBehaviour(@Nullable de.verdox.mccreativelab.behaviour.ItemBehaviour itemBehaviour){
++        this.itemBehaviour = itemBehaviour;
++    }
++
++    public boolean hasCustomItemBehaviour(){
++        return this.itemBehaviour != null;
++    }
++
++    public @Nullable de.verdox.mccreativelab.behaviour.ItemBehaviour getItemBehaviour(){
++        return this.itemBehaviour;
++    }
++    // MCCLab end - Add ItemBehaviour as instance to this specific Item Stack
++
+     /**
+      * If the item has lore, returns it, else it will return null
+      * @return The lore, or null

@@ -228,15 +228,14 @@ index efdf56044396b4ce486948d2c993971f99174a5e..9012d635afe4445f60d2e2cf4ff2cbe2
                  }
              }
 diff --git a/src/main/java/net/minecraft/world/item/ItemStack.java b/src/main/java/net/minecraft/world/item/ItemStack.java
-index ad0f2ef099e06a232a83fffbe425a9f8c897209d..6b569448d7940342fc186bb28a554da6e51eee71 100644
+index 3f0b0ef9e4b788828785a718ea6c2adc43ab8cfd..cac5dac9eae0f95701ef4ded639ae0b7a9db0085 100644
 --- a/src/main/java/net/minecraft/world/item/ItemStack.java
 +++ b/src/main/java/net/minecraft/world/item/ItemStack.java
-@@ -467,7 +467,7 @@ public final class ItemStack {
+@@ -466,6 +466,7 @@ public final class ItemStack {
                      // }
                      // Paper end
                      SignItem.openSign = null; // SPIGOT-6758 - Reset on early return
--                    BlockBehaviourUtil.onPlayerPlaceCallback(entityhuman, world.getBlockState(blockposition), world, blockposition);
-+                    de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.getInstance().onPlayerPlaceCallback(entityhuman, world.getBlockState(blockposition), world, blockposition); // MCCLab - Add BlockBehaviour
++                    de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.getInstance().onPlayerPlaceCallback(entityhuman, world.getBlockState(blockposition), world, blockposition);
                  } else {
                      // Change the stack to its new contents if it hasn't been tampered with.
                      if (this.getCount() == oldCount && Objects.equals(this.tag, oldData)) {
