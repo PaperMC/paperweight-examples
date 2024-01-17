@@ -660,9 +660,9 @@ index 0000000000000000000000000000000000000000..98eeba9031f61892ae8d2a6042c2739f
 @@ -0,0 +1,46 @@
 +package de.verdox.mccreativelab.ai;
 +
-+import de.verdox.mccreativelab.ai.behaviour.AIBehaviour;
-+import de.verdox.mccreativelab.ai.behaviour.MemoryStatus;
-+import de.verdox.mccreativelab.ai.behaviour.PaperAIBehaviour;
++import de.verdox.mccreativelab.ai.behavior.CustomAIBehavior;
++import de.verdox.mccreativelab.ai.MemoryStatus;
++import de.verdox.mccreativelab.ai.behavior.PaperCustomAIBehavior;
 +import org.bukkit.EntityActivity;
 +import org.bukkit.EntitySchedule;
 +import org.bukkit.World;
@@ -699,7 +699,7 @@ index 0000000000000000000000000000000000000000..98eeba9031f61892ae8d2a6042c2739f
 +    ActivityBuilder<E> createActivityBuilder(EntityActivity entityActivity);
 +
 +    interface ActivityBuilder<E extends LivingEntity>{
-+        ActivityBuilder<E> withBehaviour(int priority, PaperAIBehaviour<E> aiBehaviour);
++        ActivityBuilder<E> withBehaviour(int priority, PaperAIBehaviour<E> customAiBehavior);
 +        ActivityBuilder<E> withRequiredMemory(MemoryKey<?> requiredMemoryKey, MemoryStatus memoryStatus);
 +        ActivityBuilder<E> withForgettingMemoriesWhenStopped(MemoryKey<?> forgettingMemoryKey);
 +    }
@@ -710,7 +710,7 @@ index 0000000000000000000000000000000000000000..3812941e39c3c061843bc134c62246ab
 --- /dev/null
 +++ b/src/main/java/de/verdox/mccreativelab/ai/behaviour/AIBehaviour.java
 @@ -0,0 +1,30 @@
-+package de.verdox.mccreativelab.ai.behaviour;
++package de.verdox.mccreativelab.ai.behavior;
 +
 +import org.bukkit.World;
 +import org.bukkit.entity.LivingEntity;
@@ -746,7 +746,7 @@ index 0000000000000000000000000000000000000000..77805bd6bec0ea906f8c94c5cb78c12b
 --- /dev/null
 +++ b/src/main/java/de/verdox/mccreativelab/ai/behaviour/MemoryStatus.java
 @@ -0,0 +1,7 @@
-+package de.verdox.mccreativelab.ai.behaviour;
++package de.verdox.mccreativelab.ai.behavior;
 +
 +public enum MemoryStatus {
 +    VALUE_PRESENT,
@@ -759,7 +759,7 @@ index 0000000000000000000000000000000000000000..08da2f169d21f59f606f042458feb6b1
 --- /dev/null
 +++ b/src/main/java/de/verdox/mccreativelab/ai/behaviour/PaperAIBehaviour.java
 @@ -0,0 +1,50 @@
-+package de.verdox.mccreativelab.ai.behaviour;
++package de.verdox.mccreativelab.ai.behavior;
 +
 +import org.bukkit.entity.LivingEntity;
 +import org.bukkit.entity.memory.MemoryKey;

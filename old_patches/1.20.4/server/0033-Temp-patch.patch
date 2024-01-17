@@ -13,9 +13,9 @@ index 0000000000000000000000000000000000000000..8453178c84536b63c56af0b958046a58
 +package de.verdox.mccreativelab.ai;
 +
 +import com.google.common.collect.ImmutableList;
-+import de.verdox.mccreativelab.ai.behaviour.AIBehaviour;
-+import de.verdox.mccreativelab.ai.behaviour.MemoryStatus;
-+import de.verdox.mccreativelab.ai.behaviour.PaperAIBehaviour;
++import de.verdox.mccreativelab.ai.behavior.CustomAIBehavior;
++import de.verdox.mccreativelab.ai.MemoryStatus;
++import de.verdox.mccreativelab.ai.behavior.PaperCustomAIBehavior;
 +import net.minecraft.core.registries.Registries;
 +import net.minecraft.world.entity.ai.Brain;
 +import net.minecraft.world.entity.ai.behavior.BehaviorControl;
@@ -196,13 +196,13 @@ index 0000000000000000000000000000000000000000..8453178c84536b63c56af0b958046a58
 +            this.activity = CraftEntityActivity.bukkitToMinecraft(activity, Registries.ACTIVITY);
 +        }
 +
-+        public CraftActivityBuilder<E> withBehaviour(int priority, AIBehaviour<E> aiBehaviour) {
-+            this.behaviours.add(com.mojang.datafixers.util.Pair.of(priority, new WrappedPaperAIBehaviour<>(aiBehaviour)));
++        public CraftActivityBuilder<E> withBehaviour(int priority, AIBehaviour<E> customAiBehavior) {
++            this.behaviours.add(com.mojang.datafixers.util.Pair.of(priority, new WrappedPaperAIBehaviour<>(customAiBehavior)));
 +            return this;
 +        }
 +
 +        @Override
-+        public ActivityBuilder<E> withBehaviour(int priority, PaperAIBehaviour<E> aiBehaviour) {
++        public ActivityBuilder<E> withBehaviour(int priority, PaperAIBehaviour<E> customAiBehavior) {
 +            return null;
 +        }
 +
@@ -229,8 +229,8 @@ index 0000000000000000000000000000000000000000..339a40f407f913a089123cb8da835074
 @@ -0,0 +1,82 @@
 +package de.verdox.mccreativelab.ai;
 +
-+import de.verdox.mccreativelab.ai.behaviour.AIBehaviour;
-+import de.verdox.mccreativelab.ai.behaviour.PaperAIBehaviour;
++import de.verdox.mccreativelab.ai.behavior.CustomAIBehavior;
++import de.verdox.mccreativelab.ai.behavior.PaperCustomAIBehavior;
 +import net.minecraft.server.level.ServerLevel;
 +import net.minecraft.world.entity.LivingEntity;
 +import net.minecraft.world.entity.ai.behavior.Behavior;
@@ -245,11 +245,11 @@ index 0000000000000000000000000000000000000000..339a40f407f913a089123cb8da835074
 +import java.util.Map;
 +
 +public class WrappedPaperAIBehaviour<T extends org.bukkit.entity.LivingEntity> extends Behavior<LivingEntity> {
-+    private final AIBehaviour<T> paperAIBehaviour;
++    private final AIBehaviour<T> paperCustomAIBehaviour;
 +
-+    public WrappedPaperAIBehaviour(AIBehaviour<T> paperAIBehaviour) {
-+        super(getNMSRequiredMemoryState(paperAIBehaviour.getRequiredMemoryStates()), paperAIBehaviour.getMinDuration(), paperAIBehaviour.getMaxDuration());
-+        this.paperAIBehaviour = paperAIBehaviour;
++    public WrappedPaperAIBehaviour(AIBehaviour<T> paperCustomAIBehaviour) {
++        super(getNMSRequiredMemoryState(paperCustomAIBehaviour.getRequiredMemoryStates()), paperCustomAIBehaviour.getMinDuration(), paperCustomAIBehaviour.getMaxDuration());
++        this.paperCustomAIBehaviour = paperCustomAIBehaviour;
 +    }
 +
 +    @Override
@@ -257,7 +257,7 @@ index 0000000000000000000000000000000000000000..339a40f407f913a089123cb8da835074
 +        if (!isRightEntityType(entity))
 +            return false;
 +        org.bukkit.entity.LivingEntity livingEntity = entity.getBukkitLivingEntity();
-+        return paperAIBehaviour.checkExtraStartConditions(world.getWorld(), paperAIBehaviour.getEntityType().cast(livingEntity), Bukkit.getCurrentTick());
++        return paperCustomAIBehaviour.checkExtraStartConditions(world.getWorld(), paperCustomAIBehaviour.getEntityType().cast(livingEntity), Bukkit.getCurrentTick());
 +    }
 +
 +    @Override
@@ -267,7 +267,7 @@ index 0000000000000000000000000000000000000000..339a40f407f913a089123cb8da835074
 +            return;
 +        }
 +        org.bukkit.entity.LivingEntity livingEntity = entity.getBukkitLivingEntity();
-+        paperAIBehaviour.start(world.getWorld(), paperAIBehaviour.getEntityType().cast(livingEntity), Bukkit.getCurrentTick());
++        paperCustomAIBehaviour.start(world.getWorld(), paperCustomAIBehaviour.getEntityType().cast(livingEntity), Bukkit.getCurrentTick());
 +    }
 +
 +    @Override
@@ -275,13 +275,13 @@ index 0000000000000000000000000000000000000000..339a40f407f913a089123cb8da835074
 +        if (!isRightEntityType(entity))
 +            return;
 +        org.bukkit.entity.LivingEntity livingEntity = entity.getBukkitLivingEntity();
-+        paperAIBehaviour.stop(world.getWorld(), paperAIBehaviour.getEntityType().cast(livingEntity), Bukkit.getCurrentTick());
++        paperCustomAIBehaviour.stop(world.getWorld(), paperCustomAIBehaviour.getEntityType().cast(livingEntity), Bukkit.getCurrentTick());
 +    }
 +
 +    @Override
 +    protected void tick(@NotNull ServerLevel world, @NotNull LivingEntity entity, long time) {
 +        org.bukkit.entity.LivingEntity livingEntity = entity.getBukkitLivingEntity();
-+        paperAIBehaviour.tick(world.getWorld(), paperAIBehaviour.getEntityType().cast(livingEntity), Bukkit.getCurrentTick());
++        paperCustomAIBehaviour.tick(world.getWorld(), paperCustomAIBehaviour.getEntityType().cast(livingEntity), Bukkit.getCurrentTick());
 +    }
 +
 +    @Override
@@ -289,14 +289,14 @@ index 0000000000000000000000000000000000000000..339a40f407f913a089123cb8da835074
 +        if (!isRightEntityType(entity))
 +            return false;
 +        org.bukkit.entity.LivingEntity livingEntity = entity.getBukkitLivingEntity();
-+        return paperAIBehaviour.canStillUse(world.getWorld(), paperAIBehaviour.getEntityType().cast(livingEntity), Bukkit.getCurrentTick());
++        return paperCustomAIBehaviour.canStillUse(world.getWorld(), paperCustomAIBehaviour.getEntityType().cast(livingEntity), Bukkit.getCurrentTick());
 +    }
 +
 +    private final boolean isRightEntityType(@NotNull LivingEntity livingEntity) {
-+        return paperAIBehaviour.getEntityType().isAssignableFrom(livingEntity.getBukkitLivingEntity().getClass());
++        return paperCustomAIBehaviour.getEntityType().isAssignableFrom(livingEntity.getBukkitLivingEntity().getClass());
 +    }
 +
-+    private static Map<MemoryModuleType<?>, MemoryStatus> getNMSRequiredMemoryState(Map<MemoryKey<?>, de.verdox.mccreativelab.ai.behaviour.MemoryStatus> bukkitRequiredMemoryStates) {
++    private static Map<MemoryModuleType<?>, MemoryStatus> getNMSRequiredMemoryState(Map<MemoryKey<?>, de.verdox.mccreativelab.ai.MemoryStatus> bukkitRequiredMemoryStates) {
 +        Map<MemoryModuleType<?>, MemoryStatus> map = new HashMap<>();
 +        bukkitRequiredMemoryStates.forEach((memoryKey, memoryStatus) -> {
 +            MemoryStatus nmsMemoryStatus = switch (memoryStatus) {

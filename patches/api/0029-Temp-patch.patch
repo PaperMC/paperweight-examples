@@ -1,0 +1,57 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <mail.ysp@web.de>
+Date: Mon, 15 Jan 2024 22:51:27 +0100
+Subject: [PATCH] Temp patch
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/CreativeLab.java b/src/main/java/de/verdox/mccreativelab/CreativeLab.java
+index 23b191be5376ad1dc3cf8ab4f2e82aa471bf98a3..b2cb1c86fdcb5b8601fec465c4df48a5e945653d 100644
+--- a/src/main/java/de/verdox/mccreativelab/CreativeLab.java
++++ b/src/main/java/de/verdox/mccreativelab/CreativeLab.java
+@@ -1,4 +1,7 @@
+ package de.verdox.mccreativelab;
+ 
++import de.verdox.mccreativelab.data.DataPackInterceptor;
++
+ public interface CreativeLab {
++    VanillaPackGenerator getVanillaPackGenerator();
+ }
+diff --git a/src/main/java/de/verdox/mccreativelab/MCCreativeLab.java b/src/main/java/de/verdox/mccreativelab/MCCreativeLab.java
+index 67b250ac2ae34d11c634d9ea0d9044308826b472..028444010c86fa7f4a8c60779f1de0486e8c44c8 100644
+--- a/src/main/java/de/verdox/mccreativelab/MCCreativeLab.java
++++ b/src/main/java/de/verdox/mccreativelab/MCCreativeLab.java
+@@ -1,5 +1,7 @@
+ package de.verdox.mccreativelab;
+ 
++import de.verdox.mccreativelab.data.DataPackInterceptor;
++
+ public final class MCCreativeLab{
+     private static CreativeLab creativeLab;
+     public static void setCreativeLab(CreativeLab creativeLab) {
+@@ -8,4 +10,8 @@ public final class MCCreativeLab{
+ 
+         MCCreativeLab.creativeLab = creativeLab;
+     }
++
++    public static VanillaPackGenerator getVanillaPackGenerator(){
++        return creativeLab.getVanillaPackGenerator();
++    }
+ }
+diff --git a/src/main/java/de/verdox/mccreativelab/data/VanillaPackGenerator.java b/src/main/java/de/verdox/mccreativelab/data/VanillaPackGenerator.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..adbe939c9fffabf0b5ba6f661fee268044246348
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/data/VanillaPackGenerator.java
+@@ -0,0 +1,12 @@
++package de.verdox.mccreativelab.data;
++
++import java.io.File;
++import java.io.IOException;
++
++public interface VanillaPackGenerator {
++    VanillaPackGenerator includeServerPack();
++    VanillaPackGenerator includeClientPack();
++    VanillaPackGenerator includeDevelopmentTools();
++    VanillaPackGenerator includeAll();
++    void buildTo(File file) throws IOException;
++}

@@ -1,7 +1,5 @@
 package de.verdox.mccreativelab.debug;
 
-import de.verdox.mccreativelab.entity.TestVillagerBehaviour;
-import org.bukkit.EntityActivity;
 import org.bukkit.Material;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -36,10 +34,9 @@ public class DebugCommand extends Command {
             }
             else if(argument1.equals("testai") && sender instanceof Player player){
 
+
                 Villager villager = (Villager) player.getWorld().spawnEntity(player.getLocation(), EntityType.VILLAGER);
-                villager.getBrain(Villager.class).addActivity(EntityActivity.CORE, livingEntityActivityBuilder -> {
-                    livingEntityActivityBuilder.withBehaviour(10, new TestVillagerBehaviour());
-                });
+                villager.getBrain(Villager.class).addActivity(VillagerAI.workPackageBuilder(Villager.Profession.FARMER, 0.5f), true);
             }
         }
         return false;

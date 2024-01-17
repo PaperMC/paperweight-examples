@@ -22,6 +22,7 @@ dependencies {
     remapper("net.fabricmc:tiny-remapper:0.8.6:fat") // Must be kept in sync with upstream
     decompiler("net.minecraftforge:forgeflower:2.0.627.2") // Must be kept in sync with upstream
     paperclip("io.papermc:paperclip:3.0.3") // You probably want this to be kept in sync with upstream
+    implementation("com.squareup:javapoet:1.13.0")
 }
 
 allprojects {

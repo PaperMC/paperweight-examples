@@ -1,14 +1,14 @@
 package de.verdox.mccreativelab.entity;
 
-import de.verdox.mccreativelab.ai.behaviour.PaperAIBehaviour;
+import de.verdox.mccreativelab.ai.behavior.PaperCustomAIBehavior;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.entity.Villager;
 
 import java.util.Map;
 
-public class TestVillagerBehaviour extends PaperAIBehaviour<Villager> {
-    public TestVillagerBehaviour() {
+public class TestVillagerBehaviorCustom extends PaperCustomAIBehavior<Villager> {
+    public TestVillagerBehaviorCustom() {
         super(Villager.class, Map.of());
     }
 

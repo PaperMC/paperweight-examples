@@ -707,7 +707,7 @@ index e7704b1b14d8abf53852a18bc89430face039272..38ede085694466a7a09288d4c675cea8
              boolean flag = inventorysubcontainer.canAddItem(itemstack);
  
 diff --git a/src/main/java/net/minecraft/world/entity/player/Player.java b/src/main/java/net/minecraft/world/entity/player/Player.java
-index 3aa78113e7a056bd311305ff3532484fc273cc72..20d32b61f6e8d0d50502d9cec5479bafe5d82f47 100644
+index ccc1caafb0ada52c7b99b7358253826f5390843e..bc391f0616fcfff2e098a21f20506eec59b0bbd0 100644
 --- a/src/main/java/net/minecraft/world/entity/player/Player.java
 +++ b/src/main/java/net/minecraft/world/entity/player/Player.java
 @@ -978,7 +978,7 @@ public abstract class Player extends LivingEntity {

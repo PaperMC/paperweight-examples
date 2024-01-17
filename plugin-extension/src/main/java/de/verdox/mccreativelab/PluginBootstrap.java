@@ -1,5 +1,6 @@
 package de.verdox.mccreativelab;
 
+import de.verdox.mccreativelab.data.DataPackInterceptor;
 import io.papermc.paper.plugin.bootstrap.BootstrapContext;
 import io.papermc.paper.plugin.bootstrap.PluginProviderContext;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -9,6 +10,11 @@ public class PluginBootstrap implements io.papermc.paper.plugin.bootstrap.Plugin
     @Override
     public void bootstrap(@NotNull BootstrapContext context) {
 
+        MCCreativeLab.getVanillaPackGenerator().exclude(DataPackInterceptor.PackAssetType.RECIPES);
+
+        MCCreativeLab.getVanillaPackGenerator().onInstall(dataPackAsset -> {
+            System.out.println("Installing: "+dataPackAsset.packAssetType()+" | "+dataPackAsset.key());
+        });
     }
 
     @Override

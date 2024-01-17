@@ -1,8 +1,10 @@
 package de.verdox.mccreativelab.debug;
 
+import com.destroystokyo.paper.event.entity.EntityAddToWorldEvent;
 import de.verdox.mccreativelab.MCCreativeLabExtension;
 import de.verdox.mccreativelab.block.FakeBlock;
 import de.verdox.mccreativelab.block.display.ReusedBlockStateDisplay;
+import de.verdox.mccreativelab.entity.UnleashableSugarCow;
 import de.verdox.mccreativelab.generator.Asset;
 import de.verdox.mccreativelab.generator.resourcepack.renderer.element.single.SingleHudText;
 import de.verdox.mccreativelab.generator.resourcepack.types.ItemTextureData;
@@ -11,6 +13,7 @@ import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.entity.Cow;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
@@ -67,5 +70,11 @@ public class Debug implements Listener {
         MCCreativeLabExtension.getHudRenderer().getOrStartActiveHud(e.getPlayer() ,DEBUG_HUD).executeOnElement("debugText", SingleHudText.RenderedSingleHudText.class, renderedSingleHudText -> {
             renderedSingleHudText.setRenderedText(Bukkit.getServer().getName()+" "+Bukkit.getServer().getMinecraftVersion());
         });
+    }
+
+    @EventHandler
+    public void onCreatureAddToWorld(EntityAddToWorldEvent e){
+        if(e.getEntity() instanceof Cow cow)
+            cow.setCustomEntityBehaviour(Cow.class, new UnleashableSugarCow());
     }
 }

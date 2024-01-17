@@ -78,6 +78,9 @@ public class CustomGUIBuilder extends CustomHud {
                 screenPosition);
     }
 
+    //TODO: Beim erstellen von Objekten im CustomGUI muss man auswählen können ob man den Index im Spieler Inventar oder im GUI haben will
+    // TOOD: Je nachdem wird dann automatisch die usePlayerSlots Flag auf true gesetzt
+
     public CustomGUIBuilder withClickableButton(String buttonName, StringAlign.Alignment textAlignment, float textScale, @Nullable Asset<CustomResourcePack> buttonTexture, int clickSizeX, int clickSizeY, int index, @Nullable Consumer<ItemMeta> metaSetup) throws IOException {
 
         var clickableItem = new ClickableItem.Builder()

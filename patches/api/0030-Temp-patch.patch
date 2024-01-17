@@ -1,0 +1,81 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <mail.ysp@web.de>
+Date: Wed, 17 Jan 2024 00:15:09 +0100
+Subject: [PATCH] Temp patch
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/data/VanillaPackGenerator.java b/src/main/java/de/verdox/mccreativelab/data/VanillaPackGenerator.java
+index adbe939c9fffabf0b5ba6f661fee268044246348..f430bd9e7692402ff2c165be97c0d93a114cfef6 100644
+--- a/src/main/java/de/verdox/mccreativelab/data/VanillaPackGenerator.java
++++ b/src/main/java/de/verdox/mccreativelab/data/VanillaPackGenerator.java
+@@ -1,12 +1,66 @@
+ package de.verdox.mccreativelab.data;
+ 
++import net.kyori.adventure.key.Key;
++
++import javax.annotation.Nullable;
+ import java.io.File;
+ import java.io.IOException;
++import java.util.function.Consumer;
+ 
+ public interface VanillaPackGenerator {
+-    VanillaPackGenerator includeServerPack();
+-    VanillaPackGenerator includeClientPack();
+-    VanillaPackGenerator includeDevelopmentTools();
+-    VanillaPackGenerator includeAll();
++    VanillaPackGenerator exclude(String pathContains);
++
++    VanillaPackGenerator exclude(PackAssetType packAssetType);
++
++    VanillaPackGenerator exclude(PackAssetType packAssetType, Key key);
++
++    VanillaPackGenerator onInstall(Consumer<DataPackAsset> installCallback);
++
+     void buildTo(File file) throws IOException;
++
++    record DataPackAsset(PackAssetType packAssetType, Key key, String fileType, File file) {
++        @Override
++        public String toString() {
++            return "DataPackAsset{" +
++                "packAssetType=" + packAssetType +
++                ", key=" + key +
++                ", fileType='" + fileType + '\'' +
++                ", file=" + file +
++                '}';
++        }
++    }
++
++    enum PackAssetType {
++        ADVANCEMENT("advancements"),
++        CHAT_TYPE("chat_type"),
++        DAMAGE_TYPE("damage_type"),
++        DIMENSION_TYPE("dimension_type"),
++        LOOT_TABLES("loot_tables"),
++        RECIPES("recipes"),
++        STRUCTURES("structures"),
++        TAGS("tags"),
++        TRIM_MATERIAL("trim_material"),
++        TRIM_PATTERN("trim_pattern"),
++        WORLDGEN("worldgen"),
++        ;
++        private final String parentFolder;
++
++        PackAssetType(String parentFolder) {
++
++            this.parentFolder = parentFolder;
++        }
++
++        public String getParentFolder() {
++            return parentFolder;
++        }
++
++        @Nullable
++        public static PackAssetType getByParentFolder(String parentFolder) {
++            for (PackAssetType value : PackAssetType.values()) {
++                if (value.getParentFolder().equals(parentFolder))
++                    return value;
++            }
++            return null;
++        }
++    }
+ }

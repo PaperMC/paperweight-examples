@@ -1,0 +1,122 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <mail.ysp@web.de>
+Date: Mon, 15 Jan 2024 22:51:27 +0100
+Subject: [PATCH] Temp patch
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/CraftVanillaPackGenerator.java b/src/main/java/de/verdox/mccreativelab/CraftVanillaPackGenerator.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..2c447c25ae2ed5aa0982620f11a4890326d658ec
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/CraftVanillaPackGenerator.java
+@@ -0,0 +1,94 @@
++package de.verdox.mccreativelab;
++
++import de.verdox.mccreativelab.data.DataPackInterceptor;
++import net.minecraft.data.Main;
++
++import java.io.*;
++import java.net.URISyntaxException;
++import java.nio.file.Path;
++import java.nio.file.Paths;
++import java.util.LinkedList;
++import java.util.List;
++
++public class CraftVanillaPackGenerator implements VanillaPackGenerator {
++    private boolean includeServerPack;
++    private boolean includeClientPack;
++    private boolean includeDevTools;
++    private boolean includeAll;
++
++    @Override
++    public VanillaPackGenerator includeServerPack() {
++        includeServerPack = true;
++        return this;
++    }
++
++    @Override
++    public VanillaPackGenerator includeClientPack() {
++        includeClientPack = true;
++        return this;
++    }
++
++    @Override
++    public VanillaPackGenerator includeDevelopmentTools() {
++        includeDevTools = true;
++        return this;
++    }
++
++    @Override
++    public VanillaPackGenerator includeAll() {
++        includeAll = true;
++        return this;
++    }
++
++    @Override
++    public void buildTo(File file) throws IOException {
++        List<String> arguments = new LinkedList<>();
++        if(includeAll)
++            arguments.add("--all");
++        else {
++            if(includeServerPack) arguments.add("--server");
++            if(includeClientPack) arguments.add("--client");
++            if(includeDevTools) arguments.add("--dev");
++        }
++        arguments.add("--output");
++        arguments.add(file.getAbsolutePath());
++
++        Main.main(arguments.toArray(String[]::new));
++
++/*        System.out.println("Running: "+Main.class+" generator in ");
++        ProcessBuilder processBuilder = new ProcessBuilder("java", "-cp", ".", Main.class.getName());
++        processBuilder.command().addAll(arguments);
++        // Leite die Ausgabe und Fehlerausgabe des Prozesses zur Konsole des aufrufenden Programms um
++        processBuilder.redirectOutput(ProcessBuilder.Redirect.INHERIT);
++        processBuilder.redirectError(ProcessBuilder.Redirect.INHERIT);
++
++        Process process = processBuilder.start();
++        // Lese die Ausgabe des Prozesses
++        redirectOutputToConsole(process.getInputStream());
++        redirectOutputToConsole(process.getErrorStream());
++        try {
++            int exitCode = process.waitFor();
++            if(exitCode == 0)
++                System.out.println("Successfully built pack");
++            else
++                System.err.println("Could not build pack "+process);
++        } catch (InterruptedException e) {
++            System.err.print("Error while building pack");
++            e.printStackTrace();
++        }*/
++    }
++
++    // Methode zum Umleiten der Ausgabe des Prozesses zur Konsole des aufrufenden Programms
++    private static void redirectOutputToConsole(InputStream inputStream) {
++        new Thread(() -> {
++            try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
++                String line;
++                while ((line = reader.readLine()) != null) {
++                    System.err.println(line);
++                }
++            } catch (IOException e) {
++                e.printStackTrace();
++            }
++        }).start();
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/CreativeLabImpl.java b/src/main/java/de/verdox/mccreativelab/CreativeLabImpl.java
+index 863d73d799e9838534faea0254d5b37e7f7748cb..025adf7057ad753a950ff297420420f247d94a3d 100644
+--- a/src/main/java/de/verdox/mccreativelab/CreativeLabImpl.java
++++ b/src/main/java/de/verdox/mccreativelab/CreativeLabImpl.java
+@@ -1,5 +1,11 @@
+ package de.verdox.mccreativelab;
+ 
++import de.verdox.mccreativelab.data.DataPackInterceptor;
++
+ public final class CreativeLabImpl implements CreativeLab {
+ 
++    @Override
++    public VanillaPackGenerator getVanillaPackGenerator() {
++        return new CraftVanillaPackGenerator();
++    }
+ }

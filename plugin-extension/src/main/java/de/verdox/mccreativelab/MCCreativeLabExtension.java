@@ -1,6 +1,9 @@
 package de.verdox.mccreativelab;
 
 import com.destroystokyo.paper.event.server.ServerTickEndEvent;
+import de.verdox.mccreativelab.debug.VillagerAI;
+import de.verdox.mccreativelab.behaviour.BehaviourResult;
+import de.verdox.mccreativelab.behaviour.ItemBehaviour;
 import de.verdox.mccreativelab.block.*;
 import de.verdox.mccreativelab.blockbreak.BlockBreakSpeedModifier;
 import de.verdox.mccreativelab.blockbreak.BlockBreakSpeedSettings;
@@ -18,12 +21,17 @@ import de.verdox.mccreativelab.generator.resourcepack.renderer.element.HudRender
 import de.verdox.mccreativelab.item.FakeItemRegistry;
 import de.verdox.mccreativelab.item.fuel.FuelSettings;
 import de.verdox.mccreativelab.legacy.LegacyFeatures;
+import de.verdox.mccreativelab.recipe.CustomItemData;
 import de.verdox.mccreativelab.sound.ReplacedSoundGroups;
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
+import org.bukkit.PoiType;
 import org.bukkit.World;
+import org.bukkit.entity.Villager;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.server.ServerLoadEvent;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
@@ -72,6 +80,18 @@ public class MCCreativeLabExtension extends JavaPlugin implements Listener {
 
     @Override
     public void onEnable() {
+
+        VillagerAI.corePackageBuilder(PoiType.ARMORER, PoiType.ARMORER, 0.5f);
+        VillagerAI.workPackageBuilder(Villager.Profession.FARMER, 0.5f);
+        VillagerAI.playPackageBuilder(0.5f);
+        VillagerAI.restPackageBuilder(0.5f);
+        VillagerAI.meetPackageBuilder(0.5f);
+        VillagerAI.idlePackageBuilder(0.5f);
+        VillagerAI.panicPackageBuilder(0.5f);
+        VillagerAI.prePreRaidPackageBuilder(0.5f);
+        VillagerAI.raidPackageBuilder(0.5f);
+        VillagerAI.hidePackageBuilder(0.5f);
+
         Bukkit.getPluginManager().registerEvents(this, this);
         if (isServerSoftware()) {
             Bukkit.getPluginManager().registerEvents(new FakeBlockCacheHandler(), this);
@@ -89,6 +109,13 @@ public class MCCreativeLabExtension extends JavaPlugin implements Listener {
         hudRenderer.start();
         getLegacyFeatures().enableOldFoodSystem();
         getLegacyFeatures().enableOldCombatSystem();
+
+        ItemBehaviour.ITEM_BEHAVIOUR.setBehaviour(new CustomItemData(Material.WOODEN_SHOVEL, 0), new ItemBehaviour() {
+            @Override
+            public BehaviourResult.Object<Integer> getMaxDamage(ItemStack stack) {
+                return new BehaviourResult.Object<>(5, BehaviourResult.Object.Type.REPLACE_VANILLA);
+            }
+        });
     }
 
 

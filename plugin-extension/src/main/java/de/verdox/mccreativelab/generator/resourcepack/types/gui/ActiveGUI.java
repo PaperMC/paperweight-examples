@@ -112,10 +112,7 @@ public class ActiveGUI implements Listener {
         if (isUpdating) return;
         isOpen = true;
         if (this.customGUIBuilder.isUsePlayerSlots()) {
-            PlayerFakeEmptyInventory.saveInventory(activeHud.getPlayer());
-            for (int i = 0; i < 36; i++) {
-                activeHud.getPlayer().getInventory().setItem(i, null);
-            }
+            ((Player) e.getPlayer()).doInventorySynchronization(false);
         }
     }
 
@@ -134,8 +131,9 @@ public class ActiveGUI implements Listener {
 
         HandlerList.unregisterAll(this);
 
-        var player = e.getPlayer();
-        PlayerFakeEmptyInventory.restoreStoredInventory(player);
+        var player = (Player) e.getPlayer();
+        player.doInventorySynchronization(true);
+        player.updateInventory();
     }
 
     @EventHandler
