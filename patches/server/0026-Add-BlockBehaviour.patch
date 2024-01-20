@@ -397,7 +397,7 @@ index 401f1b418a4f57059e991cc958ebadb31239a581..90391c3431e174f22216b37f55757571
              return this.getBlock().getSeed(this.asState(), pos);
          }
 diff --git a/src/main/java/net/minecraft/world/level/chunk/LevelChunkSection.java b/src/main/java/net/minecraft/world/level/chunk/LevelChunkSection.java
-index f0de72afad4bb571153436399386a6a8a70582a6..562cba19c445e04bf833326f9498ee095fcfb88e 100644
+index f0de72afad4bb571153436399386a6a8a70582a6..f25abd7790da0a0a244bd6d2445870bdc03930e2 100644
 --- a/src/main/java/net/minecraft/world/level/chunk/LevelChunkSection.java
 +++ b/src/main/java/net/minecraft/world/level/chunk/LevelChunkSection.java
 @@ -28,6 +28,11 @@ public class LevelChunkSection {
@@ -430,7 +430,7 @@ index f0de72afad4bb571153436399386a6a8a70582a6..562cba19c445e04bf833326f9498ee09
  
 +        // MCCLab start - Add BlockBehaviour
 +        int globalX = chunkPos != null ? chunkPos.x * 16 + x : -1;
-+        int globalY = chunkSectionY << 4 + y;
++        int globalY = (chunkSectionY << 4) + y;
 +        int globalZ = chunkPos != null ? chunkPos.z * 16 + z : -1;
 +        // MCCLab end - Add BlockBehaviour
 +

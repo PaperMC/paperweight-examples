@@ -1,0 +1,74 @@
+Subject: [PATCH] Temp patch VanillaRegistryManipulator
+---
+Index: src/main/java/de/verdox/mccreativelab/CreativeLab.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/de/verdox/mccreativelab/CreativeLab.java b/src/main/java/de/verdox/mccreativelab/CreativeLab.java
+--- a/src/main/java/de/verdox/mccreativelab/CreativeLab.java	(revision f3e5879cf413ab29c4577527c6581b3a82d69a22)
++++ b/src/main/java/de/verdox/mccreativelab/CreativeLab.java	(revision cfe4fcda23d5709636c673d4615eaf9ede468182)
+@@ -2,4 +2,5 @@
+ 
+ public interface CreativeLab {
+     de.verdox.mccreativelab.data.DataPackInterceptor getDataPackInterceptor();
++    de.verdox.mccreativelab.data.VanillaRegistryManipulator getRegistryManipulator();
+ }
+Index: src/main/java/de/verdox/mccreativelab/MCCreativeLab.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/de/verdox/mccreativelab/MCCreativeLab.java b/src/main/java/de/verdox/mccreativelab/MCCreativeLab.java
+--- a/src/main/java/de/verdox/mccreativelab/MCCreativeLab.java	(revision f3e5879cf413ab29c4577527c6581b3a82d69a22)
++++ b/src/main/java/de/verdox/mccreativelab/MCCreativeLab.java	(revision cfe4fcda23d5709636c673d4615eaf9ede468182)
+@@ -11,4 +11,8 @@
+     public static de.verdox.mccreativelab.data.DataPackInterceptor getVanillaPackGenerator(){
+         return creativeLab.getDataPackInterceptor();
+     }
++
++    public static de.verdox.mccreativelab.data.VanillaRegistryManipulator getRegistryManipulator(){
++        return creativeLab.getRegistryManipulator();
++    }
+ }
+Index: src/main/java/de/verdox/mccreativelab/data/VanillaRegistryManipulator.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/de/verdox/mccreativelab/data/VanillaRegistryManipulator.java b/src/main/java/de/verdox/mccreativelab/data/VanillaRegistryManipulator.java
+new file mode 100644
+--- /dev/null	(revision cfe4fcda23d5709636c673d4615eaf9ede468182)
++++ b/src/main/java/de/verdox/mccreativelab/data/VanillaRegistryManipulator.java	(revision cfe4fcda23d5709636c673d4615eaf9ede468182)
+@@ -0,0 +1,31 @@
++package de.verdox.mccreativelab.data;
++
++import net.kyori.adventure.sound.Sound;
++import org.bukkit.Material;
++import org.bukkit.NamespacedKey;
++import org.bukkit.PoiType;
++import org.bukkit.attribute.Attribute;
++import org.bukkit.block.data.BlockData;
++import org.bukkit.entity.Villager;
++import org.bukkit.entity.memory.MemoryKey;
++
++import java.util.Set;
++import java.util.function.Predicate;
++import java.util.function.Supplier;
++
++public interface VanillaRegistryManipulator {
++    RegistryEntryReference<Attribute> createAttribute(NamespacedKey namespacedKey, double defaultValue, double min, double max);
++
++    <T> RegistryEntryReference<MemoryKey<T>> createMemoryKey(NamespacedKey namespacedKey, Class<? extends T> storedType);
++
++    RegistryEntryReference<PoiType> createPoiType(NamespacedKey namespacedKey, Set<BlockData> states, int ticketCount, int searchDistance);
++
++    RegistryEntryReference<Villager.Profession> createProfession(NamespacedKey namespacedKey, Predicate<PoiType> heldWorkStation, Predicate<PoiType> acquirableWorkstation, Set<Material> gatherableItems, Set<Material> secondaryJobSites, Sound.Type workSound);
++
++    enum EffectGroup {
++        BENEFICIAL,
++        HARMFUL,
++        NEUTRAL
++    }
++    record RegistryEntryReference<T>(NamespacedKey namespacedKey, Supplier<T> dataSupplier){}
++}

@@ -1,0 +1,157 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <mail.ysp@web.de>
+Date: Wed, 17 Jan 2024 02:26:52 +0100
+Subject: [PATCH] Add DataPackInterceptor
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/CraftDataPackInterceptor.java b/src/main/java/de/verdox/mccreativelab/CraftDataPackInterceptor.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..f663bb5878f5ad14f5ecb010868ce5326feb61be
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/CraftDataPackInterceptor.java
+@@ -0,0 +1,112 @@
++package de.verdox.mccreativelab;
++
++import com.google.gson.JsonObject;
++import com.google.gson.JsonParser;
++import de.verdox.mccreativelab.data.DataPackInterceptor;
++import net.kyori.adventure.key.Key;
++import net.minecraft.resources.ResourceLocation;
++import net.minecraft.server.packs.resources.IoSupplier;
++
++import javax.annotation.Nullable;
++import java.io.*;
++import java.nio.file.Path;
++import java.util.*;
++import java.util.function.Consumer;
++
++public class CraftDataPackInterceptor implements DataPackInterceptor {
++    private final Set<PackAssetType> excludedTypes = new HashSet<>();
++    private final Set<String> stringPatternExcludes = new HashSet<>();
++    private final Map<PackAssetType, Set<Key>> exclusions = new HashMap<>();
++    private Consumer<DataPackAsset> installCallback;
++
++    @Override
++    public DataPackInterceptor exclude(String pathContains) {
++        stringPatternExcludes.add(pathContains);
++        return this;
++    }
++
++    @Override
++    public DataPackInterceptor exclude(PackAssetType packAssetType) {
++        excludedTypes.add(packAssetType);
++        return this;
++    }
++
++    @Override
++    public DataPackInterceptor exclude(PackAssetType packAssetType, Key key) {
++        exclusions.computeIfAbsent(packAssetType, packAssetType1 -> new HashSet<>()).add(key);
++        return this;
++    }
++
++    @Override
++    public DataPackInterceptor onInstall(Consumer<DataPackAsset> installCallback) {
++        this.installCallback = installCallback;
++        return this;
++    }
++
++    @Nullable
++    public IoSupplier<InputStream> evaluate(ResourceLocation resourceLocation, Path assetPath, IoSupplier<InputStream> ioSupplier) {
++        if (this.installCallback == null)
++            return ioSupplier;
++
++        String assetTypeName = resourceLocation.toString().split("/")[0];
++        int indexOfStartKey = assetTypeName.indexOf(":");
++        assetTypeName = assetTypeName.substring(indexOfStartKey + 1);
++        PackAssetType packAssetType = PackAssetType.getByParentFolder(assetTypeName);
++        Key key = Key.key(resourceLocation.getNamespace(), resourceLocation.getPath());
++        if(packAssetType == null)
++            return ioSupplier;
++
++        if(excludedTypes.contains(packAssetType) || stringPatternExcludes.stream().anyMatch(s -> resourceLocation.toString().contains(s)) || (exclusions.containsKey(packAssetType) && exclusions.get(packAssetType).contains(key)))
++            return null;
++
++        try (InputStream inputStream = ioSupplier.get()) {
++            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
++
++            // Lies den Inhalt des InputStreams und schreibe ihn in den ByteArrayOutputStream
++            byte[] buffer = new byte[1024];
++            int bytesRead;
++            while ((bytesRead = inputStream.read(buffer)) != -1) {
++                byteArrayOutputStream.write(buffer, 0, bytesRead);
++            }
++
++            // Konvertiere den Inhalt des ByteArrayOutputStreams zu einem String
++            String jsonString = byteArrayOutputStream.toString("UTF-8");
++
++            // Verwende GSON, um den JSON-String in ein JsonObject zu konvertieren
++            JsonObject jsonObject;
++            try {
++                jsonObject  = JsonParser.parseString(jsonString).getAsJsonObject();
++            } catch (Throwable e) {
++                return ioSupplier;
++            }
++
++
++            DataPackAsset dataPackAsset = new DataPackAsset(packAssetType, key, jsonObject);
++
++            this.installCallback.accept(dataPackAsset);
++
++            // Hier kannst du das JsonObject nach Belieben manipulieren
++            // Zum Beispiel: jsonObject.addProperty("neuesFeld", "Wert");
++
++            // Schließe den FileInputStream
++            inputStream.close();
++
++            // Schließe den ByteArrayOutputStream
++            byteArrayOutputStream.close();
++            new IoSupplier<InputStream>() {
++                @Override
++                public InputStream get() throws IOException {
++                    return new ByteArrayInputStream(jsonString.getBytes("UTF-8"));
++                }
++            };
++
++        } catch (IOException e) {
++            System.err.println("Error while manipulating DataPack resource installation");
++            e.printStackTrace();
++            return ioSupplier;
++        }
++
++
++        return ioSupplier;
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/CreativeLabImpl.java b/src/main/java/de/verdox/mccreativelab/CreativeLabImpl.java
+index 863d73d799e9838534faea0254d5b37e7f7748cb..c458c6d2b01ad827fb02aeff87a568cd41f77283 100644
+--- a/src/main/java/de/verdox/mccreativelab/CreativeLabImpl.java
++++ b/src/main/java/de/verdox/mccreativelab/CreativeLabImpl.java
+@@ -2,4 +2,9 @@ package de.verdox.mccreativelab;
+ 
+ public final class CreativeLabImpl implements CreativeLab {
+ 
++    private final de.verdox.mccreativelab.data.DataPackInterceptor dataPackInterceptor = new CraftDataPackInterceptor();
++    @Override
++    public de.verdox.mccreativelab.data.DataPackInterceptor getDataPackInterceptor() {
++        return dataPackInterceptor;
++    }
+ }
+diff --git a/src/main/java/net/minecraft/server/packs/PathPackResources.java b/src/main/java/net/minecraft/server/packs/PathPackResources.java
+index 4822f94ce183a99ad9e0d1bdc6c5708d958f6104..d9ae46a213c8c2dd5cb9d4c407e89f2ae725175f 100644
+--- a/src/main/java/net/minecraft/server/packs/PathPackResources.java
++++ b/src/main/java/net/minecraft/server/packs/PathPackResources.java
+@@ -89,7 +89,13 @@ public class PathPackResources extends AbstractPackResources {
+                 if (resourceLocation == null) {
+                     Util.logAndPauseIfInIde(String.format(Locale.ROOT, "Invalid path in pack: %s:%s, ignoring", namespace, string2));
+                 } else {
+-                    consumer.accept(resourceLocation, IoSupplier.create(foundPath));
++                    // MCCLab start - Add PackInterceptor
++                    de.verdox.mccreativelab.CraftDataPackInterceptor craft = (de.verdox.mccreativelab.CraftDataPackInterceptor) de.verdox.mccreativelab.MCCreativeLab.getVanillaPackGenerator();
++                    IoSupplier<InputStream> result = craft.evaluate(resourceLocation, foundPath, IoSupplier.create(foundPath));
++                    if(result == null)
++                        return;
++                    consumer.accept(resourceLocation, result);
++                    // MCCLab end - Add PackInterceptor
+                 }
+ 
+             });

@@ -1,0 +1,107 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <mail.ysp@web.de>
+Date: Wed, 17 Jan 2024 23:56:30 +0100
+Subject: [PATCH] Temp patch 2
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/data/CraftVanillaRegistryManipulator.java b/src/main/java/de/verdox/mccreativelab/data/CraftVanillaRegistryManipulator.java
+index d6c19711ecc80abcbb64b02aec1dbb2aeb6d2283..818a9eb7e5d65f10bc42908070f2634eaabe9cda 100644
+--- a/src/main/java/de/verdox/mccreativelab/data/CraftVanillaRegistryManipulator.java
++++ b/src/main/java/de/verdox/mccreativelab/data/CraftVanillaRegistryManipulator.java
+@@ -1,24 +1,38 @@
+ package de.verdox.mccreativelab.data;
+ 
++import com.google.common.collect.ImmutableSet;
++import io.papermc.paper.adventure.PaperAdventure;
+ import net.kyori.adventure.sound.Sound;
++import net.minecraft.core.Holder;
+ import net.minecraft.core.Registry;
+ import net.minecraft.core.registries.BuiltInRegistries;
++import net.minecraft.core.registries.Registries;
++import net.minecraft.resources.ResourceKey;
+ import net.minecraft.resources.ResourceLocation;
++import net.minecraft.sounds.SoundEvent;
+ import net.minecraft.world.entity.ai.attributes.RangedAttribute;
+ import net.minecraft.world.entity.ai.memory.MemoryModuleType;
++import net.minecraft.world.entity.ai.village.poi.PoiTypes;
+ import net.minecraft.world.entity.npc.VillagerProfession;
++import net.minecraft.world.item.Item;
++import net.minecraft.world.level.block.Block;
+ import org.bukkit.Material;
+ import org.bukkit.NamespacedKey;
+ import org.bukkit.PoiType;
+ import org.bukkit.attribute.Attribute;
+ import org.bukkit.block.data.BlockData;
++import org.bukkit.craftbukkit.CraftPoiType;
++import org.bukkit.craftbukkit.block.data.CraftBlockData;
++import org.bukkit.craftbukkit.util.CraftMagicNumbers;
+ import org.bukkit.craftbukkit.util.CraftNamespacedKey;
+ import org.bukkit.entity.Villager;
+ import org.bukkit.entity.memory.MemoryKey;
+ 
++import javax.annotation.Nullable;
+ import java.util.Optional;
+ import java.util.Set;
+ import java.util.function.Predicate;
++import java.util.stream.Collectors;
+ 
+ public class CraftVanillaRegistryManipulator implements VanillaRegistryManipulator {
+     @Override
+@@ -38,11 +52,29 @@ public class CraftVanillaRegistryManipulator implements VanillaRegistryManipulat
+ 
+     @Override
+     public RegistryEntryReference<PoiType> createPoiType(NamespacedKey namespacedKey, Set<BlockData> states, int ticketCount, int searchDistance) {
+-        return null;
++
++        ResourceKey<net.minecraft.world.entity.ai.village.poi.PoiType> resourceKey = ResourceKey.create(Registries.POINT_OF_INTEREST_TYPE, CraftNamespacedKey.toMinecraft(namespacedKey));
++
++        PoiTypes.register(BuiltInRegistries.POINT_OF_INTEREST_TYPE, resourceKey, states.stream()
++                                                                                       .map(blockData -> ((CraftBlockData) blockData).getState())
++                                                                                       .collect(Collectors.toSet()), ticketCount, searchDistance);
++
++        return new RegistryEntryReference<>(namespacedKey, () -> PoiType.getPoiType(namespacedKey));
+     }
+ 
+     @Override
+     public RegistryEntryReference<Villager.Profession> createProfession(NamespacedKey namespacedKey, Predicate<PoiType> heldWorkStation, Predicate<PoiType> acquirableWorkstation, Set<Material> gatherableItems, Set<Material> secondaryJobSites, Sound.Type workSound) {
+-        return null;
++
++        Predicate<Holder<net.minecraft.world.entity.ai.village.poi.PoiType>> heldWorkstationNms = poiTypeHolder -> heldWorkStation.test(CraftPoiType.minecraftToBukkit(poiTypeHolder.value()));
++        Predicate<Holder<net.minecraft.world.entity.ai.village.poi.PoiType>> acquirableWorkstationNms = poiTypeHolder -> acquirableWorkstation.test(CraftPoiType.minecraftToBukkit(poiTypeHolder.value()));
++        ImmutableSet<Item> items = ImmutableSet.copyOf(gatherableItems.stream().map(CraftMagicNumbers::getItem)
++                                                                      .collect(Collectors.toSet()));
++        ImmutableSet<Block> jobBlocks = ImmutableSet.copyOf(secondaryJobSites.stream().map(CraftMagicNumbers::getBlock)
++                                                                             .collect(Collectors.toSet()));
++        @Nullable SoundEvent soundEvent = workSound == null ? null : BuiltInRegistries.SOUND_EVENT.get(PaperAdventure.asVanilla(workSound.key()));
++
++        VillagerProfession villagerProfession = new VillagerProfession(namespacedKey.getKey(), heldWorkstationNms, acquirableWorkstationNms, items, jobBlocks, soundEvent);
++        Registry.register(BuiltInRegistries.VILLAGER_PROFESSION, CraftNamespacedKey.toMinecraft(namespacedKey), villagerProfession);
++        return new RegistryEntryReference<>(namespacedKey, () -> Villager.Profession.getProfession(namespacedKey));
+     }
+ }
+diff --git a/src/main/java/net/minecraft/world/entity/ai/village/poi/PoiTypes.java b/src/main/java/net/minecraft/world/entity/ai/village/poi/PoiTypes.java
+index 66c13f9073bf29a6332018c32a2a897e6a7f1ed5..5c003f2e32c66badc7b31961293a6ad2404b863f 100644
+--- a/src/main/java/net/minecraft/world/entity/ai/village/poi/PoiTypes.java
++++ b/src/main/java/net/minecraft/world/entity/ai/village/poi/PoiTypes.java
+@@ -58,7 +58,7 @@ public class PoiTypes {
+         return ResourceKey.create(Registries.POINT_OF_INTEREST_TYPE, new ResourceLocation(id));
+     }
+ 
+-    private static PoiType register(Registry<PoiType> registry, ResourceKey<PoiType> key, Set<BlockState> states, int ticketCount, int searchDistance) {
++    public static PoiType register(Registry<PoiType> registry, ResourceKey<PoiType> key, Set<BlockState> states, int ticketCount, int searchDistance) {
+         PoiType poiType = new PoiType(states, ticketCount, searchDistance);
+         Registry.register(registry, key, poiType);
+         registerBlockStates(registry.getHolderOrThrow(key), states);
+diff --git a/src/main/java/net/minecraft/world/entity/npc/VillagerProfession.java b/src/main/java/net/minecraft/world/entity/npc/VillagerProfession.java
+index ac70c2c03241e73943bd517a8c69dd05e0873634..3b2629af23f6211ef5865171522b6569b943f226 100644
+--- a/src/main/java/net/minecraft/world/entity/npc/VillagerProfession.java
++++ b/src/main/java/net/minecraft/world/entity/npc/VillagerProfession.java
+@@ -63,7 +63,7 @@ public record VillagerProfession(String name, Predicate<Holder<PoiType>> heldJob
+         }, gatherableItems, secondaryJobSites, workSound);
+     }
+ 
+-    private static VillagerProfession register(String id, Predicate<Holder<PoiType>> heldWorkstation, Predicate<Holder<PoiType>> acquirableWorkstation, ImmutableSet<Item> gatherableItems, ImmutableSet<Block> secondaryJobSites, @Nullable SoundEvent workSound) {
++    public static VillagerProfession register(String id, Predicate<Holder<PoiType>> heldWorkstation, Predicate<Holder<PoiType>> acquirableWorkstation, ImmutableSet<Item> gatherableItems, ImmutableSet<Block> secondaryJobSites, @Nullable SoundEvent workSound) {
+         return Registry.register(BuiltInRegistries.VILLAGER_PROFESSION, new ResourceLocation(id), new VillagerProfession(id, heldWorkstation, acquirableWorkstation, gatherableItems, secondaryJobSites, workSound));
+     }
+ }

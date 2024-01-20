@@ -22,54 +22,54 @@ index 0000000000000000000000000000000000000000..de2cb5e6bb1993f81e2c8ae6cb9e871f
 +     * This interface is solely used to manipulate the vanilla variables that are not yet changeable by the API.
 +     * Implement your own version of the FoodBehaviour Interface and make FOOD_BEHAVIOUR use your implementation.
 +     */
-+    CustomBehaviour<FoodBehaviour> FOOD_BEHAVIOUR = new CustomBehaviour<>("MCCLab - FoodBehaviour");
++    CustomBehaviour<FoodBehaviour> FOOD_BEHAVIOUR = new CustomBehaviour<>(FoodBehaviour.class, new FoodBehaviour() {},"MCCLab - FoodBehaviour");
 +    /**
 +     * Gets the regeneration rate per tick when a player is saturated.
 +     * Defaults to 10 in vanilla.
 +     * @param player The player
 +     * @return the regeneration rate per tick
 +     */
-+    int getSaturatedRegenRate(Player player);
++    default int getSaturatedRegenRate(Player player){return 10;}
 +    /**
 +     * Gets the regeneration rate per tick when a player is unsaturated.
 +     * Defaults to 80 in vanilla.
 +     * @param player The player
 +     * @return the regeneration rate per tick
 +     */
-+    int getUnsaturatedRegenRate(Player player);
++    default int getUnsaturatedRegenRate(Player player){return 80;}
 +    /**
 +     * Gets the starvation rate per tick when a player is starving.
 +     * Defaults to 80 in vanilla.
 +     * @param player The player
 +     * @return the regeneration rate per tick
 +     */
-+    int getStarvationRate(Player player);
++    default int getStarvationRate(Player player){return 80;}
 +    /**
 +     * Gets the food level when a player starts starving
 +     * Defaults to 0 in vanilla.
 +     * @param player The player
 +     * @return the starvation food limit
 +     */
-+    int getStarvationFoodLimit(Player player);
++    default int getStarvationFoodLimit(Player player){return 0;}
 +    /**
 +     * Gets the food level a player needs at minimum to start regenerating health
 +     * Defaults to 18 in vanilla.
 +     * @param player The player
 +     * @return the food level
 +     */
-+    int getMinimumFoodToRegenerate(Player player);
++    default int getMinimumFoodToRegenerate(Player player){return 18;}
 +    /**
 +     * Gets the exhaustion over time rate in ticks
 +     * This is a custom feature. If the method returns an integer less or equal then -1 the feature won't be used.
 +     * @param player The player
 +     * @return the food level
 +     */
-+    int getExhaustionOverTimeRateInTicks(Player player);
++    default int getExhaustionOverTimeRateInTicks(Player player){return 0;}
 +    /**
 +     * Gets the exhaustion amount over time
 +     * * This is a custom feature. If the method returns an integer less or equal then 0 the feature won't be used.
 +     * @param player The player
 +     * @return the food level
 +     */
-+    int getExhaustionOverTimeAmount(Player player);
++    default int getExhaustionOverTimeAmount(Player player){return 0;}
 +}

@@ -9,7 +9,7 @@ new file mode 100644
 index 0000000000000000000000000000000000000000..80a72d700083646b30eade25ddcaeef1fb7ce1d4
 --- /dev/null
 +++ b/src/main/java/de/verdox/mccreativelab/behaviour/ItemBehaviourUtil.java
-@@ -0,0 +1,142 @@
+@@ -0,0 +1,143 @@
 +package de.verdox.mccreativelab.behaviour;
 +
 +import de.verdox.mccreativelab.MultiCustomBehaviour;
@@ -34,7 +34,7 @@ index 0000000000000000000000000000000000000000..80a72d700083646b30eade25ddcaeef1
 +
 +public class ItemBehaviourUtil extends BehaviourUtil {
 +    public static ItemStack finishUsingItem(ItemStack stack, Level world, LivingEntity user) {
-+        return evaluate(getBehaviour(stack), fromStack(stack),
++        return evaluate(getBehaviour(stack),
 +            itemBehaviour -> itemBehaviour.finishUsingItem(user.getBukkitLivingEntity(), stack.asBukkitMirror()),
 +            () -> stack.getItem().finishUsingItem(stack, world, user),
 +            Converter.ItemStack.INSTANCE
@@ -42,28 +42,28 @@ index 0000000000000000000000000000000000000000..80a72d700083646b30eade25ddcaeef1
 +    }
 +
 +    public static int getMaxStackSize(ItemStack stack){
-+        return evaluateInteger(getBehaviour(stack), fromStack(stack),
++        return evaluateInteger(getBehaviour(stack),
 +            itemBehaviour -> itemBehaviour.getMaxStackSize(stack.asBukkitMirror()),
 +            () -> stack.getItem().getMaxStackSize()
 +        );
 +    }
 +
 +    public static int getMaxDamage(ItemStack stack){
-+        return evaluateInteger(getBehaviour(stack), fromStack(stack),
++        return evaluateInteger(getBehaviour(stack),
 +            itemBehaviour -> itemBehaviour.getMaxDamage(stack.asBukkitMirror()),
 +            () -> stack.getItem().getMaxDamage()
 +        );
 +    }
 +
 +    public static boolean isCorrectToolForDrops(ItemStack stack, BlockState blockState){
-+        return evaluateBoolean(getBehaviour(stack), fromStack(stack),
++        return evaluateBoolean(getBehaviour(stack),
 +            itemBehaviour -> itemBehaviour.isCorrectToolForDrops(stack.asBukkitMirror(), blockState.createCraftBlockData()),
 +            () -> stack.getItem().isCorrectToolForDrops(blockState)
 +        );
 +    }
 +
 +    public static void mineBlock(ItemStack stack, Level world, net.minecraft.world.level.block.state.BlockState state, BlockPos pos, Player miner){
-+        boolean mined = evaluateBoolean(getBehaviour(stack), fromStack(stack),
++        boolean mined = evaluateBoolean(getBehaviour(stack),
 +            itemBehaviour -> itemBehaviour.mineBlock(stack.asBukkitMirror(), world.getWorld().getBlockAt(pos.getX(), pos.getY(), pos.getZ()), (CraftPlayer) miner.getBukkitEntity()),
 +            () -> {
 +                Item item = stack.getItem();
@@ -74,7 +74,7 @@ index 0000000000000000000000000000000000000000..80a72d700083646b30eade25ddcaeef1
 +    }
 +
 +    public static InteractionResult interactLivingEntity(ItemStack stack, Player player, LivingEntity livingEntity, InteractionHand interactionHand){
-+        return evaluate(getBehaviour(stack), fromStack(stack),
++        return evaluate(getBehaviour(stack),
 +            itemBehaviour -> itemBehaviour.interactLivingEntity(stack.asBukkitMirror(), (CraftPlayer) player.getBukkitEntity(), livingEntity.getBukkitLivingEntity(),
 +            interactionHand.equals(InteractionHand.MAIN_HAND) ? EquipmentSlot.HAND : EquipmentSlot.OFF_HAND),
 +            () -> stack.getItem().interactLivingEntity(stack, player, livingEntity, interactionHand)
@@ -82,26 +82,26 @@ index 0000000000000000000000000000000000000000..80a72d700083646b30eade25ddcaeef1
 +    }
 +
 +    public static void onCraftedBy(ItemStack stack, Level world, Player player, int amount){
-+        evaluateVoid(getBehaviour(stack), fromStack(stack),
++        evaluateVoid(getBehaviour(stack),
 +            itemBehaviour -> itemBehaviour.onCraftedBy(stack.asBukkitMirror(), (CraftPlayer) player.getBukkitEntity(), amount),
 +            () -> stack.getItem().onCraftedBy(stack, world, player));
 +        player.awardStat(Stats.ITEM_CRAFTED.get(stack.getItem()), amount);
 +    }
 +
 +    public static void onDestroyed(ItemStack stack, ItemEntity entity){
-+        evaluateVoid(getBehaviour(stack), fromStack(stack),
++        evaluateVoid(getBehaviour(stack),
 +            itemBehaviour -> itemBehaviour.onDestroyed(stack.asBukkitMirror(), (CraftItem) entity.getBukkitEntity()),
 +            () -> stack.getItem().onDestroyed(entity));
 +    }
 +
 +    public static boolean isEdible(ItemStack stack){
-+        return evaluateBoolean(getBehaviour(stack), fromStack(stack),
++        return evaluateBoolean(getBehaviour(stack),
 +            itemBehaviour -> itemBehaviour.isEdible(stack.asBukkitMirror()),
 +            () -> stack.getItem().isEdible());
 +    }
 +
 +    public static FoodProperties getFoodProperties(ItemStack stack){
-+        return evaluate(getBehaviour(stack), fromStack(stack),
++        return evaluate(getBehaviour(stack),
 +            itemBehaviour -> itemBehaviour.getFoodProperties(stack.asBukkitMirror()),
 +            () -> stack.getItem().getFoodProperties(),
 +            Converter.FoodProperties.INSTANCE
@@ -109,7 +109,7 @@ index 0000000000000000000000000000000000000000..80a72d700083646b30eade25ddcaeef1
 +    }
 +
 +    public static @Nullable ItemStack getCraftRemainingItem(ItemStack stack){
-+        return evaluate(getBehaviour(stack), fromStack(stack),
++        return evaluate(getBehaviour(stack),
 +            itemBehaviour -> itemBehaviour.getCraftRemainingItem(stack.asBukkitMirror()),
 +            () -> {
 +            Item item = stack.getItem().getCraftingRemainingItem();
@@ -122,19 +122,19 @@ index 0000000000000000000000000000000000000000..80a72d700083646b30eade25ddcaeef1
 +    }
 +
 +    public static boolean isFireResistant(ItemStack stack){
-+        return evaluateBoolean(getBehaviour(stack), fromStack(stack),
++        return evaluateBoolean(getBehaviour(stack),
 +            itemBehaviour -> itemBehaviour.isFireResistant(stack.asBukkitMirror()),
 +            () -> stack.getItem().isFireResistant());
 +    }
 +
 +    public static boolean canFitInsideContainerItems(ItemStack stack){
-+        return evaluateBoolean(getBehaviour(stack), fromStack(stack),
++        return evaluateBoolean(getBehaviour(stack),
 +            itemBehaviour -> itemBehaviour.canFitInsideContainerItems(stack.asBukkitMirror()),
 +            () -> stack.getItem().canFitInsideContainerItems());
 +    }
 +
 +    public static boolean isEnchantable(ItemStack stack){
-+        return evaluateBoolean(getBehaviour(stack), fromStack(stack),
++        return evaluateBoolean(getBehaviour(stack),
 +            itemBehaviour -> itemBehaviour.isEnchantable(stack.asBukkitMirror()),
 +            () -> stack.getItem().isEnchantable(stack));
 +    }
@@ -143,12 +143,13 @@ index 0000000000000000000000000000000000000000..80a72d700083646b30eade25ddcaeef1
 +        return CustomItemData.fromItemStack(stack.getBukkitStack());
 +    }
 +
-+    public static MultiCustomBehaviour<CustomItemData, ItemBehaviour> getBehaviour(ItemStack stack){
-+        if(stack.itemBehaviour == null)
-+            return ItemBehaviour.ITEM_BEHAVIOUR;
-+        MultiCustomBehaviour<CustomItemData, ItemBehaviour> multiCustomBehaviour = new MultiCustomBehaviour<>("stack specific "+ stack);
-+        multiCustomBehaviour.setBehaviour(fromStack(stack), stack.itemBehaviour);
-+        return multiCustomBehaviour;
++    public static ItemBehaviour getBehaviour(ItemStack stack){
++        if(stack.itemBehaviour != null)
++            return stack.itemBehaviour;
++        CustomItemData customItemData = CustomItemData.fromItemStack(stack.getBukkitStack());
++        if(ItemBehaviour.ITEM_BEHAVIOUR.isImplemented(customItemData))
++            return ItemBehaviour.ITEM_BEHAVIOUR.getBehaviour(customItemData);
++        return null;
 +    }
 +
 +}
