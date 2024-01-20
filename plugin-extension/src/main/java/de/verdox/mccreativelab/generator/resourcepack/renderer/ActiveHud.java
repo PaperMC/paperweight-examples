@@ -1,6 +1,7 @@
 package de.verdox.mccreativelab.generator.resourcepack.renderer;
 
 import de.verdox.mccreativelab.MCCreativeLabExtension;
+import de.verdox.mccreativelab.generator.resourcepack.renderer.element.HudElement;
 import de.verdox.mccreativelab.generator.resourcepack.types.CustomHud;
 import net.kyori.adventure.text.Component;
 import org.bukkit.entity.Player;

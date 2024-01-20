@@ -1,6 +1,6 @@
 package de.verdox.mccreativelab.generator;
 
-import de.verdox.mccreativelab.block.BlockStateIterator;
+import de.verdox.mccreativelab.util.BlockStateIterator;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;

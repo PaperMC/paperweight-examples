@@ -10,11 +10,6 @@ public class PluginBootstrap implements io.papermc.paper.plugin.bootstrap.Plugin
     @Override
     public void bootstrap(@NotNull BootstrapContext context) {
 
-        MCCreativeLab.getVanillaPackGenerator().exclude(DataPackInterceptor.PackAssetType.RECIPES);
-
-        MCCreativeLab.getVanillaPackGenerator().onInstall(dataPackAsset -> {
-            System.out.println("Installing: "+dataPackAsset.packAssetType()+" | "+dataPackAsset.key());
-        });
     }
 
     @Override

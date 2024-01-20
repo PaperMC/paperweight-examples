@@ -1,6 +1,5 @@
 package de.verdox.mccreativelab.generator.resourcepack.renderer;
 
-import de.verdox.mccreativelab.generator.resourcepack.renderer.element.HudRenderer;
 import de.verdox.mccreativelab.generator.resourcepack.types.CustomHud;
 import org.bukkit.entity.Player;
 

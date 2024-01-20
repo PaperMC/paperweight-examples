@@ -1,28 +1,30 @@
 package de.verdox.mccreativelab;
 
 import com.destroystokyo.paper.event.server.ServerTickEndEvent;
-import de.verdox.mccreativelab.debug.VillagerAI;
+import de.verdox.mccreativelab.debug.vanilla.VillagerAI;
 import de.verdox.mccreativelab.behaviour.BehaviourResult;
 import de.verdox.mccreativelab.behaviour.ItemBehaviour;
-import de.verdox.mccreativelab.block.*;
-import de.verdox.mccreativelab.blockbreak.BlockBreakSpeedModifier;
-import de.verdox.mccreativelab.blockbreak.BlockBreakSpeedSettings;
+import de.verdox.mccreativelab.world.block.customhardness.BlockBreakSpeedModifier;
+import de.verdox.mccreativelab.world.block.customhardness.BlockBreakSpeedSettings;
 import de.verdox.mccreativelab.debug.Debug;
 import de.verdox.mccreativelab.debug.DebugCommand;
 import de.verdox.mccreativelab.debug.FakeBlockCommand;
 import de.verdox.mccreativelab.debug.FakeItemCommand;
 import de.verdox.mccreativelab.event.MCCreativeLabReloadEvent;
+import de.verdox.mccreativelab.features.Feature;
+import de.verdox.mccreativelab.features.Features;
 import de.verdox.mccreativelab.generator.AssetPath;
 import de.verdox.mccreativelab.generator.ResourcePackFileHoster;
 import de.verdox.mccreativelab.generator.resourcepack.CustomResourcePack;
 import de.verdox.mccreativelab.generator.resourcepack.ResourcePackScanner;
 import de.verdox.mccreativelab.generator.resourcepack.renderer.HudRendererImpl;
-import de.verdox.mccreativelab.generator.resourcepack.renderer.element.HudRenderer;
-import de.verdox.mccreativelab.item.FakeItemRegistry;
-import de.verdox.mccreativelab.item.fuel.FuelSettings;
-import de.verdox.mccreativelab.legacy.LegacyFeatures;
+import de.verdox.mccreativelab.generator.resourcepack.renderer.HudRenderer;
+import de.verdox.mccreativelab.world.item.FakeItemRegistry;
+import de.verdox.mccreativelab.world.item.fuel.FuelSettings;
+import de.verdox.mccreativelab.features.legacy.LegacyFeatures;
 import de.verdox.mccreativelab.recipe.CustomItemData;
-import de.verdox.mccreativelab.sound.ReplacedSoundGroups;
+import de.verdox.mccreativelab.world.sound.ReplacedSoundGroups;
+import de.verdox.mccreativelab.world.block.*;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.PoiType;
@@ -56,6 +58,7 @@ public class MCCreativeLabExtension extends JavaPlugin implements Listener {
     private static final BlockBreakSpeedSettings blockBreakSpeedSettings = new BlockBreakSpeedSettings();
     private static final ReplacedSoundGroups replacedSoundGroups = new ReplacedSoundGroups();
     private static final LegacyFeatures legacyFeatures = new LegacyFeatures();
+    private static final Features features = new Features();
     private FuelSettings fuelSettings;
 
     public static void needsServerSoftware() {
@@ -69,6 +72,7 @@ public class MCCreativeLabExtension extends JavaPlugin implements Listener {
 
     @Override
     public void onLoad() {
+
         if (isServerSoftware())
             Bukkit.getLogger().info("§eFound MCCreativeLab Server Software");
         else
@@ -91,6 +95,9 @@ public class MCCreativeLabExtension extends JavaPlugin implements Listener {
         VillagerAI.prePreRaidPackageBuilder(0.5f);
         VillagerAI.raidPackageBuilder(0.5f);
         VillagerAI.hidePackageBuilder(0.5f);
+
+        getFeatures().useTrueDarkness();
+        getFeatures().useBetaFog();
 
         Bukkit.getPluginManager().registerEvents(this, this);
         if (isServerSoftware()) {
@@ -155,15 +162,15 @@ public class MCCreativeLabExtension extends JavaPlugin implements Listener {
     private boolean buildPackAndZipFiles() {
         try {
             mergeOtherPacksIntoMainPack(getCustomResourcePack().getPathToSavePackDataTo().toPath().toFile(), getCustomResourcePack());
-            File installed = getCustomResourcePack().installPack();
             if (!getFakeBlockRegistry().isEmpty()) {
                 try {
-                    if (usesMCCreativeLabFork && FakeBlockRegistry.USE_ALTERNATE_FAKE_BLOCK_ENGINE)
+                    if (usesMCCreativeLabFork)
                         FakeBlock.FakeBlockHitbox.makeHitBoxesInvisible(getCustomResourcePack());
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
             }
+            File installed = getCustomResourcePack().installPack();
             if (installed == null)
                 return false;
 
@@ -196,6 +203,7 @@ public class MCCreativeLabExtension extends JavaPlugin implements Listener {
 
     @Override
     public void onDisable() {
+        Feature.disable();
         for (World world : Bukkit.getWorlds())
             world.save();
         try {
@@ -255,5 +263,9 @@ public class MCCreativeLabExtension extends JavaPlugin implements Listener {
 
     public static LegacyFeatures getLegacyFeatures() {
         return legacyFeatures;
+    }
+
+    public static Features getFeatures(){
+        return features;
     }
 }

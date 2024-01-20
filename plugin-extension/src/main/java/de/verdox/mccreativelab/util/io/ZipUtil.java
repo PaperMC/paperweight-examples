@@ -1,11 +1,9 @@
 package de.verdox.mccreativelab.util.io;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.nio.file.Path;
 import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
 public class ZipUtil {
@@ -48,6 +46,48 @@ public class ZipUtil {
             }
 
             fis.close();
+        }
+    }
+
+    public static File extractFilesFromZipFileResource(String zipResourcePath, String targetFolderPath) {
+        try (InputStream inputStream = ZipUtil.class.getResourceAsStream(zipResourcePath)) {
+            if (inputStream == null) {
+                System.err.println("Unable to find the specified resource: " + zipResourcePath);
+                return null;
+            }
+
+            File targetFolder = new File(targetFolderPath);
+            if (!targetFolder.exists()) {
+                targetFolder.mkdirs();
+            }
+
+            try (ZipInputStream zipInputStream = new ZipInputStream(inputStream)) {
+                ZipEntry entry;
+
+                while ((entry = zipInputStream.getNextEntry()) != null) {
+                    String entryName = entry.getName();
+                    File entryFile = new File(targetFolder, entryName);
+
+                    if (entry.isDirectory()) {
+                        entryFile.mkdirs();
+                    } else {
+                        try (OutputStream outputStream = new FileOutputStream(entryFile)) {
+                            byte[] buffer = new byte[1024];
+                            int length;
+
+                            while ((length = zipInputStream.read(buffer)) > 0) {
+                                outputStream.write(buffer, 0, length);
+                            }
+                        }
+                    }
+
+                    zipInputStream.closeEntry();
+                }
+            }
+            return targetFolder;
+        } catch (IOException e) {
+            System.err.println("Error during extraction: " + e.getMessage());
+            return null;
         }
     }
 }

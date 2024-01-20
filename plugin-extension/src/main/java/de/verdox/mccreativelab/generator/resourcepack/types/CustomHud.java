@@ -1,8 +1,9 @@
 package de.verdox.mccreativelab.generator.resourcepack.types;
 
+import de.verdox.mccreativelab.MCCreativeLabExtension;
 import de.verdox.mccreativelab.generator.Asset;
 import de.verdox.mccreativelab.generator.resourcepack.CustomResourcePack;
-import de.verdox.mccreativelab.generator.resourcepack.renderer.HudElement;
+import de.verdox.mccreativelab.generator.resourcepack.renderer.element.HudElement;
 import de.verdox.mccreativelab.generator.resourcepack.renderer.ScreenPosition;
 import de.verdox.mccreativelab.generator.resourcepack.renderer.element.group.Button;
 import de.verdox.mccreativelab.generator.resourcepack.renderer.element.group.HudMultiLineText;
@@ -100,7 +101,6 @@ public class CustomHud extends ShaderRendered {
         hudTextFonts.add(textFont);
         return this;
     }
-
     public CustomHud withButton(String buttonName, StringAlign.Alignment alignment, float textScale, @Nullable Asset<CustomResourcePack> whenSelected, @Nullable Asset<CustomResourcePack> whenEnabled, @Nullable Asset<CustomResourcePack> whenDisabled, ScreenPosition buttonPos, ScreenPosition textPos) throws IOException {
         checkIfIDTaken(buttonName);
 
@@ -129,7 +129,7 @@ public class CustomHud extends ShaderRendered {
         registerElement(buttonName, new Button(buttonText, selectedHudTexture, enabledHudTexture, disabledHudTexture));
         return this;
     }
-    public CustomHud withMultiLineStandardText(String multiLineID, int lines, int charsPerLine, int pixelsBetweenLines, StringAlign.Alignment alignment, ScreenPosition startPos, float scale) {
+    public CustomHud withMultiLineText(String multiLineID, int lines, int charsPerLine, int pixelsBetweenLines, StringAlign.Alignment alignment, ScreenPosition startPos, float scale) {
         var textElements = new LinkedList<SingleHudText>();
         for (int i = 0; i < lines; i++) {
             var textID = multiLineID.concat("_" + i);
@@ -140,7 +140,6 @@ public class CustomHud extends ShaderRendered {
         registerElement(multiLineID, new HudMultiLineText(textElements, charsPerLine, alignment));
         return this;
     }
-
     public CustomHud withPartlyVisibleTexture(String textureField, ScreenPosition screenPosition, Asset<CustomResourcePack> originalPicture, int parts) throws IOException {
         var splitImages = AssetUtil.createPartlyVisibleCopys(originalPicture, parts);
 

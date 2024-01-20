@@ -1,8 +1,8 @@
 package de.verdox.mccreativelab.debug;
 
 import de.verdox.mccreativelab.MCCreativeLabExtension;
-import de.verdox.mccreativelab.block.FakeBlock;
-import de.verdox.mccreativelab.block.FakeBlockStorage;
+import de.verdox.mccreativelab.world.block.FakeBlock;
+import de.verdox.mccreativelab.world.block.FakeBlockStorage;
 import de.verdox.mccreativelab.registry.exception.PaletteValueUnknownException;
 import net.kyori.adventure.text.Component;
 import org.bukkit.block.Block;
@@ -32,7 +32,7 @@ public class FakeBlockCommand extends Command {
             if(block == null)
                 return false;
             if(args[0].equalsIgnoreCase("set")){
-                if(FakeBlockStorage.setFakeBlock(block.getLocation(), Debug.DEBUG_BLOCK,false))
+                if(FakeBlockStorage.setFakeBlock(block.getLocation(), Debug.DEBUG_CROP,false))
                     player.sendMessage(Component.text("Set fake block"));
                 else player.sendMessage(Component.text("Could not set fake block"));
                 return true;

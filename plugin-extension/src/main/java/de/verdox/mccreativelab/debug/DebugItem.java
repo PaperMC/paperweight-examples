@@ -1,7 +1,7 @@
 package de.verdox.mccreativelab.debug;
 
 import de.verdox.mccreativelab.behaviour.BehaviourResult;
-import de.verdox.mccreativelab.item.FakeItem;
+import de.verdox.mccreativelab.world.item.FakeItem;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.inventory.ItemStack;

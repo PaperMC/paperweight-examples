@@ -75,7 +75,7 @@ public record Asset<C extends CustomPack<C>>(Supplier<InputStream> assetInputStr
         if (!fileEnding.contains("."))
             fileEnding = "." + fileEnding;
         if (!isInputStreamValid())
-            throw new IllegalStateException("InputStream of asset is not valid");
+            throw new IOException("InputStream of asset is not valid for asset "+namespacedKey+" with type "+assetType);
         try (InputStream stream = assetInputStream.get()) {
 
             if (stream == null) {

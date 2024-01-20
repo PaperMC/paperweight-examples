@@ -6,6 +6,7 @@ import de.verdox.mccreativelab.generator.AssetPath;
 import de.verdox.mccreativelab.generator.CustomPack;
 import de.verdox.mccreativelab.generator.Resource;
 import de.verdox.mccreativelab.generator.resourcepack.types.ItemTextureData;
+import de.verdox.mccreativelab.generator.resourcepack.types.menu.Resolution;
 import de.verdox.mccreativelab.generator.resourcepack.types.sound.SoundData;
 import de.verdox.mccreativelab.util.gson.JsonObjectBuilder;
 import de.verdox.mccreativelab.util.gson.JsonUtil;
@@ -37,6 +38,9 @@ public class CustomResourcePack extends CustomPack<CustomResourcePack> {
         Asset<CustomResourcePack> spaceLanguage = new Asset<>(() -> CustomResourcePack.class.getResourceAsStream("/space/lang/en_us.json"));
         Asset<CustomResourcePack> spaceSplitterTexture = new Asset<>(() -> CustomResourcePack.class.getResourceAsStream("/space/textures/font/splitter.png"));
         Asset<CustomResourcePack> minecraftFontWithSpaceChars = new Asset<>(() -> CustomResourcePack.class.getResourceAsStream("/font/default.json"));
+
+        for (Resolution value : Resolution.values())
+            register(value.getResolutionItemModel());
 
         try {
             minecraftFontWithSpaceChars.installAsset(this, new NamespacedKey("minecraft", "default"), ResourcePackAssetTypes.FONT, "json");

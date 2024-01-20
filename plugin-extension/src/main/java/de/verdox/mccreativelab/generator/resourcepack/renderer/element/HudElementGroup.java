@@ -1,7 +1,5 @@
 package de.verdox.mccreativelab.generator.resourcepack.renderer.element;
 
-import de.verdox.mccreativelab.generator.resourcepack.renderer.HudElement;
-
 import java.util.List;
 
 public interface HudElementGroup<H extends SingleHudElement> extends HudElement {

@@ -1,6 +1,6 @@
 package de.verdox.mccreativelab.util;
 
-import de.verdox.mccreativelab.block.FakeBlock;
+import de.verdox.mccreativelab.world.block.FakeBlock;
 import org.bukkit.block.BlockState;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;

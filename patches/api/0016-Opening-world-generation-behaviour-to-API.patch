@@ -1,0 +1,38 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <lukasjonsson@outlook.de>
+Date: Sat, 18 Nov 2023 14:15:53 +0100
+Subject: [PATCH] Opening world generation behaviour to API
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/WorldGenerationBehaviour.java b/src/main/java/de/verdox/mccreativelab/behaviour/WorldGenerationBehaviour.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..9f2d9397a1a428220e08184571f25bbde1465c2a
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/behaviour/WorldGenerationBehaviour.java
+@@ -0,0 +1,26 @@
++package de.verdox.mccreativelab.behaviour;
++
++import de.verdox.mccreativelab.CustomBehaviour;
++import de.verdox.mccreativelab.worldgen.WorldGenChunk;
++import org.bukkit.NamespacedKey;
++import org.bukkit.block.data.BlockData;
++import org.bukkit.util.BlockVector;
++
++public interface WorldGenerationBehaviour extends Behaviour {
++    CustomBehaviour<WorldGenerationBehaviour> WORLD_GENERATION_BEHAVIOUR = new CustomBehaviour<>(WorldGenerationBehaviour.class, new WorldGenerationBehaviour() {}, "MCCLab - WorldGenerationBehaviour");
++
++    /**
++     * This callback method is called everytime a block is placed due to chunk generation.
++     * Consequently, this method will be called asynchronously or synchronously depending on the thread that generates it.
++     * We suggest to implement this method with caution!
++     * @param featureType The flag indicating the feature that was generated e.g. OreFeature, TreeFeature
++     * @param blockPosition The position of the block
++     * @param worldGenChunk The WorldGenChunk of the block
++     * @param generatedBlockData The BlockData that was generated
++     */
++    default void featureBlockGenerationCallback(FeatureType featureType, BlockVector blockPosition, WorldGenChunk worldGenChunk, BlockData generatedBlockData){}
++    record FeatureType(NamespacedKey namespacedKey){
++        public static final FeatureType TREE_FEATURE = new FeatureType(NamespacedKey.minecraft("tree_feature"));
++        public static final FeatureType ORE_FEATURE = new FeatureType(NamespacedKey.minecraft("ore_feature"));
++    }
++}

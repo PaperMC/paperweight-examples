@@ -1,7 +1,5 @@
 package de.verdox.mccreativelab.generator.resourcepack.renderer.element;
 
-import de.verdox.mccreativelab.generator.resourcepack.renderer.HudElement;
-
 public interface SingleHudElement extends HudElement {
     RenderedSingle<? extends SingleHudElement> toRenderedElement();
 

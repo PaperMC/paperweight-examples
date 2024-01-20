@@ -118,8 +118,8 @@ public class CustomGUIBuilder extends CustomHud {
     }
 
     @Override
-    public CustomGUIBuilder withMultiLineStandardText(String multiLineID, int lines, int charsPerLine, int pixelsBetweenLines, StringAlign.Alignment alignment, ScreenPosition startPos, float scale) {
-        return (CustomGUIBuilder) super.withMultiLineStandardText(multiLineID, lines, charsPerLine, pixelsBetweenLines, alignment, convertScreenPosition(startPos), scale);
+    public CustomGUIBuilder withMultiLineText(String multiLineID, int lines, int charsPerLine, int pixelsBetweenLines, StringAlign.Alignment alignment, ScreenPosition startPos, float scale) {
+        return (CustomGUIBuilder) super.withMultiLineText(multiLineID, lines, charsPerLine, pixelsBetweenLines, alignment, convertScreenPosition(startPos), scale);
     }
 
     @Override
