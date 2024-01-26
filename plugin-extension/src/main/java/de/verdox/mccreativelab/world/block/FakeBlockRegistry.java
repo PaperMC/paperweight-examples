@@ -90,8 +90,8 @@ public class FakeBlockRegistry extends CustomRegistry<FakeBlock> {
         BlockBehaviour.BLOCK_BEHAVIOUR.setBehaviour(Material.NOTE_BLOCK, new ReplacingFakeBlockBehaviour(Material.NOTE_BLOCK));
 
 
+
         BlockBehaviour.BLOCK_BEHAVIOUR.setBehaviour(Material.WHEAT, new ReplaceBlockStatesWithFakeBlocksBehaviour(
-            Material.WHEAT,
             Map.of(
                 Bukkit.createBlockData(Material.WHEAT, (data) -> ((Ageable) data).setAge(0)), Debug.DEBUG_CROP.getBlockState(0),
                 Bukkit.createBlockData(Material.WHEAT, (data) -> ((Ageable) data).setAge(1)), Debug.DEBUG_CROP.getBlockState(1),

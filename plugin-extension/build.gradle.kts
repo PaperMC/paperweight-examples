@@ -2,6 +2,7 @@ plugins {
     java
 }
 
+description = "plugin-extension"
 group = "de.verdox.mccreativelab"
 version = "1.20.4-R0.1-SNAPSHOT"
 
@@ -51,6 +52,22 @@ tasks{
         finalizedBy(copyTask)
     }
 }
+
+configure<PublishingExtension> {
+    publications.create<MavenPublication>("maven") {
+        from(components["java"])
+    }
+}
+
+/*publishing {
+    publications.create<MavenPublication>("maven").from(components["java"]);
+    publications {
+        create<MavenPublication>("lib") {
+            artifact("/build/libs/$description-$version.jar")
+        }
+    }
+    repositories.maven(repositories.mavenLocal())
+}*/
 
 tasks.processResources {
     val apiVersion = rootProject.providers.gradleProperty("mcVersion").get()

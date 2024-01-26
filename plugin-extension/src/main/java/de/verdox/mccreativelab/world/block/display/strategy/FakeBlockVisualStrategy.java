@@ -76,7 +76,7 @@ public abstract class FakeBlockVisualStrategy<T extends FakeBlockVisualStrategy.
 
     public abstract void blockUpdate(Block block, FakeBlock.FakeBlockState fakeBlockState, BlockFace direction, BlockData neighbourBlockData, BlockData blockDataAfterUpdate);
     protected void blockUpdateRemovalLogic(Block block, FakeBlock.FakeBlockState fakeBlockState, BlockFace direction, BlockData neighbourBlockData, BlockData blockDataAfterUpdate){
-        if(block.getBlockData().getPlacementMaterial().equals(blockDataAfterUpdate.getPlacementMaterial()))
+        if(blockDataAfterUpdate != null && block.getBlockData().getPlacementMaterial().equals(blockDataAfterUpdate.getPlacementMaterial()))
             return;
         removeFakeBlockDisplay(block);
     }

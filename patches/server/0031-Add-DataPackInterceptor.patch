@@ -137,7 +137,7 @@ index 863d73d799e9838534faea0254d5b37e7f7748cb..c458c6d2b01ad827fb02aeff87a568cd
 +    }
  }
 diff --git a/src/main/java/net/minecraft/server/packs/PathPackResources.java b/src/main/java/net/minecraft/server/packs/PathPackResources.java
-index 4822f94ce183a99ad9e0d1bdc6c5708d958f6104..d9ae46a213c8c2dd5cb9d4c407e89f2ae725175f 100644
+index 4822f94ce183a99ad9e0d1bdc6c5708d958f6104..d7ecc2af5be5bc51cf5d2a532dc6b0da72787cb2 100644
 --- a/src/main/java/net/minecraft/server/packs/PathPackResources.java
 +++ b/src/main/java/net/minecraft/server/packs/PathPackResources.java
 @@ -89,7 +89,13 @@ public class PathPackResources extends AbstractPackResources {
@@ -146,7 +146,7 @@ index 4822f94ce183a99ad9e0d1bdc6c5708d958f6104..d9ae46a213c8c2dd5cb9d4c407e89f2a
                  } else {
 -                    consumer.accept(resourceLocation, IoSupplier.create(foundPath));
 +                    // MCCLab start - Add PackInterceptor
-+                    de.verdox.mccreativelab.CraftDataPackInterceptor craft = (de.verdox.mccreativelab.CraftDataPackInterceptor) de.verdox.mccreativelab.MCCreativeLab.getVanillaPackGenerator();
++                    de.verdox.mccreativelab.CraftDataPackInterceptor craft = (de.verdox.mccreativelab.CraftDataPackInterceptor) de.verdox.mccreativelab.MCCreativeLab.getDataPackInterceptor();
 +                    IoSupplier<InputStream> result = craft.evaluate(resourceLocation, foundPath, IoSupplier.create(foundPath));
 +                    if(result == null)
 +                        return;

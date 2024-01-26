@@ -2,6 +2,8 @@ package de.verdox.mccreativelab.world.block.customhardness;
 
 import com.destroystokyo.paper.event.server.ServerTickEndEvent;
 import de.verdox.mccreativelab.MCCreativeLabExtension;
+import de.verdox.mccreativelab.recipe.CustomItemData;
+import de.verdox.mccreativelab.registry.Reference;
 import de.verdox.mccreativelab.world.block.FakeBlock;
 import de.verdox.mccreativelab.world.block.FakeBlockRegistry;
 import de.verdox.mccreativelab.world.block.FakeBlockSoundManager;
@@ -9,6 +11,7 @@ import de.verdox.mccreativelab.world.block.FakeBlockStorage;
 import de.verdox.mccreativelab.world.block.util.FakeBlockUtil;
 import de.verdox.mccreativelab.util.BlockUtil;
 import de.verdox.mccreativelab.util.EntityMetadataPredicate;
+import de.verdox.mccreativelab.world.item.FakeItem;
 import io.papermc.paper.event.player.PlayerArmSwingEvent;
 import org.bukkit.*;
 import org.bukkit.block.Block;
@@ -38,6 +41,7 @@ import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Predicate;
 
 public class BlockBreakSpeedModifier implements Listener {
     private static final EntityMetadataPredicate.TickDelay DELAY_BETWEEN_BREAK_PARTICLES = new EntityMetadataPredicate.TickDelay("DiggingParticlesDelay", 2);
@@ -99,6 +103,8 @@ public class BlockBreakSpeedModifier implements Listener {
             stopBlockBreakAction(player);
 
         Material bukkitMaterial = block.getType();
+        ItemStack diggingItem = player.getInventory().getItemInMainHand();
+        Reference<? extends FakeItem> fakeItemReference = MCCreativeLabExtension.getFakeItemRegistry().getFakeItem(CustomItemData.fromItemStack(diggingItem));
         FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockStateOrThrow(block
             .getLocation(), false);
         float customBlockHardness = -1;
@@ -107,6 +113,9 @@ public class BlockBreakSpeedModifier implements Listener {
             customBlockHardness = fakeBlockState.getProperties().getHardness();
         else if (MCCreativeLabExtension.getBlockBreakSpeedSettings().hasCustomBlockHardness(bukkitMaterial))
             customBlockHardness = MCCreativeLabExtension.getBlockBreakSpeedSettings().getCustomBlockHardness(block.getType());
+        else if(fakeItemReference != null && block.getBlockData().getDestroySpeed(diggingItem) != fakeItemReference.unwrapValue().getDestroySpeed(diggingItem, block, fakeBlockState)){
+            customBlockHardness = block.getBlockData().getMaterial().getHardness();
+        }
 
         if (customBlockHardness == -1) {
             player.setMetadata("isBreakingNormalBlock", new FixedMetadataValue(MCCreativeLabExtension.getInstance(), block));
@@ -128,8 +137,10 @@ public class BlockBreakSpeedModifier implements Listener {
         map.remove(player).resetBlockDamage();
     }
 
+    private static final Predicate<ItemStack> IS_TOOL = stack -> stack.getType().name().contains("AXE") || stack.getType().name().contains("SHOVEL") || stack.getType().name().contains("HOE") || stack.getType().name().contains("SWORD") || stack.getType().equals(Material.SHEARS);
+
     public static void tick(Player player) {
-        if (player.getInventory().getItemInMainHand().getType().name().contains("AXE") && !player.hasMetadata("isBreakingNormalBlock"))
+        if (IS_TOOL.test(player.getInventory().getItemInMainHand()) && !player.hasMetadata("isBreakingNormalBlock"))
             player.addPotionEffect(new PotionEffect(PotionEffectType.SLOW_DIGGING, 1, -1, false, false, false));
 
 /*        if(player.hasMetadata("isBreakingNormalBlock")){
@@ -245,7 +256,7 @@ public class BlockBreakSpeedModifier implements Listener {
 
         // This formula is taken from
         // https://minecraft.fandom.com/wiki/Breaking
-        public float calculateBreakTime() {
+/*        public float calculateBreakTime() {
             double multiplier = 1.0D;
             float breakTime = hardness;
             ItemStack hand = player.getInventory().getItem(EquipmentSlot.HAND);
@@ -298,7 +309,7 @@ public class BlockBreakSpeedModifier implements Listener {
             }
             breakTime = blockDamage >= 1 ? 0 : (int) Math.ceil(1.0D / blockDamage);
             return (1 / breakTime);
-        }
+        }*/
     }
 
     private static boolean hasEnchantmentLevel(Player player, Enchantment enchantment) {

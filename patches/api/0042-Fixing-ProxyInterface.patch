@@ -1,0 +1,98 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <mail.ysp@web.de>
+Date: Fri, 26 Jan 2024 15:30:40 +0100
+Subject: [PATCH] Fixing ProxyInterface
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/ProxyInterface.java b/src/main/java/de/verdox/mccreativelab/ProxyInterface.java
+index cfd8c904e47b8c8739abebce431c7f8934367797..3c96b65091ccf1d12c08987d6a5f8e8c61fcd28d 100644
+--- a/src/main/java/de/verdox/mccreativelab/ProxyInterface.java
++++ b/src/main/java/de/verdox/mccreativelab/ProxyInterface.java
+@@ -28,13 +28,13 @@ public class ProxyInterface<T> {
+ 
+     public void addImplementation(T implementation, BiFunction<T,Method,Boolean> replaceExistingMethodImplementation){
+         for (Method declaredMethod : implementation.getClass().getMethods()) {
+-            Method overridenMethod = getOverriddenMethod(declaredMethod);
++            MethodOriginFinder methodOriginFinder = new MethodOriginFinder();
++            methodOriginFinder.startFindingMethod(declaredMethod);
++            Method overridenMethod = methodOriginFinder.getOriginalMethod();
+             if(overridenMethod == null)
+                 continue;
+-            if(methodToImplementationCache.containsKey(overridenMethod) && (replaceExistingMethodImplementation == null || !replaceExistingMethodImplementation.apply(methodToImplementationCache.get(overridenMethod), overridenMethod))){
+-                System.err.println("Method "+overridenMethod+" already implemented");
++            if(methodToImplementationCache.containsKey(overridenMethod) && (replaceExistingMethodImplementation == null || !replaceExistingMethodImplementation.apply(methodToImplementationCache.get(overridenMethod), overridenMethod)))
+                 continue;
+-            }
+             methodToImplementationCache.put(overridenMethod, implementation);
+         }
+     }
+@@ -63,22 +63,57 @@ public class ProxyInterface<T> {
+         ));
+     }
+ 
+-    private Method getOverriddenMethod(final Method myMethod) {
+-        Class<?> declaringClass = myMethod.getDeclaringClass();
+-        if (declaringClass.equals(Object.class) || declaringClass.getSuperclass() == null) {
+-            return null;
++    private static class MethodOriginFinder {
++        private Class<?> result;
++        private Method foundMethod;
++
++        public void startFindingMethod(Method method){
++            startFindingMethod(method.getDeclaringClass(), method.getName(), method.getParameterTypes());
++        }
++        public synchronized void startFindingMethod(Class<?> currentClass, String methodName, Class<?>... parameterTypes){
++            result = null;
++            foundMethod = null;
++            findClass(currentClass, methodName, parameterTypes);
++        }
++
++        public Class<?> getClassDeclaringMethod() {
++            return result;
++        }
++
++        public Method getOriginalMethod() {
++            return foundMethod;
+         }
+-        try {
+-            return declaringClass.getSuperclass().getMethod(myMethod.getName(), myMethod.getParameterTypes());
+-        } catch (NoSuchMethodException e) {
+-            for (Class<?> iface : declaringClass.getInterfaces()) {
+-                try {
+-                    return iface.getMethod(myMethod.getName(), myMethod.getParameterTypes());
+-                } catch (NoSuchMethodException ignored) {
+ 
++        private boolean findClass(Class<?> currentClass, String methodName, Class<?>... parameterTypes) {
++            if (result != null)
++                return false;
++            boolean foundInSuperClass = false;
++            if (currentClass.getSuperclass() != null && !currentClass.getSuperclass().equals(Object.class)) {
++                var found = findClass(currentClass.getSuperclass(), methodName, parameterTypes);
++                if (found)
++                    foundInSuperClass = true;
++            }
++
++            boolean foundInAnyInterface = false;
++            for (Class<?> anInterface : currentClass.getInterfaces()) {
++                var foundMethodInInterface = findClass(anInterface, methodName, parameterTypes);
++                if (foundMethodInInterface)
++                    foundInAnyInterface = true;
++            }
++
++
++            try {
++                Method method = currentClass.getDeclaredMethod(methodName, parameterTypes);
++
++                if (!foundInSuperClass && !foundInAnyInterface && !currentClass.equals(Object.class)) {
++                    result = currentClass;
++                    foundMethod = method;
+                 }
++
++                return true;
++            } catch (NoSuchMethodException e) {
++                return false;
+             }
+-            return null;
+         }
+     }
+ }

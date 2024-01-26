@@ -3,7 +3,9 @@ package de.verdox.mccreativelab.debug;
 import de.verdox.mccreativelab.MCCreativeLabExtension;
 import de.verdox.mccreativelab.debug.vanilla.VillagerAI;
 import de.verdox.mccreativelab.generator.resourcepack.types.menu.ActiveMenu;
+import de.verdox.mccreativelab.world.item.data.ItemDataContainer;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -57,6 +59,16 @@ public class DebugCommand extends Command {
                     ActiveMenu.closeActiveMenu(player);
                 else
                     Debug.DEBUG_MENU.createMenuForPlayer(player);
+            }
+            else if(argument1.equals("itemload") && sender instanceof Player player){
+                ItemStack stack = player.getInventory().getItemInMainHand();
+                System.out.println("Before: "+stack);
+                ItemDataContainer.from(stack);
+                System.out.println("After: "+stack);
+            }
+            else if(argument1.equals("herobrine") && sender instanceof Player player){
+                Location summonLocation = player.getLocation();
+                MCCreativeLabExtension.getLegacyFeatures().herobrineFeature.testSpawnHerobrineModel(summonLocation);
             }
         }
         return false;

@@ -1,0 +1,30 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <mail.ysp@web.de>
+Date: Fri, 26 Jan 2024 15:14:12 +0100
+Subject: [PATCH] Making BasicItemFormat a CustomBehaviour
+
+
+diff --git a/src/main/java/de/verdox/itemformat/BasicItemFormat.java b/src/main/java/de/verdox/itemformat/BasicItemFormat.java
+index 9c03df79dbe9e92df3b17a13f73e7ed7c077cf3d..9eff8786195ff9543397f5261c2a0091e40646c9 100644
+--- a/src/main/java/de/verdox/itemformat/BasicItemFormat.java
++++ b/src/main/java/de/verdox/itemformat/BasicItemFormat.java
+@@ -1,5 +1,6 @@
+ package de.verdox.itemformat;
+ 
++import de.verdox.mccreativelab.CustomBehaviour;
+ import org.bukkit.NamespacedKey;
+ import org.bukkit.inventory.ItemStack;
+ import org.bukkit.persistence.PersistentDataType;
+@@ -9,10 +10,10 @@ import java.util.concurrent.ThreadLocalRandom;
+ 
+ @FunctionalInterface
+ public interface BasicItemFormat {
+-    BasicItemFormat BASIC_FORMAT = stack -> {};
++    CustomBehaviour<BasicItemFormat> BASIC_FORMAT = new CustomBehaviour<>(BasicItemFormat.class, stack -> {}, "BasicItemFormat");
+     void applyItemFormat(ItemStack stack);
+     static ItemStack applyItemFormatAndReturn(ItemStack stack){
+-        return applyItemFormatAndReturn(stack, BASIC_FORMAT);
++        return applyItemFormatAndReturn(stack, BASIC_FORMAT.getBehaviour());
+     }
+ 
+     static ItemStack applyItemFormatAndReturn(@NotNull ItemStack stack, @NotNull BasicItemFormat basicItemFormat) {

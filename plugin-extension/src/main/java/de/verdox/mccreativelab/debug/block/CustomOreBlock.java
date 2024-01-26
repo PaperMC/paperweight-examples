@@ -20,9 +20,4 @@ public class CustomOreBlock extends FakeBlock implements VanillaReplacingBlockBe
     public boolean isPreferredTool(@NotNull FakeBlockState fakeBlockState, @NotNull Block block, @NotNull Player player, ItemStack stack) {
         return stack != null && stack.getType().equals(Material.STICK);
     }
-
-    @Override
-    public float getDestroySpeed(@NotNull FakeBlockState fakeBlockState, @NotNull Block block, @Nullable ItemStack itemStack) {
-        return itemStack != null ? itemStack.getType().equals(Material.STICK) ? 5 : 0 : 0;
-    }
 }

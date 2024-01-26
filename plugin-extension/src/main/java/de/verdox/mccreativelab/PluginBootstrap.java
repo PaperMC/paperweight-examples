@@ -11,9 +11,4 @@ public class PluginBootstrap implements io.papermc.paper.plugin.bootstrap.Plugin
     public void bootstrap(@NotNull BootstrapContext context) {
 
     }
-
-    @Override
-    public @NotNull JavaPlugin createPlugin(@NotNull PluginProviderContext context) {
-        return io.papermc.paper.plugin.bootstrap.PluginBootstrap.super.createPlugin(context);
-    }
 }

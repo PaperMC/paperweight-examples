@@ -1,11 +1,28 @@
 package de.verdox.mccreativelab.world.item;
 
+import de.verdox.mccreativelab.recipe.CustomItemData;
 import de.verdox.mccreativelab.registry.CustomRegistry;
+import de.verdox.mccreativelab.registry.Reference;
+
+import javax.annotation.Nullable;
+import java.util.HashMap;
+import java.util.Map;
 
 public class FakeItemRegistry extends CustomRegistry<FakeItem> {
-    public <T extends FakeItem> T register(FakeItem.Builder<T> fakeItemBuilder){
+    private final Map<CustomItemData, Reference<? extends FakeItem>> customItemDataFakeItemMapping = new HashMap<>();
+    public <T extends FakeItem> Reference<T> register(FakeItem.Builder<T> fakeItemBuilder){
         T fakeItem = fakeItemBuilder.buildItem();
-        register(fakeItem.getKey(), fakeItem);
-        return fakeItem;
+        Reference<T> result = register(fakeItem.getKey(), fakeItem);
+        customItemDataFakeItemMapping.put(CustomItemData.fromItemStack(fakeItem.createItemStack()), result);
+        return result;
     }
+
+    @Nullable
+    public Reference<? extends FakeItem> getFakeItem(CustomItemData customItemData){
+        if(!customItemDataFakeItemMapping.containsKey(customItemData))
+            return null;
+        return customItemDataFakeItemMapping.get(customItemData);
+    }
+
+
 }

@@ -6,10 +6,10 @@ Subject: [PATCH] Add BlockBehaviour
 
 diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/BlockBehaviour.java b/src/main/java/de/verdox/mccreativelab/behaviour/BlockBehaviour.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..2073aa9ecd0d8f5f778819dba5f450d5ae2fa7ca
+index 0000000000000000000000000000000000000000..4fd86c1495637ccf7bbe978dcdc98684718a3e1f
 --- /dev/null
 +++ b/src/main/java/de/verdox/mccreativelab/behaviour/BlockBehaviour.java
-@@ -0,0 +1,214 @@
+@@ -0,0 +1,226 @@
 +package de.verdox.mccreativelab.behaviour;
 +
 +import de.verdox.mccreativelab.InteractionResult;
@@ -157,6 +157,18 @@ index 0000000000000000000000000000000000000000..2073aa9ecd0d8f5f778819dba5f450d5
 +     * @return callback
 +     */
 +    default BehaviourResult.Callback onRemove(Location location, BlockData newBlockData, BlockData oldBlockData, boolean moved) {
++        return BehaviourResult.Callback.DEFAULT_INSTANCE;
++    }
++
++    /**
++     *
++     * @param location - The block location
++     * @param drop - True if the block dropped items
++     * @param destroyingEntity - The Entity that destroyed the block
++     * @param maxUpdateDepth - The chunk update depth
++     * @return a callback object
++     */
++    default BehaviourResult.Callback onDestroy(Location location, boolean drop, @javax.annotation.Nullable Entity destroyingEntity, int maxUpdateDepth) {
 +        return BehaviourResult.Callback.DEFAULT_INSTANCE;
 +    }
 +

@@ -1,0 +1,38 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <mail.ysp@web.de>
+Date: Fri, 26 Jan 2024 15:30:21 +0100
+Subject: [PATCH] Adding ItemStackInteraction to BehaviourUtil Converters
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/BehaviourUtil.java b/src/main/java/de/verdox/mccreativelab/behaviour/BehaviourUtil.java
+index 2c8c90d91842786e08216b2752db902b8046b9f5..bce4ffb6e6dbf191cd06f2678901266c9a78c592 100644
+--- a/src/main/java/de/verdox/mccreativelab/behaviour/BehaviourUtil.java
++++ b/src/main/java/de/verdox/mccreativelab/behaviour/BehaviourUtil.java
+@@ -1,6 +1,7 @@
+ package de.verdox.mccreativelab.behaviour;
+ 
+ import de.verdox.mccreativelab.MultiCustomBehaviour;
++import net.minecraft.world.InteractionResultHolder;
+ import net.minecraft.world.level.block.state.BlockState;
+ import org.bukkit.Bukkit;
+ import org.bukkit.craftbukkit.CraftFoodProperties;
+@@ -165,6 +166,19 @@ public class BehaviourUtil {
+             }
+         }
+ 
++        class ItemStackInteraction implements Converter<de.verdox.mccreativelab.behaviour.interaction.ItemStackInteraction, InteractionResultHolder<net.minecraft.world.item.ItemStack>>{
++            public static final ItemStackInteraction INSTANCE = new ItemStackInteraction();
++            @Override
++            public InteractionResultHolder<net.minecraft.world.item.ItemStack> bukkitToNMS(de.verdox.mccreativelab.behaviour.interaction.ItemStackInteraction bukkitValue) {
++                return new InteractionResultHolder<>(InteractionResult.INSTANCE.bukkitToNMS(bukkitValue.interactionResult()), CraftItemStack.asNMSCopy(bukkitValue.stack()));
++            }
++
++            @Override
++            public de.verdox.mccreativelab.behaviour.interaction.ItemStackInteraction nmsToBukkitValue(InteractionResultHolder<net.minecraft.world.item.ItemStack> nmsValue) {
++                return new de.verdox.mccreativelab.behaviour.interaction.ItemStackInteraction(InteractionResult.INSTANCE.nmsToBukkitValue(nmsValue.getResult()), nmsValue.getObject().getBukkitStack());
++            }
++        }
++
+         class InteractionResult implements Converter<de.verdox.mccreativelab.InteractionResult, net.minecraft.world.InteractionResult> {
+             public static final InteractionResult INSTANCE = new InteractionResult();
+ 

@@ -163,6 +163,7 @@ public class FakeBlockBehaviour implements BlockBehaviour {
 
     @Override
     public BehaviourResult.Callback onPlayerPlace(Player player, Location location, BlockData thePlacedState) {
+        System.out.println("onPlayerPlace");
         setFakeBlockStateIfReplacesVanillaBlockState(location.getBlock(), thePlacedState);
         return BlockBehaviour.super.onPlayerPlace(player, location, thePlacedState);
     }

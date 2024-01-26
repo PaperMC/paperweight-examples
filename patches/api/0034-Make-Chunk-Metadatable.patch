@@ -1,0 +1,19 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <mail.ysp@web.de>
+Date: Wed, 24 Jan 2024 01:29:23 +0100
+Subject: [PATCH] Make Chunk Metadatable
+
+
+diff --git a/src/main/java/org/bukkit/Chunk.java b/src/main/java/org/bukkit/Chunk.java
+index 5219be0f427a5f65dadaea46b68e274d67fae030..d784323ed593bbb9646047a9c55d6aa8b7dc20c9 100644
+--- a/src/main/java/org/bukkit/Chunk.java
++++ b/src/main/java/org/bukkit/Chunk.java
+@@ -17,7 +17,7 @@ import org.jetbrains.annotations.NotNull;
+  * then the chunk will only be generated as far as it needs to provide the
+  * requested data.
+  */
+-public interface Chunk extends PersistentDataHolder {
++public interface Chunk extends PersistentDataHolder, org.bukkit.metadata.Metadatable {
+ 
+     /**
+      * Gets the X-coordinate of this chunk

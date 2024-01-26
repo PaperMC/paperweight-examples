@@ -4,6 +4,7 @@ import com.destroystokyo.paper.event.server.ServerTickEndEvent;
 import de.verdox.mccreativelab.debug.vanilla.VillagerAI;
 import de.verdox.mccreativelab.behaviour.BehaviourResult;
 import de.verdox.mccreativelab.behaviour.ItemBehaviour;
+import de.verdox.mccreativelab.util.nbt.PersistentDataSaver;
 import de.verdox.mccreativelab.world.block.customhardness.BlockBreakSpeedModifier;
 import de.verdox.mccreativelab.world.block.customhardness.BlockBreakSpeedSettings;
 import de.verdox.mccreativelab.debug.Debug;
@@ -48,7 +49,6 @@ public class MCCreativeLabExtension extends JavaPlugin implements Listener {
     }
 
     private static MCCreativeLabExtension INSTANCE;
-    public static final boolean usesMCCreativeLabFork = Bukkit.getServer().getName().equals("MCCreativeLab");
     private static final FakeBlockRegistry FAKE_BLOCK_REGISTRY = new FakeBlockRegistry();
     private static final FakeItemRegistry FAKE_ITEM_REGISTRY = new FakeItemRegistry();
     private static final ResourcePackFileHoster resourcePackFileHoster = new ResourcePackFileHoster("127.0.0.1", 8080);
@@ -62,17 +62,16 @@ public class MCCreativeLabExtension extends JavaPlugin implements Listener {
     private FuelSettings fuelSettings;
 
     public static void needsServerSoftware() {
-        if (!usesMCCreativeLabFork)
+        if (!isServerSoftware())
             throw new IllegalStateException("This feature is not available without the MCCreativeLab Paper Fork");
     }
 
     public static boolean isServerSoftware() {
-        return usesMCCreativeLabFork;
+        return Bukkit.getServer().getName().equals("MCCreativeLab");
     }
 
     @Override
     public void onLoad() {
-
         if (isServerSoftware())
             Bukkit.getLogger().info("§eFound MCCreativeLab Server Software");
         else
@@ -84,7 +83,6 @@ public class MCCreativeLabExtension extends JavaPlugin implements Listener {
 
     @Override
     public void onEnable() {
-
         VillagerAI.corePackageBuilder(PoiType.ARMORER, PoiType.ARMORER, 0.5f);
         VillagerAI.workPackageBuilder(Villager.Profession.FARMER, 0.5f);
         VillagerAI.playPackageBuilder(0.5f);
@@ -110,20 +108,15 @@ public class MCCreativeLabExtension extends JavaPlugin implements Listener {
         Bukkit.getPluginManager().registerEvents(new Debug(), this);
         Bukkit.getPluginManager().registerEvents(new BlockBreakSpeedModifier(), this);
         Bukkit.getPluginManager().registerEvents(new FakeBlockSoundManager(), this);
+        Bukkit.getPluginManager().registerEvents(new CustomBlockSounds(), this);
+        Bukkit.getPluginManager().registerEvents(new PersistentDataSaver(), this);
         Bukkit.getPluginManager().registerEvents(fuelSettings, this);
         Bukkit.getPluginManager().registerEvents(FakeBlockRegistry.fakeBlockDamage, this);
         Bukkit.getCommandMap().register("debug", "mccreativelab", new DebugCommand());
         hudRenderer.start();
-        getLegacyFeatures().enableOldFoodSystem();
-        getLegacyFeatures().enableOldCombatSystem();
-
-        ItemBehaviour.ITEM_BEHAVIOUR.setBehaviour(new CustomItemData(Material.WOODEN_SHOVEL, 0), new ItemBehaviour() {
-            @Override
-            public BehaviourResult.Object<Integer> getMaxDamage(ItemStack stack) {
-                return new BehaviourResult.Object<>(5, BehaviourResult.Object.Type.REPLACE_VANILLA);
-            }
-        });
     }
+
+
 
 
     @EventHandler
@@ -146,6 +139,7 @@ public class MCCreativeLabExtension extends JavaPlugin implements Listener {
         if (createResourcePack())
             MCCreativeLabExtension.getInstance().getResourcePackFileHoster()
                                   .sendDefaultResourcePackToPlayers(Bukkit.getOnlinePlayers());
+        Bukkit.getLogger().info("MCCreativeLabExtension started");
     }
 
     private boolean createResourcePack() {
@@ -164,7 +158,7 @@ public class MCCreativeLabExtension extends JavaPlugin implements Listener {
             mergeOtherPacksIntoMainPack(getCustomResourcePack().getPathToSavePackDataTo().toPath().toFile(), getCustomResourcePack());
             if (!getFakeBlockRegistry().isEmpty()) {
                 try {
-                    if (usesMCCreativeLabFork)
+                    if (isServerSoftware())
                         FakeBlock.FakeBlockHitbox.makeHitBoxesInvisible(getCustomResourcePack());
                 } catch (IOException e) {
                     throw new RuntimeException(e);

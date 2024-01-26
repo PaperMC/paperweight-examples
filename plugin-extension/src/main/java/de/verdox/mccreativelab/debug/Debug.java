@@ -66,14 +66,6 @@ public class Debug implements Listener {
                 .withHitbox(fakeBlockHitbox)
             );
     }
-
-    public static final FakeItem DEBUG_ITEM = MCCreativeLabExtension
-        .getFakeItemRegistry()
-        .register(
-            new FakeItem.Builder<>(new NamespacedKey("mccreativelab", "debug_item"), Material.STICK, DebugItem.class)
-                .withProperties(new FakeItem.FakeItemProperties().stacksTo(4).fireResistant())
-                .withItemMeta(meta -> meta.displayName(Component.text("Debug Item")))
-        );
     public static final DebugHud DEBUG_HUD = new DebugHud(new NamespacedKey("mccreativelab", "debug_hud"));
     public static final DebugMenu DEBUG_MENU = new DebugMenu(new NamespacedKey("mccreativelab","debug_menu"));
 

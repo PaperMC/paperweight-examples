@@ -11,3 +11,6 @@
 
 # mc_data **/*.json
 # mc_data **/*.nbt
+
+minecraft net.minecraft.world.entity.ai.village.poi.PoiTypes
+minecraft net.minecraft.world.entity.npc.VillagerProfession

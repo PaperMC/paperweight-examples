@@ -1,0 +1,19 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <mail.ysp@web.de>
+Date: Fri, 26 Jan 2024 15:24:46 +0100
+Subject: [PATCH] Finalizing DataPackInterceptor
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/data/DataPackInterceptor.java b/src/main/java/de/verdox/mccreativelab/data/DataPackInterceptor.java
+index f659561cba643ce71bcabbce07a24cd49dfb469d..59a7d6ffa7a1d525c36956c96b3c97800a1cb7e2 100644
+--- a/src/main/java/de/verdox/mccreativelab/data/DataPackInterceptor.java
++++ b/src/main/java/de/verdox/mccreativelab/data/DataPackInterceptor.java
+@@ -13,6 +13,8 @@ public interface DataPackInterceptor {
+ 
+     DataPackInterceptor exclude(PackAssetType packAssetType, Key key);
+ 
++    DataPackInterceptor modify(PackAssetType packAssetType, Key key, Consumer<DataPackAsset> consumer);
++
+     DataPackInterceptor onInstall(Consumer<DataPackAsset> installCallback);
+ 
+ 

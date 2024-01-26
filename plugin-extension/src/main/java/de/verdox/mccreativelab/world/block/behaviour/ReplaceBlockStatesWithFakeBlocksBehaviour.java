@@ -14,29 +14,34 @@ import org.bukkit.entity.Player;
 import java.util.Map;
 
 public class ReplaceBlockStatesWithFakeBlocksBehaviour extends FakeBlockBehaviour {
-    private final Material material;
     private final Map<BlockData, FakeBlock.FakeBlockState> replacedVisualStates;
 
-    public ReplaceBlockStatesWithFakeBlocksBehaviour(Material material, Map<BlockData, FakeBlock.FakeBlockState> replacedVisualStates) {
-        this.material = material;
+    public ReplaceBlockStatesWithFakeBlocksBehaviour(Map<BlockData, FakeBlock.FakeBlockState> replacedVisualStates) {
         this.replacedVisualStates = replacedVisualStates;
     }
 
     @Override
     public BehaviourResult.Callback onPlace(Location location, BlockData newBlockData, BlockData oldBlockData, boolean notify) {
         FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockStateOrThrow(location, false);
-        if (fakeBlockState == null)
-            if (replacedVisualStates.containsKey(newBlockData))
+        if (fakeBlockState == null) {
+            if (replacedVisualStates.containsKey(newBlockData)) {
                 FakeBlockStorage.setFakeBlockState(location, this.replacedVisualStates.get(newBlockData), false);
+            }
+        }
         return super.onPlace(location, newBlockData, oldBlockData, notify);
     }
 
     @Override
     public BehaviourResult.Callback onPlayerPlace(Player player, Location location, BlockData thePlacedState) {
+        System.out.println("onPlayerPlace");
         FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockStateOrThrow(location, false);
-        if (fakeBlockState == null)
-            if (replacedVisualStates.containsKey(thePlacedState))
+        System.out.println(fakeBlockState);
+        if (fakeBlockState == null) {
+            if (replacedVisualStates.containsKey(thePlacedState)) {
+                System.out.println("creating fake block state");
                 FakeBlockStorage.setFakeBlockState(location, this.replacedVisualStates.get(thePlacedState), false);
+            }
+        }
         return super.onPlayerPlace(player, location, thePlacedState);
     }
 

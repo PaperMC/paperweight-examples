@@ -1,16 +1,13 @@
 package de.verdox.mccreativelab.util.storage.palette;
 
-import de.verdox.mccreativelab.registry.exception.PaletteValueUnknownException;
 import de.verdox.mccreativelab.util.storage.HashedThreeDimensionalStorage;
 import de.verdox.mccreativelab.util.storage.NBTThreeDimensionalStorageSerializer;
 import de.verdox.mccreativelab.util.storage.ThreeDimensionalStorage;
 import org.bukkit.NamespacedKey;
-import org.bukkit.persistence.PersistentDataAdapterContext;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 
 import javax.annotation.Nullable;
-import java.util.*;
 
 public class NBTPalettedContainer<T> {
     private static final NamespacedKey PALETTE_DATA_ARRAY_KEY = new NamespacedKey("mccreativelab", "data");

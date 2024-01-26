@@ -5,6 +5,8 @@ import de.verdox.mccreativelab.MCCreativeLabExtension;
 import de.verdox.mccreativelab.Wrappers;
 import de.verdox.mccreativelab.util.EntityMetadataPredicate;
 import io.papermc.paper.event.entity.EntityMoveEvent;
+import io.papermc.paper.event.world.WorldEffectEvent;
+import io.papermc.paper.event.world.WorldSoundEvent;
 import net.kyori.adventure.sound.Sound;
 import org.bukkit.*;
 import org.bukkit.block.Block;
@@ -60,45 +62,60 @@ public class FakeBlockSoundManager implements Listener {
         DIGGING_SOUND_DELAY.reset(e.getPlayer());
     }
 
+    @EventHandler
+    public void replaceSounds(WorldSoundEvent e){
+
+    }
+
+    @EventHandler
+    public void replaceEffect(WorldEffectEvent e){
+
+    }
+
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
-    public void simulateBlockBreakWhenCreative(BlockBreakEvent e) {
+    public void simulateBlockBreakWhenCreativeOrForBlocksWithoutStandardSounds(BlockBreakEvent e) {
         if (!isBlockWithoutStandardSound(e.getBlock()))
-            return;
-        if (!e.getPlayer().getGameMode().equals(GameMode.CREATIVE))
             return;
         FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockStateOrThrow(e.getPlayer()
                                                                                              .getLocation(), false);
-        simulateBreakSound(e.getBlock(), fakeBlockState);
+        if(e.getPlayer().getGameMode().equals(GameMode.CREATIVE)){
+            simulateBreakSound(e.getBlock(), fakeBlockState);
+        }
+        else if(fakeBlockState == null)
+            simulateBreakSound(e.getBlock(), null);
+
     }
 
     public static void simulateDiggingSound(Player player, Block block, FakeBlock.FakeBlockState fakeBlockState) {
-        if (!DIGGING_SOUND_DELAY.isAllowed(player))
+/*        if (!DIGGING_SOUND_DELAY.isAllowed(player))
+            return;
+        if(!FakeBlockSoundManager.isBlockWithoutStandardSound(block) && fakeBlockState == null)
             return;
         Wrappers.SoundGroup soundGroup = getSoundGroup(block, fakeBlockState);
         net.kyori.adventure.sound.Sound sound = soundGroup.getStepSound().asSound(net.kyori.adventure.sound.Sound.Source.BLOCK, 0.15f, soundGroup.getPitch() * 0.5F);
         player.playSound(sound, block.getX(), block.getY(), block.getZ());
-        DIGGING_SOUND_DELAY.reset(player);
+        DIGGING_SOUND_DELAY.reset(player);*/
     }
 
     public static void simulateBreakSound(Block block, FakeBlock.FakeBlockState fakeBlockState) {
-        Wrappers.SoundGroup soundGroup = getSoundGroup(block, fakeBlockState);
+/*        Wrappers.SoundGroup soundGroup = getSoundGroup(block, fakeBlockState);
         net.kyori.adventure.sound.Sound sound = soundGroup.getBreakSound()
                                                           .asSound(net.kyori.adventure.sound.Sound.Source.BLOCK, (soundGroup.getVolume() + 1.0F) / 2.0F, soundGroup.getPitch() * 0.8F);
-        block.getWorld().playSound(sound, block.getX(), block.getY(), block.getZ());
+        block.getWorld().playSound(sound, block.getX(), block.getY(), block.getZ());*/
     }
 
     public static void simulateBlockPlaceSound(Player player, Block block, FakeBlock.FakeBlockState fakeBlockState) {
-        Wrappers.SoundGroup soundGroup = getSoundGroup(block, fakeBlockState);
+/*        Wrappers.SoundGroup soundGroup = getSoundGroup(block, fakeBlockState);
         net.kyori.adventure.sound.Sound sound = soundGroup.getPlaceSound().asSound(net.kyori.adventure.sound.Sound.Source.BLOCK, (soundGroup.getVolume() + 1.0F) / 2.0F, soundGroup.getPitch() * 0.8F);
-        block.getWorld().playSound(sound, block.getX(), block.getY(), block.getZ());
+        block.getWorld().playSound(sound, block.getX(), block.getY(), block.getZ());*/
     }
 
     public void simulateWalkSound(Entity walkingEntity, Location from, Location walkingTo) {
-        simulateWalkSound(walkingEntity, from, walkingTo, true);
+/*        simulateWalkSound(walkingEntity, from, walkingTo, true);*/
     }
 
     public void simulateWalkSound(Entity walkingEntity, Location from, Location walkingTo, boolean checkForDelay) {
-        if (!STEP_DISTANCE_SOUND_DELAY.isAllowed(walkingEntity) && checkForDelay)
+/*        if (!STEP_DISTANCE_SOUND_DELAY.isAllowed(walkingEntity) && checkForDelay)
             return;
         Block block = from.clone().add(0, -1, 0).getBlock();
 
@@ -116,7 +133,7 @@ public class FakeBlockSoundManager implements Listener {
             net.kyori.adventure.sound.Sound sound = getSoundGroup(block, fakeBlockState).getStepSound().asSound(soundCategory, 0.15F, 1.0F);
             block.getWorld().playSound(sound, block.getX(), block.getY(), block.getZ());
         }
-        STEP_DISTANCE_SOUND_DELAY.reset(walkingEntity);
+        STEP_DISTANCE_SOUND_DELAY.reset(walkingEntity);*/
     }
 
     private static Wrappers.SoundGroup getSoundGroup(@NotNull Block block, @Nullable FakeBlock.FakeBlockState fakeBlockState) {

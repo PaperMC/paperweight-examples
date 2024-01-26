@@ -8,7 +8,7 @@ diff --git a/src/main/java/org/bukkit/entity/Player.java b/src/main/java/org/buk
 index 20fa1024f9ad8f478a347be5c554b5e45b398a1c..52acfaea400d3aad0c9673761207cf0d1402f7f6 100644
 --- a/src/main/java/org/bukkit/entity/Player.java
 +++ b/src/main/java/org/bukkit/entity/Player.java
-@@ -679,6 +679,26 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
+@@ -679,6 +679,25 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
      @Deprecated
      public void playEffect(@NotNull Location loc, @NotNull Effect effect, int data);
  
@@ -18,7 +18,6 @@ index 20fa1024f9ad8f478a347be5c554b5e45b398a1c..52acfaea400d3aad0c9673761207cf0d
 +     * If set to false the player will not send container or inventory changes to the player.
 +     * This is useful to send a fake inventory to the player if needed.
 +     * @param value - The new value
-+     * @return
 +     */
 +    void doInventorySynchronization(boolean value);
 +    // MCCLab end

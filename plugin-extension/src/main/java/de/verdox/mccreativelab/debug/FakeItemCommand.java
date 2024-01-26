@@ -23,7 +23,7 @@ public class FakeItemCommand extends Command {
             return false;
         if(args.length == 1){
             if(args[0].equalsIgnoreCase("get")){
-                player.getInventory().addItem(Debug.DEBUG_ITEM.createItemStack());
+                //player.getInventory().addItem(Debug.DEBUG_ITEM.createItemStack());
             }
             else if(args[0].equalsIgnoreCase("behaviour")){
                 ItemStack stack = new ItemStack(Material.BAMBOO);

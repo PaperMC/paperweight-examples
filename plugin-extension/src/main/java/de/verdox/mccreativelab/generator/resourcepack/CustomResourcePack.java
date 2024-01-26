@@ -6,6 +6,8 @@ import de.verdox.mccreativelab.generator.AssetPath;
 import de.verdox.mccreativelab.generator.CustomPack;
 import de.verdox.mccreativelab.generator.Resource;
 import de.verdox.mccreativelab.generator.resourcepack.types.ItemTextureData;
+import de.verdox.mccreativelab.generator.resourcepack.types.lang.LanguageFile;
+import de.verdox.mccreativelab.generator.resourcepack.types.lang.Translatable;
 import de.verdox.mccreativelab.generator.resourcepack.types.menu.Resolution;
 import de.verdox.mccreativelab.generator.resourcepack.types.sound.SoundData;
 import de.verdox.mccreativelab.util.gson.JsonObjectBuilder;
@@ -16,20 +18,26 @@ import org.bukkit.NamespacedKey;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class CustomResourcePack extends CustomPack<CustomResourcePack> {
     public static final AssetPath resourcePacksFolder = AssetPath.buildPath("resourcePacks");
     private final Map<String, SoundFile> soundFilesPerNamespace = new HashMap<>();
     private final Map<Material, Set<ItemTextureData>> itemTextureDataPerMaterial = new HashMap<>();
     private final Map<Material, Set<AlternateBlockStateModel>> alternateBlockStateModels = new HashMap<>();
-
+    private final LanguageStorage languageStorage = new LanguageStorage(this);
 
     public CustomResourcePack(String packName, int packFormat, String description, AssetPath savePath) {
         super(packName, packFormat, description, savePath);
+    }
+
+    public LanguageStorage getLanguageStorage() {
+        return languageStorage;
+    }
+
+    public void addTranslation(Translatable translatable) {
+        languageStorage.addTranslation(translatable);
     }
 
     @Override
@@ -48,8 +56,8 @@ public class CustomResourcePack extends CustomPack<CustomResourcePack> {
             spaceLanguage.installAsset(this, new NamespacedKey("space", "en_us"), ResourcePackAssetTypes.LANG, "json");
             spaceSplitterTexture.installAsset(this, new NamespacedKey("space", "font/splitter"), ResourcePackAssetTypes.TEXTURES, "png");
 
-            for(int i = 0; i < 10; i++){
-                new Asset<CustomResourcePack>("/blockbreak/destroy_stage_"+i+".png").installAsset(this, new NamespacedKey("minecraft","item/destroy_stage_"+i), ResourcePackAssetTypes.TEXTURES, "png");
+            for (int i = 0; i < 10; i++) {
+                new Asset<CustomResourcePack>("/blockbreak/destroy_stage_" + i + ".png").installAsset(this, new NamespacedKey("minecraft", "item/destroy_stage_" + i), ResourcePackAssetTypes.TEXTURES, "png");
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -80,6 +88,7 @@ public class CustomResourcePack extends CustomPack<CustomResourcePack> {
 
             AssetUtil.createJsonAssetAndInstall(jsonObject, this, material.getKey(), ResourcePackAssetTypes.BLOCK_STATES);
         }
+        this.languageStorage.installLanguages();
         return file;
     }
 
@@ -92,18 +101,30 @@ public class CustomResourcePack extends CustomPack<CustomResourcePack> {
                 register(soundFile);
                 return soundFile;
             }).addSoundData(soundData);
-        if(resource instanceof ItemTextureData itemTextureData)
-            itemTextureDataPerMaterial.computeIfAbsent(itemTextureData.getMaterial(), material -> new HashSet<>()).add(itemTextureData);
-        if(resource instanceof AlternateBlockStateModel alternateBlockStateModel){
-            alternateBlockStateModels.computeIfAbsent(alternateBlockStateModel.getBlockData().getMaterial(), material -> new HashSet<>()).add(alternateBlockStateModel);
+        if (resource instanceof ItemTextureData itemTextureData)
+            itemTextureDataPerMaterial.computeIfAbsent(itemTextureData.getMaterial(), material -> new HashSet<>())
+                                      .add(itemTextureData);
+        if (resource instanceof AlternateBlockStateModel alternateBlockStateModel) {
+            alternateBlockStateModels
+                .computeIfAbsent(alternateBlockStateModel.getBlockData().getMaterial(), material -> new HashSet<>())
+                .add(alternateBlockStateModel);
+        }
+        if (resource instanceof LanguageFile languageFile) {
+
         }
     }
 
     @Override
     public void createDescriptionFile() {
-        var languagesJson = JsonObjectBuilder.create();
-
-        //TODO Languages
+        JsonObjectBuilder languagesJson = JsonObjectBuilder.create();
+        languageStorage
+            .getCustomTranslations()
+            .stream().map(Translatable::languageInfo).forEach(languageInfo -> {
+                languagesJson.add(languageInfo.identifier(),
+                    JsonObjectBuilder.create().add("name", languageInfo.name())
+                                     .add("region", languageInfo.region())
+                                     .add("bidirectional", languageInfo.bidirectional()));
+            });
 
         var mcMetaPreset = JsonObjectBuilder.create().add("language", languagesJson).build();
 

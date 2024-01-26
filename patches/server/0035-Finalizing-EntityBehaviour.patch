@@ -1,0 +1,109 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <mail.ysp@web.de>
+Date: Fri, 26 Jan 2024 15:18:39 +0100
+Subject: [PATCH] Finalizing EntityBehaviour
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/EntityBehaviourUtil.java b/src/main/java/de/verdox/mccreativelab/behaviour/EntityBehaviourUtil.java
+index 1f0d33693ceb94213a02893d5216e25710edc1a4..17e74ab80f82ddc1186c7648b607bb6e5d0ca0d6 100644
+--- a/src/main/java/de/verdox/mccreativelab/behaviour/EntityBehaviourUtil.java
++++ b/src/main/java/de/verdox/mccreativelab/behaviour/EntityBehaviourUtil.java
+@@ -18,6 +18,7 @@ import org.bukkit.Location;
+ import org.bukkit.craftbukkit.entity.CraftEntityType;
+ import org.bukkit.craftbukkit.entity.CraftPlayer;
+ import org.bukkit.craftbukkit.util.CraftMagicNumbers;
++import org.bukkit.entity.Ageable;
+ import org.bukkit.entity.Animals;
+ import org.bukkit.entity.EntityType;
+ import org.bukkit.entity.Item;
+@@ -34,6 +35,14 @@ public class EntityBehaviourUtil extends BehaviourUtil {
+     private static final EntityBehaviour<?> DEFAULT = new EntityBehaviour<>() {
+     };
+ 
++    public static void readAdditionalSaveData(Entity entity){
++        evaluateCallback(getBehaviour(entity, org.bukkit.entity.Entity.class, EntityBehaviour.class), entityBehaviour -> entityBehaviour.readAdditionalSaveData(entity.getBukkitEntity(), entity.getBukkitEntity().getPersistentDataContainer()), () -> {});
++    }
++
++    public static void addAdditionalSaveData(Entity entity){
++        evaluateCallback(getBehaviour(entity, org.bukkit.entity.Entity.class, EntityBehaviour.class), entityBehaviour -> entityBehaviour.addAdditionalSaveData(entity.getBukkitEntity(), entity.getBukkitEntity().getPersistentDataContainer()), () -> {});
++    }
++
+     public static boolean fireImmune(Entity entity, Supplier<Boolean> vanillaLogic) {
+         return evaluateBoolean(getBehaviour(entity, org.bukkit.entity.Entity.class, EntityBehaviour.class), entityBehaviour -> entityBehaviour.fireImmune(entity.getBukkitEntity()), vanillaLogic);
+     }
+@@ -126,6 +135,10 @@ public class EntityBehaviourUtil extends BehaviourUtil {
+             return evaluateBoolean(getBehaviour(entity, Animals.class, AnimalEntityBehaviour.class), entityBehaviour -> entityBehaviour.canMate((org.bukkit.entity.Animals) entity.getBukkitLivingEntity(), (org.bukkit.entity.Animals) other.getBukkitMob()), vanillaLogic);
+         }
+ 
++        public static void breedCallback(net.minecraft.world.entity.animal.Animal parent1, net.minecraft.world.entity.animal.Animal parent2, net.minecraft.world.entity.AgeableMob child){
++            evaluateCallback(getBehaviour(parent1, Animals.class, AnimalEntityBehaviour.class), entityBehaviour -> entityBehaviour.onBreed((Animals) parent1.getBukkitEntity(), (Animals) parent2.getBukkitEntity(), (Ageable) child.getBukkitEntity()), () -> {});
++        }
++
+         public static boolean isFood(net.minecraft.world.entity.animal.Animal entity, ItemStack stack, Supplier<Boolean> vanillaLogic) {
+             return evaluateBoolean(getBehaviour(entity, Animals.class, AnimalEntityBehaviour.class), entityBehaviour -> entityBehaviour.isFood((org.bukkit.entity.Animals) entity.getBukkitLivingEntity(), stack.asBukkitMirror()), vanillaLogic);
+         }
+diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
+index d1934bfcc4289c1d92d2ba173316ef4011ee14c7..c63071454e671795f72cfd5948a5467d0d3ca175 100644
+--- a/src/main/java/net/minecraft/world/entity/Entity.java
++++ b/src/main/java/net/minecraft/world/entity/Entity.java
+@@ -2455,6 +2455,8 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+                 }
+             }
+ 
++            de.verdox.mccreativelab.behaviour.EntityBehaviourUtil.addAdditionalSaveData(this); // MCCLab - Add EntityBehaviour
++
+             // CraftBukkit start - stores eventually existing bukkit values
+             if (this.bukkitEntity != null) {
+                 this.bukkitEntity.storeBukkitValues(nbttagcompound);
+@@ -2580,6 +2582,8 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+             }
+             // CraftBukkit end
+ 
++            de.verdox.mccreativelab.behaviour.EntityBehaviourUtil.readAdditionalSaveData(this); // MCCLab - Add EntityBehaviour
++
+             // CraftBukkit start
+             // Paper - move world parsing/loading to PlayerList#placeNewPlayer
+             this.getBukkitEntity().readBukkitValues(nbt);
+diff --git a/src/main/java/net/minecraft/world/entity/animal/Animal.java b/src/main/java/net/minecraft/world/entity/animal/Animal.java
+index a1a5fab8e489f4a19436eac9c59210c2261bd015..e769417f954e3fcb2f463f281ece6310c73a7de7 100644
+--- a/src/main/java/net/minecraft/world/entity/animal/Animal.java
++++ b/src/main/java/net/minecraft/world/entity/animal/Animal.java
+@@ -262,6 +262,7 @@ public abstract class Animal extends AgeableMob {
+             this.finalizeSpawnChildFromBreeding(world, other, entityageable, experience);
+             world.addFreshEntityWithPassengers(entityageable, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.BREEDING);
+             // CraftBukkit end
++            de.verdox.mccreativelab.behaviour.EntityBehaviourUtil.Animal.breedCallback(this, other, entityageable);
+         }
+     }
+ 
+diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
+index 717313fb3dfa8fded8d2b00d149474b6b90f26f6..a46ce952fa595413253df784e9054fbca70e33b0 100644
+--- a/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
++++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
+@@ -1211,6 +1211,26 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
+         if(!entityTypeClass.isAssignableFrom(getClass()))
+             throw new IllegalArgumentException(getClass().getName()+" is not of type "+entityTypeClass.getClass().getName());
+         getHandle().behaviour = behaviour;
++        de.verdox.mccreativelab.behaviour.EntityBehaviourUtil.readAdditionalSaveData(getHandle());
++    }
++
++    @Override
++    @org.jetbrains.annotations.Nullable
++    public <T extends org.bukkit.entity.Entity, B extends de.verdox.mccreativelab.behaviour.entity.EntityBehaviour<T>> B getCustomEntityBehaviour(Class<? extends B> behaviourType) {
++        if(!hasCustomEntityBehaviour())
++            return null;
++        if(!behaviourType.isAssignableFrom(getHandle().behaviour.getClass()))
++            throw new IllegalArgumentException(getClass().getName()+" is not of type "+behaviourType.getClass().getName());
++        return behaviourType.cast(getHandle().behaviour);
++    }
++
++    @Override
++    public <T extends org.bukkit.entity.Entity, B extends de.verdox.mccreativelab.behaviour.entity.EntityBehaviour<T>> B getCustomEntityBehaviourIfAvailable(Class<? extends B> behaviourType) {
++        if(!hasCustomEntityBehaviour())
++            return null;
++        if(!behaviourType.isAssignableFrom(getHandle().behaviour.getClass()))
++            return null;
++        return behaviourType.cast(getHandle().behaviour);
+     }
+ 
+     @Override

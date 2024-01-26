@@ -78,10 +78,6 @@ public abstract class FakeBlock implements Keyed, BlockBehaviour {
         return List.of();
     }
 
-    public float getDestroySpeed(@NotNull FakeBlockState fakeBlockState, @NotNull Block block, @Nullable ItemStack itemStack) {
-        return 1.0f;
-    }
-
     public void remove(Location location, boolean withEffects) {
         FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockStateOrThrow(location, false);
         if (fakeBlockState == null)

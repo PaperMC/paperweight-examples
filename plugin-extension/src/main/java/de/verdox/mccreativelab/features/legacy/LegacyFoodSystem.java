@@ -101,7 +101,6 @@ public class LegacyFoodSystem extends LegacyFeature {
 
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent e) {
-        if (e.getPlayer().getLastSeen() == 0)
             Bukkit.getScheduler()
                   .runTask(MCCreativeLabExtension.getInstance(), () -> setAllowSprinting(e.getPlayer(), false));
     }

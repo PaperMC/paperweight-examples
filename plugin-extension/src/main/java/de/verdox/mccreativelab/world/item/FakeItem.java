@@ -1,14 +1,24 @@
 package de.verdox.mccreativelab.world.item;
 
+import de.verdox.mccreativelab.MCCreativeLabExtension;
 import de.verdox.mccreativelab.behaviour.BehaviourResult;
 import de.verdox.mccreativelab.behaviour.ItemBehaviour;
+import de.verdox.mccreativelab.generator.Asset;
+import de.verdox.mccreativelab.generator.resourcepack.CustomModelDataProvider;
+import de.verdox.mccreativelab.generator.resourcepack.CustomResourcePack;
+import de.verdox.mccreativelab.generator.resourcepack.types.ItemTextureData;
+import de.verdox.mccreativelab.generator.resourcepack.types.lang.Translatable;
+import de.verdox.mccreativelab.world.block.FakeBlock;
 import de.verdox.mccreativelab.world.item.behaviour.VanillaReplacingItemBehaviour;
 import de.verdox.mccreativelab.recipe.CustomItemData;
 import it.unimi.dsi.fastutil.Pair;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.TranslatableComponent;
 import org.bukkit.Bukkit;
 import org.bukkit.Keyed;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.block.Block;
 import org.bukkit.inventory.FoodProperties;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -20,21 +30,42 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
-public class FakeItem implements Keyed, VanillaReplacingItemBehaviour {
+public class FakeItem implements Keyed, ItemBehaviour {
     private NamespacedKey key;
-    private final Material material;
-    private final int customModelData;
+    private Material material;
+    private int customModelData;
     private FakeItemProperties fakeItemProperties;
     private Consumer<ItemMeta> metaConsumer;
+    private Translatable nameTranslatable;
 
-    protected FakeItem(Material material, int customModelData) {
-        this.material = material;
-        this.customModelData = customModelData;
+    public Material getMaterial() {
+        return material;
     }
 
-    void setFakeItemProperties(FakeItemProperties fakeItemProperties) {
+    public int getCustomModelData() {
+        return customModelData;
+    }
+
+    public FakeItemProperties getFakeItemProperties() {
+        return fakeItemProperties;
+    }
+
+    public void setFakeItemProperties(FakeItemProperties fakeItemProperties) {
         this.fakeItemProperties = fakeItemProperties;
+    }
+
+    void setNameTranslatable(Translatable nameTranslatable) {
+        this.nameTranslatable = nameTranslatable;
+    }
+
+    void setMaterial(Material material) {
+        this.material = material;
+    }
+
+    void setCustomModelData(int customModelData) {
+        this.customModelData = customModelData;
     }
 
     void setMetaConsumer(Consumer<ItemMeta> metaConsumer) {
@@ -47,15 +78,24 @@ public class FakeItem implements Keyed, VanillaReplacingItemBehaviour {
 
     public final ItemStack createItemStack() {
         ItemStack stack = new ItemStack(material);
-        if(metaConsumer != null)
+        if (metaConsumer != null)
             stack.editMeta(metaConsumer);
-        stack.editMeta((meta) -> meta.setCustomModelData(customModelData));
+        stack.editMeta((meta) -> {
+            meta.displayName(Component.translatable(nameTranslatable.key()));
+            meta.setCustomModelData(customModelData);
+        });
         return stack;
+    }
+
+    public float getDestroySpeed(ItemStack stack, Block block, @Nullable FakeBlock.FakeBlockState fakeBlockState) {
+        if (fakeBlockState == null)
+            return block.getDestroySpeed(stack, true);
+        return 1.0f;
     }
 
     @Override
     public final BehaviourResult.Object<FoodProperties> getFoodProperties(ItemStack stack) {
-        if(fakeItemProperties.foodProperties == null)
+        if (fakeItemProperties.foodProperties == null)
             return new BehaviourResult.Object<>(null, BehaviourResult.Object.Type.REPLACE_VANILLA);
         return new BehaviourResult.Object<>(new FoodProperties() {
             @Override
@@ -116,31 +156,36 @@ public class FakeItem implements Keyed, VanillaReplacingItemBehaviour {
     }
 
 
-
     @Override
     public @NotNull NamespacedKey getKey() {
         return key;
     }
 
     public static class Builder<T extends FakeItem> {
-        public static final Map<Material, AtomicInteger> customModelCounters = new HashMap<>();
         private final Material vanillaMaterial;
         private final NamespacedKey namespacedKey;
-        private final Class<? extends T> fakeItemClass;
+        private final Supplier<T> itemBuilder;
         private Consumer<ItemMeta> itemMetaBuilder;
         private FakeItemProperties fakeItemProperties;
+        private Asset<CustomResourcePack> texture;
+        private Translatable translatable;
 
-        public Builder(NamespacedKey namespacedKey, Material vanillaMaterial, Class<? extends T> fakeItemClass) {
+        public Builder(NamespacedKey namespacedKey, Material vanillaMaterial, Class<? extends T> fakeItemClass, Supplier<T> itemBuilder) {
+            this.itemBuilder = itemBuilder;
             Objects.requireNonNull(vanillaMaterial);
             Objects.requireNonNull(namespacedKey);
             Objects.requireNonNull(fakeItemClass);
             this.vanillaMaterial = vanillaMaterial;
             this.namespacedKey = namespacedKey;
-            this.fakeItemClass = fakeItemClass;
         }
 
         public Builder<T> withItemMeta(Consumer<ItemMeta> itemMetaBuilder) {
             this.itemMetaBuilder = itemMetaBuilder;
+            return this;
+        }
+
+        public Builder<T> withStandardName(Translatable translatable) {
+            this.translatable = translatable;
             return this;
         }
 
@@ -149,29 +194,32 @@ public class FakeItem implements Keyed, VanillaReplacingItemBehaviour {
             return this;
         }
 
-        public Builder<T> withTexture() {
+        public Builder<T> withTexture(Asset<CustomResourcePack> texture) {
+            this.texture = texture;
             return this;
         }
 
-        T buildItem(){
-            try {
-                var constructor = fakeItemClass.getDeclaredConstructor(Material.class, int.class);
-                constructor.setAccessible(true);
-                int customModelData = customModelCounters.computeIfAbsent(vanillaMaterial, material1 -> new AtomicInteger(5000)).getAndIncrement();
-                T value = constructor.newInstance(vanillaMaterial, customModelData);
+        T buildItem() {
+            int customModelData = CustomModelDataProvider.drawCustomModelData(vanillaMaterial);
+            T value = itemBuilder.get();
 
-                value.setFakeItemProperties(fakeItemProperties);
-                value.setMetaConsumer(itemMetaBuilder);
-                value.setKey(namespacedKey);
-                ItemBehaviour.ITEM_BEHAVIOUR.setBehaviour(new CustomItemData(vanillaMaterial, customModelData), value);
-                return value;
-            } catch (NoSuchMethodException e) {
-                Bukkit.getLogger()
-                      .warning("FakeItem class " + fakeItemClass.getSimpleName() + " does not implement base constructor(Material, Integer)");
-                throw new RuntimeException(e);
-            } catch (InvocationTargetException | InstantiationException | IllegalAccessException e) {
-                throw new RuntimeException(e);
-            }
+            value.setMaterial(vanillaMaterial);
+            value.setCustomModelData(customModelData);
+            value.setKey(namespacedKey);
+
+            if (this.translatable != null) value.setNameTranslatable(translatable);
+            if (this.fakeItemProperties != null) value.setFakeItemProperties(fakeItemProperties);
+            if (this.itemMetaBuilder != null) value.setMetaConsumer(itemMetaBuilder);
+
+            Objects.requireNonNull(namespacedKey);
+            Objects.requireNonNull(vanillaMaterial);
+
+            ItemTextureData itemTextureData = new ItemTextureData(new NamespacedKey(namespacedKey.namespace(), "item/" + namespacedKey.value()), vanillaMaterial, customModelData, texture, null);
+            MCCreativeLabExtension.getCustomResourcePack().register(itemTextureData);
+            MCCreativeLabExtension.getCustomResourcePack().addTranslation(translatable);
+
+            ItemBehaviour.ITEM_BEHAVIOUR.setBehaviour(new CustomItemData(vanillaMaterial, customModelData), value);
+            return value;
         }
     }
 

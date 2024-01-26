@@ -6,10 +6,10 @@ Subject: [PATCH] Add BlockBehaviour
 
 diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/BlockBehaviourUtil.java b/src/main/java/de/verdox/mccreativelab/behaviour/BlockBehaviourUtil.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..1dad387f8756669ae70817c477502340391f9784
+index 0000000000000000000000000000000000000000..cfe1847ba91bc914fd51cf210f83b1edf690b495
 --- /dev/null
 +++ b/src/main/java/de/verdox/mccreativelab/behaviour/BlockBehaviourUtil.java
-@@ -0,0 +1,169 @@
+@@ -0,0 +1,175 @@
 +package de.verdox.mccreativelab.behaviour;
 +
 +import de.verdox.mccreativelab.random.CraftVanillaRandomSource;
@@ -146,6 +146,12 @@ index 0000000000000000000000000000000000000000..1dad387f8756669ae70817c477502340
 +            blockBehaviour.onRemove(new Location(world.getWorld(), pos.getX(), pos.getY(), pos.getZ()), newState.createCraftBlockData(), state.createCraftBlockData(), moved));
 +    }
 +
++    public void onDestroyCallback(BlockState state, Level world, BlockPos pos, boolean drop, @javax.annotation.Nullable Entity breakingEntity, int maxUpdateDepth) {
++        BlockBehaviourUtil.evaluateCallback(BlockBehaviour.BLOCK_BEHAVIOUR, getMaterial(state), blockBehaviour ->
++            blockBehaviour.onDestroy(new Location(world.getWorld(), pos.getX(), pos.getY(), pos.getZ()), drop, breakingEntity != null ? breakingEntity.getBukkitEntity() : null, maxUpdateDepth));
++    }
++
++
 +    public void onUseCallback(BlockState state, Level world, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
 +        BlockBehaviourUtil.evaluateCallback(BlockBehaviour.BLOCK_BEHAVIOUR, getMaterial(state), blockBehaviour -> {
 +            Block block = world.getWorld().getBlockAt(pos.getX(), pos.getY(), pos.getZ());
@@ -252,6 +258,19 @@ index f529f5d0f28533ec89f3ee712e59745991d068ee..4766efe8ebbefa2e36157f8f8f8383d8
      }
  
      public boolean shouldBlockExplode(Explosion explosion, BlockGetter world, BlockPos pos, BlockState state, float power) {
+diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
+index 6403341f2e9d7ac4251336cb0bcc5d79dbb7bb0e..be7b674d56b9cf19b1611b57981c66f231b2b6be 100644
+--- a/src/main/java/net/minecraft/world/level/Level.java
++++ b/src/main/java/net/minecraft/world/level/Level.java
+@@ -1112,7 +1112,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+             if (flag1) {
+                 this.gameEvent(GameEvent.BLOCK_DESTROY, pos, GameEvent.Context.of(breakingEntity, iblockdata));
+             }
+-
++            de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.getInstance().onDestroyCallback(iblockdata, this, pos, drop, breakingEntity, maxUpdateDepth);
+             return flag1;
+         }
+     }
 diff --git a/src/main/java/net/minecraft/world/level/block/Block.java b/src/main/java/net/minecraft/world/level/block/Block.java
 index e21867d3956078bb0db4ceed45e5811e9acd7377..90c23526bcf76bdd94e97664c6c26935cf980b1a 100644
 --- a/src/main/java/net/minecraft/world/level/block/Block.java
@@ -397,7 +416,7 @@ index 401f1b418a4f57059e991cc958ebadb31239a581..90391c3431e174f22216b37f55757571
              return this.getBlock().getSeed(this.asState(), pos);
          }
 diff --git a/src/main/java/net/minecraft/world/level/chunk/LevelChunkSection.java b/src/main/java/net/minecraft/world/level/chunk/LevelChunkSection.java
-index f0de72afad4bb571153436399386a6a8a70582a6..f25abd7790da0a0a244bd6d2445870bdc03930e2 100644
+index f0de72afad4bb571153436399386a6a8a70582a6..3bd17b1dffb6092d54b2c3221fae00dc5221d5d8 100644
 --- a/src/main/java/net/minecraft/world/level/chunk/LevelChunkSection.java
 +++ b/src/main/java/net/minecraft/world/level/chunk/LevelChunkSection.java
 @@ -28,6 +28,11 @@ public class LevelChunkSection {

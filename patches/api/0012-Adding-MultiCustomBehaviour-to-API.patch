@@ -6,10 +6,10 @@ Subject: [PATCH] Adding MultiCustomBehaviour to API
 
 diff --git a/src/main/java/de/verdox/mccreativelab/MultiCustomBehaviour.java b/src/main/java/de/verdox/mccreativelab/MultiCustomBehaviour.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..cc8180da45b4b1ec8da1bd96bd167536af027407
+index 0000000000000000000000000000000000000000..05d10cbe5ebd6291da004ff1e5f8c62257c7896f
 --- /dev/null
 +++ b/src/main/java/de/verdox/mccreativelab/MultiCustomBehaviour.java
-@@ -0,0 +1,52 @@
+@@ -0,0 +1,53 @@
 +package de.verdox.mccreativelab;
 +
 +import org.jetbrains.annotations.ApiStatus;
@@ -28,6 +28,7 @@ index 0000000000000000000000000000000000000000..cc8180da45b4b1ec8da1bd96bd167536
 +
 +    public MultiCustomBehaviour(Class<T> type, T defaultImplementation, String key) {
 +        this.key = key;
++        this.type = type;
 +        this.defaultImplementation = defaultImplementation;
 +    }
 +

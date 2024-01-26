@@ -15,7 +15,7 @@ public abstract class CustomRegistry<T> {
     private final Map<NamespacedKey, Integer> keyToId = new HashMap<>();
     private final Map<Integer, NamespacedKey> idToKey = new HashMap<>();
     private boolean freeze;
-    protected <S extends T> S register(NamespacedKey namespacedKey, S data){
+    protected <S extends T> Reference<S> register(NamespacedKey namespacedKey, S data){
         if(freeze)
             throw new IllegalStateException("Registry already frozen");
         int id = idCounter.getAndIncrement();
@@ -24,7 +24,8 @@ public abstract class CustomRegistry<T> {
         keyToId.put(namespacedKey, id);
         idToKey.put(id, namespacedKey);
         dataToKeyMapping.put(data, namespacedKey);
-        return data;
+
+        return (Reference<S>) Reference.create(this, namespacedKey);
     }
 
     public void freeze(){
