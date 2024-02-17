@@ -4,7 +4,7 @@ import de.verdox.mccreativelab.generator.Asset;
 import de.verdox.mccreativelab.generator.resourcepack.CustomModelDataProvider;
 import de.verdox.mccreativelab.generator.resourcepack.CustomResourcePack;
 import de.verdox.mccreativelab.generator.resourcepack.ResourcePackResource;
-import de.verdox.mccreativelab.generator.resourcepack.types.CustomHud;
+import de.verdox.mccreativelab.generator.resourcepack.types.hud.CustomHud;
 import de.verdox.mccreativelab.generator.resourcepack.types.ItemTextureData;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;

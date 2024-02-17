@@ -5,11 +5,11 @@ import de.verdox.mccreativelab.behaviour.BlockBehaviour;
 import de.verdox.mccreativelab.world.block.behaviour.ReplaceBlockStatesWithFakeBlocksBehaviour;
 import de.verdox.mccreativelab.world.block.behaviour.ReplacingFakeBlockBehaviour;
 import de.verdox.mccreativelab.world.block.display.ReusedBlockStateDisplay;
-import de.verdox.mccreativelab.debug.Debug;
 import de.verdox.mccreativelab.generator.resourcepack.CustomResourcePack;
 import de.verdox.mccreativelab.generator.resourcepack.types.ItemTextureData;
 import de.verdox.mccreativelab.registry.CustomRegistry;
 import de.verdox.mccreativelab.util.storage.palette.IdMap;
+import de.verdox.mccreativelab.world.block.replaced.ReplacedBlocks;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.Ageable;
@@ -41,6 +41,7 @@ public class FakeBlockRegistry extends CustomRegistry<FakeBlock> {
     public static final FakeBlockDamage fakeBlockDamage = new FakeBlockDamage();
 
     public static void setupFakeBlocks() {
+        BlockBehaviour.BLOCK_BEHAVIOUR.setBehaviour(Material.NOTE_BLOCK, new ReplacingFakeBlockBehaviour(Material.NOTE_BLOCK));
         /*if(USE_ALTERNATE_FAKE_BLOCK_ENGINE){
             fakeBlockDamage.init(MCCreativeLabExtension.getInstance().getCustomResourcePack());
 
@@ -88,21 +89,6 @@ public class FakeBlockRegistry extends CustomRegistry<FakeBlock> {
                                                                                                  .getSoundGroup(), newAncientDebrisSoundGroup);
         }*/
         BlockBehaviour.BLOCK_BEHAVIOUR.setBehaviour(Material.NOTE_BLOCK, new ReplacingFakeBlockBehaviour(Material.NOTE_BLOCK));
-
-
-
-        BlockBehaviour.BLOCK_BEHAVIOUR.setBehaviour(Material.WHEAT, new ReplaceBlockStatesWithFakeBlocksBehaviour(
-            Map.of(
-                Bukkit.createBlockData(Material.WHEAT, (data) -> ((Ageable) data).setAge(0)), Debug.DEBUG_CROP.getBlockState(0),
-                Bukkit.createBlockData(Material.WHEAT, (data) -> ((Ageable) data).setAge(1)), Debug.DEBUG_CROP.getBlockState(1),
-                Bukkit.createBlockData(Material.WHEAT, (data) -> ((Ageable) data).setAge(2)), Debug.DEBUG_CROP.getBlockState(2),
-                Bukkit.createBlockData(Material.WHEAT, (data) -> ((Ageable) data).setAge(3)), Debug.DEBUG_CROP.getBlockState(3),
-                Bukkit.createBlockData(Material.WHEAT, (data) -> ((Ageable) data).setAge(4)), Debug.DEBUG_CROP.getBlockState(4),
-                Bukkit.createBlockData(Material.WHEAT, (data) -> ((Ageable) data).setAge(5)), Debug.DEBUG_CROP.getBlockState(5),
-                Bukkit.createBlockData(Material.WHEAT, (data) -> ((Ageable) data).setAge(6)), Debug.DEBUG_CROP.getBlockState(6),
-                Bukkit.createBlockData(Material.WHEAT, (data) -> ((Ageable) data).setAge(7)), Debug.DEBUG_CROP.getBlockState(7)
-            )
-        ));
     }
 
     public static boolean hasTransparentTexture(Material material) {

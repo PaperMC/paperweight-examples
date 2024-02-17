@@ -18,6 +18,10 @@ public class AssetBasedResourcePackResource extends ResourcePackResource{
         this.fileEnding = fileEnding;
     }
 
+    public Asset<CustomResourcePack> getAsset() {
+        return asset;
+    }
+
     @Override
     public void installResourceToPack(CustomResourcePack customPack) throws IOException {
         asset.installAsset(customPack, getKey(), assetType, fileEnding);

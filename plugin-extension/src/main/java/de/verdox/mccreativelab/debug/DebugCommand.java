@@ -2,6 +2,7 @@ package de.verdox.mccreativelab.debug;
 
 import de.verdox.mccreativelab.MCCreativeLabExtension;
 import de.verdox.mccreativelab.debug.vanilla.VillagerAI;
+import de.verdox.mccreativelab.generator.resourcepack.types.hud.renderer.HudRendererImpl;
 import de.verdox.mccreativelab.generator.resourcepack.types.menu.ActiveMenu;
 import de.verdox.mccreativelab.world.item.data.ItemDataContainer;
 import org.bukkit.Bukkit;
@@ -38,7 +39,11 @@ public class DebugCommand extends Command {
                     player.doInventorySynchronization(false);
                     player.sendFakeInventoryContents(contents);
                 }
-            } else if (argument1.equals("testai") && sender instanceof Player player) {
+            }
+            else if(argument1.equals("reload")){
+                MCCreativeLabExtension.getInstance().reloadPlugin();
+            }
+            else if (argument1.equals("testai") && sender instanceof Player player) {
 
 
                 Villager villager = (Villager) player.getWorld().spawnEntity(player.getLocation(), EntityType.VILLAGER);
@@ -69,6 +74,10 @@ public class DebugCommand extends Command {
             else if(argument1.equals("herobrine") && sender instanceof Player player){
                 Location summonLocation = player.getLocation();
                 MCCreativeLabExtension.getLegacyFeatures().herobrineFeature.testSpawnHerobrineModel(summonLocation);
+            }
+            else if(argument1.equals("printhud") && sender instanceof Player player){
+                HudRendererImpl hudRenderer = (HudRendererImpl) MCCreativeLabExtension.getHudRenderer();
+                hudRenderer.printLastRender(player);
             }
         }
         return false;

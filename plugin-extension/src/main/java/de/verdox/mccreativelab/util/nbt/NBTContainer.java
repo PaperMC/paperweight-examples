@@ -1,15 +1,19 @@
 package de.verdox.mccreativelab.util.nbt;
 
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.NamespacedKey;
-import org.bukkit.World;
+import de.verdox.mccreativelab.MCCreativeLabExtension;
+import de.verdox.mccreativelab.world.block.FakeBlock;
+import net.md_5.bungee.api.chat.ItemTag;
+import org.bukkit.*;
+import org.bukkit.block.data.BlockData;
+import org.bukkit.configuration.serialization.ConfigurationSerialization;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class NBTContainer {
@@ -18,8 +22,6 @@ public class NBTContainer {
 
     protected NBTContainer(String namespace, PersistentDataContainer persistentDataContainer) {
         this.namespace = namespace;
-
-
         this.persistentDataContainer = persistentDataContainer;
     }
 
@@ -163,8 +165,8 @@ public class NBTContainer {
             remove(key);
         else
             persistentDataContainer.set(createNameSpacedKey(key), PersistentDataType.TAG_CONTAINER_ARRAY, value.stream()
-                                                                                                           .map(nbtContainer -> nbtContainer.persistentDataContainer)
-                                                                                                           .toArray(PersistentDataContainer[]::new));
+                                                                                                               .map(nbtContainer -> nbtContainer.persistentDataContainer)
+                                                                                                               .toArray(PersistentDataContainer[]::new));
     }
 
     public List<NBTContainer> getNBTContainerList(String key) {
@@ -187,6 +189,12 @@ public class NBTContainer {
         return new NamespacedKey(namespace.toLowerCase(Locale.ROOT), key.toLowerCase(Locale.ROOT));
     }
 
+    /**
+     * If you intend to edit the NBTContainer you must save it to the parent container after it.
+     *
+     * @param key The key
+     * @return - The NBTContainer saved at the key
+     */
     @Nullable
     public NBTContainer getNBTContainer(String key) {
         NamespacedKey namespacedKey = createNameSpacedKey(key);
@@ -195,14 +203,16 @@ public class NBTContainer {
         return new NBTContainer(namespace, persistentDataContainer.get(namespacedKey, PersistentDataType.TAG_CONTAINER));
     }
 
-    public NBTContainer getOrCreateNBTContainer(String key) {
-        if (!has(key))
-            addNBTContainer(key);
-        return getNBTContainer(key);
+    public void editNBTContainer(String key, Consumer<NBTContainer> editor) {
+        NBTContainer container = getNBTContainer(key);
+        if (container == null || editor == null)
+            return;
+        editor.accept(container);
+        set(key, container);
     }
 
     public void set(String key, UUID uuid) {
-        if(uuid == null){
+        if (uuid == null) {
             remove(key);
             return;
         }
@@ -217,10 +227,15 @@ public class NBTContainer {
         return UUID.fromString(uuidString);
     }
 
-    public NBTContainer addNBTContainer(String key) {
+    public void addNBTContainer(String key) {
+        addNBTContainer(key, null);
+    }
+
+    public void addNBTContainer(String key, Consumer<NBTContainer> consumer) {
         NBTContainer nbtContainer = createNBTContainer();
+        if (consumer != null)
+            consumer.accept(nbtContainer);
         set(key, nbtContainer);
-        return nbtContainer;
     }
 
     public Set<String> getKeys() {
@@ -232,7 +247,7 @@ public class NBTContainer {
     }
 
     public void set(String key, boolean[] array) {
-        if(array == null){
+        if (array == null) {
             remove(key);
             return;
         }
@@ -256,7 +271,7 @@ public class NBTContainer {
     }
 
     public void setStringList(String key, List<String> stringList) {
-        if(stringList == null){
+        if (stringList == null) {
             remove(key);
             return;
         }
@@ -272,7 +287,7 @@ public class NBTContainer {
     }
 
     public void setUUIDList(String key, List<UUID> uuidList) {
-        if(uuidList == null){
+        if (uuidList == null) {
             remove(key);
             return;
         }
@@ -283,8 +298,111 @@ public class NBTContainer {
         return getStringList(key).stream().map(UUID::fromString).toList();
     }
 
+    public void set(String key, FakeBlock.FakeBlockState fakeBlockState) {
+        if (fakeBlockState == null) {
+            remove(key);
+            return;
+        }
+        NBTContainer nbtContainer = createNBTContainer();
+        nbtContainer.set("id", fakeBlockState.getFakeBlock().getKey().asString());
+        nbtContainer.set("state", fakeBlockState.getFakeBlock().getBlockStateID(fakeBlockState));
+        set(key, nbtContainer);
+    }
+
+    public FakeBlock.FakeBlockState getFakeBlockState(String key) {
+        NBTContainer nbtContainer = getNBTContainer(key);
+        if (nbtContainer == null)
+            return null;
+
+        NamespacedKey blockKey = NamespacedKey.fromString(nbtContainer.getString("id"));
+        int stateID = nbtContainer.getInt("state");
+        FakeBlock fakeBlock = MCCreativeLabExtension.getFakeBlockRegistry().get(blockKey);
+        if (fakeBlock == null)
+            return null;
+        FakeBlock.FakeBlockState fakeBlockState = fakeBlock.getBlockState(stateID);
+        if (fakeBlockState == null)
+            return fakeBlock.getDefaultBlockState();
+        return fakeBlockState;
+    }
+
+    public void set(String key, BlockData blockData) {
+        if (blockData == null) {
+            remove(key);
+            return;
+        }
+        set(key, blockData.getAsString());
+    }
+
+    public void set(String key, Enum<?> enumValue) {
+        if (enumValue == null) {
+            remove(key);
+            return;
+        }
+        set(key, enumValue.name());
+    }
+
+    public void set(String key, ItemStack stack) {
+        if (stack == null) {
+            remove(key);
+            return;
+        }
+        set(key, stack.serializeAsBytes());
+    }
+
+    public ItemStack getItemStack(String key) {
+        byte[] serialized = getByteArray(key);
+        return ItemStack.deserializeBytes(serialized);
+    }
+
+    public void set(String key, ItemStack[] itemStacks) {
+        if (itemStacks == null) {
+            remove(key);
+            return;
+        }
+        setItemStackList(key, Arrays.stream(itemStacks).toList());
+    }
+
+    public ItemStack[] getItemArray(String key) {
+        return getItemStacks(key).toArray(ItemStack[]::new);
+    }
+
+    public void setItemStackList(String key, List<ItemStack> itemStacks) {
+        if (itemStacks == null) {
+            remove(key);
+            return;
+        }
+        List<NBTContainer> serializedItems = new LinkedList<>();
+        for (ItemStack itemStack : itemStacks) {
+            NBTContainer nbt = createNBTContainer();
+            if (itemStack == null)
+                nbt.set("item", new byte[0]);
+            else
+                nbt.set("item", itemStack.serializeAsBytes());
+            serializedItems.add(nbt);
+        }
+        set(key, serializedItems);
+    }
+
+    public List<ItemStack> getItemStacks(String key) {
+        return getNBTContainerList(key)
+            .stream()
+            .map(nbtContainer -> nbtContainer.getByteArray("item"))
+            .map(bytes -> bytes.length == 0 ? new ItemStack(Material.AIR) : ItemStack.deserializeBytes(bytes))
+            .toList();
+    }
+
+    public <T extends Enum<T>> T getEnum(String key, Class<? extends T> type) {
+        String enumID = getString(key);
+        return Arrays.stream(type.getEnumConstants()).filter(t -> t.name().equals(enumID)).findAny().orElse(null);
+    }
+
+    @Nullable
+    public BlockData getBlockData(String key) {
+        return Bukkit.createBlockData(getString(key));
+    }
+
     public void set(String key, Location location) {
-        if(location == null){
+        if (location == null) {
             remove(key);
             return;
         }
@@ -301,6 +419,8 @@ public class NBTContainer {
     @Nullable
     public Location getLocation(String key) {
         NBTContainer nbtContainer = getNBTContainer(key);
+        if (nbtContainer == null)
+            return null;
         String worldName = nbtContainer.getString("level");
         World world = Bukkit.getWorld(worldName);
         if (world == null)
@@ -311,5 +431,13 @@ public class NBTContainer {
         float yaw = nbtContainer.getFloat("yaw");
         float pitch = nbtContainer.getFloat("pitch");
         return new Location(Bukkit.getWorld(worldName), x, y, z, yaw, pitch);
+    }
+
+    @Override
+    public String toString() {
+        return "NBTContainer{" +
+            "namespace='" + namespace + '\'' +
+            ", persistentDataContainer=" + persistentDataContainer +
+            '}';
     }
 }

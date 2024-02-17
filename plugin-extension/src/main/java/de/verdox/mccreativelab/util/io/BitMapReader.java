@@ -83,6 +83,7 @@ public class BitMapReader {
                 map.put(codePointInt, getDimension(startPixelX, endPixelX, startPixelY, endPixelY));
             }
         }
+
         return map;
     }
 

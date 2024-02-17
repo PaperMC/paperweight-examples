@@ -27,17 +27,27 @@ public class ItemTextureData extends ResourcePackResource {
     private final int customModelData;
     private final Asset<CustomResourcePack> pngFile;
     private final @Nullable ModelType modelType;
+    private final boolean useVanillaTexture;
 
     public ItemTextureData(@NotNull NamespacedKey namespacedKey,
                            @NotNull Material material,
                            int customModelData,
                            @Nullable Asset<CustomResourcePack> pngFile,
-                           @Nullable ModelType modelType) {
+                           @Nullable ModelType modelType, boolean useVanillaTexture) {
         super(namespacedKey);
         this.material = material;
         this.customModelData = customModelData;
         this.pngFile = pngFile;
         this.modelType = modelType;
+        this.useVanillaTexture = useVanillaTexture;
+    }
+
+    public ItemTextureData(@NotNull NamespacedKey namespacedKey,
+                           @NotNull Material material,
+                           int customModelData,
+                           @Nullable Asset<CustomResourcePack> pngFile,
+                           @Nullable ModelType modelType){
+        this(namespacedKey, material, customModelData, pngFile, modelType, false);
     }
 
     public ItemStack createItem() {
@@ -70,8 +80,8 @@ public class ItemTextureData extends ResourcePackResource {
         var list = new LinkedList<JsonObject>();
         var builder = JsonObjectBuilder.create(jsonToWriteToFile)
                                        .getOrCreateArray("overrides", jsonArrayBuilder -> {
-
                                            for (ItemTextureData installedItem : installedItems) {
+                                               String textureKey = installedItem.useVanillaTexture ? installedItem.getMaterial().getKey().getKey() : installedItem.key().toString();
                                                jsonArrayBuilder.add(
                                                    JsonObjectBuilder
                                                        .create()
@@ -79,7 +89,7 @@ public class ItemTextureData extends ResourcePackResource {
                                                            JsonObjectBuilder
                                                                .create()
                                                                .add("custom_model_data", installedItem.customModelData))
-                                                       .add("model", installedItem.key().toString()));
+                                                       .add("model", textureKey));
                                            }
                                            jsonArrayBuilder.build()
                                                            .forEach(jsonElement -> list.add(jsonElement.getAsJsonObject()));
@@ -118,7 +128,7 @@ public class ItemTextureData extends ResourcePackResource {
     private static boolean isHandheldItem(Material material) {
         return material.name().contains("SWORD") || material.name().contains("AXE") || material.name()
                                                                                                .contains("HOE") || material
-            .name().contains("SHOVEL") || material.equals(Material.FISHING_ROD);
+            .name().contains("SHOVEL") || material.equals(Material.FISHING_ROD) || material.equals(Material.STICK);
     }
 
     public record ModelType(String modelName, BiConsumer<NamespacedKey, JsonObject> modelCreator) {

@@ -8,6 +8,7 @@ import de.verdox.mccreativelab.world.block.FakeBlock;
 import de.verdox.mccreativelab.world.block.FakeBlockRegistry;
 import de.verdox.mccreativelab.world.block.FakeBlockSoundManager;
 import de.verdox.mccreativelab.world.block.FakeBlockStorage;
+import de.verdox.mccreativelab.world.block.event.StartBlockBreakEvent;
 import de.verdox.mccreativelab.world.block.util.FakeBlockUtil;
 import de.verdox.mccreativelab.util.BlockUtil;
 import de.verdox.mccreativelab.util.EntityMetadataPredicate;
@@ -45,7 +46,7 @@ import java.util.function.Predicate;
 
 public class BlockBreakSpeedModifier implements Listener {
     private static final EntityMetadataPredicate.TickDelay DELAY_BETWEEN_BREAK_PARTICLES = new EntityMetadataPredicate.TickDelay("DiggingParticlesDelay", 2);
-    private static final EntityMetadataPredicate.TickDelay DELAY_BETWEEN_BLOCK_BREAKS = new EntityMetadataPredicate.TickDelay("BlockBreakDelay", 6);
+    private static final EntityMetadataPredicate.TickDelay DELAY_BETWEEN_BLOCK_BREAKS = new EntityMetadataPredicate.TickDelay("BlockBreakDelay", 5);
     private static final Map<Player, BlockBreakProgress> map = new HashMap<>();
 
     @EventHandler
@@ -105,7 +106,7 @@ public class BlockBreakSpeedModifier implements Listener {
         Material bukkitMaterial = block.getType();
         ItemStack diggingItem = player.getInventory().getItemInMainHand();
         Reference<? extends FakeItem> fakeItemReference = MCCreativeLabExtension.getFakeItemRegistry().getFakeItem(CustomItemData.fromItemStack(diggingItem));
-        FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockStateOrThrow(block
+        FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockState(block
             .getLocation(), false);
         float customBlockHardness = -1;
 
@@ -117,6 +118,10 @@ public class BlockBreakSpeedModifier implements Listener {
             customBlockHardness = block.getBlockData().getMaterial().getHardness();
         }
 
+        StartBlockBreakEvent startBlockBreakEvent = new StartBlockBreakEvent(player, fakeBlockState, block, customBlockHardness);
+        startBlockBreakEvent.callEvent();
+        customBlockHardness = startBlockBreakEvent.getHardness();
+
         if (customBlockHardness == -1) {
             player.setMetadata("isBreakingNormalBlock", new FixedMetadataValue(MCCreativeLabExtension.getInstance(), block));
             return;
@@ -124,7 +129,7 @@ public class BlockBreakSpeedModifier implements Listener {
 
         cancellable.setCancelled(true);
         map.put(player, new BlockBreakProgress(player, block, customBlockHardness, blockFace, fakeBlockState));
-        player.addPotionEffect(new PotionEffect(PotionEffectType.SLOW_DIGGING, 2, -1, false, false, false));
+        player.addPotionEffect(new PotionEffect(PotionEffectType.SLOW_DIGGING, 1, -1, false, false, false));
         FakeBlockRegistry.fakeBlockDamage.sendBlockDamage(block, 0);
         FakeBlockSoundManager.simulateDiggingSound(player, block, fakeBlockState);
     }
@@ -181,7 +186,8 @@ public class BlockBreakSpeedModifier implements Listener {
             if(!DELAY_BETWEEN_BLOCK_BREAKS.isAllowed(player))
                 return;
 
-            var damageThisTick = BlockUtil.getBlockDestroyProgress(player, block.getState(), fakeBlockState);
+
+            var damageThisTick = BlockUtil.getBlockDestroyProgress(player, hardness, block.getState(), fakeBlockState);
             damageTaken += damageThisTick;
             damageTaken = Math.min(1, damageTaken);
 

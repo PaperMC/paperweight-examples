@@ -1,115 +1,110 @@
 package de.verdox.mccreativelab.util.nbt;
 
 import de.verdox.mccreativelab.MCCreativeLabExtension;
+import org.bukkit.Bukkit;
+import org.bukkit.NamespacedKey;
+import org.bukkit.World;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.metadata.Metadatable;
+import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataHolder;
+import org.bukkit.persistence.PersistentDataType;
+import org.jetbrains.annotations.NotNull;
 
-import java.util.HashSet;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
+import java.lang.reflect.InvocationTargetException;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 public abstract class PersistentData<T extends PersistentDataHolder> implements NBTSerializable {
-    private static final Map<Class<? extends PersistentData<?>>, Function<PersistentDataHolder, PersistentData<?>>> registered = new ConcurrentHashMap<>();
-    static final Set<Class<? extends ChunkPersistentData>> chunkPersistentDataClasses = new HashSet<>();
-    static final Set<Class<? extends EntityPersistentData>> entityPersistentDataClasses = new HashSet<>();
-    static final Set<Class<? extends PlayerPersistentData>> playerPersistentDataClasses = new HashSet<>();
-    static final Set<Class<? extends WorldPersistentData>> worldPersistentDataClasses = new HashSet<>();
-    /**
-     *
-     * @param type - The class type
-     * @param creator - A creator function
-     * @param <B> - The persistent data type
-     * @param <T> - The Persistent Data type
-     */
-    public static <B extends PersistentDataHolder, T extends PersistentData<B>> void registerPersistentData(Class<? extends T> type, Function<? extends B, ? extends T> creator){
-        if(ChunkPersistentData.class.isAssignableFrom(type))
-            chunkPersistentDataClasses.add((Class<? extends ChunkPersistentData>) type);
-        else if(EntityPersistentData.class.isAssignableFrom(type))
-            entityPersistentDataClasses.add((Class<? extends EntityPersistentData>) type);
-        else if(PlayerPersistentData.class.isAssignableFrom(type))
-            playerPersistentDataClasses.add((Class<? extends PlayerPersistentData>) type);
-        else if(WorldPersistentData.class.isAssignableFrom(type))
-            worldPersistentDataClasses.add((Class<? extends WorldPersistentData>) type);
-        else
-            throw new IllegalArgumentException("Type "+type+" does not extend allowed persistent data types");
-
-        registered.put(type, (Function<PersistentDataHolder, PersistentData<?>>) creator);
-    }
-    /**
-     * Edits the persistent data and returns any value. After editing, you should always trigger a save manually.
-     * @param type - The class type
-     * @param persistentDataHolder - The persistent data holder
-     * @return Any value returned
-     * @param <X> - The return value type
-     * @param <B> - The persistent data type
-     * @param <T> - The Persistent Data type
-     */
-    public static <B extends PersistentDataHolder, T extends PersistentData<B>, X> X load(Class<? extends T> type, B persistentDataHolder, Function<T, X> editor) {
-        T persistentData = get(type, persistentDataHolder);
-        X result = editor.apply(persistentData);
-        persistentData.save();
-        return result;
-    }
-    /**
-     * Edits the persistent data. After editing, you should always trigger a save manually.
-     * @param type - The class type
-     * @param persistentDataHolder - The persistent data holder
-     * @param <B> - The persistent data type
-     * @param <T> - The Persistent Data type
-     */
-    public static <B extends PersistentDataHolder, T extends PersistentData<B>> void load(Class<? extends T> type, B persistentDataHolder, Consumer<T> editor) {
-        load(type, persistentDataHolder, t -> {
-            editor.accept(t);
-            return null;
-        });
-    }
-
     /**
      * Gets the persistent data. After editing, you should always trigger a save manually.
-     * @param type - The class type
+     *
+     * @param type                 - The class type
      * @param persistentDataHolder - The persistent data holder
+     * @param <B>                  - The persistent data type
+     * @param <T>                  - The Persistent Data type
      * @return - The persistent data
-     * @param <B> - The persistent data type
-     * @param <T> - The Persistent Data type
      */
-    public static <B extends PersistentDataHolder, T extends PersistentData<B>> T get(Class<? extends T> type, B persistentDataHolder){
-        if(persistentDataHolder instanceof ItemMeta)
+    @NotNull
+    public static <B extends PersistentDataHolder, T extends PersistentData<B>> T get(Class<? extends T> type, B persistentDataHolder) {
+        if (persistentDataHolder instanceof ItemMeta)
             throw new IllegalArgumentException("ItemStacks or ItemMeta is not supported by this because of their immutability.");
-        final String metadataKey = "persistent_data_"+type.getName();
+        final String metadataKey = "persistent_data_" + type.getName();
         T persistentData;
 
-        if(persistentDataHolder instanceof Metadatable metadatable && metadatable.hasMetadata(metadataKey))
+        if (persistentDataHolder instanceof Metadatable metadatable && metadatable.hasMetadata(metadataKey)) {
             persistentData = type.cast(metadatable.getMetadata(metadataKey).get(0).value());
+            Objects.requireNonNull(persistentData);
+        }
         else {
-            if(!registered.containsKey(type))
-                throw new IllegalArgumentException(type+" not registered");
+            try {
+                persistentData = createPersistentDataObject(type);
+                persistentData.loadFromStorage(persistentDataHolder);
+                persistentData.setup(persistentDataHolder);
+                if (persistentDataHolder instanceof Metadatable metadatable) {
+                    metadatable.setMetadata(metadataKey, new FixedMetadataValue(MCCreativeLabExtension.getInstance(), persistentData));
 
-            persistentData = type.cast(registered.get(type).apply(persistentDataHolder));
-            if(persistentDataHolder instanceof Metadatable metadatable)
-                metadatable.setMetadata(metadataKey, new FixedMetadataValue(MCCreativeLabExtension.getInstance(), persistentData));
+                    Set<T> cached = getAllCachedData(persistentDataHolder);
+                    cached.add(persistentData);
+                    if (!metadatable.hasMetadata("cached_persistent_data"))
+                        metadatable.setMetadata("cached_persistent_data", new FixedMetadataValue(MCCreativeLabExtension.getInstance(), cached));
+                }
+            } catch (ClassCastException e) {
+                e.printStackTrace();
+                throw new RuntimeException(e);
+            }
+
         }
         return persistentData;
     }
 
-    private final T persistentDataHolder;
-
-    protected PersistentData(T persistentDataHolder) {
-        this.persistentDataHolder = persistentDataHolder;
-        this.loadNBTData(NBTContainer.of("fixedminecraft", persistentDataHolder.getPersistentDataContainer()).getOrCreateNBTContainer(nbtKey().toLowerCase(Locale.ROOT)));
+    @NotNull private static <B extends PersistentDataHolder, T extends PersistentData<B>> T createPersistentDataObject(Class<? extends T> type) {
+        try {
+            return type.getDeclaredConstructor().newInstance();
+        } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
+            throw new RuntimeException(e);
+        } catch (NoSuchMethodException e) {
+            Bukkit.getLogger().warning("Standard constructor not found in PersistentData class " + type.getName());
+            throw new RuntimeException(e);
+        }
     }
 
-    public T getPersistentDataHolder() {
-        return persistentDataHolder;
+    public static <B extends PersistentDataHolder, T extends PersistentData<B>> Set<T> getAllCachedData(B persistentDataHolder) {
+        if (!(persistentDataHolder instanceof Metadatable metadatable))
+            return new HashSet<>();
+
+        if (!metadatable.hasMetadata("cached_persistent_data"))
+            return new HashSet<>();
+        return (Set<T>) metadatable.getMetadata("cached_persistent_data").get(0).value();
     }
 
-    public void save() {
-        this.saveNBTData(NBTContainer.of("fixedminecraft", persistentDataHolder.getPersistentDataContainer()).getOrCreateNBTContainer(nbtKey().toLowerCase(Locale.ROOT)));
+    static <B extends PersistentDataHolder> void clearCache(B persistentDataHolder) {
+        if (!(persistentDataHolder instanceof Metadatable metadatable))
+            return;
+
+        metadatable.removeMetadata("cached_persistent_data", MCCreativeLabExtension.getInstance());
+    }
+
+    public final void loadFromStorage(T dataHolder) {
+        NBTContainer nbtContainer = NBTContainer.of("fixedminecraft", dataHolder.getPersistentDataContainer());
+        if(!nbtContainer.has(nbtKey().toLowerCase(Locale.ROOT)))
+            return;
+        NBTContainer load = nbtContainer.getNBTContainer(nbtKey().toLowerCase(Locale.ROOT));
+        this.loadNBTData(load);
+    }
+
+    public final void save(T dataHolder) {
+        NBTContainer nbtContainer = NBTContainer.of("fixedminecraft", dataHolder.getPersistentDataContainer());
+        NBTContainer save = nbtContainer.createNBTContainer();
+        this.saveNBTData(save);
+        nbtContainer.set(nbtKey().toLowerCase(Locale.ROOT), save);
+    }
+
+    void setup(T persistentDataHolder) {
     }
 
     protected abstract String nbtKey();

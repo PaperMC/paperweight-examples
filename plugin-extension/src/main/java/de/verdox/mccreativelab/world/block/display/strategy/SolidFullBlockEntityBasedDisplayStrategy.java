@@ -38,7 +38,7 @@ public class SolidFullBlockEntityBasedDisplayStrategy extends FakeBlockVisualStr
     }
 
     @Override
-    public void blockUpdate(Block block, FakeBlock.FakeBlockState fakeBlockState, BlockFace direction, BlockData neighbourBlockData, BlockData blockDataAfterUpdate) {
+    public void blockUpdate(Block block, FakeBlock.FakeBlockState fakeBlockState, BlockFace direction, BlockData neighbourBlockData) {
         if(!(fakeBlockState.getFakeBlockDisplay() instanceof SolidFullBlockEntityDisplay solidFullBlockEntityDisplay))
             return;
         if (!neighbourBlockData.isOccluding())

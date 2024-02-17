@@ -10,26 +10,22 @@ import java.util.Objects;
 public class JsonUtil {
     private static final Gson GSON_INSTANCE = new Gson();
 
-    public static JsonObject readJsonFromFile(File file) {
+    public static JsonObject readJsonFromFile(File file) throws IOException {
         Objects.requireNonNull(file);
         if (!file.exists())
             return new JsonObject();
         JsonObject jsonObject;
         try (Reader reader = new FileReader(file)) {
             jsonObject = GSON_INSTANCE.fromJson(reader, JsonObject.class);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
         }
         return jsonObject;
     }
 
-    public static JsonObject readJsonInputStream(InputStream inputStream) {
+    public static JsonObject readJsonInputStream(InputStream inputStream) throws IOException {
         Objects.requireNonNull(inputStream);
         JsonObject jsonObject;
         try (Reader reader = new InputStreamReader(inputStream)) {
             jsonObject = GSON_INSTANCE.fromJson(reader, JsonObject.class);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
         }
         return jsonObject;
     }
@@ -39,22 +35,15 @@ public class JsonUtil {
             path.toFile().getParentFile().mkdirs();
     }
 
-    public static void writeJsonObjectToFile(JsonObject jsonObject, File file) {
+    public static void writeJsonObjectToFile(JsonObject jsonObject, File file) throws IOException {
         Objects.requireNonNull(jsonObject);
         Objects.requireNonNull(file);
         if (file.getParentFile() != null)
             file.getParentFile().mkdirs();
-        try {
-            file.createNewFile();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-
+        file.createNewFile();
         try (Writer fileWriter = new FileWriter(file)) {
             GSON_INSTANCE.toJson(jsonObject, fileWriter);
             fileWriter.flush();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
         }
     }
 }

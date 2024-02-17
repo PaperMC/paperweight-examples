@@ -1,19 +1,18 @@
 package de.verdox.mccreativelab.generator.resourcepack.types.gui;
 
 import de.verdox.mccreativelab.MCCreativeLabExtension;
-import de.verdox.mccreativelab.generator.resourcepack.renderer.ActiveHud;
+import de.verdox.mccreativelab.generator.resourcepack.types.gui.element.active.ActiveGUIElement;
+import de.verdox.mccreativelab.generator.resourcepack.types.rendered.ActiveComponentRendered;
+import de.verdox.mccreativelab.util.player.fakeinv.FakeInventory;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
-import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
-import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
-import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitTask;
@@ -23,126 +22,111 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-public class ActiveGUI implements Listener {
-    private final CustomGUIBuilder customGUIBuilder;
-    private final ActiveHud activeHud;
+public class ActiveGUI extends ActiveComponentRendered<ActiveGUI, CustomGUIBuilder> implements Listener {
     private long lastShift = System.currentTimeMillis();
     private static final long SHIFT_COOLDOWN_MILLIS = 20;
-
-    private final Map<Integer, ClickableItem> clickableItems = new HashMap<>();
     private final Map<String, Object> tempData = new HashMap<>();
     private final Map<String, ActiveGUIElement<?>> activeGUIElements = new HashMap<>();
+    private final Map<Integer, ActiveGUIElement<?>> guiElementsBySlot = new HashMap<>();
     private boolean isOpen;
     private Inventory inventory;
     private boolean isUpdating;
-    private Component rendering;
     private BukkitTask updateTask;
-    private volatile boolean isUpdatingRendering;
-    private ReentrantReadWriteLock reentrantReadWriteLock = new ReentrantReadWriteLock();
-    private ItemStack cursor;
 
-    ActiveGUI(CustomGUIBuilder customGUIBuilder, ActiveHud activeHud, Component initialRendering, @Nullable Consumer<ActiveGUI> initialSetup) {
-        this.customGUIBuilder = customGUIBuilder;
-        this.activeHud = activeHud;
+    public ActiveGUI(Player player, CustomGUIBuilder customGUIBuilder, @Nullable Consumer<ActiveGUI> initialSetup) {
+        super(player, customGUIBuilder);
         Bukkit.getPluginManager().registerEvents(this, MCCreativeLabExtension.getInstance());
-        PlayerFakeEmptyInventory.registerStoredInventoryListener(MCCreativeLabExtension.getInstance());
 
-        customGUIBuilder.clickableButtons.forEach((s, clickableButton) -> activeGUIElements.put(s, new ActiveGUIElement.ClickableButton(this, clickableButton)));
+        customGUIBuilder.guiElements.forEach((s, guiElement) -> {
+            var activeElement = guiElement.toActiveElement(this);
+            activeGUIElements.put(s, activeElement);
+        });
 
-        this.rendering = initialRendering;
-
-        this.activeHud.showAll();
         forceUpdate();
 
-        if (initialSetup != null)
+        if (initialSetup != null) {
             initialSetup.accept(this);
-        forceUpdate();
+            forEachElementBehavior((activeGUIRenderedRenderedElementBehavior, rendered) -> activeGUIRenderedRenderedElementBehavior.onOpen(this, getPlayer(), rendered));
+            forEachGUIElementBehavior((guiElementBehavior, activeGUIElement) -> guiElementBehavior.onOpen(this, getPlayer(), activeGUIElement));
+            forceUpdate();
+        }
 
         if (customGUIBuilder.onOpen != null) {
             customGUIBuilder.onOpen.accept(this);
             forceUpdate();
         }
 
-        if (customGUIBuilder.whileOpen != null && customGUIBuilder.updateInterval > 0) {
+        if (customGUIBuilder.updateInterval > 0) {
             updateTask = Bukkit.getScheduler().runTaskTimer(MCCreativeLabExtension.getInstance(), () -> {
                 if (isOpen) {
-                    customGUIBuilder.whileOpen.accept(this);
+                    if (customGUIBuilder.whileOpen != null) customGUIBuilder.whileOpen.accept(this);
+
+                    forEachElementBehavior((activeGUIRenderedRenderedElementBehavior, rendered) -> activeGUIRenderedRenderedElementBehavior.whileOpen(this, getPlayer(), rendered));
+                    forEachGUIElementBehavior((guiElementBehavior, activeGUIElement) -> guiElementBehavior.whileOpen(this, getPlayer(), activeGUIElement));
                 }
-            }, 20L, customGUIBuilder.updateInterval);
+            }, 0, customGUIBuilder.updateInterval);
         }
     }
 
-    public ActiveGUI(CustomGUIBuilder customGUIBuilder, ActiveHud activeHud, Component initialRendering) {
-        this(customGUIBuilder, activeHud, initialRendering, null);
+    public final void forEachGUIElementBehavior(BiConsumer<GUIElementBehavior<ActiveGUIElement<?>>, ActiveGUIElement<?>> forEach) {
+        this.activeGUIElements.forEach((s, activeGUIElement) -> {
+            GUIElementBehavior<ActiveGUIElement<?>> guiElementBehavior = (GUIElementBehavior<ActiveGUIElement<?>>) getComponentRendered()
+                .getGuiElementBehaviors().getOrDefault(activeGUIElement.getGuiElement(), null);
+            if (guiElementBehavior != null)
+                forEach.accept(guiElementBehavior, activeGUIElement);
+        });
+        forceUpdate();
     }
 
-    public <T extends ActiveGUIElement<?>> boolean executeOnElement(String id, Class<? extends T> type, Consumer<T> execution) {
-        var element = activeGUIElements.getOrDefault(id, null);
-        if (element != null && type.isAssignableFrom(element.getClass())) {
-            element.setVisible(true);
-            execution.accept(type.cast(element));
-            forceUpdate();
-            return true;
-        }
-        return false;
+    public final <H extends ActiveGUIElement<?>> boolean editGUIElement(String id, Class<? extends H> type, Consumer<H> execution) {
+        return edit(id, activeGUIElements, type, h -> {
+            h.setVisible(true);
+            execution.accept(h);
+        });
     }
 
     public Inventory getVanillaInventory() {
         return inventory;
     }
 
-    public <R> ActiveGUI addTemporaryData(String key, R value) {
-        tempData.put(key, value);
+    public <R> ActiveGUI addTemporaryData(String key, @Nullable R value) {
+        if (value == null)
+            tempData.remove(key);
+        else
+            tempData.put(key, value);
         return this;
     }
 
+    @Nullable
     public <R> R getTemporaryDataOrDefault(String key, Class<? extends R> type, R defaultVal) {
         return type.cast(tempData.getOrDefault(key, defaultVal));
-    }
-
-    @EventHandler
-    private void onOpen(InventoryOpenEvent e) {
-        if (!(e.getInventory().equals(inventory)))
-            return;
-        if (isOpen)
-            return;
-        if (isUpdating) return;
-        isOpen = true;
-        if (this.customGUIBuilder.isUsePlayerSlots()) {
-            ((Player) e.getPlayer()).doInventorySynchronization(false);
-        }
     }
 
     @EventHandler
     private void onClose(InventoryCloseEvent e) {
         if (!(e.getInventory().equals(inventory)))
             return;
-        if (!isOpen)
-            return;
         if (isUpdating) return;
-        if (updateTask != null)
+        closeActiveGUI();
+    }
+
+    private void closeActiveGUI() {
+        if (!isOpen) return;
+        if (updateTask != null) {
             updateTask.cancel();
+        }
         isOpen = false;
-        if (customGUIBuilder.onClose != null)
-            customGUIBuilder.onClose.accept(this);
+        if (getComponentRendered().onClose != null)
+            getComponentRendered().onClose.accept(this);
 
         HandlerList.unregisterAll(this);
 
-        var player = (Player) e.getPlayer();
-        player.doInventorySynchronization(true);
-        player.updateInventory();
-    }
+        FakeInventory.stopFakeInventoryOfPlayer(getPlayer());
 
-    @EventHandler
-    public void onPickupItem(EntityPickupItemEvent e) {
-        if (!(e.getEntity() instanceof Player player))
-            return;
-        if (!player.equals(activeHud.getPlayer()))
-            return;
-        e.setCancelled(true);
+        getPlayer().updateInventory();
     }
 
     @EventHandler
@@ -150,53 +134,33 @@ public class ActiveGUI implements Listener {
         if (!e.getView().getTopInventory().equals(this.inventory))
             return;
 
-
         if (isUpdating) {
             e.setCancelled(true);
             return;
         }
 
-        var clickableItem = clickableItems.getOrDefault(e.getRawSlot(), null);
-        if ((customGUIBuilder.isSlotBlocked(e.getRawSlot()) && this.inventory.equals(e.getClickedInventory())) || clickableItem != null)
+        ActiveGUIElement<?> activeGUIElement = guiElementsBySlot.getOrDefault(e.getRawSlot(), null);
+        if ((getComponentRendered().isSlotBlocked(e.getRawSlot()) && this.inventory.equals(e.getClickedInventory())) || activeGUIElement != null) {
             e.setCancelled(true);
+            activeGUIElement.onClick(e, e.getRawSlot() % 9, e.getRawSlot() / 9);
+        }
         // Prevent inventory clicks if is using player slots
-        if (customGUIBuilder.isUsePlayerSlots() && Objects.equals(e.getClickedInventory(), e.getView()
-                                                                                            .getBottomInventory()))
+        if (getComponentRendered().isUsePlayerSlots() && Objects.equals(e.getClickedInventory(), e.getView()
+                                                                                                  .getBottomInventory()))
             e.setCancelled(true);
-
-        if (clickableItem != null && clickableItem.getOnClick() != null)
-            clickableItem.getOnClick().accept(e, this);
 
         if (e.isShiftClick() && e.getView().getBottomInventory().equals(e.getClickedInventory())) {
-            if (customGUIBuilder.isUsePlayerSlots() || System.currentTimeMillis() - lastShift < SHIFT_COOLDOWN_MILLIS) {
+            if (getComponentRendered().isUsePlayerSlots() || System.currentTimeMillis() - lastShift < SHIFT_COOLDOWN_MILLIS) {
                 e.setCancelled(true);
                 return;
             }
             lastShift = System.currentTimeMillis();
 
             shiftItemToInventory(e.getView()
-                                  .getBottomInventory(), this.inventory, e.getSlot(), customGUIBuilder.getBlockedSlots());
-            executeClickCallback(e, clickableItem);
-
+                                  .getBottomInventory(), this.inventory, e.getSlot(), getComponentRendered().getBlockedSlots());
             e.setCancelled(true);
             return;
         }
-
-        executeClickCallback(e, clickableItem);
-    }
-
-    private void executeClickCallback(InventoryClickEvent e, ClickableItem clickableItem) {
-        if (customGUIBuilder.clickConsumer == null)
-            return;
-
-
-        Bukkit.getScheduler().runTask(MCCreativeLabExtension.getInstance(), () -> {
-            customGUIBuilder.clickConsumer.accept(clickableItem, e, this);
-            if (!e.isCancelled() && e.getClickedInventory() != null && e.getClickedInventory()
-                                                                        .equals(e.getView().getBottomInventory())) {
-                cursor = e.getCurrentItem();
-            }
-        });
     }
 
     @EventHandler
@@ -208,150 +172,78 @@ public class ActiveGUI implements Listener {
             return;
         }
         ;
-        var rawSlotUsed = e.getRawSlots().stream().anyMatch(customGUIBuilder::isSlotBlocked);
+        var rawSlotUsed = e.getRawSlots().stream().anyMatch(getComponentRendered()::isSlotBlocked);
         if (rawSlotUsed)
             e.setCancelled(true);
     }
 
-
-    public ActiveHud getActiveHud() {
-        return activeHud;
+    public void placeGuiElementInSlot(int slotIndex, @Nullable ActiveGUIElement<?> activeGUIElement) {
+        if (activeGUIElement != null && !this.equals(activeGUIElement.getActiveGUI()))
+            throw new IllegalArgumentException("Trying to add gui element that does not belong to this gui.");
+        if (activeGUIElement != null)
+            guiElementsBySlot.put(slotIndex, activeGUIElement);
+        else
+            guiElementsBySlot.remove(slotIndex);
     }
 
-    public CustomGUIBuilder getCustomGUIBuilder() {
-        return customGUIBuilder;
+    public @Nullable ActiveGUIElement<?> getGUIElementAtIndex(int slotIndex) {
+        return guiElementsBySlot.getOrDefault(slotIndex, null);
     }
 
-/*    public ActiveGUI setItem(int index, ClickableItem clickableItem) {
-        for (int x = 0; x < clickableItem.getXSize(); x++) {
-            for (int y = 0; y < clickableItem.getYSize(); y++) {
-                int slotIndex = index + x + (9 * y);
-                if (slotIndex < inventory.getSize()) {
-                    inventory.setItem(slotIndex, clickableItem.getButtonItems().get(x, y));
-                    clickableItems.put(slotIndex, clickableItem);
-                }
-            }
-        }
-        return this;
-    }*/
-
-    public void removeClickableItemFromSlot(int index, ClickableItem clickableItem) {
-        for (int x = 0; x < clickableItem.getXSize(); x++) {
-            for (int y = 0; y < clickableItem.getYSize(); y++) {
-                int slotIndex = index + x + (9 * y);
-                if (clickableItems.containsKey(slotIndex) && !clickableItems.get(slotIndex).equals(clickableItem))
-                    break;
-                inventory.setItem(slotIndex, null);
-                clickableItems.remove(slotIndex);
-            }
-        }
-
-
-    }
-
-    public ActiveGUI removeItem(int index, ClickableItem clickableItem){
-        this.inventory.setItem(index, null);
-
-        for (int x = 0; x < clickableItem.getXSize(); x++) {
-            for (int y = 0; y < clickableItem.getYSize(); y++) {
-                int slotIndex = index + x + (9 * y);
-
-                if (slotIndex < inventory.getSize()) {
-
-                    if(clickableItems.containsKey(slotIndex) && clickableItems.get(slotIndex).equals(clickableItem)) {
-                        this.inventory.setItem(slotIndex, null);
-                        clickableItems.remove(slotIndex);
-                    }
-
-                }
-            }
-        }
-        return this;
-    }
-
-    public ActiveGUI removeItem(int index){
-        this.inventory.setItem(index, null);
-        clickableItems.remove(index);
-        return this;
-    }
-
-    public ActiveGUI setItem(int index, ClickableItem clickableItem) {
-        this.inventory.setItem(index, clickableItem.getStack());
-
-        for (int x = 0; x < clickableItem.getXSize(); x++) {
-            for (int y = 0; y < clickableItem.getYSize(); y++) {
-                int slotIndex = index + x + (9 * y);
-                if (slotIndex == index) {
-                    // Set real stack
-                    var stack = clickableItem.getStack();
-                    if (slotIndex < inventory.getSize()) {
-                        inventory.setItem(slotIndex, stack);
-                        clickableItems.put(slotIndex, clickableItem);
-                    }
-                } else {
-                    if (slotIndex < inventory.getSize()) {
-                        inventory.setItem(slotIndex, clickableItem.getStack().clone());
-                        clickableItems.put(slotIndex, clickableItem);
-                    }
-                }
-            }
-        }
-        return this;
-    }
-
-    public void forceUpdate() {
-        if (!Bukkit.isPrimaryThread())
-            Bukkit.getScheduler().runTask(MCCreativeLabExtension.getInstance(), this::forceUpdate);
-        if (isUpdating)
+    @Override
+    protected void doUpdate() {
+        if (!Bukkit.isPrimaryThread()) {
+            Bukkit.getScheduler().runTask(MCCreativeLabExtension.getInstance(), this::doUpdate);
             return;
+        }
 
-        this.rendering = this.activeHud.render();
+        Component rendering = render();
+        Player player = getPlayer();
 
-        Player player = activeHud.getPlayer();
-        player.updateInventory();
-        var itemAtCursor = activeHud.getPlayer().getOpenInventory().getCursor() != null ? player
-                .getOpenInventory()
-                .getCursor()
-                .clone() : null;
-/*        if (!isOpen || !activeHud.getPlayer().getItemOnCursor().getType().isAir())
-            return;*/
+        player.getOpenInventory().getCursor();
+        var itemAtCursor = player.getOpenInventory().getCursor().clone();
 
+        isUpdating = true;
         try {
+            if (this.inventory != null) {
+                if (!isOpen) return;
+                else if (MCCreativeLabExtension.isServerSoftware()) {
+                    player.openInventory(this.inventory, rendering);
+                    return;
+                }
+            }
+
             ItemStack[] oldContent;
             if (this.inventory != null) {
                 if (!isOpen)
                     return;
-                isUpdating = true;
                 oldContent = this.inventory.getContents();
             } else oldContent = null;
 
-            if (customGUIBuilder.getType() != null)
-                this.inventory = Bukkit.createInventory(player, customGUIBuilder.getType(), rendering);
+            if (getComponentRendered().getType() != null)
+                this.inventory = Bukkit.createInventory(player, getComponentRendered().getType(), rendering);
             else
-                this.inventory = Bukkit.createInventory(player, customGUIBuilder.getChestSize() * 9, rendering);
+                this.inventory = Bukkit.createInventory(player, getComponentRendered().getChestSize() * 9, rendering);
 
             if (oldContent != null)
                 this.inventory.setContents(oldContent);
 
             openUpdatedInventory(player, itemAtCursor);
-
-/*            clickableItems.forEach((integer, clickableItem) -> {
-                var x = integer % 9;
-                var y = integer / 9;
-                var itemToSet = clickableItem.getButtonItems().get(x, y);
-                if (!Objects.equals(itemToSet, inventory.getItem(integer)))
-                    inventory.setItem(integer, itemToSet);
-            });*/
         } finally {
             isUpdating = false;
         }
     }
 
     private void openUpdatedInventory(Player player, ItemStack itemAtCursor) {
+        if (!isOpen && !FakeInventory.hasFakeInventory(player)) {
+            isOpen = true;
+            FakeInventory.setFakeInventoryOfPlayer(player);
+        }
+
         var view = player.openInventory(this.inventory);
 
         if (itemAtCursor != null) {
-            if (view != null && !itemAtCursor.getType().isAir()) {
+            if (view != null && !itemAtCursor.getType().isAir() && !getComponentRendered().isUsePlayerSlots()) {
                 player.getInventory().removeItem(itemAtCursor);
                 view.setCursor(itemAtCursor);
                 player.updateInventory();

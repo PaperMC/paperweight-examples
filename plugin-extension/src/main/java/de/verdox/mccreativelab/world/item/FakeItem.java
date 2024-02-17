@@ -7,28 +7,24 @@ import de.verdox.mccreativelab.generator.Asset;
 import de.verdox.mccreativelab.generator.resourcepack.CustomModelDataProvider;
 import de.verdox.mccreativelab.generator.resourcepack.CustomResourcePack;
 import de.verdox.mccreativelab.generator.resourcepack.types.ItemTextureData;
+import de.verdox.mccreativelab.generator.resourcepack.types.lang.LanguageInfo;
 import de.verdox.mccreativelab.generator.resourcepack.types.lang.Translatable;
 import de.verdox.mccreativelab.world.block.FakeBlock;
-import de.verdox.mccreativelab.world.item.behaviour.VanillaReplacingItemBehaviour;
 import de.verdox.mccreativelab.recipe.CustomItemData;
 import it.unimi.dsi.fastutil.Pair;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.TranslatableComponent;
-import org.bukkit.Bukkit;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Keyed;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.block.Block;
-import org.bukkit.inventory.FoodProperties;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.potion.PotionEffect;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -50,6 +46,10 @@ public class FakeItem implements Keyed, ItemBehaviour {
 
     public FakeItemProperties getFakeItemProperties() {
         return fakeItemProperties;
+    }
+
+    public Translatable getNameTranslatable() {
+        return nameTranslatable;
     }
 
     public void setFakeItemProperties(FakeItemProperties fakeItemProperties) {
@@ -81,9 +81,12 @@ public class FakeItem implements Keyed, ItemBehaviour {
         if (metaConsumer != null)
             stack.editMeta(metaConsumer);
         stack.editMeta((meta) -> {
-            meta.displayName(Component.translatable(nameTranslatable.key()));
+            if (nameTranslatable != null)
+                meta.displayName(Component.translatable(nameTranslatable.key())
+                                          .decoration(TextDecoration.ITALIC, false));
             meta.setCustomModelData(customModelData);
         });
+        //stack.setItemBehaviour(this);
         return stack;
     }
 
@@ -94,10 +97,10 @@ public class FakeItem implements Keyed, ItemBehaviour {
     }
 
     @Override
-    public final BehaviourResult.Object<FoodProperties> getFoodProperties(ItemStack stack) {
+    public final BehaviourResult.Object<org.bukkit.inventory.FoodProperties> getFoodProperties(ItemStack stack) {
         if (fakeItemProperties.foodProperties == null)
             return new BehaviourResult.Object<>(null, BehaviourResult.Object.Type.REPLACE_VANILLA);
-        return new BehaviourResult.Object<>(new FoodProperties() {
+        return new BehaviourResult.Object<>(new org.bukkit.inventory.FoodProperties() {
             @Override
             public int getNutrition() {
                 return fakeItemProperties.foodProperties.getNutrition();
@@ -165,16 +168,16 @@ public class FakeItem implements Keyed, ItemBehaviour {
         private final Material vanillaMaterial;
         private final NamespacedKey namespacedKey;
         private final Supplier<T> itemBuilder;
-        private Consumer<ItemMeta> itemMetaBuilder;
-        private FakeItemProperties fakeItemProperties;
+        private Consumer<ItemMeta> itemMetaBuilder = itemMeta -> {
+        };
+        private FakeItemProperties fakeItemProperties = new FakeItemProperties();
         private Asset<CustomResourcePack> texture;
         private Translatable translatable;
 
-        public Builder(NamespacedKey namespacedKey, Material vanillaMaterial, Class<? extends T> fakeItemClass, Supplier<T> itemBuilder) {
+        public Builder(NamespacedKey namespacedKey, Material vanillaMaterial, Supplier<T> itemBuilder) {
             this.itemBuilder = itemBuilder;
             Objects.requireNonNull(vanillaMaterial);
             Objects.requireNonNull(namespacedKey);
-            Objects.requireNonNull(fakeItemClass);
             this.vanillaMaterial = vanillaMaterial;
             this.namespacedKey = namespacedKey;
         }
@@ -187,6 +190,10 @@ public class FakeItem implements Keyed, ItemBehaviour {
         public Builder<T> withStandardName(Translatable translatable) {
             this.translatable = translatable;
             return this;
+        }
+
+        public Builder<T> withStandardName(String standardName) {
+            return withStandardName(new Translatable(LanguageInfo.ENGLISH_US, "custom_item.description_id." + new NamespacedKey(namespacedKey.namespace(), namespacedKey.getKey()).asString(), standardName));
         }
 
         public Builder<T> withProperties(FakeItemProperties fakeItemProperties) {
@@ -214,9 +221,9 @@ public class FakeItem implements Keyed, ItemBehaviour {
             Objects.requireNonNull(namespacedKey);
             Objects.requireNonNull(vanillaMaterial);
 
-            ItemTextureData itemTextureData = new ItemTextureData(new NamespacedKey(namespacedKey.namespace(), "item/" + namespacedKey.value()), vanillaMaterial, customModelData, texture, null);
+            ItemTextureData itemTextureData = new ItemTextureData(new NamespacedKey(namespacedKey.namespace(), "item/" + namespacedKey.value()), vanillaMaterial, customModelData, texture, null, texture == null);
             MCCreativeLabExtension.getCustomResourcePack().register(itemTextureData);
-            MCCreativeLabExtension.getCustomResourcePack().addTranslation(translatable);
+            if (translatable != null) MCCreativeLabExtension.getCustomResourcePack().addTranslation(translatable);
 
             ItemBehaviour.ITEM_BEHAVIOUR.setBehaviour(new CustomItemData(vanillaMaterial, customModelData), value);
             return value;
@@ -227,10 +234,10 @@ public class FakeItem implements Keyed, ItemBehaviour {
         private int maxStackSize = 64;
         private int maxDamage;
         private @Nullable ItemStack craftingRemainingItem;
-        private @Nullable FakItemFoodProperties foodProperties;
+        private @Nullable FakeItem.FoodProperties foodProperties;
         private boolean isFireResistant;
 
-        public FakeItemProperties food(FakItemFoodProperties foodComponent) {
+        public FakeItemProperties food(FoodProperties foodComponent) {
             this.foodProperties = foodComponent;
             return this;
         }
@@ -265,7 +272,7 @@ public class FakeItem implements Keyed, ItemBehaviour {
         }
     }
 
-    public static class FakItemFoodProperties {
+    public static class FoodProperties {
         private final int nutrition;
         private final float saturationModifier;
         private final boolean isMeat;
@@ -273,7 +280,7 @@ public class FakeItem implements Keyed, ItemBehaviour {
         private final boolean fastFood;
         private final List<Pair<PotionEffect, Float>> effects;
 
-        FakItemFoodProperties(int nutrition, float saturationModifier, boolean isMeat, boolean canAlwaysEat, boolean fastFood, List<Pair<PotionEffect, Float>> effects) {
+        FoodProperties(int nutrition, float saturationModifier, boolean isMeat, boolean canAlwaysEat, boolean fastFood, List<Pair<PotionEffect, Float>> effects) {
             this.nutrition = nutrition;
             this.saturationModifier = saturationModifier;
             this.isMeat = isMeat;
@@ -344,8 +351,8 @@ public class FakeItem implements Keyed, ItemBehaviour {
                 return this;
             }
 
-            public FakItemFoodProperties build() {
-                return new FakItemFoodProperties(this.nutrition, this.saturationModifier, this.isMeat, this.canAlwaysEat, this.fastFood, this.effects);
+            public FoodProperties build() {
+                return new FoodProperties(this.nutrition, this.saturationModifier, this.isMeat, this.canAlwaysEat, this.fastFood, this.effects);
             }
         }
     }

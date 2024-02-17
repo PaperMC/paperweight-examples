@@ -4,8 +4,9 @@ import com.google.gson.JsonObject;
 import de.verdox.mccreativelab.Wrappers;
 import de.verdox.mccreativelab.behaviour.BlockBehaviour;
 import de.verdox.mccreativelab.world.block.display.FakeBlockDisplay;
+import de.verdox.mccreativelab.world.block.event.FakeBlockDropItemsEvent;
 import de.verdox.mccreativelab.world.block.util.FakeBlockUtil;
-import de.verdox.mccreativelab.debug.block.CustomCrop;
+import de.verdox.mccreativelab.world.block.replaced.ReplacedCrop;
 import de.verdox.mccreativelab.generator.Asset;
 import de.verdox.mccreativelab.generator.resourcepack.AssetBasedResourcePackResource;
 import de.verdox.mccreativelab.generator.resourcepack.CustomResourcePack;
@@ -17,13 +18,15 @@ import de.verdox.mccreativelab.generator.resourcepack.types.sound.SoundData;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.PistonMoveReaction;
-import org.bukkit.block.data.Ageable;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.event.block.BlockEvent;
+import org.bukkit.event.block.BlockFertilizeEvent;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
@@ -74,17 +77,35 @@ public abstract class FakeBlock implements Keyed, BlockBehaviour {
         return true;
     }
 
-    public List<ItemStack> drawLoot(){
+    protected List<ItemStack> drawLoot(Block block, FakeBlockState fakeBlockState, @Nullable Entity causeOfItemDrop, @Nullable ItemStack toolUsed, boolean ignoreTool) {
         return List.of();
     }
 
     public void remove(Location location, boolean withEffects) {
-        FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockStateOrThrow(location, false);
+        remove(location, withEffects, false, null);
+    }
+
+    public void remove(Location location, boolean withEffects, boolean dropLoot, @Nullable Entity causeOfBreak) {
+        remove(location, withEffects, dropLoot, causeOfBreak, null, true);
+    }
+    public void remove(Location location, boolean withEffects, boolean dropLoot, @Nullable Entity causeOfBreak, @Nullable ItemStack tool, boolean ignoreTool) {
+        FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockState(location, false);
         if (fakeBlockState == null)
             return;
         if (withEffects)
             FakeBlockUtil.simulateBlockBreakWithParticlesAndSound(fakeBlockState, location.getBlock());
-        FakeBlockUtil.removeFakeBlockIfPossible(location.getBlock());
+        FakeBlockStorage.setFakeBlockState(location, null, false);
+        if(dropLoot)
+            dropBlockLoot(location, fakeBlockState, causeOfBreak, tool, ignoreTool);
+    }
+
+    public void dropBlockLoot(Location location, FakeBlockState fakeBlockState, @Nullable Entity causeOfBreak, @Nullable ItemStack tool, boolean ignoreTool){
+        List<ItemStack> itemsToDrop = fakeBlockState.getFakeBlock().drawLoot(location.getBlock(), fakeBlockState, causeOfBreak, tool, ignoreTool);
+        FakeBlockDropItemsEvent fakeBlockDropItemsEvent = new FakeBlockDropItemsEvent(location.getBlock(), fakeBlockState, itemsToDrop, causeOfBreak, tool, ignoreTool);
+        if(!fakeBlockDropItemsEvent.callEvent())
+            return;
+        for (ItemStack stack : fakeBlockDropItemsEvent.getItems())
+            location.getBlock().getWorld().dropItemNaturally(location, stack.clone());
     }
 
     @Override
@@ -112,7 +133,7 @@ public abstract class FakeBlock implements Keyed, BlockBehaviour {
         }
 
         public Builder<T> withBlockState(Consumer<FakeBlockState.Builder> builderConsumer) {
-            FakeBlockState.Builder builder = new FakeBlockState.Builder(namespacedKey, new NamespacedKey(namespacedKey.namespace(), namespacedKey.getKey()+"_state_"+blockStates.size()));
+            FakeBlockState.Builder builder = new FakeBlockState.Builder(namespacedKey, new NamespacedKey(namespacedKey.namespace(), namespacedKey.getKey() + "_state_" + blockStates.size()));
             builderConsumer.accept(builder);
             blockStates.add(builder.build());
             return this;
@@ -141,11 +162,13 @@ public abstract class FakeBlock implements Keyed, BlockBehaviour {
         private final FakeBlockProperties properties;
         private final FakeBlockDisplay fakeBlockDisplay;
         private final FakeBlockSoundGroup fakeBlockSoundGroup;
+        private final Set<Class<? extends BlockEvent>> blockedEventsByDefault;
 
-        FakeBlockState(FakeBlockProperties properties, FakeBlockDisplay fakeBlockDisplay, FakeBlockSoundGroup fakeBlockSoundGroup) {
+        FakeBlockState(FakeBlockProperties properties, FakeBlockDisplay fakeBlockDisplay, FakeBlockSoundGroup fakeBlockSoundGroup, Set<Class<? extends BlockEvent>> blockedEventsByDefault) {
             this.properties = properties;
             this.fakeBlockDisplay = fakeBlockDisplay;
             this.fakeBlockSoundGroup = fakeBlockSoundGroup;
+            this.blockedEventsByDefault = blockedEventsByDefault;
         }
 
         public FakeBlockDisplay getFakeBlockDisplay() {
@@ -164,6 +187,10 @@ public abstract class FakeBlock implements Keyed, BlockBehaviour {
             return fakeBlock;
         }
 
+        public Set<Class<? extends BlockEvent>> getBlockedEventsByDefault() {
+            return blockedEventsByDefault;
+        }
+
         FakeBlockState linkFakeBlock(FakeBlock fakeBlock) {
             this.fakeBlock = fakeBlock;
             return this;
@@ -175,6 +202,7 @@ public abstract class FakeBlock implements Keyed, BlockBehaviour {
             private FakeBlockProperties fakeBlockProperties = new FakeBlockProperties();
             private FakeBlockDisplay fakeBlockDisplay;
             private FakeBlockSoundGroup fakeBlockSoundGroup;
+            private final Set<Class<? extends BlockEvent>> blockedEventsByDefault = new HashSet<>();
 
             Builder(NamespacedKey parentBlockKey, NamespacedKey blockStateKey) {
                 Objects.requireNonNull(parentBlockKey);
@@ -189,24 +217,35 @@ public abstract class FakeBlock implements Keyed, BlockBehaviour {
                 return this;
             }
 
+            /**
+             * This is needed if you alter the fertilizeAction because spigot will call the event afterward and reset the block states.
+             * Here we prevent the event entirely.
+             * @return The builder
+             */
+            public Builder preventFertilizeEvent(){
+                this.blockedEventsByDefault.add(BlockFertilizeEvent.class);
+                return this;
+            }
+
             public Builder withSoundGroup(SoundData hitSound, SoundData stepSound, SoundData breakSound, SoundData placeSound, SoundData fallSound) {
                 this.fakeBlockSoundGroup = new FakeBlockSoundGroup(parentBlockKey, hitSound, stepSound, breakSound, placeSound, fallSound);
                 return this;
             }
 
-            public Builder withBlockDisplay(FakeBlockDisplay.Builder<?> builder){
+            public Builder withBlockDisplay(FakeBlockDisplay.Builder<?> builder) {
                 this.fakeBlockDisplay = builder.build(blockStateKey);
                 return this;
             }
 
             FakeBlockState build() {
-                return new FakeBlockState(fakeBlockProperties, fakeBlockDisplay, fakeBlockSoundGroup);
+                return new FakeBlockState(fakeBlockProperties, fakeBlockDisplay, fakeBlockSoundGroup, Set.copyOf(blockedEventsByDefault));
             }
         }
 
         @Override
         public String toString() {
             return "FakeBlockState{" +
+                ", fakeBlock=" + fakeBlock.getKey() +
                 ", properties=" + properties +
                 ", fakeBlockDisplay=" + fakeBlockDisplay +
                 ", fakeBlockSoundGroup=" + fakeBlockSoundGroup +
@@ -266,58 +305,10 @@ public abstract class FakeBlock implements Keyed, BlockBehaviour {
         }));
         public static final FakeBlockHitbox TRANSPARENT_BLOCK = new FakeBlockHitbox(Bukkit.createBlockData(Material.PURPLE_STAINED_GLASS, blockData -> {
         }));
-        public static final FakeBlockHitbox CROP_AGE_0 = new FakeBlockHitbox(Bukkit.createBlockData(Material.WHEAT, blockData -> ((Ageable) blockData).setAge(0))){
-            @Override
-            protected void makeInvisible(CustomResourcePack customResourcePack, Asset<CustomResourcePack> emptyBlockModelAsset, Asset<CustomResourcePack> emptyBlockStatesFile) throws IOException {
-                makeCropModelEmpty(customResourcePack, new NamespacedKey("minecraft","block/wheat_stage0"));
-            }
-        };
-        public static final FakeBlockHitbox CROP_AGE_1 = new FakeBlockHitbox(Bukkit.createBlockData(Material.WHEAT, blockData -> ((Ageable) blockData).setAge(1))){
-            @Override
-            protected void makeInvisible(CustomResourcePack customResourcePack, Asset<CustomResourcePack> emptyBlockModelAsset, Asset<CustomResourcePack> emptyBlockStatesFile) throws IOException {
-                makeCropModelEmpty(customResourcePack, new NamespacedKey("minecraft","block/wheat_stage1"));
-            }
-        };
-        public static final FakeBlockHitbox CROP_AGE_2 = new FakeBlockHitbox(Bukkit.createBlockData(Material.WHEAT, blockData -> ((Ageable) blockData).setAge(2))){
-            @Override
-            protected void makeInvisible(CustomResourcePack customResourcePack, Asset<CustomResourcePack> emptyBlockModelAsset, Asset<CustomResourcePack> emptyBlockStatesFile) throws IOException {
-                makeCropModelEmpty(customResourcePack, new NamespacedKey("minecraft","block/wheat_stage2"));
-            }
-        };
-        public static final FakeBlockHitbox CROP_AGE_3 = new FakeBlockHitbox(Bukkit.createBlockData(Material.WHEAT, blockData -> ((Ageable) blockData).setAge(3))){
-            @Override
-            protected void makeInvisible(CustomResourcePack customResourcePack, Asset<CustomResourcePack> emptyBlockModelAsset, Asset<CustomResourcePack> emptyBlockStatesFile) throws IOException {
-                makeCropModelEmpty(customResourcePack, new NamespacedKey("minecraft","block/wheat_stage3"));
-            }
-        };
-        public static final FakeBlockHitbox CROP_AGE_4 = new FakeBlockHitbox(Bukkit.createBlockData(Material.WHEAT, blockData -> ((Ageable) blockData).setAge(4))){
-            @Override
-            protected void makeInvisible(CustomResourcePack customResourcePack, Asset<CustomResourcePack> emptyBlockModelAsset, Asset<CustomResourcePack> emptyBlockStatesFile) throws IOException {
-                makeCropModelEmpty(customResourcePack, new NamespacedKey("minecraft","block/wheat_stage4"));
-            }
-        };
-        public static final FakeBlockHitbox CROP_AGE_5 = new FakeBlockHitbox(Bukkit.createBlockData(Material.WHEAT, blockData -> ((Ageable) blockData).setAge(5))){
-            @Override
-            protected void makeInvisible(CustomResourcePack customResourcePack, Asset<CustomResourcePack> emptyBlockModelAsset, Asset<CustomResourcePack> emptyBlockStatesFile) throws IOException {
-                makeCropModelEmpty(customResourcePack, new NamespacedKey("minecraft","block/wheat_stage5"));
-            }
-        };
-        public static final FakeBlockHitbox CROP_AGE_6 = new FakeBlockHitbox(Bukkit.createBlockData(Material.WHEAT, blockData -> ((Ageable) blockData).setAge(6))){
-            @Override
-            protected void makeInvisible(CustomResourcePack customResourcePack, Asset<CustomResourcePack> emptyBlockModelAsset, Asset<CustomResourcePack> emptyBlockStatesFile) throws IOException {
-                makeCropModelEmpty(customResourcePack, new NamespacedKey("minecraft","block/wheat_stage6"));
-            }
-        };
-        public static final FakeBlockHitbox CROP_AGE_7 = new FakeBlockHitbox(Bukkit.createBlockData(Material.WHEAT, blockData -> ((Ageable) blockData).setAge(7))){
-            @Override
-            protected void makeInvisible(CustomResourcePack customResourcePack, Asset<CustomResourcePack> emptyBlockModelAsset, Asset<CustomResourcePack> emptyBlockStatesFile) throws IOException {
-                makeCropModelEmpty(customResourcePack, new NamespacedKey("minecraft","block/wheat_stage7"));
-            }
-        };
         private final BlockData blockData;
         private boolean used;
 
-        FakeBlockHitbox(BlockData blockData) {
+        public FakeBlockHitbox(BlockData blockData) {
             this.blockData = blockData;
             fakeBlockHitBoxes.add(this);
         }
@@ -331,7 +322,8 @@ public abstract class FakeBlock implements Keyed, BlockBehaviour {
         }
 
         protected void makeInvisible(CustomResourcePack customResourcePack, Asset<CustomResourcePack> emptyBlockModelAsset, Asset<CustomResourcePack> emptyBlockStatesFile) throws IOException {
-            emptyBlockStatesFile.installAsset(customResourcePack, new NamespacedKey("minecraft", getBlockData().getMaterial().name().toLowerCase(Locale.ROOT)), ResourcePackAssetTypes.BLOCK_STATES, "json");
+            emptyBlockStatesFile.installAsset(customResourcePack, new NamespacedKey("minecraft", getBlockData()
+                .getMaterial().name().toLowerCase(Locale.ROOT)), ResourcePackAssetTypes.BLOCK_STATES, "json");
         }
 
         public static void makeHitBoxesInvisible(CustomResourcePack customResourcePack) throws IOException {
@@ -345,19 +337,19 @@ public abstract class FakeBlock implements Keyed, BlockBehaviour {
             customResourcePack.register(new AssetBasedResourcePackResource(new NamespacedKey("minecraft", "block/empty"), emptyBlockTexture, ResourcePackAssetTypes.TEXTURES, "png"));
 
             for (FakeBlockHitbox fakeBlockHitBox : fakeBlockHitBoxes) {
-                if(fakeBlockHitBox.used)
+                if (fakeBlockHitBox.used)
                     fakeBlockHitBox.makeInvisible(customResourcePack, emptyBlockModel, emptyBlockStatesFile);
             }
         }
 
-        public static void makeCropModelEmpty(CustomResourcePack customResourcePack, NamespacedKey cropKey){
+        public static void makeModelEmpty(CustomResourcePack customResourcePack, NamespacedKey modelKey) {
             JsonObject jsonToWriteToFile = new JsonObject();
-            ItemTextureData.ModelType modelType = CustomCrop.createFakeCropModel(new NamespacedKey("minecraft", "block/empty"));
+            ItemTextureData.ModelType modelType = ReplacedCrop.createFakeCropModel(new NamespacedKey("minecraft", "block/empty"));
             modelType.modelCreator().accept(null, jsonToWriteToFile);
-            customResourcePack.register(new ModelFile(cropKey, modelType));
+            customResourcePack.register(new ModelFile(modelKey, modelType));
         }
 
-        public static FakeBlockHitbox createFakeBlockHitbox(BlockData blockData){
+        public static FakeBlockHitbox createFakeBlockHitbox(BlockData blockData) {
             return new FakeBlockHitbox(blockData);
         }
 

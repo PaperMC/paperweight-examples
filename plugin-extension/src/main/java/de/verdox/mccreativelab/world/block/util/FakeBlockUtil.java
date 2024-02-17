@@ -25,42 +25,11 @@ public class FakeBlockUtil {
             destroyParticleBlockData = fakeBlockState.getFakeBlockDisplay().getDestroyParticleData();
 
 
-        if(fakeBlockState != null && fakeBlockState.getFakeBlockSoundGroup() != null || FakeBlockSoundManager.isBlockWithoutStandardSound(block))
-            FakeBlockSoundManager.simulateBreakSound(block, fakeBlockState);
+        //if(fakeBlockState != null && fakeBlockState.getFakeBlockSoundGroup() != null || FakeBlockSoundManager.isBlockWithoutStandardSound(block))
+            //FakeBlockSoundManager.simulateBreakSound(block, fakeBlockState);
 
         block.getWorld().playEffect(block.getLocation(), Effect.STEP_SOUND, destroyParticleBlockData);
         //block.getWorld().spawnParticle(Particle.BLOCK_CRACK, block.getLocation().clone().add(0.5, 0.5, 0.5), 40, 0.1, 0.1, 0.1, destroyParticleBlockData);
-    }
-
-    @ApiStatus.Experimental
-    public static void sendBlockDestruction(Location location, BlockData fakeBukkitParticles) {
-        Block block = location.getBlock();
-        if (block.getType().equals(Material.FIRE))
-            block.getWorld().playEffect(block.getLocation(), Effect.EXTINGUISH, fakeBukkitParticles);
-        else
-            block.getWorld().playEffect(block.getLocation(), Effect.STEP_SOUND, fakeBukkitParticles);
-    }
-
-    public static void dropResources(Block block, FakeBlock.FakeBlockState fakeBlockState, Player player){
-
-    }
-
-    public static void moveBlock(Location location, ItemDisplay itemDisplay, FakeBlock.FakeBlockState fakeBlockState, Vector moveDirection) {
-        ItemDisplay animationDisplay = (ItemDisplay) location.getWorld()
-                                                             .spawnEntity(itemDisplay.getLocation(), EntityType.ITEM_DISPLAY);
-        animationDisplay.setItemStack(itemDisplay.getItemStack().clone());
-
-        Transformation transformation = animationDisplay.getTransformation();
-        transformation.getTranslation()
-                      .add(new Vector3f(moveDirection.getBlockX(), moveDirection.getBlockY(), moveDirection.getBlockZ()));
-        animationDisplay.setInterpolationDuration(4);
-        animationDisplay.setInterpolationDelay(-1);
-        animationDisplay.setTransformation(transformation);
-        Bukkit.getScheduler().runTaskLater(MCCreativeLabExtension.getInstance(), animationDisplay::remove, 4L);
-
-        FakeBlockStorage.setFakeBlockState(location, null, false);
-        Location newBlockLocation = location.clone().add(moveDirection);
-        FakeBlockStorage.setFakeBlockState(newBlockLocation, fakeBlockState, false);
     }
 
     public static boolean playerNotInEffectRange(Player onlinePlayer, Block block) {
@@ -112,7 +81,7 @@ public class FakeBlockUtil {
     }
 
     public static void removeFakeBlockIfPossible(Block block) {
-        FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockStateOrThrow(block.getLocation(), false);
+        FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockState(block.getLocation(), false);
         if (fakeBlockState == null)
             return;
         FakeBlockStorage.setFakeBlockState(block.getLocation(), null, false);

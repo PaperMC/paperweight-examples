@@ -31,19 +31,21 @@ import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
+import java.util.stream.Stream;
 
 public class ResourcePackFileHoster implements Handler<HttpServerRequest>, Listener {
     private final HttpServer httpServer;
     private final Map<String, ResourcePackInfo> availableResourcePacks = new HashMap<>();
-    private final Map<Player, Set<UUID>> loadedResourcePacks = new HashMap<>();
     private final String hostname;
     private final int port;
+
     public ResourcePackFileHoster(String hostname, int port) {
-        Bukkit.getLogger().warning("Starting ResourcePackFileHoster");
+        Bukkit.getLogger().info("Starting ResourcePackFileHoster on " + hostname + ":" + port);
         this.hostname = hostname;
         this.port = port;
         this.httpServer = Vertx.vertx().createHttpServer();
-        this.httpServer.exceptionHandler(event -> Bukkit.getLogger().warning("Exception happened in ResourcePackFileHoster"));
+        this.httpServer.exceptionHandler(event -> Bukkit.getLogger()
+                                                        .warning("Exception happened in ResourcePackFileHoster"));
         this.httpServer.requestHandler(this);
         this.httpServer.listen(port, hostname);
     }
@@ -54,41 +56,53 @@ public class ResourcePackFileHoster implements Handler<HttpServerRequest>, Liste
 
     @Override
     public void handle(HttpServerRequest event) {
+        Bukkit.getLogger().info("Receiving a request " + event.absoluteURI());
         var split = event.absoluteURI().split("/");
-        if(split.length == 0)
+        if (split.length == 0)
             return;
         String hash = split[split.length - 1];
         ResourcePackInfo resourcePackInfo = availableResourcePacks.getOrDefault(hash, null);
-        if (resourcePackInfo == null)
+        if (resourcePackInfo == null) {
+            Bukkit.getLogger().warning("Someone requested a resource pack with hash " + hash + " that does not exist");
             return;
+        }
         event.response().sendFile(resourcePackInfo.file.getAbsolutePath());
+        Bukkit.getLogger().info("Sending resource pack with hash " + hash);
     }
 
     //TODO: Do this on server reload aswell. Makes quick changes possible
     public void createResourcePackZipFiles() throws IOException {
         deleteZipFiles();
-        Files.walk(CustomResourcePack.resourcePacksFolder.toPath(), 1).forEach(path -> {
-            if (path.equals(CustomResourcePack.resourcePacksFolder.toPath()))
-                return;
-            if (!path.toFile().isDirectory())
-                return;
-            File resourcePackParentFolder = path.toFile();
-            String resourcePackName = resourcePackParentFolder.getName();
-            File zipFile = Path.of(resourcePackParentFolder.getPath() + ".zip").toFile();
-            if(!resourcePackName.equals("MCCreativeLab"))
-                return;
 
-            ZipUtil.zipFolder(resourcePackParentFolder.toPath(), Path.of(resourcePackParentFolder.getPath() + ".zip"));
-            try {
-                String hash = calculateSHA1String(zipFile.getPath());
-                byte[] hashBytes = calculateSHA1(zipFile.getPath());
-                ResourcePackInfo resourcePackInfo = new ResourcePackInfo(resourcePackName, zipFile, createDownloadUrl(hash), hash, hashBytes, true, null);
-                availableResourcePacks.put(hash, resourcePackInfo);
-                Bukkit.getLogger().info("MCCreativeLab: Found ResourcePack " + zipFile.getName());
-            } catch (IOException | NoSuchAlgorithmException e) {
-                throw new RuntimeException(e);
-            }
-        });
+        try (Stream<Path> files = Files.walk(CustomResourcePack.resourcePacksFolder.toPath(), 1)) {
+            files.parallel().forEach(path -> {
+                if (path.equals(CustomResourcePack.resourcePacksFolder.toPath()))
+                    return;
+                if (!path.toFile().isDirectory())
+                    return;
+                File resourcePackParentFolder = path.toFile();
+                String resourcePackName = resourcePackParentFolder.getName();
+                File zipFile = Path.of(resourcePackParentFolder.getPath() + ".zip").toFile();
+                if (!resourcePackName.equals("MCCreativeLab"))
+                    return;
+
+                Path zipPath = Path.of(resourcePackParentFolder.getPath() + ".zip");
+                long start = System.currentTimeMillis();
+                ZipUtil.zipFolder(resourcePackParentFolder.toPath(), zipPath);
+                long end = System.currentTimeMillis() - start;
+                Bukkit.getLogger().info("Created Zip file "+zipFile+" in "+end+" ms");
+                try {
+                    String hash = calculateSHA1String(zipFile.getPath());
+                    byte[] hashBytes = calculateSHA1(zipFile.getPath());
+                    ResourcePackInfo resourcePackInfo = new ResourcePackInfo(resourcePackName, zipFile, createDownloadUrl(hash), hash, hashBytes, true, null);
+                    availableResourcePacks.put(hash, resourcePackInfo);
+                    Bukkit.getLogger()
+                          .info("MCCreativeLab: Hosting ResourcePack " + zipFile.getName() + " with hash: " + hash);
+                } catch (IOException | NoSuchAlgorithmException e) {
+                    throw new RuntimeException(e);
+                }
+            });
+        }
     }
 
     public String createDownloadUrl(String hash) {
@@ -102,8 +116,11 @@ public class ResourcePackFileHoster implements Handler<HttpServerRequest>, Liste
                 return;
             if (!FileUtils.extension(path.toFile().getName()).equals("zip"))
                 return;
-            Bukkit.getLogger().info("Deleting ResourcePack file "+path.toFile().getName());
+            Bukkit.getLogger().info("Deleting ResourcePack file " + path.toFile().getName());
+            long start = System.currentTimeMillis();
             path.toFile().delete();
+            long end = System.currentTimeMillis() - start;
+            Bukkit.getLogger().info("ResourcePack file " + path.toFile().getName() + " deleted in " + end + " ms");
         });
     }
 
@@ -134,15 +151,16 @@ public class ResourcePackFileHoster implements Handler<HttpServerRequest>, Liste
         return digest.digest();
     }
 
-    public record ResourcePackInfo(String resourcePackName, File file, String url, String hash, byte[] hashBytes, boolean isRequired, @javax.annotation.Nullable Component prompt) {
-        public UUID getUUID(){
+    public record ResourcePackInfo(String resourcePackName, File file, String url, String hash, byte[] hashBytes,
+                                   boolean isRequired, @javax.annotation.Nullable Component prompt) {
+        public UUID getUUID() {
             return UUID.nameUUIDFromBytes(resourcePackName.getBytes(StandardCharsets.UTF_8));
         }
     }
 
     public void sendDefaultResourcePackToPlayer(Player player) {
         availableResourcePacks.forEach((s, resourcePackInfo) -> {
-            if(resourcePackInfo.isRequired) sendResourcePackToPlayer(player, resourcePackInfo);
+            if (resourcePackInfo.isRequired) sendResourcePackToPlayer(player, resourcePackInfo);
         });
     }
 
@@ -151,8 +169,6 @@ public class ResourcePackFileHoster implements Handler<HttpServerRequest>, Liste
     }
 
     public void sendResourcePackToPlayer(Player player, ResourcePackFileHoster.ResourcePackInfo packInfo) {
-        if(loadedResourcePacks.containsKey(player) && loadedResourcePacks.get(player).contains(packInfo.getUUID()))
-            return;
         String downloadURL = MCCreativeLabExtension.getResourcePackFileHoster().createDownloadUrl(packInfo.hash());
 
         player.setResourcePack(packInfo.getUUID(), downloadURL, packInfo.hashBytes(), (Component) null, true);
@@ -163,22 +179,11 @@ public class ResourcePackFileHoster implements Handler<HttpServerRequest>, Liste
         switch (e.getStatus()) {
             case DECLINED, FAILED_DOWNLOAD, FAILED_RELOAD, INVALID_URL ->
                 e.getPlayer().kick(null, PlayerKickEvent.Cause.RESOURCE_PACK_REJECTION);
-            case SUCCESSFULLY_LOADED -> {
-                loadedResourcePacks.computeIfAbsent(e.getPlayer(), player -> new HashSet<>()).add(e.getID());
-                sendDefaultResourcePackToPlayer(e.getPlayer());
-            }
-            case DISCARDED ->
-                loadedResourcePacks.computeIfAbsent(e.getPlayer(), player -> new HashSet<>()).remove(e.getID());
         }
     }
 
     @EventHandler
     public void applyRequiredResourcePackOnJoin(PlayerJoinEvent e) {
         MCCreativeLabExtension.getInstance().getResourcePackFileHoster().sendDefaultResourcePackToPlayer(e.getPlayer());
-    }
-
-    @EventHandler
-    public void clearCacheOnQuit(PlayerQuitEvent e){
-        loadedResourcePacks.remove(e.getPlayer());
     }
 }

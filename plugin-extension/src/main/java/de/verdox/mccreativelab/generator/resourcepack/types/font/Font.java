@@ -1,6 +1,7 @@
 package de.verdox.mccreativelab.generator.resourcepack.types.font;
 
 import com.google.gson.JsonObject;
+import de.verdox.mccreativelab.generator.Asset;
 import de.verdox.mccreativelab.generator.resourcepack.CustomResourcePack;
 import de.verdox.mccreativelab.generator.resourcepack.ResourcePackAssetTypes;
 import de.verdox.mccreativelab.generator.resourcepack.ResourcePackResource;
@@ -12,6 +13,8 @@ import org.bukkit.NamespacedKey;
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public class Font extends ResourcePackResource {
     private final List<Space> spaces = new LinkedList<>();
@@ -30,7 +33,8 @@ public class Font extends ResourcePackResource {
                 if (found)
                     break;
                 if (space.hasCodePoint(codePoint)) {
-                    width += space.getPixelWidth(codePoint);
+                    //width += space.getPixelWidth(codePoint);
+                    width += 1;
                     found = true;
                 }
             }
@@ -41,6 +45,7 @@ public class Font extends ResourcePackResource {
                 if (bitMap.bitMapReader().hasCodePoint(codePoint)) {
                     found = true;
                     width += bitMap.bitMapReader().getPixelWidth(codePoint, 0) + 1;
+                    break;
                 }
 
             }
@@ -69,7 +74,7 @@ public class Font extends ResourcePackResource {
         for (int i = 0; i < bitMaps.size(); i++) {
             NamespacedKey bitMapKey = new NamespacedKey(key().namespace(), key().value() + "_bitmap_" + i);
             BitMap bitMap = bitMaps.get(i);
-            bitMap.bitmapImageAsset().installAsset(customPack, bitMapKey, ResourcePackAssetTypes.TEXTURES, "png");
+            //bitMap.bitmapImageAsset().installAsset(customPack, bitMapKey, ResourcePackAssetTypes.TEXTURES, "png");
             bitMap.buildToProviders(bitMapKey, providers);
         }
 

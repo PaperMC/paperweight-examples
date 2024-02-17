@@ -11,7 +11,7 @@ public class DummyBlockVisualStrategy extends FakeBlockVisualStrategy<FakeBlockV
     public void spawnFakeBlockDisplay(Block block, FakeBlock.FakeBlockState fakeBlockState) {}
 
     @Override
-    public void blockUpdate(Block block, FakeBlock.FakeBlockState fakeBlockState, BlockFace direction, BlockData neighbourBlockData, BlockData blockDataAfterUpdate) {}
+    public void blockUpdate(Block block, FakeBlock.FakeBlockState fakeBlockState, BlockFace direction, BlockData neighbourBlockData) {}
 
     @Override
     protected void loadItemDisplayAsBlockDisplay(PotentialItemDisplay potentialItemDisplay) {}

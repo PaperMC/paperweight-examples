@@ -26,9 +26,8 @@ public class TransparentBlockVisualStrategy extends FakeBlockVisualStrategy<Tran
     }
 
     @Override
-    public void blockUpdate(Block block, FakeBlock.FakeBlockState fakeBlockState, BlockFace direction, BlockData neighbourBlockData, BlockData blockDataAfterUpdate) {
-        System.out.println("BlockUpdate");
-        blockUpdateRemovalLogic(block, fakeBlockState, direction, neighbourBlockData, blockDataAfterUpdate);
+    public void blockUpdate(Block block, FakeBlock.FakeBlockState fakeBlockState, BlockFace direction, BlockData neighbourBlockData) {
+        blockUpdateRemovalLogic(block, fakeBlockState, direction, neighbourBlockData);
     }
 
     @Override

@@ -7,50 +7,54 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockDropItemEvent;
+import org.bukkit.event.block.BlockFertilizeEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.inventory.ItemStack;
 
 import javax.annotation.Nullable;
+import java.util.List;
 
 public class FakeBlockListener implements Listener {
-    @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     public void onFakeBlockPlace(BlockPlaceEvent e) {
         if (!FakeBlockSoundManager.isBlockWithoutStandardSound(e.getBlock()))
             return;
         //TODO
-        FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockStateOrThrow(e.getBlock().getLocation(), false);
+        FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockState(e.getBlock().getLocation(), false);
 
-        FakeBlockSoundManager.simulateBlockPlaceSound(e.getPlayer(), e.getBlock(), fakeBlockState);
+/*        FakeBlockSoundManager.simulateBlockPlaceSound(e.getPlayer(), e.getBlock(), fakeBlockState);*/
     }
 
-    @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     public void blockDestroy(BlockDestroyEvent e){
-        FakeBlockStorage.setFakeBlock(e.getBlock().getLocation(), null, false);
+        FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockState(e.getBlock().getLocation(), false);
+        if(fakeBlockState == null)
+            return;
+        fakeBlockState.getFakeBlock().remove(e.getBlock().getLocation(), e.playEffect(), e.willDrop(), null, null, true);
+        e.setWillDrop(false);
+        e.setPlayEffect(false);
+        e.setExpToDrop(0);
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    public void preventBukkitFertilizationLogic(BlockFertilizeEvent e){
+        FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockState(e.getBlock().getLocation(), false);
+        if(fakeBlockState == null)
+            return;
+        if(fakeBlockState.getBlockedEventsByDefault().contains(e.getClass()))
+            e.setCancelled(true);
     }
 
 
-    @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     public void doNotDropVanillaLootForFakeBlocks(BlockBreakEvent e) {
-        FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockStateOrThrow(e.getBlock()
+        FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockState(e.getBlock()
                                                                                              .getLocation(), false);
         if (fakeBlockState == null)
             return;
-        e.setDropItems(false);
-    }
-
-    @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
-    public void fakeBlockDropItems(BlockDropItemEvent e) {
-        FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockStateOrThrow(e.getBlock()
-                                                                                             .getLocation(), false);
-        if (fakeBlockState == null)
-            return;
-        e.getItems().clear();
-        fakeBlockState.getFakeBlock().drawLoot();
-    }
-
-    @Nullable
-    private static FakeBlock.FakeBlockState getFakeBlockState(Block block) {
-        if (!FakeBlockSoundManager.isBlockWithoutStandardSound(block))
-            return null;
-        return FakeBlockStorage.getFakeBlockStateOrThrow(block.getLocation(), false);
+        if(e.isDropItems()){
+            fakeBlockState.getFakeBlock().dropBlockLoot(e.getBlock().getLocation(), fakeBlockState, e.getPlayer(), e.getPlayer().getInventory().getItemInMainHand(), false);
+            e.setDropItems(false);
+        }
     }
 }

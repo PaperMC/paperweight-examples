@@ -74,11 +74,14 @@ public abstract class FakeBlockVisualStrategy<T extends FakeBlockVisualStrategy.
         block.removeMetadata(FAKE_BLOCK_FACE_LINKING_KEY, MCCreativeLabExtension.getInstance());
     }
 
-    public abstract void blockUpdate(Block block, FakeBlock.FakeBlockState fakeBlockState, BlockFace direction, BlockData neighbourBlockData, BlockData blockDataAfterUpdate);
-    protected void blockUpdateRemovalLogic(Block block, FakeBlock.FakeBlockState fakeBlockState, BlockFace direction, BlockData neighbourBlockData, BlockData blockDataAfterUpdate){
-        if(blockDataAfterUpdate != null && block.getBlockData().getPlacementMaterial().equals(blockDataAfterUpdate.getPlacementMaterial()))
-            return;
-        removeFakeBlockDisplay(block);
+    public abstract void blockUpdate(Block block, FakeBlock.FakeBlockState fakeBlockState, BlockFace direction, BlockData neighbourBlockData);
+    protected void blockUpdateRemovalLogic(Block block, FakeBlock.FakeBlockState fakeBlockState, BlockFace direction, BlockData neighbourBlockData){
+        Bukkit.getScheduler().runTaskLater(MCCreativeLabExtension.getInstance(), () -> {
+            FakeBlock.FakeBlockState fakeBlockStateAfterUpdate = FakeBlockStorage.getFakeBlockState(block.getLocation(), false);
+            if(fakeBlockStateAfterUpdate != null && fakeBlockStateAfterUpdate.getFakeBlock().equals(fakeBlockState.getFakeBlock()))
+                return;
+            removeFakeBlockDisplay(block);
+        },1L);
     }
 
     protected abstract void loadItemDisplayAsBlockDisplay(PotentialItemDisplay potentialItemDisplay);

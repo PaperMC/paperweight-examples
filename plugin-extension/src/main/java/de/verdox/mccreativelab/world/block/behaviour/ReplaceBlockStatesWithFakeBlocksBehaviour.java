@@ -22,32 +22,26 @@ public class ReplaceBlockStatesWithFakeBlocksBehaviour extends FakeBlockBehaviou
 
     @Override
     public BehaviourResult.Callback onPlace(Location location, BlockData newBlockData, BlockData oldBlockData, boolean notify) {
-        FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockStateOrThrow(location, false);
-        if (fakeBlockState == null) {
-            if (replacedVisualStates.containsKey(newBlockData)) {
+        FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockState(location, false);
+        if (fakeBlockState == null)
+            if (replacedVisualStates.containsKey(newBlockData))
                 FakeBlockStorage.setFakeBlockState(location, this.replacedVisualStates.get(newBlockData), false);
-            }
-        }
+
         return super.onPlace(location, newBlockData, oldBlockData, notify);
     }
 
     @Override
     public BehaviourResult.Callback onPlayerPlace(Player player, Location location, BlockData thePlacedState) {
-        System.out.println("onPlayerPlace");
-        FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockStateOrThrow(location, false);
-        System.out.println(fakeBlockState);
-        if (fakeBlockState == null) {
-            if (replacedVisualStates.containsKey(thePlacedState)) {
-                System.out.println("creating fake block state");
+        FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockState(location, false);
+        if (fakeBlockState == null)
+            if (replacedVisualStates.containsKey(thePlacedState))
                 FakeBlockStorage.setFakeBlockState(location, this.replacedVisualStates.get(thePlacedState), false);
-            }
-        }
         return super.onPlayerPlace(player, location, thePlacedState);
     }
 
     @Override
     public BehaviourResult.Void tick(Block block, VanillaRandomSource vanillaRandomSource) {
-        FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockStateOrThrow(block.getLocation(), false);
+        FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockState(block.getLocation(), false);
         if (fakeBlockState == null)
             if (replacedVisualStates.containsKey(block.getBlockData()))
                 FakeBlockStorage.setFakeBlockState(block.getLocation(), this.replacedVisualStates.get(block.getBlockData()), false);
@@ -56,10 +50,11 @@ public class ReplaceBlockStatesWithFakeBlocksBehaviour extends FakeBlockBehaviou
 
     @Override
     public BehaviourResult.Object<BlockData> blockUpdate(Location location, BlockData blockData, BlockFace direction, BlockData neighbourBlockData, Location neighbourLocation) {
-        FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockStateOrThrow(location, false);
+        FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockState(location, false);
         if (fakeBlockState == null)
             if (replacedVisualStates.containsKey(blockData))
                 FakeBlockStorage.setFakeBlockState(location, this.replacedVisualStates.get(blockData), false);
+
         return super.blockUpdate(location, blockData, direction, neighbourBlockData, neighbourLocation);
     }
 }

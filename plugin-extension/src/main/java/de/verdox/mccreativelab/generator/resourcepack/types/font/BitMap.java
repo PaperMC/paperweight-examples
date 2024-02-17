@@ -1,6 +1,7 @@
 package de.verdox.mccreativelab.generator.resourcepack.types.font;
 
 import de.verdox.mccreativelab.generator.Asset;
+import de.verdox.mccreativelab.generator.resourcepack.AssetBasedResourcePackResource;
 import de.verdox.mccreativelab.generator.resourcepack.CustomResourcePack;
 import de.verdox.mccreativelab.util.gson.JsonArrayBuilder;
 import de.verdox.mccreativelab.util.gson.JsonObjectBuilder;
@@ -10,17 +11,17 @@ import org.bukkit.NamespacedKey;
 import javax.imageio.ImageIO;
 import java.io.IOException;
 
-public record BitMap(Asset<CustomResourcePack> bitmapImageAsset, int height, int ascent, float scale, BitMapReader bitMapReader, String... character) implements FontElement{
+public record BitMap(AssetBasedResourcePackResource bitmapImageAsset, int height, int ascent, float scale, BitMapReader bitMapReader, String... character) implements FontElement{
 
-    public BitMap(Asset<CustomResourcePack> bitmapImageAsset, int height, int ascent, String... character) {
+    public BitMap(AssetBasedResourcePackResource bitmapImageAsset, int height, int ascent, String... character) {
         this(bitmapImageAsset, height, ascent, 1, character);
     }
 
-    public BitMap(Asset<CustomResourcePack> bitmapImageAsset, int height, int ascent, float scale, String... character) {
-        this(bitmapImageAsset, height, ascent, scale, new BitMapReader(bitmapImageAsset.assetInputStream(), height, character, scale), character);
+    public BitMap(AssetBasedResourcePackResource bitmapImageAsset, int height, int ascent, float scale, String... character) {
+        this(bitmapImageAsset, height, ascent, scale, new BitMapReader(bitmapImageAsset.getAsset().assetInputStream(), height, character, scale), character);
     }
 
-    public BitMap(Asset<CustomResourcePack> bitmapImageAsset, int height, int ascent, BitMapReader bitMapReader, String... character) {
+    public BitMap(AssetBasedResourcePackResource bitmapImageAsset, int height, int ascent, BitMapReader bitMapReader, String... character) {
         this(bitmapImageAsset, height, ascent, 1, bitMapReader, character);
     }
 
@@ -34,14 +35,14 @@ public record BitMap(Asset<CustomResourcePack> bitmapImageAsset, int height, int
         return new BitMap(bitmapImageAsset, height, ascent, scale, character);
     }
     public int getPixelHeight() throws IOException {
-        if (!bitmapImageAsset.isInputStreamValid())
+        if (!bitmapImageAsset.getAsset().isInputStreamValid())
             throw new IOException("Asset is not a bitmap image");
-        return ImageIO.read(bitmapImageAsset.assetInputStream().get()).getHeight();
+        return ImageIO.read(bitmapImageAsset.getAsset().assetInputStream().get()).getHeight();
     }
     public int getPixelWidth() throws IOException {
-        if (!bitmapImageAsset.isInputStreamValid())
+        if (!bitmapImageAsset.getAsset().isInputStreamValid())
             throw new IOException("Asset is not a bitmap image");
-        return ImageIO.read(bitmapImageAsset.assetInputStream().get()).getWidth();
+        return ImageIO.read(bitmapImageAsset.getAsset().assetInputStream().get()).getWidth();
     }
 
     @Override
@@ -55,9 +56,10 @@ public record BitMap(Asset<CustomResourcePack> bitmapImageAsset, int height, int
             charArray.add(s);
         }
 
+
         var bitmapDetails = JsonObjectBuilder.create()
                                              .add("type", "bitmap")
-                                             .add("file", namespacedKey.toString()+".png")
+                                             .add("file", bitmapImageAsset.getKey() +".png")
                                              .add("ascent", ascent)
                                              .add("height", (int) (height * scale))
                                              .add("chars", charArray);

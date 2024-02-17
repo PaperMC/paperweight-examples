@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
 
 public abstract class CustomRegistry<T> {
     private final AtomicInteger idCounter = new AtomicInteger();
@@ -15,8 +16,9 @@ public abstract class CustomRegistry<T> {
     private final Map<NamespacedKey, Integer> keyToId = new HashMap<>();
     private final Map<Integer, NamespacedKey> idToKey = new HashMap<>();
     private boolean freeze;
-    protected <S extends T> Reference<S> register(NamespacedKey namespacedKey, S data){
-        if(freeze)
+
+    protected <S extends T> Reference<S> register(NamespacedKey namespacedKey, S data) {
+        if (freeze)
             throw new IllegalStateException("Registry already frozen");
         int id = idCounter.getAndIncrement();
         checkForDuplicates(namespacedKey, data);
@@ -28,26 +30,62 @@ public abstract class CustomRegistry<T> {
         return (Reference<S>) Reference.create(this, namespacedKey);
     }
 
-    public void freeze(){
+    public void freeze() {
         onFreeze();
     }
 
-    protected void onFreeze(){}
+    protected void clear() {
+        this.freeze = false;
+        idCounter.set(0);
+        registry.clear();
+        dataToKeyMapping.clear();
+        keyToId.clear();
+        idToKey.clear();
+    }
 
-    public boolean isEmpty(){
+    protected void onFreeze() {
+    }
+
+    public boolean isEmpty() {
         return registry.isEmpty();
     }
 
-    public Iterator<T> values(){
+    public Iterator<T> values() {
         return registry.values().iterator();
     }
 
-    public Iterator<NamespacedKey> keys(){
+    public Iterator<Reference<T>> referenceIterator() {
+        return new Iterator<>() {
+            private final Iterator<T> iterator = values();
+
+            @Override
+            public boolean hasNext() {
+                return iterator.hasNext();
+            }
+
+            @Override
+            public Reference<T> next() {
+                T value = iterator.next();
+                return Reference.create(CustomRegistry.this, getKey(value));
+            }
+        };
+
+    }
+
+    public Iterator<NamespacedKey> keys() {
         return registry.keySet().iterator();
+    }
+
+    public Stream<NamespacedKey> streamKeys() {
+        return registry.keySet().stream();
     }
 
     public NamespacedKey getKey(T data) {
         return dataToKeyMapping.get(data);
+    }
+
+    public boolean contains(NamespacedKey namespacedKey) {
+        return registry.containsKey(namespacedKey);
     }
 
     @Nullable
@@ -63,9 +101,17 @@ public abstract class CustomRegistry<T> {
         return registry.get(namespacedKey);
     }
 
+    public Reference<T> getAsReference(NamespacedKey namespacedKey) {
+        return Reference.create(this, namespacedKey);
+    }
+
+    public Reference<T> getAsReference(T value) {
+        return getAsReference(getKey(value));
+    }
+
     public @Nullable T get(int id) {
         NamespacedKey key = getKey(id);
-        if(key == null)
+        if (key == null)
             return null;
         return registry.get(key);
     }

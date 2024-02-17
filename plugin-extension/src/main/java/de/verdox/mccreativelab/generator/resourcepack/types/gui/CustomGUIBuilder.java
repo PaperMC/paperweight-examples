@@ -3,17 +3,21 @@ package de.verdox.mccreativelab.generator.resourcepack.types.gui;
 import de.verdox.mccreativelab.MCCreativeLabExtension;
 import de.verdox.mccreativelab.generator.Asset;
 import de.verdox.mccreativelab.generator.resourcepack.CustomResourcePack;
-import de.verdox.mccreativelab.generator.resourcepack.renderer.ScreenPosition;
-import de.verdox.mccreativelab.generator.resourcepack.renderer.TextType;
-import de.verdox.mccreativelab.generator.resourcepack.types.CustomHud;
-import de.verdox.mccreativelab.util.io.StringAlign;
+import de.verdox.mccreativelab.generator.resourcepack.types.gui.element.GUIButton;
+import de.verdox.mccreativelab.generator.resourcepack.types.gui.element.GUIElement;
+import de.verdox.mccreativelab.generator.resourcepack.types.gui.element.active.ActiveGUIElement;
+import de.verdox.mccreativelab.generator.resourcepack.types.rendered.ComponentRendered;
+import de.verdox.mccreativelab.generator.resourcepack.types.rendered.element.HudElement;
+import de.verdox.mccreativelab.generator.resourcepack.types.rendered.util.ScreenPosition;
+import de.verdox.mccreativelab.generator.resourcepack.types.rendered.util.TextType;
+import de.verdox.mccreativelab.generator.resourcepack.types.rendered.element.single.SingleHudTexture;
+import de.verdox.mccreativelab.generator.resourcepack.types.rendered.RenderedElementBehavior;
 import org.apache.logging.log4j.util.TriConsumer;
 import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryType;
-import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -22,9 +26,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-public class CustomGUIBuilder extends CustomHud {
+public class CustomGUIBuilder extends ComponentRendered<CustomGUIBuilder, ActiveGUI> {
     private InventoryType type;
     Consumer<ActiveGUI> onOpen;
     Consumer<ActiveGUI> onClose;
@@ -32,13 +37,19 @@ public class CustomGUIBuilder extends CustomHud {
     int updateInterval = 20;
     TriConsumer<ClickableItem, InventoryClickEvent, ActiveGUI> clickConsumer;
     private final Set<Integer> blockedSlots = new HashSet<>();
-    final Map<String, GUIElement.ClickableButton> clickableButtons = new HashMap<>();
+    final Map<String, GUIElement> guiElements = new HashMap<>();
     private int chestSize;
     private boolean allSlotsBlocked;
     private boolean usePlayerSlots;
+    private final Map<GUIElement, GUIElementBehavior<?>> guiElementBehaviors = new HashMap<>();
 
-    public void setUpdateInterval(int updateInterval) {
+    public Map<GUIElement, GUIElementBehavior<?>> getGuiElementBehaviors() {
+        return guiElementBehaviors;
+    }
+
+    public CustomGUIBuilder withUpdateInterval(int updateInterval) {
         this.updateInterval = updateInterval;
+        return this;
     }
 
     public CustomGUIBuilder(@NotNull NamespacedKey namespacedKey, @NotNull InventoryType type) {
@@ -74,57 +85,63 @@ public class CustomGUIBuilder extends CustomHud {
 
     public CustomGUIBuilder withOverlayTexture(Asset<CustomResourcePack> texture, ScreenPosition screenPosition) throws IOException {
         return withTexture("overlay", texture,
-                // 13 hoch / 8 nach links
-                screenPosition);
+            // 13 hoch / 8 nach links
+            screenPosition, new RenderedElementBehavior<>() {
+                @Override
+                public void onOpen(ActiveGUI parentElement, Player player, SingleHudTexture.RenderedSingleHudTexture element) {
+                    element.setVisible(true);
+                }
+            });
     }
 
     //TODO: Beim erstellen von Objekten im CustomGUI muss man auswählen können ob man den Index im Spieler Inventar oder im GUI haben will
     // TOOD: Je nachdem wird dann automatisch die usePlayerSlots Flag auf true gesetzt
 
-    public CustomGUIBuilder withClickableButton(String buttonName, StringAlign.Alignment textAlignment, float textScale, @Nullable Asset<CustomResourcePack> buttonTexture, int clickSizeX, int clickSizeY, int index, @Nullable Consumer<ItemMeta> metaSetup) throws IOException {
+    public CustomGUIBuilder withButton(String buttonName, int x, int y, Consumer<GUIButton.Builder> setup) {
+        return withButton(buttonName, x, y, setup, null);
+    }
 
-        var clickableItem = new ClickableItem.Builder()
-            .withClickSize(clickSizeX, clickSizeY)
-            .withItemMeta(metaSetup);
+    public CustomGUIBuilder withButton(String buttonName, int x, int y, Consumer<GUIButton.Builder> setup, @Nullable GUIElementBehavior<?> behavior) {
+        int index = x + (y * 9);
+        return withButton(buttonName, index, setup, behavior);
+    }
 
-        var screenPosOfTexture = ScreenPosition.calculateTopLeftCornerOfInventorySlotIndex(index, getCorrectTextType());
+    public CustomGUIBuilder withButton(String buttonName, int index, Consumer<GUIButton.Builder> setup) {
+        return withButton(buttonName, index, setup, null);
+    }
 
+    public CustomGUIBuilder withButton(String buttonName, int index, Consumer<GUIButton.Builder> setup, @Nullable GUIElementBehavior<?> behavior) {
+        if (index < 0)
+            throw new IllegalArgumentException("Index must be >= 0");
+        int preferredSize = getType() != null ? (getType().getDefaultSize()) : (getChestSize() * 9);
+        if (index > preferredSize)
+            throw new IllegalArgumentException("Index must be < " + preferredSize);
+        GUIButton.Builder builder = new GUIButton.Builder(index);
+        setup.accept(builder);
         String textFieldID = "clickable_button_" + buttonName + "_text";
-        withText(textFieldID, screenPosOfTexture.withLayer(3).addToXOffset(3)
-                                                        .addToYOffset(-6), textAlignment, 0, textScale);
         String textureName = "clickable_button_" + buttonName + "_texture";
-        withTexture(textureName, buttonTexture, screenPosOfTexture.withLayer(2));
 
-        var button = new GUIElement.ClickableButton(clickableItem.build(), index, textureName, textFieldID);
+        GUIButton guiButton = builder.build(textureName, textFieldID);
+        int x = index % 9;
+        int y = index / 9;
+        var screenPosOfTexture = ScreenPosition.getScreenPositionOfSlot(x, y, this, ScreenPosition.SlotOffset.TOP_LEFT_CORNER);
 
-        clickableButtons.put(buttonName, button);
 
+        withText(textFieldID, screenPosOfTexture.withLayer(3).addToXOffset(3)
+                                                .addToYOffset(-6), guiButton.getButtonTextAlignment(), guiButton.getTextScale(), null);
+
+        try {
+            if (guiButton.getButtonTexture() != null)
+                withTexture(textureName, guiButton.getButtonTexture(), screenPosOfTexture.withLayer(2), null);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        if (behavior != null)
+            guiElementBehaviors.put(guiButton, behavior);
+
+        guiElements.put(buttonName, guiButton);
         return this;
-    }
-
-    @Override
-    public CustomGUIBuilder withButton(String buttonName, StringAlign.Alignment alignment, float textScale, @Nullable Asset<CustomResourcePack> whenSelected, @Nullable Asset<CustomResourcePack> whenEnabled, @Nullable Asset<CustomResourcePack> whenDisabled, ScreenPosition buttonPos, ScreenPosition textPos) throws IOException {
-        return (CustomGUIBuilder) super.withButton(buttonName, alignment, textScale, whenSelected, whenEnabled, whenDisabled, convertScreenPosition(buttonPos), convertScreenPosition(textPos));
-    }
-
-    @Override
-    public CustomGUIBuilder withTexture(String textureName, Asset<CustomResourcePack> textureAsset, ScreenPosition screenPosition) throws IOException {
-        return (CustomGUIBuilder) super.withTexture(textureName, textureAsset, convertScreenPosition(screenPosition));
-    }
-
-    @Override
-    public CustomHud withPartlyVisibleTexture(String textureField, ScreenPosition screenPosition, Asset<CustomResourcePack> texture, int parts) throws IOException {
-        return super.withPartlyVisibleTexture(textureField, convertScreenPosition(screenPosition), texture, parts);
-    }
-
-    @Override
-    public CustomGUIBuilder withMultiLineText(String multiLineID, int lines, int charsPerLine, int pixelsBetweenLines, StringAlign.Alignment alignment, ScreenPosition startPos, float scale) {
-        return (CustomGUIBuilder) super.withMultiLineText(multiLineID, lines, charsPerLine, pixelsBetweenLines, alignment, convertScreenPosition(startPos), scale);
-    }
-
-    @Override
-    public CustomGUIBuilder withText(String textFieldID, ScreenPosition screenPosition, StringAlign.Alignment alignment, int pixelAlignmentWidth, float scale) {
-        return (CustomGUIBuilder) super.withText(textFieldID, convertScreenPosition(screenPosition), alignment, pixelAlignmentWidth, scale);
     }
 
     public CustomGUIBuilder onOpen(Consumer<ActiveGUI> onOpen) {
@@ -165,7 +182,7 @@ public class CustomGUIBuilder extends CustomHud {
         return this;
     }
 
-    private ScreenPosition convertScreenPosition(ScreenPosition screenPosition) {
+    protected ScreenPosition convertScreenPosition(ScreenPosition screenPosition) {
         return screenPosition.withTextType(getCorrectTextType());
     }
 
@@ -210,17 +227,10 @@ public class CustomGUIBuilder extends CustomHud {
     }
 
     public void createMenuForPlayer(Player player, @Nullable Consumer<ActiveGUI> initialSetup) {
-        Bukkit.getScheduler().runTaskAsynchronously(MCCreativeLabExtension.getInstance(), () -> {
-
-            var active = MCCreativeLabExtension.getInstance().getHudRenderer().getOrStartActiveHud(player, this);
-            active.showAll();
-            var rendering = active.render();
-            Bukkit.getScheduler().runTask(MCCreativeLabExtension.getInstance(), () -> {
-                new ActiveGUI(this, active, rendering, activeGUI -> {
-                    if (initialSetup != null)
-                        initialSetup.accept(activeGUI);
-                    //clickableButtons.forEach((integer, clickableButton) -> activeGUI.setItem(integer, clickableButton.clickableItem));
-                });
+        Bukkit.getScheduler().runTask(MCCreativeLabExtension.getInstance(), () -> {
+            new ActiveGUI(player, this, activeGUI -> {
+                if (initialSetup != null)
+                    initialSetup.accept(activeGUI);
             });
         });
     }

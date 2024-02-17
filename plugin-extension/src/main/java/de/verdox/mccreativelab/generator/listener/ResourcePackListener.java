@@ -37,14 +37,4 @@ public class ResourcePackListener implements Listener {
     public void applyRequiredResourcePackOnJoin(PlayerJoinEvent e) {
         MCCreativeLabExtension.getInstance().getResourcePackFileHoster().sendDefaultResourcePackToPlayer(e.getPlayer());
     }
-
-    @EventHandler
-    public void buildPackOnServerLoad(ServerLoadEvent e) {
-        MCCreativeLabExtension.getInstance().onServerLoad(e.getType());
-    }
-
-    @EventHandler
-    public void onPluginReload(MCCreativeLabReloadEvent ignored) {
-        MCCreativeLabExtension.getInstance().onServerLoad(ServerLoadEvent.LoadType.RELOAD);
-    }
 }

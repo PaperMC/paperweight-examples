@@ -164,7 +164,7 @@ public class ReplacingFakeBlockBehaviour extends FakeBlockBehaviour {
         FakeBlock fakeBlock = MCCreativeLabExtension.getFakeBlockRegistry().get(fakeBlockKey);
         if (fakeBlock == null)
             return;
-        FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockStateOrThrow(block.getLocation(), false);
+        FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockState(block.getLocation(), false);
         if(fakeBlockState != null)
             return;
         FakeBlockStorage.setFakeBlock(block.getLocation(), fakeBlock, false);
@@ -173,7 +173,7 @@ public class ReplacingFakeBlockBehaviour extends FakeBlockBehaviour {
     private boolean isReplacedVanillaBlock(Block block) {
         if(fakeBlockKey == null)
             return false;
-        FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockStateOrThrow(block.getLocation(), false);
+        FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockState(block.getLocation(), false);
         if (fakeBlockState == null)
             return false;
         return fakeBlockState.getFakeBlock().getKey().equals(fakeBlockKey);

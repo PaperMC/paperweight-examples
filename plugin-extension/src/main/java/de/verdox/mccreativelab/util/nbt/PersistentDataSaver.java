@@ -9,18 +9,20 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.world.WorldSaveEvent;
+import org.bukkit.persistence.PersistentDataHolder;
 
 public class PersistentDataSaver implements Listener {
+
     @EventHandler
     public void saveEntity(EntityRemoveFromWorldEvent e) {
-        saveEntity(e.getEntity());
+        save(e.getEntity(), true);
     }
 
     @EventHandler
     public void saveChunk(ChunkDataSaveEvent e) {
-        if (e.getChunk() != null)
-            saveChunk(e.getChunk());
+        save(e.getChunk(), e.isUnloaded());
     }
 
     @EventHandler
@@ -28,33 +30,27 @@ public class PersistentDataSaver implements Listener {
         saveWorld(e.getWorld());
     }
 
-    private static void saveEntity(Entity entity) {
-        for (Class<? extends EntityPersistentData> type : PersistentData.entityPersistentDataClasses)
-            PersistentData.get(type, entity).save();
-
+    @EventHandler
+    public void savePlayerOnQuit(PlayerQuitEvent e) {
+        save(e.getPlayer(), true);
     }
 
-    private static void saveChunk(Chunk chunk) {
-        for (Class<? extends ChunkPersistentData> type : PersistentData.chunkPersistentDataClasses)
-            PersistentData.get(type, chunk).save();
-    }
-
-    private static void savePlayer(Player player) {
-        for (Class<? extends PlayerPersistentData> type : PersistentData.playerPersistentDataClasses)
-            PersistentData.get(type, player).save();
+    private static void save(PersistentDataHolder persistentDataHolder, boolean clearCache) {
+        for (PersistentData<PersistentDataHolder> allCachedDatum : PersistentData.getAllCachedData(persistentDataHolder)) {
+            allCachedDatum.save(persistentDataHolder);
+        }
+        if (clearCache)
+            PersistentData.clearCache(persistentDataHolder);
     }
 
     private static void saveWorld(World world) {
-        for (Class<? extends WorldPersistentData> type : PersistentData.worldPersistentDataClasses)
-            PersistentData.get(type, world).save();
+        save(world, false);
+
+        // Also includes players
+        for (Entity entity : world.getEntities())
+            save(entity, false);
 
         for (Chunk loadedChunk : world.getLoadedChunks())
-            saveChunk(loadedChunk);
-
-        for (Entity entity : world.getEntities())
-            saveEntity(entity);
-
-        for (Player onlinePlayer : Bukkit.getOnlinePlayers())
-            savePlayer(onlinePlayer);
+            save(loadedChunk, false);
     }
 }

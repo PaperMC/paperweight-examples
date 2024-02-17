@@ -16,12 +16,8 @@ import org.jetbrains.annotations.Nullable;
 
 public class BlockUtil {
 
-    public static float getBlockDestroyProgress(Player player, BlockState blockState, @Nullable FakeBlock.FakeBlockState fakeBlockState) {
+    public static float getBlockDestroyProgress(Player player, float hardness, BlockState blockState, @Nullable FakeBlock.FakeBlockState fakeBlockState) {
         ItemStack hand = player.getInventory().getItemInMainHand();
-        float hardness = fakeBlockState != null ? fakeBlockState.getProperties().getHardness() : blockState.getType()
-                                                                                                           .getHardness();
-        if (hardness == -1)
-            return 0;
 
         boolean hasCorrectToolForDrops;
         if (fakeBlockState != null)

@@ -72,11 +72,11 @@ public class FakeBlockSoundManager implements Listener {
 
     }
 
-    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+/*    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void simulateBlockBreakWhenCreativeOrForBlocksWithoutStandardSounds(BlockBreakEvent e) {
         if (!isBlockWithoutStandardSound(e.getBlock()))
             return;
-        FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockStateOrThrow(e.getPlayer()
+        FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockState(e.getPlayer()
                                                                                              .getLocation(), false);
         if(e.getPlayer().getGameMode().equals(GameMode.CREATIVE)){
             simulateBreakSound(e.getBlock(), fakeBlockState);
@@ -84,30 +84,30 @@ public class FakeBlockSoundManager implements Listener {
         else if(fakeBlockState == null)
             simulateBreakSound(e.getBlock(), null);
 
-    }
+    }*/
 
     public static void simulateDiggingSound(Player player, Block block, FakeBlock.FakeBlockState fakeBlockState) {
-/*        if (!DIGGING_SOUND_DELAY.isAllowed(player))
+        if (!DIGGING_SOUND_DELAY.isAllowed(player))
             return;
         if(!FakeBlockSoundManager.isBlockWithoutStandardSound(block) && fakeBlockState == null)
             return;
         Wrappers.SoundGroup soundGroup = getSoundGroup(block, fakeBlockState);
-        net.kyori.adventure.sound.Sound sound = soundGroup.getStepSound().asSound(net.kyori.adventure.sound.Sound.Source.BLOCK, 0.15f, soundGroup.getPitch() * 0.5F);
+        net.kyori.adventure.sound.Sound sound = soundGroup.getStepSound().asSound(net.kyori.adventure.sound.Sound.Source.BLOCK, 0.15f, soundGroup.getPitch() * 0.3F);
         player.playSound(sound, block.getX(), block.getY(), block.getZ());
-        DIGGING_SOUND_DELAY.reset(player);*/
+        DIGGING_SOUND_DELAY.reset(player);
     }
 
     public static void simulateBreakSound(Block block, FakeBlock.FakeBlockState fakeBlockState) {
-/*        Wrappers.SoundGroup soundGroup = getSoundGroup(block, fakeBlockState);
+        Wrappers.SoundGroup soundGroup = getSoundGroup(block, fakeBlockState);
         net.kyori.adventure.sound.Sound sound = soundGroup.getBreakSound()
                                                           .asSound(net.kyori.adventure.sound.Sound.Source.BLOCK, (soundGroup.getVolume() + 1.0F) / 2.0F, soundGroup.getPitch() * 0.8F);
-        block.getWorld().playSound(sound, block.getX(), block.getY(), block.getZ());*/
+        block.getWorld().playSound(sound, block.getX(), block.getY(), block.getZ());
     }
 
-    public static void simulateBlockPlaceSound(Player player, Block block, FakeBlock.FakeBlockState fakeBlockState) {
-/*        Wrappers.SoundGroup soundGroup = getSoundGroup(block, fakeBlockState);
+    public static void simulateBlockPlaceSound(Block block, FakeBlock.FakeBlockState fakeBlockState) {
+        Wrappers.SoundGroup soundGroup = getSoundGroup(block, fakeBlockState);
         net.kyori.adventure.sound.Sound sound = soundGroup.getPlaceSound().asSound(net.kyori.adventure.sound.Sound.Source.BLOCK, (soundGroup.getVolume() + 1.0F) / 2.0F, soundGroup.getPitch() * 0.8F);
-        block.getWorld().playSound(sound, block.getX(), block.getY(), block.getZ());*/
+        block.getWorld().playSound(sound, block.getX(), block.getY(), block.getZ());
     }
 
     public void simulateWalkSound(Entity walkingEntity, Location from, Location walkingTo) {
@@ -136,7 +136,7 @@ public class FakeBlockSoundManager implements Listener {
         STEP_DISTANCE_SOUND_DELAY.reset(walkingEntity);*/
     }
 
-    private static Wrappers.SoundGroup getSoundGroup(@NotNull Block block, @Nullable FakeBlock.FakeBlockState fakeBlockState) {
+    public static Wrappers.SoundGroup getSoundGroup(@NotNull Block block, @Nullable FakeBlock.FakeBlockState fakeBlockState) {
         if(fakeBlockState != null && fakeBlockState.getFakeBlockSoundGroup() != null)
             return fakeBlockState.getFakeBlockSoundGroup().asSoundGroup();
         else

@@ -4,6 +4,7 @@ import de.verdox.mccreativelab.MCCreativeLabExtension;
 import de.verdox.mccreativelab.world.block.FakeBlock;
 import de.verdox.mccreativelab.world.block.FakeBlockStorage;
 import de.verdox.mccreativelab.registry.exception.PaletteValueUnknownException;
+import de.verdox.mccreativelab.world.block.replaced.ReplacedBlocks;
 import net.kyori.adventure.text.Component;
 import org.bukkit.block.Block;
 import org.bukkit.command.Command;
@@ -32,7 +33,7 @@ public class FakeBlockCommand extends Command {
             if(block == null)
                 return false;
             if(args[0].equalsIgnoreCase("set")){
-                if(FakeBlockStorage.setFakeBlock(block.getLocation(), Debug.DEBUG_CROP,false))
+                if(FakeBlockStorage.setFakeBlock(block.getLocation(), ReplacedBlocks.WHEAT,false))
                     player.sendMessage(Component.text("Set fake block"));
                 else player.sendMessage(Component.text("Could not set fake block"));
                 return true;

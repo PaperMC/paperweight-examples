@@ -2,6 +2,7 @@ package de.verdox.mccreativelab;
 
 import de.verdox.mccreativelab.generator.resourcepack.types.sound.SoundData;
 import net.kyori.adventure.sound.Sound;
+import org.bukkit.NamespacedKey;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -70,6 +71,16 @@ public class Wrappers {
         private Sound(@NotNull net.kyori.adventure.sound.Sound paperSound) {
             Objects.requireNonNull(paperSound);
             this.paperSound = paperSound;
+        }
+
+        public NamespacedKey getKey(){
+            if(paperSound != null)
+                return new NamespacedKey(paperSound.name().namespace(), paperSound.name().value());
+            else if(soundData != null)
+                return soundData.getKey();
+            else if(bukkitSound != null)
+                return bukkitSound.getKey();
+            throw new IllegalStateException("No key was found. This is a bug");
         }
 
         /**

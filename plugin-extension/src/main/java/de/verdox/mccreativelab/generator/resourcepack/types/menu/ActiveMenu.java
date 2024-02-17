@@ -1,15 +1,14 @@
 package de.verdox.mccreativelab.generator.resourcepack.types.menu;
 
 import de.verdox.mccreativelab.MCCreativeLabExtension;
-import de.verdox.mccreativelab.generator.resourcepack.renderer.ActiveHud;
-import de.verdox.mccreativelab.generator.resourcepack.renderer.element.group.Button;
-import de.verdox.mccreativelab.generator.resourcepack.renderer.element.group.HudMultiLineText;
-import de.verdox.mccreativelab.generator.resourcepack.renderer.element.single.SingleHudText;
-import de.verdox.mccreativelab.generator.resourcepack.renderer.element.single.SingleHudTexture;
+import de.verdox.mccreativelab.generator.resourcepack.types.hud.ActiveHud;
+import de.verdox.mccreativelab.generator.resourcepack.types.rendered.element.group.Button;
+import de.verdox.mccreativelab.generator.resourcepack.types.rendered.element.group.HudMultiLineText;
+import de.verdox.mccreativelab.generator.resourcepack.types.rendered.element.single.SingleHudText;
+import de.verdox.mccreativelab.generator.resourcepack.types.rendered.element.single.SingleHudTexture;
 import io.vertx.core.impl.ConcurrentHashSet;
 import org.bukkit.SoundCategory;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
@@ -82,25 +81,25 @@ public class ActiveMenu {
     public void changeButton(String id, Consumer<Button.RenderedButton> consumer) {
                 if (getActiveHud() == null)
             return;
-        getActiveHud().executeOnElement(id, Button.RenderedButton.class, consumer);
+        getActiveHud().editRenderedElement(id, Button.RenderedButton.class, consumer);
     }
 
     public void changeText(String id, Consumer<SingleHudText.RenderedSingleHudText> consumer) {
         if (getActiveHud() == null)
             return;
-        getActiveHud().executeOnElement(id, SingleHudText.RenderedSingleHudText.class, consumer);
+        getActiveHud().editRenderedElement(id, SingleHudText.RenderedSingleHudText.class, consumer);
     }
 
     public void changeMultiLineText(String id, Consumer<HudMultiLineText.RenderedGroupMultiLineText> consumer) {
         if (getActiveHud() == null)
             return;
-        getActiveHud().executeOnElement(id, HudMultiLineText.RenderedGroupMultiLineText.class, consumer);
+        getActiveHud().editRenderedElement(id, HudMultiLineText.RenderedGroupMultiLineText.class, consumer);
     }
 
     public void changeTexture(String id, Consumer<SingleHudTexture.RenderedSingleHudTexture> consumer) {
         if (getActiveHud() == null)
             return;
-        getActiveHud().executeOnElement(id, SingleHudTexture.RenderedSingleHudTexture.class, consumer);
+        getActiveHud().editRenderedElement(id, SingleHudTexture.RenderedSingleHudTexture.class, consumer);
     }
 
     public void setBackgroundPicture(String id) {
