@@ -6,15 +6,17 @@ Subject: [PATCH] Add BehaviourUtil and BehaviourResult
 
 diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/BehaviourUtil.java b/src/main/java/de/verdox/mccreativelab/behaviour/BehaviourUtil.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..e4688e585f1649b4a0fa580066bf89b1cc89b5de
+index 0000000000000000000000000000000000000000..0040afcf747f096d40917ddc73f43f5c548747a2
 --- /dev/null
 +++ b/src/main/java/de/verdox/mccreativelab/behaviour/BehaviourUtil.java
-@@ -0,0 +1,231 @@
+@@ -0,0 +1,249 @@
 +package de.verdox.mccreativelab.behaviour;
 +
 +import de.verdox.mccreativelab.MultiCustomBehaviour;
++import net.minecraft.world.InteractionResultHolder;
 +import net.minecraft.world.level.block.state.BlockState;
 +import org.bukkit.Bukkit;
++import org.bukkit.Material;
 +import org.bukkit.craftbukkit.CraftFoodProperties;
 +import org.bukkit.craftbukkit.block.data.CraftBlockData;
 +import org.bukkit.craftbukkit.inventory.CraftItemStack;
@@ -161,11 +163,25 @@ index 0000000000000000000000000000000000000000..e4688e585f1649b4a0fa580066bf89b1
 +            }
 +        }
 +
++        class ItemStackInteraction implements Converter<de.verdox.mccreativelab.behaviour.interaction.ItemStackInteraction, InteractionResultHolder<net.minecraft.world.item.ItemStack>>{
++            public static final ItemStackInteraction INSTANCE = new ItemStackInteraction();
++            @Override
++            public InteractionResultHolder<net.minecraft.world.item.ItemStack> bukkitToNMS(de.verdox.mccreativelab.behaviour.interaction.ItemStackInteraction bukkitValue) {
++                return new InteractionResultHolder<>(InteractionResult.INSTANCE.bukkitToNMS(bukkitValue.interactionResult()), CraftItemStack.asNMSCopy(bukkitValue.stack()));
++            }
++            @Override
++            public de.verdox.mccreativelab.behaviour.interaction.ItemStackInteraction nmsToBukkitValue(InteractionResultHolder<net.minecraft.world.item.ItemStack> nmsValue) {
++                return new de.verdox.mccreativelab.behaviour.interaction.ItemStackInteraction(InteractionResult.INSTANCE.nmsToBukkitValue(nmsValue.getResult()), nmsValue.getObject().getBukkitStack());
++            }
++        }
++
 +        class ItemStack implements Converter<org.bukkit.inventory.ItemStack, net.minecraft.world.item.ItemStack> {
 +            public static final ItemStack INSTANCE = new ItemStack();
 +
 +            @Override
 +            public net.minecraft.world.item.ItemStack bukkitToNMS(org.bukkit.inventory.ItemStack bukkitValue) {
++                if(bukkitValue == null)
++                    return net.minecraft.world.item.ItemStack.EMPTY.copy();
 +                if (bukkitValue instanceof CraftItemStack craftItemStack)
 +                    return craftItemStack.handle;
 +                return CraftItemStack.asNMSCopy(bukkitValue);
@@ -173,6 +189,8 @@ index 0000000000000000000000000000000000000000..e4688e585f1649b4a0fa580066bf89b1
 +
 +            @Override
 +            public org.bukkit.inventory.ItemStack nmsToBukkitValue(net.minecraft.world.item.ItemStack nmsValue) {
++                if(nmsValue == null)
++                    return new org.bukkit.inventory.ItemStack(Material.AIR);
 +                return nmsValue.getBukkitStack();
 +            }
 +        }

@@ -6,10 +6,10 @@ Subject: [PATCH] Adding CustomBehaviour class to the API
 
 diff --git a/src/main/java/de/verdox/mccreativelab/CustomBehaviour.java b/src/main/java/de/verdox/mccreativelab/CustomBehaviour.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..f43f9487e6db814a47008be029aebb501c999c1f
+index 0000000000000000000000000000000000000000..1fb3445619006e1911c25f68489a9675ca704f78
 --- /dev/null
 +++ b/src/main/java/de/verdox/mccreativelab/CustomBehaviour.java
-@@ -0,0 +1,49 @@
+@@ -0,0 +1,48 @@
 +package de.verdox.mccreativelab;
 +
 +import org.bukkit.Bukkit;
@@ -45,7 +45,6 @@ index 0000000000000000000000000000000000000000..f43f9487e6db814a47008be029aebb50
 +        this.proxyInterface.addImplementation(behaviour);
 +    }
 +
-+    @Nullable
 +    @ApiStatus.Internal
 +    public T getBehaviour() {
 +        return proxyInterface.getImplementation();

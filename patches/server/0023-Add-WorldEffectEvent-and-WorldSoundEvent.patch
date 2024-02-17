@@ -6,10 +6,10 @@ Subject: [PATCH] Add WorldEffectEvent and WorldSoundEvent
 
 diff --git a/src/main/java/de/verdox/mccreativelab/event/EventToPacketFactory.java b/src/main/java/de/verdox/mccreativelab/event/EventToPacketFactory.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..54d523c62380a43c7b59d16526d273937db8b735
+index 0000000000000000000000000000000000000000..bed837a02b4239ebb764a01fd542224aad4eb485
 --- /dev/null
 +++ b/src/main/java/de/verdox/mccreativelab/event/EventToPacketFactory.java
-@@ -0,0 +1,117 @@
+@@ -0,0 +1,123 @@
 +package de.verdox.mccreativelab.event;
 +
 +import io.papermc.paper.event.world.WorldEffectEvent;
@@ -30,6 +30,7 @@ index 0000000000000000000000000000000000000000..54d523c62380a43c7b59d16526d27393
 +import org.bukkit.Effect;
 +import org.bukkit.Location;
 +import org.bukkit.NamespacedKey;
++import org.bukkit.craftbukkit.CraftEffect;
 +import org.bukkit.craftbukkit.CraftWorld;
 +import org.bukkit.craftbukkit.entity.CraftPlayer;
 +import org.bukkit.craftbukkit.util.CraftNamespacedKey;
@@ -85,6 +86,11 @@ index 0000000000000000000000000000000000000000..54d523c62380a43c7b59d16526d27393
 +    public static void callEventAndBroadcastPacket(WorldEffectEvent event) {
 +        if (!event.callEvent()) return;
 +        ServerLevel serverLevel = ((CraftWorld) event.getWorld()).getHandle();
++        int data;
++        if (event.getData() instanceof Integer integer)
++            data = integer;
++        else
++            data = CraftEffect.getDataValue(event.getEffect(), event.getData());
 +
 +        ClientboundLevelEventPacket clientboundLevelEventPacket = new ClientboundLevelEventPacket(event.getEffect()
 +                                                                                                       .getId(), new BlockPos(event
@@ -128,7 +134,7 @@ index 0000000000000000000000000000000000000000..54d523c62380a43c7b59d16526d27393
 +
 +}
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index 7c31f619a6e8e3539c547fc43d821d2cce7df7e7..1797058badf9483e1c526d5b42bd15b8c451c39f 100644
+index 7c31f619a6e8e3539c547fc43d821d2cce7df7e7..f1a2756092543afdfdc1a9d9e2024d4ee3165643 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -1817,27 +1817,22 @@ public class ServerLevel extends Level implements WorldGenLevel {

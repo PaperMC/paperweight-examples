@@ -6,20 +6,24 @@ Subject: [PATCH] Add ItemBehaviour
 
 diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/ItemBehaviourUtil.java b/src/main/java/de/verdox/mccreativelab/behaviour/ItemBehaviourUtil.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..80a72d700083646b30eade25ddcaeef1fb7ce1d4
+index 0000000000000000000000000000000000000000..33b873c6ebddfd5b81c4971064b9ebbcd711cfb4
 --- /dev/null
 +++ b/src/main/java/de/verdox/mccreativelab/behaviour/ItemBehaviourUtil.java
-@@ -0,0 +1,143 @@
+@@ -0,0 +1,200 @@
 +package de.verdox.mccreativelab.behaviour;
 +
 +import de.verdox.mccreativelab.MultiCustomBehaviour;
 +import de.verdox.mccreativelab.recipe.CustomItemData;
 +import net.minecraft.core.BlockPos;
++import net.minecraft.core.Direction;
++import net.minecraft.server.level.ServerLevel;
 +import net.minecraft.stats.Stats;
 +import net.minecraft.world.InteractionHand;
++import net.minecraft.world.InteractionResultHolder;
 +import net.minecraft.world.InteractionResult;
 +import net.minecraft.world.entity.LivingEntity;
 +import net.minecraft.world.entity.item.ItemEntity;
++import net.minecraft.world.item.context.UseOnContext;
 +import net.minecraft.world.entity.player.Player;
 +import net.minecraft.world.food.FoodProperties;
 +import net.minecraft.world.item.Item;
@@ -28,7 +32,12 @@ index 0000000000000000000000000000000000000000..80a72d700083646b30eade25ddcaeef1
 +import net.minecraft.world.level.block.state.BlockState;
 +import org.bukkit.craftbukkit.entity.CraftItem;
 +import org.bukkit.craftbukkit.entity.CraftPlayer;
++import org.bukkit.Location;
++import org.bukkit.block.Block;
++import org.bukkit.block.BlockFace;
 +import org.bukkit.inventory.EquipmentSlot;
++import org.bukkit.util.RayTraceResult;
++import org.bukkit.util.Vector;
 +
 +import javax.annotation.Nullable;
 +
@@ -41,39 +50,63 @@ index 0000000000000000000000000000000000000000..80a72d700083646b30eade25ddcaeef1
 +        );
 +    }
 +
-+    public static int getMaxStackSize(ItemStack stack){
++    public static InteractionResultHolder<ItemStack> use(ItemStack stack, Level world, Player user, InteractionHand hand){
++        return evaluate(getBehaviour(stack), itemBehaviour ->
++                itemBehaviour.use(stack.asBukkitMirror(), ((org.bukkit.entity.Player) user.getBukkitEntity()), hand.equals(InteractionHand.MAIN_HAND) ? EquipmentSlot.HAND : EquipmentSlot.OFF_HAND),
++            () -> stack.getItem().use(world, user, hand)
++            , Converter.ItemStackInteraction.INSTANCE
++        );
++    }
++
++    public static InteractionResult useOn(ItemStack stack, UseOnContext context) {
++        BlockFace blockFace = toBukkitBlockFace(context.getClickedFace());
++        Vector vector = new Vector(context.getClickedPos().getX(), context.getClickedPos().getY(), context
++            .getClickedPos().getZ());
++        Block block = context.getLevel().getWorld().getBlockAt(new Location(context.getLevel()
++                                                                                   .getWorld(), vector.getX(), vector.getY(), vector.getZ()));
++        RayTraceResult rayTraceResult = new RayTraceResult(new Vector(context.getClickedPos().getX(), context
++            .getClickedPos().getY(), context.getClickedPos().getZ()), block, blockFace);
++        return evaluate(getBehaviour(stack), itemBehaviour -> itemBehaviour.useOn(stack.asBukkitMirror(), ((org.bukkit.entity.Player) context.getPlayer().getBukkitEntity()), context
++                .getHand()
++                .equals(InteractionHand.MAIN_HAND) ? EquipmentSlot.HAND : EquipmentSlot.OFF_HAND, rayTraceResult),
++            () -> stack.getItem().useOn(context)
++            , Converter.InteractionResult.INSTANCE
++        );
++    }
++
++    public static int getMaxStackSize(ItemStack stack) {
 +        return evaluateInteger(getBehaviour(stack),
 +            itemBehaviour -> itemBehaviour.getMaxStackSize(stack.asBukkitMirror()),
 +            () -> stack.getItem().getMaxStackSize()
 +        );
 +    }
 +
-+    public static int getMaxDamage(ItemStack stack){
++    public static int getMaxDamage(ItemStack stack) {
 +        return evaluateInteger(getBehaviour(stack),
 +            itemBehaviour -> itemBehaviour.getMaxDamage(stack.asBukkitMirror()),
 +            () -> stack.getItem().getMaxDamage()
 +        );
 +    }
 +
-+    public static boolean isCorrectToolForDrops(ItemStack stack, BlockState blockState){
++    public static boolean isCorrectToolForDrops(ItemStack stack, BlockState blockState) {
 +        return evaluateBoolean(getBehaviour(stack),
 +            itemBehaviour -> itemBehaviour.isCorrectToolForDrops(stack.asBukkitMirror(), blockState.createCraftBlockData()),
 +            () -> stack.getItem().isCorrectToolForDrops(blockState)
 +        );
 +    }
 +
-+    public static void mineBlock(ItemStack stack, Level world, net.minecraft.world.level.block.state.BlockState state, BlockPos pos, Player miner){
++    public static void mineBlock(ItemStack stack, Level world, net.minecraft.world.level.block.state.BlockState state, BlockPos pos, Player miner) {
 +        boolean mined = evaluateBoolean(getBehaviour(stack),
 +            itemBehaviour -> itemBehaviour.mineBlock(stack.asBukkitMirror(), world.getWorld().getBlockAt(pos.getX(), pos.getY(), pos.getZ()), (CraftPlayer) miner.getBukkitEntity()),
 +            () -> {
 +                Item item = stack.getItem();
 +                return item.mineBlock(stack, world, state, pos, miner);
 +            });
-+        if(mined)
++        if (mined)
 +            miner.awardStat(Stats.ITEM_USED.get(stack.getItem()));
 +    }
 +
-+    public static InteractionResult interactLivingEntity(ItemStack stack, Player player, LivingEntity livingEntity, InteractionHand interactionHand){
++    public static InteractionResult interactLivingEntity(ItemStack stack, Player player, LivingEntity livingEntity, InteractionHand interactionHand) {
 +        return evaluate(getBehaviour(stack),
 +            itemBehaviour -> itemBehaviour.interactLivingEntity(stack.asBukkitMirror(), (CraftPlayer) player.getBukkitEntity(), livingEntity.getBukkitLivingEntity(),
 +            interactionHand.equals(InteractionHand.MAIN_HAND) ? EquipmentSlot.HAND : EquipmentSlot.OFF_HAND),
@@ -81,26 +114,26 @@ index 0000000000000000000000000000000000000000..80a72d700083646b30eade25ddcaeef1
 +            , Converter.InteractionResult.INSTANCE);
 +    }
 +
-+    public static void onCraftedBy(ItemStack stack, Level world, Player player, int amount){
++    public static void onCraftedBy(ItemStack stack, Level world, Player player, int amount) {
 +        evaluateVoid(getBehaviour(stack),
 +            itemBehaviour -> itemBehaviour.onCraftedBy(stack.asBukkitMirror(), (CraftPlayer) player.getBukkitEntity(), amount),
 +            () -> stack.getItem().onCraftedBy(stack, world, player));
 +        player.awardStat(Stats.ITEM_CRAFTED.get(stack.getItem()), amount);
 +    }
 +
-+    public static void onDestroyed(ItemStack stack, ItemEntity entity){
++    public static void onDestroyed(ItemStack stack, ItemEntity entity) {
 +        evaluateVoid(getBehaviour(stack),
 +            itemBehaviour -> itemBehaviour.onDestroyed(stack.asBukkitMirror(), (CraftItem) entity.getBukkitEntity()),
 +            () -> stack.getItem().onDestroyed(entity));
 +    }
 +
-+    public static boolean isEdible(ItemStack stack){
++    public static boolean isEdible(ItemStack stack) {
 +        return evaluateBoolean(getBehaviour(stack),
 +            itemBehaviour -> itemBehaviour.isEdible(stack.asBukkitMirror()),
 +            () -> stack.getItem().isEdible());
 +    }
 +
-+    public static FoodProperties getFoodProperties(ItemStack stack){
++    public static FoodProperties getFoodProperties(ItemStack stack) {
 +        return evaluate(getBehaviour(stack),
 +            itemBehaviour -> itemBehaviour.getFoodProperties(stack.asBukkitMirror()),
 +            () -> stack.getItem().getFoodProperties(),
@@ -108,32 +141,32 @@ index 0000000000000000000000000000000000000000..80a72d700083646b30eade25ddcaeef1
 +        );
 +    }
 +
-+    public static @Nullable ItemStack getCraftRemainingItem(ItemStack stack){
++    public static @Nullable ItemStack getCraftRemainingItem(ItemStack stack) {
 +        return evaluate(getBehaviour(stack),
 +            itemBehaviour -> itemBehaviour.getCraftRemainingItem(stack.asBukkitMirror()),
 +            () -> {
-+            Item item = stack.getItem().getCraftingRemainingItem();
-+            if(item != null)
-+                return new ItemStack(item);
-+            else return null;
++               Item item = stack.getItem().getCraftingRemainingItem();
++               if(item != null)
++                   return new ItemStack(item);
++               else return null;
 +            },
 +            Converter.ItemStack.INSTANCE
 +        );
 +    }
 +
-+    public static boolean isFireResistant(ItemStack stack){
++    public static boolean isFireResistant(ItemStack stack) {
 +        return evaluateBoolean(getBehaviour(stack),
 +            itemBehaviour -> itemBehaviour.isFireResistant(stack.asBukkitMirror()),
 +            () -> stack.getItem().isFireResistant());
 +    }
 +
-+    public static boolean canFitInsideContainerItems(ItemStack stack){
++    public static boolean canFitInsideContainerItems(ItemStack stack) {
 +        return evaluateBoolean(getBehaviour(stack),
 +            itemBehaviour -> itemBehaviour.canFitInsideContainerItems(stack.asBukkitMirror()),
 +            () -> stack.getItem().canFitInsideContainerItems());
 +    }
 +
-+    public static boolean isEnchantable(ItemStack stack){
++    public static boolean isEnchantable(ItemStack stack) {
 +        return evaluateBoolean(getBehaviour(stack),
 +            itemBehaviour -> itemBehaviour.isEnchantable(stack.asBukkitMirror()),
 +            () -> stack.getItem().isEnchantable(stack));
@@ -143,21 +176,45 @@ index 0000000000000000000000000000000000000000..80a72d700083646b30eade25ddcaeef1
 +        return CustomItemData.fromItemStack(stack.getBukkitStack());
 +    }
 +
-+    public static ItemBehaviour getBehaviour(ItemStack stack){
++    public static void onNbtLoad(ItemStack stack) {
++        evaluateCallback(getBehaviour(stack),
++            itemBehaviour -> itemBehaviour.onNbtLoad(stack.asBukkitMirror()),
++            () -> {
++            });
++    }
++
++    public static void onNbtSave(ItemStack stack) {
++        evaluateCallback(getBehaviour(stack),
++            itemBehaviour -> itemBehaviour.onNbtSave(stack.asBukkitMirror()),
++            () -> {
++            });
++    }
++
++    public static ItemBehaviour getBehaviour(ItemStack stack) {
 +        if(stack.itemBehaviour != null)
 +            return stack.itemBehaviour;
 +        CustomItemData customItemData = CustomItemData.fromItemStack(stack.getBukkitStack());
-+        if(ItemBehaviour.ITEM_BEHAVIOUR.isImplemented(customItemData))
++        if (ItemBehaviour.ITEM_BEHAVIOUR.isImplemented(customItemData))
 +            return ItemBehaviour.ITEM_BEHAVIOUR.getBehaviour(customItemData);
 +        return null;
++    }
++    private static BlockFace toBukkitBlockFace(Direction direction) {
++        return switch (direction) {
++            case DOWN -> BlockFace.DOWN;
++            case UP -> BlockFace.UP;
++            case NORTH -> BlockFace.NORTH;
++            case SOUTH -> BlockFace.SOUTH;
++            case WEST -> BlockFace.WEST;
++            case EAST -> BlockFace.EAST;
++        };
 +    }
 +
 +}
 diff --git a/src/main/java/net/minecraft/network/FriendlyByteBuf.java b/src/main/java/net/minecraft/network/FriendlyByteBuf.java
-index a5bcad412fb1ac3b6a3eee3f4618dc6c1ca66936..886256c256abfaed9057670663ddc7d37a51b7ac 100644
+index a5bcad412fb1ac3b6a3eee3f4618dc6c1ca66936..e4b02b793e39e01ab41a408ce44fc8512e5ab3be 100644
 --- a/src/main/java/net/minecraft/network/FriendlyByteBuf.java
 +++ b/src/main/java/net/minecraft/network/FriendlyByteBuf.java
-@@ -652,6 +652,14 @@ public class FriendlyByteBuf extends ByteBuf {
+@@ -652,6 +652,16 @@ public class FriendlyByteBuf extends ByteBuf {
                  // CraftItemStack.setItemMeta(stack, CraftItemStack.getItemMeta(stack)); // Paper - This is no longer with raw NBT being handled in metadata
                  // Spigot end
                  nbttagcompound = stack.getTag();
@@ -166,6 +223,8 @@ index a5bcad412fb1ac3b6a3eee3f4618dc6c1ca66936..886256c256abfaed9057670663ddc7d3
 +                    nbttagcompound = nbttagcompound.copy();
 +                    float actualDamagePercentage = stack.getDamageValue() * 1f / stack.getMaxDamage();
 +                    int vanillaDamage = Math.round(stack.getItem().getMaxDamage() * actualDamagePercentage);
++                    vanillaDamage = Math.max(0, vanillaDamage);
++                    vanillaDamage = Math.min(vanillaDamage, stack.getItem().getMaxDamage());
 +                    nbttagcompound.putInt(ItemStack.TAG_DAMAGE, vanillaDamage);
 +                }
 +                // MCCLab end - Send the calculated damage value
@@ -493,7 +552,7 @@ index c072e3e9742f733aad0d13833fb700c42ca1c356..2039582b77246a8512c220ac1a11c10c
  
      public boolean canFitInsideContainerItems() {
 diff --git a/src/main/java/net/minecraft/world/item/ItemStack.java b/src/main/java/net/minecraft/world/item/ItemStack.java
-index cac5dac9eae0f95701ef4ded639ae0b7a9db0085..77c475c145ceb9ed028edb78426c3112e7b25c61 100644
+index cac5dac9eae0f95701ef4ded639ae0b7a9db0085..e7eb6a3439a7f17a7fb1ccd55412d5d45c13fc3e 100644
 --- a/src/main/java/net/minecraft/world/item/ItemStack.java
 +++ b/src/main/java/net/minecraft/world/item/ItemStack.java
 @@ -179,6 +179,7 @@ public final class ItemStack {
@@ -504,20 +563,30 @@ index cac5dac9eae0f95701ef4ded639ae0b7a9db0085..77c475c145ceb9ed028edb78426c3112
  
      // Paper start
      private static final java.util.Comparator<? super CompoundTag> enchantSorter = java.util.Comparator.comparing(o -> o.getString("id"));
-@@ -390,6 +391,7 @@ public final class ItemStack {
+@@ -290,7 +291,7 @@ public final class ItemStack {
+         if (this.getItem().canBeDepleted()) {
+             this.setDamageValue(this.getDamageValue());
+         }
+-
++        de.verdox.mccreativelab.behaviour.ItemBehaviourUtil.onNbtLoad(this);
+     }
+ 
+     private ItemStack(CompoundTag nbt) {
+@@ -390,7 +391,7 @@ public final class ItemStack {
              }
              InteractionResult enuminteractionresult;
              try {
-+                //TODO: ItemStack Behaviour alternative useon behaviour
-                 enuminteractionresult = item.useOn(context);
+-                enuminteractionresult = item.useOn(context);
++                 enuminteractionresult = de.verdox.mccreativelab.behaviour.ItemBehaviourUtil.useOn(this, context);
              } finally {
                  world.captureBlockStates = false;
-@@ -574,11 +576,12 @@ public final class ItemStack {
+             }
+@@ -574,11 +575,11 @@ public final class ItemStack {
      }
  
      public InteractionResultHolder<ItemStack> use(Level world, net.minecraft.world.entity.player.Player user, InteractionHand hand) {
-+        //TODO: ItemStack Behaviour
-         return this.getItem().use(world, user, hand);
+-        return this.getItem().use(world, user, hand);
++        return de.verdox.mccreativelab.behaviour.ItemBehaviourUtil.use(this, world, user, hand);
      }
  
      public ItemStack finishUsingItem(Level world, LivingEntity user) {
@@ -526,7 +595,15 @@ index cac5dac9eae0f95701ef4ded639ae0b7a9db0085..77c475c145ceb9ed028edb78426c3112
      }
  
      public CompoundTag save(CompoundTag nbt) {
-@@ -594,7 +597,7 @@ public final class ItemStack {
+@@ -586,6 +587,7 @@ public final class ItemStack {
+ 
+         nbt.putString("id", minecraftkey == null ? "minecraft:air" : minecraftkey.toString());
+         nbt.putByte("Count", (byte) this.count);
++        de.verdox.mccreativelab.behaviour.ItemBehaviourUtil.onNbtSave(this);
+         if (this.tag != null) {
+             nbt.put("tag", this.tag.copy());
+         }
+@@ -594,7 +596,7 @@ public final class ItemStack {
      }
  
      public int getMaxStackSize() {
@@ -535,7 +612,7 @@ index cac5dac9eae0f95701ef4ded639ae0b7a9db0085..77c475c145ceb9ed028edb78426c3112
      }
  
      public boolean isStackable() {
-@@ -602,7 +605,7 @@ public final class ItemStack {
+@@ -602,7 +604,7 @@ public final class ItemStack {
      }
  
      public boolean isDamageableItem() {
@@ -544,7 +621,7 @@ index cac5dac9eae0f95701ef4ded639ae0b7a9db0085..77c475c145ceb9ed028edb78426c3112
              CompoundTag nbttagcompound = this.getTag();
  
              return nbttagcompound == null || !nbttagcompound.getBoolean("Unbreakable");
-@@ -624,7 +627,7 @@ public final class ItemStack {
+@@ -624,7 +626,7 @@ public final class ItemStack {
      }
  
      public int getMaxDamage() {
@@ -553,7 +630,7 @@ index cac5dac9eae0f95701ef4ded639ae0b7a9db0085..77c475c145ceb9ed028edb78426c3112
      }
  
      public boolean hurt(int amount, RandomSource random, @Nullable LivingEntity player) { // Paper - allow any living entity instead of only ServerPlayers
-@@ -737,20 +740,15 @@ public final class ItemStack {
+@@ -737,20 +739,15 @@ public final class ItemStack {
      }
  
      public void mineBlock(Level world, net.minecraft.world.level.block.state.BlockState state, BlockPos pos, net.minecraft.world.entity.player.Player miner) {
@@ -577,7 +654,7 @@ index cac5dac9eae0f95701ef4ded639ae0b7a9db0085..77c475c145ceb9ed028edb78426c3112
      }
  
      public ItemStack copy() {
-@@ -764,6 +762,7 @@ public final class ItemStack {
+@@ -764,6 +761,7 @@ public final class ItemStack {
              return ItemStack.EMPTY;
          } else {
              ItemStack itemstack = new ItemStack(originalItem ? this.item : this.getItem(), this.count); // Paper
@@ -585,7 +662,7 @@ index cac5dac9eae0f95701ef4ded639ae0b7a9db0085..77c475c145ceb9ed028edb78426c3112
  
              itemstack.setPopTime(this.getPopTime());
              if (this.tag != null) {
-@@ -819,8 +818,11 @@ public final class ItemStack {
+@@ -819,8 +817,11 @@ public final class ItemStack {
      }
  
      public void onCraftedBy(Level world, net.minecraft.world.entity.player.Player player, int amount) {
@@ -599,7 +676,7 @@ index cac5dac9eae0f95701ef4ded639ae0b7a9db0085..77c475c145ceb9ed028edb78426c3112
      }
  
      public void onCraftedBySystem(Level world) {
-@@ -828,6 +830,7 @@ public final class ItemStack {
+@@ -828,6 +829,7 @@ public final class ItemStack {
      }
  
      public int getUseDuration() {
@@ -607,7 +684,7 @@ index cac5dac9eae0f95701ef4ded639ae0b7a9db0085..77c475c145ceb9ed028edb78426c3112
          return this.getItem().getUseDuration(this);
      }
  
-@@ -1208,7 +1211,7 @@ public final class ItemStack {
+@@ -1208,7 +1210,7 @@ public final class ItemStack {
      }
  
      public boolean isEnchantable() {
@@ -616,7 +693,7 @@ index cac5dac9eae0f95701ef4ded639ae0b7a9db0085..77c475c145ceb9ed028edb78426c3112
      }
  
      public void enchant(Enchantment enchantment, int level) {
-@@ -1375,15 +1378,16 @@ public final class ItemStack {
+@@ -1375,15 +1377,16 @@ public final class ItemStack {
      }
  
      public void onUseTick(Level world, LivingEntity user, int remainingUseTicks) {
@@ -635,7 +712,7 @@ index cac5dac9eae0f95701ef4ded639ae0b7a9db0085..77c475c145ceb9ed028edb78426c3112
      }
  
      public SoundEvent getDrinkingSound() {
-@@ -1406,4 +1410,35 @@ public final class ItemStack {
+@@ -1406,4 +1409,35 @@ public final class ItemStack {
              return this.mask;
          }
      }

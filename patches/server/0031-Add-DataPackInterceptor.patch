@@ -6,10 +6,10 @@ Subject: [PATCH] Add DataPackInterceptor
 
 diff --git a/src/main/java/de/verdox/mccreativelab/CraftDataPackInterceptor.java b/src/main/java/de/verdox/mccreativelab/CraftDataPackInterceptor.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..f663bb5878f5ad14f5ecb010868ce5326feb61be
+index 0000000000000000000000000000000000000000..39be82b372d5fb8bd17877dfcf35c03a6b3b3bc3
 --- /dev/null
 +++ b/src/main/java/de/verdox/mccreativelab/CraftDataPackInterceptor.java
-@@ -0,0 +1,112 @@
+@@ -0,0 +1,128 @@
 +package de.verdox.mccreativelab;
 +
 +import com.google.gson.JsonObject;
@@ -29,6 +29,7 @@ index 0000000000000000000000000000000000000000..f663bb5878f5ad14f5ecb010868ce532
 +    private final Set<PackAssetType> excludedTypes = new HashSet<>();
 +    private final Set<String> stringPatternExcludes = new HashSet<>();
 +    private final Map<PackAssetType, Set<Key>> exclusions = new HashMap<>();
++    private final Map<PackAssetType, Map<Key, List<Consumer<DataPackAsset>>>> modifies = new HashMap<>();
 +    private Consumer<DataPackAsset> installCallback;
 +
 +    @Override
@@ -42,6 +43,13 @@ index 0000000000000000000000000000000000000000..f663bb5878f5ad14f5ecb010868ce532
 +        excludedTypes.add(packAssetType);
 +        return this;
 +    }
++
++    @Override
++    public DataPackInterceptor modify(PackAssetType packAssetType, Key key, Consumer<DataPackAsset> consumer) {
++        modifies.computeIfAbsent(packAssetType, packAssetType1 -> new HashMap<>()).computeIfAbsent(key, key1 -> new LinkedList<>()).add(consumer);
++        return this;
++    }
++
 +
 +    @Override
 +    public DataPackInterceptor exclude(PackAssetType packAssetType, Key key) {
@@ -95,6 +103,14 @@ index 0000000000000000000000000000000000000000..f663bb5878f5ad14f5ecb010868ce532
 +
 +            DataPackAsset dataPackAsset = new DataPackAsset(packAssetType, key, jsonObject);
 +
++            if(modifies.containsKey(packAssetType)){
++                Map<Key, List<Consumer<DataPackAsset>>> map = modifies.get(packAssetType);
++                if(map.containsKey(key)){
++                    List<Consumer<DataPackAsset>> modifiers = map.get(key);
++                    modifiers.forEach(dataPackAssetConsumer -> dataPackAssetConsumer.accept(dataPackAsset));
++                }
++            }
++
 +            this.installCallback.accept(dataPackAsset);
 +
 +            // Hier kannst du das JsonObject nach Belieben manipulieren
@@ -108,7 +124,7 @@ index 0000000000000000000000000000000000000000..f663bb5878f5ad14f5ecb010868ce532
 +            new IoSupplier<InputStream>() {
 +                @Override
 +                public InputStream get() throws IOException {
-+                    return new ByteArrayInputStream(jsonString.getBytes("UTF-8"));
++                    return new ByteArrayInputStream(jsonObject.toString().getBytes("UTF-8"));
 +                }
 +            };
 +

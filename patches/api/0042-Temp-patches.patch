@@ -1,0 +1,687 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <mail.ysp@web.de>
+Date: Sat, 17 Feb 2024 14:42:07 +0100
+Subject: [PATCH] Temp patches
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/MultiCustomBehaviour.java b/src/main/java/de/verdox/mccreativelab/MultiCustomBehaviour.java
+index 05d10cbe5ebd6291da004ff1e5f8c62257c7896f..0968745752d45ef649b7322ea51749068a3f65d9 100644
+--- a/src/main/java/de/verdox/mccreativelab/MultiCustomBehaviour.java
++++ b/src/main/java/de/verdox/mccreativelab/MultiCustomBehaviour.java
+@@ -12,7 +12,7 @@ public class MultiCustomBehaviour<K, T> {
+     private final String key;
+     private final Class<? extends T> type;
+     private final T defaultImplementation;
+-    private final Map<K, ProxyInterface<T>> storedBehaviour = new HashMap<>();
++    public final Map<K, ProxyInterface<T>> storedBehaviour = new HashMap<>();
+ 
+     public MultiCustomBehaviour(Class<T> type, T defaultImplementation, String key) {
+         this.key = key;
+diff --git a/src/main/java/de/verdox/mccreativelab/ProxyInterface.java b/src/main/java/de/verdox/mccreativelab/ProxyInterface.java
+index 3c96b65091ccf1d12c08987d6a5f8e8c61fcd28d..db4b4eb18027182d999565d0b19e9514440f6f60 100644
+--- a/src/main/java/de/verdox/mccreativelab/ProxyInterface.java
++++ b/src/main/java/de/verdox/mccreativelab/ProxyInterface.java
+@@ -1,6 +1,7 @@
+ package de.verdox.mccreativelab;
+ 
+ import java.lang.reflect.Method;
++import java.lang.reflect.Modifier;
+ import java.lang.reflect.Proxy;
+ import java.util.HashMap;
+ import java.util.Map;
+@@ -8,6 +9,7 @@ import java.util.function.BiFunction;
+ 
+ /**
+  * A proxy interface provider that merges various implementations of the same interface to one proxy instance.
++ *
+  * @param <T>
+  */
+ public class ProxyInterface<T> {
+@@ -16,38 +18,40 @@ public class ProxyInterface<T> {
+     private final T defaultImplementation;
+     private final T proxy;
+ 
+-    public ProxyInterface(Class<? extends T> type, T defaultImplementation){
++    public ProxyInterface(Class<? extends T> type, T defaultImplementation) {
+         this.type = type;
+         this.defaultImplementation = defaultImplementation;
+         this.proxy = createProxy();
+     }
+ 
+-    public T getImplementation(){
++    public T getImplementation() {
+         return this.proxy;
+     }
+ 
+-    public void addImplementation(T implementation, BiFunction<T,Method,Boolean> replaceExistingMethodImplementation){
++    public void addImplementation(T implementation, BiFunction<T, Method, Boolean> replaceExistingMethodImplementation) {
+         for (Method declaredMethod : implementation.getClass().getMethods()) {
++            if(!Modifier.isPublic(declaredMethod.getModifiers()))
++                continue;
+             MethodOriginFinder methodOriginFinder = new MethodOriginFinder();
+             methodOriginFinder.startFindingMethod(declaredMethod);
+             Method overridenMethod = methodOriginFinder.getOriginalMethod();
+-            if(overridenMethod == null)
++            if (overridenMethod == null)
+                 continue;
+-            if(methodToImplementationCache.containsKey(overridenMethod) && (replaceExistingMethodImplementation == null || !replaceExistingMethodImplementation.apply(methodToImplementationCache.get(overridenMethod), overridenMethod)))
++            if (methodToImplementationCache.containsKey(overridenMethod) && (replaceExistingMethodImplementation == null || !replaceExistingMethodImplementation.apply(methodToImplementationCache.get(overridenMethod), overridenMethod)))
+                 continue;
+             methodToImplementationCache.put(overridenMethod, implementation);
+         }
+     }
+ 
+-    public boolean isImplemented(){
++    public boolean isImplemented() {
+         return !methodToImplementationCache.isEmpty();
+     }
+ 
+-    public void addImplementation(T implementation){
++    public void addImplementation(T implementation) {
+         addImplementation(implementation, null);
+     }
+ 
+-    private T createProxy(){
++    private T createProxy() {
+         return type.cast(Proxy.newProxyInstance(
+             type.getClassLoader(),
+             new Class<?>[]{type},
+@@ -55,25 +59,27 @@ public class ProxyInterface<T> {
+ 
+                 T implementation = defaultImplementation;
+ 
+-                if(methodToImplementationCache.containsKey(method))
++                if (methodToImplementationCache.containsKey(method)) {
+                     implementation = methodToImplementationCache.get(method);
++                }
+ 
+                 return method.invoke(implementation, args);
+             }
+         ));
+     }
+ 
+-    private static class MethodOriginFinder {
++    public static class MethodOriginFinder {
+         private Class<?> result;
+         private Method foundMethod;
+ 
+-        public void startFindingMethod(Method method){
++        public void startFindingMethod(Method method) {
+             startFindingMethod(method.getDeclaringClass(), method.getName(), method.getParameterTypes());
+         }
+-        public synchronized void startFindingMethod(Class<?> currentClass, String methodName, Class<?>... parameterTypes){
++
++        public synchronized void startFindingMethod(Class<?> currentClass, String methodName, Class<?>... parameterTypes) {
+             result = null;
+             foundMethod = null;
+-            findClass(currentClass, methodName, parameterTypes);
++            search(currentClass, methodName, parameterTypes);
+         }
+ 
+         public Class<?> getClassDeclaringMethod() {
+@@ -84,26 +90,26 @@ public class ProxyInterface<T> {
+             return foundMethod;
+         }
+ 
+-        private boolean findClass(Class<?> currentClass, String methodName, Class<?>... parameterTypes) {
++        private boolean search(Class<?> currentClass, String methodName, Class<?>... parameterTypes) {
+             if (result != null)
+                 return false;
+             boolean foundInSuperClass = false;
+             if (currentClass.getSuperclass() != null && !currentClass.getSuperclass().equals(Object.class)) {
+-                var found = findClass(currentClass.getSuperclass(), methodName, parameterTypes);
++                var found = search(currentClass.getSuperclass(), methodName, parameterTypes);
+                 if (found)
+                     foundInSuperClass = true;
+             }
+ 
+             boolean foundInAnyInterface = false;
+             for (Class<?> anInterface : currentClass.getInterfaces()) {
+-                var foundMethodInInterface = findClass(anInterface, methodName, parameterTypes);
++                var foundMethodInInterface = search(anInterface, methodName, parameterTypes);
+                 if (foundMethodInInterface)
+                     foundInAnyInterface = true;
+             }
+ 
+ 
+             try {
+-                Method method = currentClass.getDeclaredMethod(methodName, parameterTypes);
++                Method method = currentClass.getMethod(methodName, parameterTypes);
+ 
+                 if (!foundInSuperClass && !foundInAnyInterface && !currentClass.equals(Object.class)) {
+                     result = currentClass;
+diff --git a/src/main/java/de/verdox/mccreativelab/advancement/AdvancementBuilder.java b/src/main/java/de/verdox/mccreativelab/advancement/AdvancementBuilder.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..ca9eb667d01d5a7cfb862415108c737e24b43317
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/advancement/AdvancementBuilder.java
+@@ -0,0 +1,29 @@
++package de.verdox.mccreativelab.advancement;
++
++import org.bukkit.NamespacedKey;
++
++public class AdvancementBuilder {
++    final NamespacedKey namespacedKey;
++    NamespacedKey parent;
++    AdvancementDisplayBuilder advancementDisplayBuilder = new AdvancementDisplayBuilder();
++    AdvancementRewardBuilder advancementRewardBuilder = new AdvancementRewardBuilder();
++
++    public AdvancementBuilder(NamespacedKey namespacedKey){
++        this.namespacedKey = namespacedKey;
++    }
++
++    public AdvancementBuilder withParent(NamespacedKey namespacedKey){
++        parent = namespacedKey;
++        return this;
++    }
++
++    public AdvancementBuilder withDisplay(AdvancementDisplayBuilder advancementDisplayBuilder) {
++        this.advancementDisplayBuilder = advancementDisplayBuilder;
++        return this;
++    }
++
++    public AdvancementBuilder withRewards(AdvancementRewardBuilder advancementRewardBuilder) {
++        this.advancementRewardBuilder = advancementRewardBuilder;
++        return this;
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/advancement/AdvancementCriteria.java b/src/main/java/de/verdox/mccreativelab/advancement/AdvancementCriteria.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..fbaa1d8bde62b292dacccec67f5f848f3ab26b7e
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/advancement/AdvancementCriteria.java
+@@ -0,0 +1,4 @@
++package de.verdox.mccreativelab.advancement;
++
++public class AdvancementCriteria {
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/advancement/AdvancementDisplayBuilder.java b/src/main/java/de/verdox/mccreativelab/advancement/AdvancementDisplayBuilder.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..df0b48c425f17620e090c272f50950e60e7ac0c8
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/advancement/AdvancementDisplayBuilder.java
+@@ -0,0 +1,60 @@
++package de.verdox.mccreativelab.advancement;
++
++import io.papermc.paper.advancement.AdvancementDisplay;
++import net.kyori.adventure.text.Component;
++import org.bukkit.Material;
++import org.bukkit.NamespacedKey;
++import org.bukkit.inventory.ItemStack;
++import org.jetbrains.annotations.Nullable;
++
++public class AdvancementDisplayBuilder {
++    AdvancementDisplay.Frame frame = AdvancementDisplay.Frame.TASK;
++    Component title = Component.empty();
++    Component description = Component.empty();
++    ItemStack icon = new ItemStack(Material.STONE);
++    boolean showToast = true;
++    boolean announceToChat = true;
++    boolean isHidden = false;
++    @Nullable NamespacedKey background;
++
++    public AdvancementDisplayBuilder setFrame(AdvancementDisplay.Frame frame) {
++
++        this.frame = frame;
++        return this;
++    }
++
++    public AdvancementDisplayBuilder setTitle(Component title) {
++        this.title = title;
++        return this;
++    }
++
++    public AdvancementDisplayBuilder setDescription(Component description) {
++        this.description = description;
++        return this;
++    }
++
++    public AdvancementDisplayBuilder setIcon(ItemStack icon) {
++        this.icon = icon;
++        return this;
++    }
++
++    public AdvancementDisplayBuilder setShowToast(boolean showToast) {
++        this.showToast = showToast;
++        return this;
++    }
++
++    public AdvancementDisplayBuilder setAnnounceToChat(boolean announceToChat) {
++        this.announceToChat = announceToChat;
++        return this;
++    }
++
++    public AdvancementDisplayBuilder setHidden(boolean hidden) {
++        isHidden = hidden;
++        return this;
++    }
++
++    public AdvancementDisplayBuilder setBackground(NamespacedKey background) {
++        this.background = background;
++        return this;
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/advancement/AdvancementRequirementsBuilder.java b/src/main/java/de/verdox/mccreativelab/advancement/AdvancementRequirementsBuilder.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..2184a0c3a2b85c00015811a1fdbb70987ac7294b
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/advancement/AdvancementRequirementsBuilder.java
+@@ -0,0 +1,12 @@
++package de.verdox.mccreativelab.advancement;
++
++import java.util.LinkedList;
++import java.util.List;
++
++public class AdvancementRequirementsBuilder {
++    List<List<String>> requirements = new LinkedList<>();
++    public AdvancementRequirementsBuilder withRequiredCriterionList(List<String> required){
++        this.requirements.add(required);
++        return this;
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/advancement/AdvancementRewardBuilder.java b/src/main/java/de/verdox/mccreativelab/advancement/AdvancementRewardBuilder.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..c8971e86b823d546a63fa06642f873459bd51d7d
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/advancement/AdvancementRewardBuilder.java
+@@ -0,0 +1,27 @@
++package de.verdox.mccreativelab.advancement;
++
++import org.bukkit.NamespacedKey;
++
++import java.util.ArrayList;
++import java.util.List;
++
++public class AdvancementRewardBuilder {
++    int experience;
++    final List<NamespacedKey> lootTables = new ArrayList<>();
++    final List<NamespacedKey> recipes = new ArrayList<>();
++
++    public AdvancementRewardBuilder setExperience(int experience) {
++        this.experience = experience;
++        return this;
++    }
++
++    public AdvancementRewardBuilder withLootTable(NamespacedKey namespacedKey){
++        this.lootTables.add(namespacedKey);
++        return this;
++    }
++
++    public AdvancementRewardBuilder withRecipe(NamespacedKey namespacedKey){
++        this.recipes.add(namespacedKey);
++        return this;
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/ai/builder/GoalFactory.java b/src/main/java/de/verdox/mccreativelab/ai/builder/GoalFactory.java
+index b2f39dada0ebb57a2fc5aa619109fa384246c9d9..32e44faac645121d7d20ece9f3b798694f46f346 100644
+--- a/src/main/java/de/verdox/mccreativelab/ai/builder/GoalFactory.java
++++ b/src/main/java/de/verdox/mccreativelab/ai/builder/GoalFactory.java
+@@ -2,6 +2,7 @@ package de.verdox.mccreativelab.ai.builder;
+ 
+ import com.destroystokyo.paper.entity.RangedEntity;
+ import com.destroystokyo.paper.entity.ai.VanillaGoal;
++import de.verdox.mccreativelab.random.VanillaRandomSource;
+ import net.kyori.adventure.sound.Sound;
+ import org.bukkit.Difficulty;
+ import org.bukkit.Material;
+@@ -12,6 +13,7 @@ import org.bukkit.inventory.ItemStack;
+ import org.bukkit.inventory.RecipeChoice;
+ 
+ import java.util.function.BooleanSupplier;
++import java.util.function.Function;
+ import java.util.function.Predicate;
+ 
+ public interface GoalFactory {
+@@ -33,7 +35,7 @@ public interface GoalFactory {
+ 
+     VanillaGoal<Dolphin> dolphinJump(Dolphin dolphin, int chance);
+ 
+-    VanillaGoal<Mob> eatBlock(Mob mob, Predicate<BlockState> predicate);
++    VanillaGoal<Mob> eatBlock(Mob mob, Function<VanillaRandomSource, Boolean> chanceToEat, Predicate<BlockState> predicate);
+ 
+     VanillaGoal<Mob> fleeSun(Mob mob, double speed);
+ 
+diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/BlockBehaviour.java b/src/main/java/de/verdox/mccreativelab/behaviour/BlockBehaviour.java
+index 4fd86c1495637ccf7bbe978dcdc98684718a3e1f..62bf361289c4ccb7c70cc835cd97c723def1dc09 100644
+--- a/src/main/java/de/verdox/mccreativelab/behaviour/BlockBehaviour.java
++++ b/src/main/java/de/verdox/mccreativelab/behaviour/BlockBehaviour.java
+@@ -12,6 +12,7 @@ import org.bukkit.block.data.BlockData;
+ import org.bukkit.entity.Entity;
+ import org.bukkit.entity.Player;
+ import org.bukkit.inventory.EquipmentSlot;
++import org.bukkit.inventory.ItemStack;
+ import org.bukkit.util.RayTraceResult;
+ 
+ public interface BlockBehaviour extends Behaviour {
+@@ -40,7 +41,7 @@ public interface BlockBehaviour extends Behaviour {
+      * @return The blockdata that results from this update.
+      */
+     default BehaviourResult.Object<BlockData> blockUpdate(Location location, BlockData blockData, BlockFace direction, BlockData neighbourBlockData, Location neighbourLocation) {
+-        return BehaviourResult.Object.DEFAULT_INSTANCE;
++        return result(blockData, BehaviourResult.Object.Type.USE_VANILLA);
+     }
+ 
+     /**
+@@ -223,4 +224,14 @@ public interface BlockBehaviour extends Behaviour {
+     default BehaviourResult.Void attack(Block block, Player player) {
+         return BehaviourResult.Void.DEFAULT_INSTANCE;
+     }
++
++    /**
++     * Called when a player uses bonemeal on a block.
++     * @param block The block that is fertilized
++     * @param stack The item used to fertilize. The Minecraft server will call this only for bonemeal.
++     * @return True if the action was a success
++     */
++    default BehaviourResult.Bool fertilizeAction(Block block, ItemStack stack){
++        return BehaviourResult.Bool.DEFAULT_INSTANCE;
++    }
+ }
+diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/ItemBehaviour.java b/src/main/java/de/verdox/mccreativelab/behaviour/ItemBehaviour.java
+index e77664719f66cab501c81257bb3b8d8c0654298d..3c1510a9d56484e9792b6de7283e34d3cfe5925e 100644
+--- a/src/main/java/de/verdox/mccreativelab/behaviour/ItemBehaviour.java
++++ b/src/main/java/de/verdox/mccreativelab/behaviour/ItemBehaviour.java
+@@ -4,6 +4,7 @@ import de.verdox.mccreativelab.InteractionResult;
+ import de.verdox.mccreativelab.MultiCustomBehaviour;
+ import de.verdox.mccreativelab.behaviour.interaction.ItemStackInteraction;
+ import de.verdox.mccreativelab.recipe.CustomItemData;
++import org.bukkit.Location;
+ import org.bukkit.block.Block;
+ import org.bukkit.block.data.BlockData;
+ import org.bukkit.entity.Item;
+@@ -196,4 +197,8 @@ public interface ItemBehaviour extends Behaviour {
+     default BehaviourResult.Callback onNbtSave(ItemStack stack) {
+         return BehaviourResult.Callback.DEFAULT_INSTANCE;
+     }
++
++    default BehaviourResult.Object<BlockData> placeBlockAction(ItemStack stack, Player player, Location clickedPosition, BlockData vanillaBlockData){
++        return BehaviourResult.Object.DEFAULT_INSTANCE;
++    }
+ }
+diff --git a/src/main/java/de/verdox/mccreativelab/events/ChunkDataCreateEvent.java b/src/main/java/de/verdox/mccreativelab/events/ChunkDataCreateEvent.java
+index 578988593db6689ef98d53da2accc553a720d3b1..8086bd8e34cbca1c46f955dfe02590578bd2b42a 100644
+--- a/src/main/java/de/verdox/mccreativelab/events/ChunkDataCreateEvent.java
++++ b/src/main/java/de/verdox/mccreativelab/events/ChunkDataCreateEvent.java
+@@ -1,5 +1,6 @@
+ package de.verdox.mccreativelab.events;
+ 
++import de.verdox.mccreativelab.worldgen.WorldGenChunk;
+ import org.bukkit.Chunk;
+ import org.bukkit.World;
+ import org.bukkit.persistence.PersistentDataContainer;
+@@ -7,15 +8,7 @@ import org.jetbrains.annotations.NotNull;
+ import org.jetbrains.annotations.Nullable;
+ 
+ public class ChunkDataCreateEvent extends ChunkDataEvent {
+-    private final Chunk chunk;
+-
+-    public ChunkDataCreateEvent(@NotNull World world, @Nullable Chunk chunk, @NotNull ChunkDataEvent.ChunkPos chunkPos, @NotNull PersistentDataContainer persistentDataContainer) {
++    public ChunkDataCreateEvent(@NotNull World world, WorldGenChunk chunk, @NotNull ChunkDataEvent.ChunkPos chunkPos, @NotNull PersistentDataContainer persistentDataContainer) {
+         super(world, chunk, chunkPos, persistentDataContainer);
+-        this.chunk = chunk;
+-    }
+-
+-    @NotNull
+-    public Chunk getChunk() {
+-        return this.chunk;
+     }
+ }
+diff --git a/src/main/java/de/verdox/mccreativelab/events/ChunkDataEvent.java b/src/main/java/de/verdox/mccreativelab/events/ChunkDataEvent.java
+index 11ade060418a9997fc9376a5518ad38628d4fd9d..58ae701930935619b001046f4d3899e6709fc82c 100644
+--- a/src/main/java/de/verdox/mccreativelab/events/ChunkDataEvent.java
++++ b/src/main/java/de/verdox/mccreativelab/events/ChunkDataEvent.java
+@@ -1,5 +1,6 @@
+ package de.verdox.mccreativelab.events;
+ 
++import de.verdox.mccreativelab.worldgen.WorldGenChunk;
+ import org.bukkit.Bukkit;
+ import org.bukkit.Chunk;
+ import org.bukkit.World;
+@@ -14,13 +15,13 @@ public abstract class ChunkDataEvent extends Event {
+ 
+     private final World world;
+ 
+-    private final Chunk chunk;
++    private final WorldGenChunk chunk;
+ 
+     private final ChunkPos chunkPos;
+ 
+     private final PersistentDataContainer persistentDataContainer;
+ 
+-    public ChunkDataEvent(@NotNull World world, @Nullable Chunk chunk, @NotNull ChunkPos chunkPos, @NotNull PersistentDataContainer persistentDataContainer) {
++    public ChunkDataEvent(@NotNull World world, WorldGenChunk chunk, @NotNull ChunkPos chunkPos, @NotNull PersistentDataContainer persistentDataContainer) {
+         super(!Bukkit.isPrimaryThread());
+         this.world = world;
+         this.chunk = chunk;
+@@ -34,7 +35,7 @@ public abstract class ChunkDataEvent extends Event {
+     }
+ 
+     @Nullable
+-    public Chunk getChunk() {
++    public WorldGenChunk getChunk() {
+         return this.chunk;
+     }
+ 
+diff --git a/src/main/java/de/verdox/mccreativelab/events/ChunkDataLoadEvent.java b/src/main/java/de/verdox/mccreativelab/events/ChunkDataLoadEvent.java
+index 763d32aba1a36e0cc839b9757d54acc185644348..9ebab7ef7a53bce9f3fce3bd9d027fbea86d9dc8 100644
+--- a/src/main/java/de/verdox/mccreativelab/events/ChunkDataLoadEvent.java
++++ b/src/main/java/de/verdox/mccreativelab/events/ChunkDataLoadEvent.java
+@@ -1,5 +1,6 @@
+ package de.verdox.mccreativelab.events;
+ 
++import de.verdox.mccreativelab.worldgen.WorldGenChunk;
+ import org.bukkit.Chunk;
+ import org.bukkit.World;
+ import org.bukkit.persistence.PersistentDataContainer;
+@@ -7,7 +8,7 @@ import org.jetbrains.annotations.NotNull;
+ import org.jetbrains.annotations.Nullable;
+ 
+ public class ChunkDataLoadEvent extends ChunkDataEvent {
+-    public ChunkDataLoadEvent(@NotNull World world, @Nullable Chunk chunk, @NotNull ChunkDataEvent.ChunkPos chunkPos, @NotNull PersistentDataContainer persistentDataContainer) {
++    public ChunkDataLoadEvent(@NotNull World world, WorldGenChunk chunk, @NotNull ChunkDataEvent.ChunkPos chunkPos, @NotNull PersistentDataContainer persistentDataContainer) {
+         super(world, chunk, chunkPos, persistentDataContainer);
+     }
+ }
+diff --git a/src/main/java/de/verdox/mccreativelab/events/ChunkDataSaveEvent.java b/src/main/java/de/verdox/mccreativelab/events/ChunkDataSaveEvent.java
+index 65adb34f43b7e77b87fe146ab0ec7bae9132beff..de45a3f5c1eb9a00931d45dd7ed3f31f628dbf60 100644
+--- a/src/main/java/de/verdox/mccreativelab/events/ChunkDataSaveEvent.java
++++ b/src/main/java/de/verdox/mccreativelab/events/ChunkDataSaveEvent.java
+@@ -1,5 +1,6 @@
+ package de.verdox.mccreativelab.events;
+ 
++import de.verdox.mccreativelab.worldgen.WorldGenChunk;
+ import org.bukkit.Chunk;
+ import org.bukkit.World;
+ import org.bukkit.persistence.PersistentDataContainer;
+@@ -9,7 +10,7 @@ import org.jetbrains.annotations.Nullable;
+ public class ChunkDataSaveEvent extends ChunkDataEvent {
+     private final boolean unloaded;
+ 
+-    public ChunkDataSaveEvent(@NotNull World world, @Nullable Chunk chunk, @NotNull ChunkDataEvent.ChunkPos chunkPos, @NotNull PersistentDataContainer persistentDataContainer, boolean unloaded) {
++    public ChunkDataSaveEvent(@NotNull World world, WorldGenChunk chunk, @NotNull ChunkDataEvent.ChunkPos chunkPos, @NotNull PersistentDataContainer persistentDataContainer, boolean unloaded) {
+         super(world, chunk, chunkPos, persistentDataContainer);
+         this.unloaded = unloaded;
+     }
+diff --git a/src/main/java/de/verdox/mccreativelab/recipe/CustomItemData.java b/src/main/java/de/verdox/mccreativelab/recipe/CustomItemData.java
+index 988dd359a588cab2d06e39d3b915bc3d3d83b585..f5d07da1b10cd0662c3caefb5a7b981433663a54 100644
+--- a/src/main/java/de/verdox/mccreativelab/recipe/CustomItemData.java
++++ b/src/main/java/de/verdox/mccreativelab/recipe/CustomItemData.java
+@@ -3,6 +3,8 @@ package de.verdox.mccreativelab.recipe;
+ import org.bukkit.Material;
+ import org.bukkit.inventory.ItemStack;
+ 
++import java.util.Objects;
++
+ public record CustomItemData(Material material, int customModelData) {
+     public ItemStack createStack() {
+         var stack = new ItemStack(material);
+diff --git a/src/main/java/de/verdox/mccreativelab/worldgen/WorldGenChunk.java b/src/main/java/de/verdox/mccreativelab/worldgen/WorldGenChunk.java
+index 73eb48b1c68fb1c36dd271d7604fc5acedda6b62..e5144124da91cbebd053e9980b406218a7165c57 100644
+--- a/src/main/java/de/verdox/mccreativelab/worldgen/WorldGenChunk.java
++++ b/src/main/java/de/verdox/mccreativelab/worldgen/WorldGenChunk.java
+@@ -1,11 +1,16 @@
+ package de.verdox.mccreativelab.worldgen;
+ 
++import org.bukkit.Chunk;
+ import org.bukkit.Location;
+ import org.bukkit.World;
++import org.bukkit.metadata.Metadatable;
+ import org.bukkit.persistence.PersistentDataHolder;
+ import org.jetbrains.annotations.NotNull;
+ 
+-public interface WorldGenChunk extends PersistentDataHolder {
++/**
++ * Exposes a chunks raw information.
++ */
++public interface WorldGenChunk extends PersistentDataHolder, Metadatable {
+     /**
+      * Gets the X-coordinate of this chunk
+      *
+@@ -47,4 +52,12 @@ public interface WorldGenChunk extends PersistentDataHolder {
+      * @return Parent World
+      */
+     @NotNull World getWorld();
++
++    /**
++     * Returns a bukkit chunk representation of this chunk. Might trigger a sync chunk load.
++     * @return - The bukkit chunk
++     */
++    default Chunk toChunk(){
++        return getWorld().getChunkAt(getChunkKey());
++    }
+ }
+diff --git a/src/main/java/org/bukkit/Chunk.java b/src/main/java/org/bukkit/Chunk.java
+index d784323ed593bbb9646047a9c55d6aa8b7dc20c9..ef8cf4b6f254fa0f8cb4825bf743baa45468791a 100644
+--- a/src/main/java/org/bukkit/Chunk.java
++++ b/src/main/java/org/bukkit/Chunk.java
+@@ -1,6 +1,7 @@
+ package org.bukkit;
+ 
+ import java.util.Collection;
++
+ import org.bukkit.block.Biome;
+ import org.bukkit.block.Block;
+ import org.bukkit.block.BlockState;
+@@ -17,7 +18,14 @@ import org.jetbrains.annotations.NotNull;
+  * then the chunk will only be generated as far as it needs to provide the
+  * requested data.
+  */
+-public interface Chunk extends PersistentDataHolder, org.bukkit.metadata.Metadatable {
++public interface Chunk extends PersistentDataHolder, org.bukkit.metadata.Metadatable, de.verdox.mccreativelab.worldgen.WorldGenChunk {
++
++    // MCCreativeLab start - Add WorldGenChunk
++    @Override
++    default Chunk toChunk() {
++        return this;
++    }
++    // MCCreativeLab end - Add WorldGenChunk
+ 
+     /**
+      * Gets the X-coordinate of this chunk
+diff --git a/src/main/java/org/bukkit/inventory/ItemStack.java b/src/main/java/org/bukkit/inventory/ItemStack.java
+index a707378dffe9639a4e7c8dde755d6e085c911440..ffdc6adc1ef820bbd32be8c95975a9d1d4a01a96 100644
+--- a/src/main/java/org/bukkit/inventory/ItemStack.java
++++ b/src/main/java/org/bukkit/inventory/ItemStack.java
+@@ -853,12 +853,18 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
+         return this.itemBehaviour != null;
+     }
+ 
++    public @Nullable de.verdox.mccreativelab.behaviour.ItemBehaviour getDefinedItemBehaviour(){
++        return this.itemBehaviour;
++    }
++
+     public @Nullable de.verdox.mccreativelab.behaviour.ItemBehaviour getItemBehaviour(){
+         if(this.itemBehaviour != null)
+             return this.itemBehaviour;
+         else
+             return de.verdox.mccreativelab.behaviour.ItemBehaviour.ITEM_BEHAVIOUR.getBehaviour(de.verdox.mccreativelab.recipe.CustomItemData.fromItemStack(this));
+     }
++
++
+     // MCCLab end - Add ItemBehaviour as instance to this specific Item Stack
+ 
+     /**
+diff --git a/src/test/java/de/verdox/mccreativelab/ClassImplementingTestInterface.java b/src/test/java/de/verdox/mccreativelab/ClassImplementingTestInterface.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..5c063bbd705348805b4bff149ae901dbf93660b2
+--- /dev/null
++++ b/src/test/java/de/verdox/mccreativelab/ClassImplementingTestInterface.java
+@@ -0,0 +1,8 @@
++package de.verdox.mccreativelab;
++
++public class ClassImplementingTestInterface implements ExtendingTestInterface{
++    @Override
++    public Object foo2(String abcParameter) {
++        return "foo2";
++    }
++}
+diff --git a/src/test/java/de/verdox/mccreativelab/ExtendingTestInterface.java b/src/test/java/de/verdox/mccreativelab/ExtendingTestInterface.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..ebdd2bda321f65eb193b0fb418f76e239b2fd9ab
+--- /dev/null
++++ b/src/test/java/de/verdox/mccreativelab/ExtendingTestInterface.java
+@@ -0,0 +1,9 @@
++package de.verdox.mccreativelab;
++
++public interface ExtendingTestInterface extends TestInterface{
++
++    @Override
++    default String foo2(){
++        return "abc";
++    }
++}
+diff --git a/src/test/java/de/verdox/mccreativelab/ProxyInterfaceTest.java b/src/test/java/de/verdox/mccreativelab/ProxyInterfaceTest.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..64c6fcf3a9f3a905cf416cc8eb4ada0b32718b96
+--- /dev/null
++++ b/src/test/java/de/verdox/mccreativelab/ProxyInterfaceTest.java
+@@ -0,0 +1,34 @@
++package de.verdox.mccreativelab;
++
++import org.junit.jupiter.api.Test;
++
++import static org.junit.jupiter.api.Assertions.assertEquals;
++
++public class ProxyInterfaceTest {
++
++    @Test
++    public void testMethodOriginFinder1() {
++        ProxyInterface.MethodOriginFinder methodOriginFinder = new ProxyInterface.MethodOriginFinder();
++        methodOriginFinder.startFindingMethod(ClassImplementingTestInterface.class, "foo1");
++        assertEquals("public default void de.verdox.mccreativelab.TestInterface.foo1()", methodOriginFinder.getOriginalMethod().toString());
++        assertEquals("interface de.verdox.mccreativelab.TestInterface", methodOriginFinder.getClassDeclaringMethod().toString());
++    }
++
++    @Test
++    public void testMethodOriginFinder2() {
++        ProxyInterface.MethodOriginFinder methodOriginFinder = new ProxyInterface.MethodOriginFinder();
++        methodOriginFinder.startFindingMethod(ClassImplementingTestInterface.class, "foo2");
++        System.out.println(methodOriginFinder.getOriginalMethod().toString());
++        assertEquals("public abstract java.lang.String de.verdox.mccreativelab.TestInterface.foo2()", methodOriginFinder.getOriginalMethod().toString());
++        assertEquals("interface de.verdox.mccreativelab.TestInterface", methodOriginFinder.getClassDeclaringMethod().toString());
++    }
++
++    @Test
++    public void testMethodOriginFinder3() {
++        ProxyInterface.MethodOriginFinder methodOriginFinder = new ProxyInterface.MethodOriginFinder();
++        methodOriginFinder.startFindingMethod(ClassImplementingTestInterface.class, "foo2", String.class);
++        assertEquals("public abstract java.lang.String de.verdox.mccreativelab.TestInterface.foo2(java.lang.String)", methodOriginFinder.getOriginalMethod().toString());
++        assertEquals("interface de.verdox.mccreativelab.TestInterface", methodOriginFinder.getClassDeclaringMethod().toString());
++    }
++
++}
+diff --git a/src/test/java/de/verdox/mccreativelab/TestInterface.java b/src/test/java/de/verdox/mccreativelab/TestInterface.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..b34220a659742810f00531f6fbcedb354f59d750
+--- /dev/null
++++ b/src/test/java/de/verdox/mccreativelab/TestInterface.java
+@@ -0,0 +1,9 @@
++package de.verdox.mccreativelab;
++
++public interface TestInterface {
++
++    default void foo1(){}
++    String foo2();
++    Object foo2(String abcParameter);
++
++}

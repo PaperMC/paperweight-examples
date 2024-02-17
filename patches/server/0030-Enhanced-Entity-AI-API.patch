@@ -6,10 +6,10 @@ Subject: [PATCH] Enhanced Entity AI API
 
 diff --git a/src/main/java/de/verdox/mccreativelab/ai/CraftEntityBrain.java b/src/main/java/de/verdox/mccreativelab/ai/CraftEntityBrain.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..09b102bec6725b602d791c89ddef637797969207
+index 0000000000000000000000000000000000000000..c39b86bba2455a2f3c93ec035655694412725171
 --- /dev/null
 +++ b/src/main/java/de/verdox/mccreativelab/ai/CraftEntityBrain.java
-@@ -0,0 +1,183 @@
+@@ -0,0 +1,188 @@
 +package de.verdox.mccreativelab.ai;
 +
 +import de.verdox.mccreativelab.ai.builder.ActivityBuilder;
@@ -46,6 +46,11 @@ index 0000000000000000000000000000000000000000..09b102bec6725b602d791c89ddef6377
 +    @Override
 +    public BehaviorFactory getBehaviorFactory() {
 +        return behaviorFactory;
++    }
++
++    @Override
++    public <U> void addMemoryToBrain(MemoryKey<U> memoryKey) {
++        this.entityBrain.addMemoryToBrain(CraftMemoryKey.bukkitToMinecraft(memoryKey));
 +    }
 +
 +    @Override
@@ -1082,10 +1087,10 @@ index 0000000000000000000000000000000000000000..c36e760a8d180fb5008d25085c999014
 +}
 diff --git a/src/main/java/de/verdox/mccreativelab/ai/builder/CraftGoalFactory.java b/src/main/java/de/verdox/mccreativelab/ai/builder/CraftGoalFactory.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..468f39572b8c191f3b765977425ccefa8ab70e1d
+index 0000000000000000000000000000000000000000..81d1727ea968dd5c1316a826972d10e2603f68bb
 --- /dev/null
 +++ b/src/main/java/de/verdox/mccreativelab/ai/builder/CraftGoalFactory.java
-@@ -0,0 +1,333 @@
+@@ -0,0 +1,338 @@
 +package de.verdox.mccreativelab.ai.builder;
 +
 +import com.destroystokyo.paper.entity.RangedEntity;
@@ -1105,6 +1110,7 @@ index 0000000000000000000000000000000000000000..468f39572b8c191f3b765977425ccefa
 +import org.bukkit.Difficulty;
 +import org.bukkit.Material;
 +import org.bukkit.World;
++import net.minecraft.world.entity.player.Player;
 +import org.bukkit.block.BlockState;
 +import org.bukkit.craftbukkit.CraftRegionAccessor;
 +import org.bukkit.craftbukkit.CraftWorld;
@@ -1382,6 +1388,10 @@ index 0000000000000000000000000000000000000000..468f39572b8c191f3b765977425ccefa
 +    }
 +
 +    private Class<? extends net.minecraft.world.entity.PathfinderMob> toNms(World world, EntityType entityType) {
++    private Class<? extends net.minecraft.world.entity.LivingEntity> toNms(World world, EntityType entityType) {
++        if(entityType.equals(EntityType.PLAYER))
++            return Player.class;
++
 +        CraftRegionAccessor craftRegionAccessor = (CraftRegionAccessor) world;
 +        return (Class<? extends PathfinderMob>) ((CraftEntity) craftRegionAccessor.createEntity(world.getSpawnLocation(), entityType.getEntityClass()))
 +            .getHandle().getClass();
@@ -1486,7 +1496,7 @@ index 0000000000000000000000000000000000000000..a4ecfb6a7699e62603e2a1984b2e3276
 +    }
 +}
 diff --git a/src/main/java/net/minecraft/world/entity/ai/Brain.java b/src/main/java/net/minecraft/world/entity/ai/Brain.java
-index dea20f16ac97402f754c8e47d03e9ef38de73190..8c7c4c99372d04ae22dfc2b8a3d62ce24da3ecca 100644
+index dea20f16ac97402f754c8e47d03e9ef38de73190..be2c886a2609190afe1aa2f6d39d368e026a5f4b 100644
 --- a/src/main/java/net/minecraft/world/entity/ai/Brain.java
 +++ b/src/main/java/net/minecraft/world/entity/ai/Brain.java
 @@ -14,12 +14,10 @@ import com.mojang.serialization.DynamicOps;
@@ -1560,7 +1570,7 @@ index dea20f16ac97402f754c8e47d03e9ef38de73190..8c7c4c99372d04ae22dfc2b8a3d62ce2
          this.activityRequirements.put(activity, requiredMemories);
          if (!forgettingMemories.isEmpty()) {
              this.activityMemoriesToEraseWhenStopped.put(activity, forgettingMemories);
-@@ -360,6 +361,55 @@ public class Brain<E extends LivingEntity> {
+@@ -360,6 +361,59 @@ public class Brain<E extends LivingEntity> {
          }
  
      }
@@ -1612,11 +1622,15 @@ index dea20f16ac97402f754c8e47d03e9ef38de73190..8c7c4c99372d04ae22dfc2b8a3d62ce2
 +    public Map<Integer, Map<Activity, Set<BehaviorControl<? super E>>>> getAvailableBehaviorsByPriority() {
 +        return availableBehaviorsByPriority;
 +    }
++
++    public void addMemoryToBrain(MemoryModuleType<?> memoryModuleType){
++        this.memories.put(memoryModuleType, Optional.empty());
++    }
 +    // MCCLab stop - Add CraftEntityBrain
  
      @VisibleForTesting
      public void removeAllBehaviors() {
-@@ -483,7 +533,7 @@ public class Brain<E extends LivingEntity> {
+@@ -483,7 +537,7 @@ public class Brain<E extends LivingEntity> {
          private final Optional<? extends ExpirableValue<U>> value;
  
          static <U> Brain.MemoryValue<U> createUnchecked(MemoryModuleType<U> type, Optional<? extends ExpirableValue<?>> data) {
