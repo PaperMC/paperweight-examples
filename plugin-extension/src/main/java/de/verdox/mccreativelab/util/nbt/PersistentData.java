@@ -2,22 +2,17 @@ package de.verdox.mccreativelab.util.nbt;
 
 import de.verdox.mccreativelab.MCCreativeLabExtension;
 import org.bukkit.Bukkit;
-import org.bukkit.NamespacedKey;
-import org.bukkit.World;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.metadata.Metadatable;
-import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataHolder;
-import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.InvocationTargetException;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Supplier;
+import java.util.HashSet;
+import java.util.Locale;
+import java.util.Objects;
+import java.util.Set;
 
 public abstract class PersistentData<T extends PersistentDataHolder> implements NBTSerializable {
     /**
@@ -41,10 +36,10 @@ public abstract class PersistentData<T extends PersistentDataHolder> implements 
             Objects.requireNonNull(persistentData);
         }
         else {
-            try {
-                persistentData = createPersistentDataObject(type);
+        try {
+            persistentData = createPersistentDataObject(type);
                 persistentData.loadFromStorage(persistentDataHolder);
-                persistentData.setup(persistentDataHolder);
+            persistentData.setup(persistentDataHolder);
                 if (persistentDataHolder instanceof Metadatable metadatable) {
                     metadatable.setMetadata(metadataKey, new FixedMetadataValue(MCCreativeLabExtension.getInstance(), persistentData));
 
@@ -53,16 +48,17 @@ public abstract class PersistentData<T extends PersistentDataHolder> implements 
                     if (!metadatable.hasMetadata("cached_persistent_data"))
                         metadatable.setMetadata("cached_persistent_data", new FixedMetadataValue(MCCreativeLabExtension.getInstance(), cached));
                 }
-            } catch (ClassCastException e) {
-                e.printStackTrace();
-                throw new RuntimeException(e);
+        } catch (ClassCastException e) {
+            e.printStackTrace();
+            throw new RuntimeException(e);
             }
 
         }
         return persistentData;
     }
 
-    @NotNull private static <B extends PersistentDataHolder, T extends PersistentData<B>> T createPersistentDataObject(Class<? extends T> type) {
+    @NotNull
+    private static <B extends PersistentDataHolder, T extends PersistentData<B>> T createPersistentDataObject(Class<? extends T> type) {
         try {
             return type.getDeclaredConstructor().newInstance();
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
@@ -91,7 +87,7 @@ public abstract class PersistentData<T extends PersistentDataHolder> implements 
 
     public final void loadFromStorage(T dataHolder) {
         NBTContainer nbtContainer = NBTContainer.of("fixedminecraft", dataHolder.getPersistentDataContainer());
-        if(!nbtContainer.has(nbtKey().toLowerCase(Locale.ROOT)))
+        if (!nbtContainer.has(nbtKey().toLowerCase(Locale.ROOT)))
             return;
         NBTContainer load = nbtContainer.getNBTContainer(nbtKey().toLowerCase(Locale.ROOT));
         this.loadNBTData(load);

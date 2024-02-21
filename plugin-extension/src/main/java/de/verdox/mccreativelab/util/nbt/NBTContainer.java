@@ -9,6 +9,7 @@ import org.bukkit.configuration.serialization.ConfigurationSerialization;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -431,6 +432,29 @@ public class NBTContainer {
         float yaw = nbtContainer.getFloat("yaw");
         float pitch = nbtContainer.getFloat("pitch");
         return new Location(Bukkit.getWorld(worldName), x, y, z, yaw, pitch);
+    }
+
+    public void set(String key, Vector vector) {
+        if (vector == null) {
+            remove(key);
+            return;
+        }
+        NBTContainer nbtContainer = createNBTContainer();
+        nbtContainer.set("x", vector.getX());
+        nbtContainer.set("y", vector.getY());
+        nbtContainer.set("z", vector.getZ());
+        set(key, nbtContainer);
+    }
+
+    @Nullable
+    public Vector getVector(String key) {
+        NBTContainer nbtContainer = getNBTContainer(key);
+        if (nbtContainer == null)
+            return null;
+        double x = nbtContainer.getDouble("x");
+        double y = nbtContainer.getDouble("y");
+        double z = nbtContainer.getDouble("z");
+        return new Vector(x, y, z);
     }
 
     @Override

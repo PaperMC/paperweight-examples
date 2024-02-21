@@ -217,6 +217,7 @@ public class MCCreativeLabExtension extends JavaPlugin implements Listener {
     public void onDisable() {
         Feature.disable();
         getFakeBlockStorage().saveAll();
+
         for (World world : Bukkit.getWorlds())
             world.save();
         try {
