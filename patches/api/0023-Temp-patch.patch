@@ -1,0 +1,369 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <mail.ysp@web.de>
+Date: Tue, 20 Feb 2024 21:07:06 +0100
+Subject: [PATCH] Temp patch
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/advancement/AdvancementBuilder.java b/src/main/java/de/verdox/mccreativelab/advancement/AdvancementBuilder.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..ca9eb667d01d5a7cfb862415108c737e24b43317
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/advancement/AdvancementBuilder.java
+@@ -0,0 +1,29 @@
++package de.verdox.mccreativelab.advancement;
++
++import org.bukkit.NamespacedKey;
++
++public class AdvancementBuilder {
++    final NamespacedKey namespacedKey;
++    NamespacedKey parent;
++    AdvancementDisplayBuilder advancementDisplayBuilder = new AdvancementDisplayBuilder();
++    AdvancementRewardBuilder advancementRewardBuilder = new AdvancementRewardBuilder();
++
++    public AdvancementBuilder(NamespacedKey namespacedKey){
++        this.namespacedKey = namespacedKey;
++    }
++
++    public AdvancementBuilder withParent(NamespacedKey namespacedKey){
++        parent = namespacedKey;
++        return this;
++    }
++
++    public AdvancementBuilder withDisplay(AdvancementDisplayBuilder advancementDisplayBuilder) {
++        this.advancementDisplayBuilder = advancementDisplayBuilder;
++        return this;
++    }
++
++    public AdvancementBuilder withRewards(AdvancementRewardBuilder advancementRewardBuilder) {
++        this.advancementRewardBuilder = advancementRewardBuilder;
++        return this;
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/advancement/AdvancementCriteria.java b/src/main/java/de/verdox/mccreativelab/advancement/AdvancementCriteria.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..fbaa1d8bde62b292dacccec67f5f848f3ab26b7e
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/advancement/AdvancementCriteria.java
+@@ -0,0 +1,4 @@
++package de.verdox.mccreativelab.advancement;
++
++public class AdvancementCriteria {
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/advancement/AdvancementDisplayBuilder.java b/src/main/java/de/verdox/mccreativelab/advancement/AdvancementDisplayBuilder.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..df0b48c425f17620e090c272f50950e60e7ac0c8
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/advancement/AdvancementDisplayBuilder.java
+@@ -0,0 +1,60 @@
++package de.verdox.mccreativelab.advancement;
++
++import io.papermc.paper.advancement.AdvancementDisplay;
++import net.kyori.adventure.text.Component;
++import org.bukkit.Material;
++import org.bukkit.NamespacedKey;
++import org.bukkit.inventory.ItemStack;
++import org.jetbrains.annotations.Nullable;
++
++public class AdvancementDisplayBuilder {
++    AdvancementDisplay.Frame frame = AdvancementDisplay.Frame.TASK;
++    Component title = Component.empty();
++    Component description = Component.empty();
++    ItemStack icon = new ItemStack(Material.STONE);
++    boolean showToast = true;
++    boolean announceToChat = true;
++    boolean isHidden = false;
++    @Nullable NamespacedKey background;
++
++    public AdvancementDisplayBuilder setFrame(AdvancementDisplay.Frame frame) {
++
++        this.frame = frame;
++        return this;
++    }
++
++    public AdvancementDisplayBuilder setTitle(Component title) {
++        this.title = title;
++        return this;
++    }
++
++    public AdvancementDisplayBuilder setDescription(Component description) {
++        this.description = description;
++        return this;
++    }
++
++    public AdvancementDisplayBuilder setIcon(ItemStack icon) {
++        this.icon = icon;
++        return this;
++    }
++
++    public AdvancementDisplayBuilder setShowToast(boolean showToast) {
++        this.showToast = showToast;
++        return this;
++    }
++
++    public AdvancementDisplayBuilder setAnnounceToChat(boolean announceToChat) {
++        this.announceToChat = announceToChat;
++        return this;
++    }
++
++    public AdvancementDisplayBuilder setHidden(boolean hidden) {
++        isHidden = hidden;
++        return this;
++    }
++
++    public AdvancementDisplayBuilder setBackground(NamespacedKey background) {
++        this.background = background;
++        return this;
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/advancement/AdvancementRequirementsBuilder.java b/src/main/java/de/verdox/mccreativelab/advancement/AdvancementRequirementsBuilder.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..2184a0c3a2b85c00015811a1fdbb70987ac7294b
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/advancement/AdvancementRequirementsBuilder.java
+@@ -0,0 +1,12 @@
++package de.verdox.mccreativelab.advancement;
++
++import java.util.LinkedList;
++import java.util.List;
++
++public class AdvancementRequirementsBuilder {
++    List<List<String>> requirements = new LinkedList<>();
++    public AdvancementRequirementsBuilder withRequiredCriterionList(List<String> required){
++        this.requirements.add(required);
++        return this;
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/advancement/AdvancementRewardBuilder.java b/src/main/java/de/verdox/mccreativelab/advancement/AdvancementRewardBuilder.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..c8971e86b823d546a63fa06642f873459bd51d7d
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/advancement/AdvancementRewardBuilder.java
+@@ -0,0 +1,27 @@
++package de.verdox.mccreativelab.advancement;
++
++import org.bukkit.NamespacedKey;
++
++import java.util.ArrayList;
++import java.util.List;
++
++public class AdvancementRewardBuilder {
++    int experience;
++    final List<NamespacedKey> lootTables = new ArrayList<>();
++    final List<NamespacedKey> recipes = new ArrayList<>();
++
++    public AdvancementRewardBuilder setExperience(int experience) {
++        this.experience = experience;
++        return this;
++    }
++
++    public AdvancementRewardBuilder withLootTable(NamespacedKey namespacedKey){
++        this.lootTables.add(namespacedKey);
++        return this;
++    }
++
++    public AdvancementRewardBuilder withRecipe(NamespacedKey namespacedKey){
++        this.recipes.add(namespacedKey);
++        return this;
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/ai/builder/GoalFactory.java b/src/main/java/de/verdox/mccreativelab/ai/builder/GoalFactory.java
+index b2f39dada0ebb57a2fc5aa619109fa384246c9d9..32e44faac645121d7d20ece9f3b798694f46f346 100644
+--- a/src/main/java/de/verdox/mccreativelab/ai/builder/GoalFactory.java
++++ b/src/main/java/de/verdox/mccreativelab/ai/builder/GoalFactory.java
+@@ -2,6 +2,7 @@ package de.verdox.mccreativelab.ai.builder;
+ 
+ import com.destroystokyo.paper.entity.RangedEntity;
+ import com.destroystokyo.paper.entity.ai.VanillaGoal;
++import de.verdox.mccreativelab.random.VanillaRandomSource;
+ import net.kyori.adventure.sound.Sound;
+ import org.bukkit.Difficulty;
+ import org.bukkit.Material;
+@@ -12,6 +13,7 @@ import org.bukkit.inventory.ItemStack;
+ import org.bukkit.inventory.RecipeChoice;
+ 
+ import java.util.function.BooleanSupplier;
++import java.util.function.Function;
+ import java.util.function.Predicate;
+ 
+ public interface GoalFactory {
+@@ -33,7 +35,7 @@ public interface GoalFactory {
+ 
+     VanillaGoal<Dolphin> dolphinJump(Dolphin dolphin, int chance);
+ 
+-    VanillaGoal<Mob> eatBlock(Mob mob, Predicate<BlockState> predicate);
++    VanillaGoal<Mob> eatBlock(Mob mob, Function<VanillaRandomSource, Boolean> chanceToEat, Predicate<BlockState> predicate);
+ 
+     VanillaGoal<Mob> fleeSun(Mob mob, double speed);
+ 
+diff --git a/src/main/java/de/verdox/mccreativelab/events/ChunkDataCreateEvent.java b/src/main/java/de/verdox/mccreativelab/events/ChunkDataCreateEvent.java
+index 578988593db6689ef98d53da2accc553a720d3b1..8086bd8e34cbca1c46f955dfe02590578bd2b42a 100644
+--- a/src/main/java/de/verdox/mccreativelab/events/ChunkDataCreateEvent.java
++++ b/src/main/java/de/verdox/mccreativelab/events/ChunkDataCreateEvent.java
+@@ -1,5 +1,6 @@
+ package de.verdox.mccreativelab.events;
+ 
++import de.verdox.mccreativelab.worldgen.WorldGenChunk;
+ import org.bukkit.Chunk;
+ import org.bukkit.World;
+ import org.bukkit.persistence.PersistentDataContainer;
+@@ -7,15 +8,7 @@ import org.jetbrains.annotations.NotNull;
+ import org.jetbrains.annotations.Nullable;
+ 
+ public class ChunkDataCreateEvent extends ChunkDataEvent {
+-    private final Chunk chunk;
+-
+-    public ChunkDataCreateEvent(@NotNull World world, @Nullable Chunk chunk, @NotNull ChunkDataEvent.ChunkPos chunkPos, @NotNull PersistentDataContainer persistentDataContainer) {
++    public ChunkDataCreateEvent(@NotNull World world, WorldGenChunk chunk, @NotNull ChunkDataEvent.ChunkPos chunkPos, @NotNull PersistentDataContainer persistentDataContainer) {
+         super(world, chunk, chunkPos, persistentDataContainer);
+-        this.chunk = chunk;
+-    }
+-
+-    @NotNull
+-    public Chunk getChunk() {
+-        return this.chunk;
+     }
+ }
+diff --git a/src/main/java/de/verdox/mccreativelab/events/ChunkDataEvent.java b/src/main/java/de/verdox/mccreativelab/events/ChunkDataEvent.java
+index 11ade060418a9997fc9376a5518ad38628d4fd9d..58ae701930935619b001046f4d3899e6709fc82c 100644
+--- a/src/main/java/de/verdox/mccreativelab/events/ChunkDataEvent.java
++++ b/src/main/java/de/verdox/mccreativelab/events/ChunkDataEvent.java
+@@ -1,5 +1,6 @@
+ package de.verdox.mccreativelab.events;
+ 
++import de.verdox.mccreativelab.worldgen.WorldGenChunk;
+ import org.bukkit.Bukkit;
+ import org.bukkit.Chunk;
+ import org.bukkit.World;
+@@ -14,13 +15,13 @@ public abstract class ChunkDataEvent extends Event {
+ 
+     private final World world;
+ 
+-    private final Chunk chunk;
++    private final WorldGenChunk chunk;
+ 
+     private final ChunkPos chunkPos;
+ 
+     private final PersistentDataContainer persistentDataContainer;
+ 
+-    public ChunkDataEvent(@NotNull World world, @Nullable Chunk chunk, @NotNull ChunkPos chunkPos, @NotNull PersistentDataContainer persistentDataContainer) {
++    public ChunkDataEvent(@NotNull World world, WorldGenChunk chunk, @NotNull ChunkPos chunkPos, @NotNull PersistentDataContainer persistentDataContainer) {
+         super(!Bukkit.isPrimaryThread());
+         this.world = world;
+         this.chunk = chunk;
+@@ -34,7 +35,7 @@ public abstract class ChunkDataEvent extends Event {
+     }
+ 
+     @Nullable
+-    public Chunk getChunk() {
++    public WorldGenChunk getChunk() {
+         return this.chunk;
+     }
+ 
+diff --git a/src/main/java/de/verdox/mccreativelab/events/ChunkDataLoadEvent.java b/src/main/java/de/verdox/mccreativelab/events/ChunkDataLoadEvent.java
+index 763d32aba1a36e0cc839b9757d54acc185644348..9ebab7ef7a53bce9f3fce3bd9d027fbea86d9dc8 100644
+--- a/src/main/java/de/verdox/mccreativelab/events/ChunkDataLoadEvent.java
++++ b/src/main/java/de/verdox/mccreativelab/events/ChunkDataLoadEvent.java
+@@ -1,5 +1,6 @@
+ package de.verdox.mccreativelab.events;
+ 
++import de.verdox.mccreativelab.worldgen.WorldGenChunk;
+ import org.bukkit.Chunk;
+ import org.bukkit.World;
+ import org.bukkit.persistence.PersistentDataContainer;
+@@ -7,7 +8,7 @@ import org.jetbrains.annotations.NotNull;
+ import org.jetbrains.annotations.Nullable;
+ 
+ public class ChunkDataLoadEvent extends ChunkDataEvent {
+-    public ChunkDataLoadEvent(@NotNull World world, @Nullable Chunk chunk, @NotNull ChunkDataEvent.ChunkPos chunkPos, @NotNull PersistentDataContainer persistentDataContainer) {
++    public ChunkDataLoadEvent(@NotNull World world, WorldGenChunk chunk, @NotNull ChunkDataEvent.ChunkPos chunkPos, @NotNull PersistentDataContainer persistentDataContainer) {
+         super(world, chunk, chunkPos, persistentDataContainer);
+     }
+ }
+diff --git a/src/main/java/de/verdox/mccreativelab/events/ChunkDataSaveEvent.java b/src/main/java/de/verdox/mccreativelab/events/ChunkDataSaveEvent.java
+index 65adb34f43b7e77b87fe146ab0ec7bae9132beff..de45a3f5c1eb9a00931d45dd7ed3f31f628dbf60 100644
+--- a/src/main/java/de/verdox/mccreativelab/events/ChunkDataSaveEvent.java
++++ b/src/main/java/de/verdox/mccreativelab/events/ChunkDataSaveEvent.java
+@@ -1,5 +1,6 @@
+ package de.verdox.mccreativelab.events;
+ 
++import de.verdox.mccreativelab.worldgen.WorldGenChunk;
+ import org.bukkit.Chunk;
+ import org.bukkit.World;
+ import org.bukkit.persistence.PersistentDataContainer;
+@@ -9,7 +10,7 @@ import org.jetbrains.annotations.Nullable;
+ public class ChunkDataSaveEvent extends ChunkDataEvent {
+     private final boolean unloaded;
+ 
+-    public ChunkDataSaveEvent(@NotNull World world, @Nullable Chunk chunk, @NotNull ChunkDataEvent.ChunkPos chunkPos, @NotNull PersistentDataContainer persistentDataContainer, boolean unloaded) {
++    public ChunkDataSaveEvent(@NotNull World world, WorldGenChunk chunk, @NotNull ChunkDataEvent.ChunkPos chunkPos, @NotNull PersistentDataContainer persistentDataContainer, boolean unloaded) {
+         super(world, chunk, chunkPos, persistentDataContainer);
+         this.unloaded = unloaded;
+     }
+diff --git a/src/main/java/de/verdox/mccreativelab/recipe/CustomItemData.java b/src/main/java/de/verdox/mccreativelab/recipe/CustomItemData.java
+index 988dd359a588cab2d06e39d3b915bc3d3d83b585..f5d07da1b10cd0662c3caefb5a7b981433663a54 100644
+--- a/src/main/java/de/verdox/mccreativelab/recipe/CustomItemData.java
++++ b/src/main/java/de/verdox/mccreativelab/recipe/CustomItemData.java
+@@ -3,6 +3,8 @@ package de.verdox.mccreativelab.recipe;
+ import org.bukkit.Material;
+ import org.bukkit.inventory.ItemStack;
+ 
++import java.util.Objects;
++
+ public record CustomItemData(Material material, int customModelData) {
+     public ItemStack createStack() {
+         var stack = new ItemStack(material);
+diff --git a/src/main/java/de/verdox/mccreativelab/worldgen/WorldGenChunk.java b/src/main/java/de/verdox/mccreativelab/worldgen/WorldGenChunk.java
+index 73eb48b1c68fb1c36dd271d7604fc5acedda6b62..e5144124da91cbebd053e9980b406218a7165c57 100644
+--- a/src/main/java/de/verdox/mccreativelab/worldgen/WorldGenChunk.java
++++ b/src/main/java/de/verdox/mccreativelab/worldgen/WorldGenChunk.java
+@@ -1,11 +1,16 @@
+ package de.verdox.mccreativelab.worldgen;
+ 
++import org.bukkit.Chunk;
+ import org.bukkit.Location;
+ import org.bukkit.World;
++import org.bukkit.metadata.Metadatable;
+ import org.bukkit.persistence.PersistentDataHolder;
+ import org.jetbrains.annotations.NotNull;
+ 
+-public interface WorldGenChunk extends PersistentDataHolder {
++/**
++ * Exposes a chunks raw information.
++ */
++public interface WorldGenChunk extends PersistentDataHolder, Metadatable {
+     /**
+      * Gets the X-coordinate of this chunk
+      *
+@@ -47,4 +52,12 @@ public interface WorldGenChunk extends PersistentDataHolder {
+      * @return Parent World
+      */
+     @NotNull World getWorld();
++
++    /**
++     * Returns a bukkit chunk representation of this chunk. Might trigger a sync chunk load.
++     * @return - The bukkit chunk
++     */
++    default Chunk toChunk(){
++        return getWorld().getChunkAt(getChunkKey());
++    }
+ }
+diff --git a/src/main/java/org/bukkit/Chunk.java b/src/main/java/org/bukkit/Chunk.java
+index fc69334de4f82694b4e830400c37021c7685fa46..d202f23d42b21693f84e55ec0c1f99499f7e57c5 100644
+--- a/src/main/java/org/bukkit/Chunk.java
++++ b/src/main/java/org/bukkit/Chunk.java
+@@ -19,7 +19,14 @@ import org.jetbrains.annotations.NotNull;
+  * then the chunk will only be generated as far as it needs to provide the
+  * requested data.
+  */
+-public interface Chunk extends PersistentDataHolder, org.bukkit.metadata.Metadatable {
++public interface Chunk extends PersistentDataHolder, org.bukkit.metadata.Metadatable, de.verdox.mccreativelab.worldgen.WorldGenChunk {
++
++    // MCCreativeLab start - Add WorldGenChunk
++    @Override
++    default Chunk toChunk() {
++        return this;
++    }
++    // MCCreativeLab end - Add WorldGenChunk
+ 
+     /**
+      * Gets the X-coordinate of this chunk

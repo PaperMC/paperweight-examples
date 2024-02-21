@@ -1,0 +1,54 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <lukasjonsson@outlook.de>
+Date: Mon, 13 Nov 2023 21:26:23 +0100
+Subject: [PATCH] Adding alwaysTick flag for Chunks, so they can tick with no
+ nearby player.
+
+
+diff --git a/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java b/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
+index 6ec3fc801453fd54c25b642e6fa71c19b463311d..40928108f8fc7061c35a94499bdb5a814da081cf 100644
+--- a/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
++++ b/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
+@@ -1214,4 +1214,19 @@ public class LevelChunk extends ChunkAccess {
+             return "Level ticker for " + s + "@" + this.getPos();
+         }
+     }
++
++    // MCCLab - start
++
++    private boolean alwaysTicking;
++
++    public void setAlwaysTicking(boolean alwaysTicking) {
++        this.alwaysTicking = alwaysTicking;
++    }
++
++    public boolean isAlwaysTicking() {
++        return alwaysTicking;
++    }
++
++    // MCCLab - end
++
+ }
+diff --git a/src/main/java/org/bukkit/craftbukkit/CraftChunk.java b/src/main/java/org/bukkit/craftbukkit/CraftChunk.java
+index dca5f25cf331b5550e9be491b4e8a3466531e021..568da07e2108c15062aa0ee08c0d48e114a4b5f4 100644
+--- a/src/main/java/org/bukkit/craftbukkit/CraftChunk.java
++++ b/src/main/java/org/bukkit/craftbukkit/CraftChunk.java
+@@ -428,4 +428,18 @@ public class CraftChunk implements Chunk {
+     static {
+         Arrays.fill(FULL_LIGHT, (byte) 0xFF);
+     }
++
++    // MCLab - start
++
++    @Override
++    public void setAlwaysTicking(boolean alwaysTicking) {
++        worldServer.getChunk(getX(), getZ()).setAlwaysTicking(alwaysTicking);
++    }
++
++    @Override
++    public boolean isAlwaysTicking() {
++        return worldServer.getChunk(getX(), getZ()).isAlwaysTicking();
++    }
++
++    // MCLab - end
+ }

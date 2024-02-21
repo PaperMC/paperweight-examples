@@ -1,0 +1,49 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <lukasjonsson@outlook.de>
+Date: Sat, 18 Nov 2023 14:15:30 +0100
+Subject: [PATCH] Adding WorldGenChunk to API
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/worldgen/CraftWorldGenChunk.java b/src/main/java/de/verdox/mccreativelab/worldgen/CraftWorldGenChunk.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..ec2f7ba0b735df1a69169699a488b43a7a39c6b1
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/worldgen/CraftWorldGenChunk.java
+@@ -0,0 +1,37 @@
++package de.verdox.mccreativelab.worldgen;
++
++import net.minecraft.world.level.chunk.ChunkAccess;
++import org.bukkit.Chunk;
++import org.bukkit.World;
++import org.bukkit.persistence.PersistentDataContainer;
++import org.jetbrains.annotations.NotNull;
++
++public class CraftWorldGenChunk implements WorldGenChunk{
++    private final World world;
++    private Chunk chunk;
++    private ChunkAccess chunkAccess;
++    public CraftWorldGenChunk(World world, ChunkAccess chunkAccess) {
++        this.world = world;
++        this.chunkAccess = chunkAccess;
++    }
++    public CraftWorldGenChunk(World world, Chunk chunk) {
++        this.world = world;
++        this.chunk = chunk;
++    }
++    @Override
++    public int getX() {
++        return chunk != null ? chunk.getX() : chunkAccess.locX;
++    }
++    @Override
++    public int getZ() {
++        return chunk != null ? chunk.getZ() : chunkAccess.locZ;
++    }
++    @Override
++    public @NotNull World getWorld() {
++        return world;
++    }
++    @Override
++    public @NotNull PersistentDataContainer getPersistentDataContainer() {
++        return chunk != null ? chunk.getPersistentDataContainer() : chunkAccess.persistentDataContainer;
++    }
++}

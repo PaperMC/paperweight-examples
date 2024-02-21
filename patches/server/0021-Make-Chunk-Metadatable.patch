@@ -1,0 +1,140 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <mail.ysp@web.de>
+Date: Wed, 24 Jan 2024 01:29:23 +0100
+Subject: [PATCH] Make Chunk Metadatable
+
+
+diff --git a/src/main/java/org/bukkit/craftbukkit/CraftChunk.java b/src/main/java/org/bukkit/craftbukkit/CraftChunk.java
+index 568da07e2108c15062aa0ee08c0d48e114a4b5f4..9daad0abf2cd20a4d7fe354f6c8dafb66e56d00b 100644
+--- a/src/main/java/org/bukkit/craftbukkit/CraftChunk.java
++++ b/src/main/java/org/bukkit/craftbukkit/CraftChunk.java
+@@ -362,6 +362,28 @@ public class CraftChunk implements Chunk {
+         return LoadLevel.values()[chunk.getFullStatus().ordinal()];
+     }
+ 
++    // MCCLab start - Add Chunk Metadata
++    @Override
++    public void setMetadata(String metadataKey, org.bukkit.metadata.MetadataValue newMetadataValue) {
++        getCraftWorld().chunkMetadataStore.setMetadata(this, metadataKey, newMetadataValue);
++    }
++
++    @Override
++    public java.util.List<org.bukkit.metadata.MetadataValue> getMetadata(String metadataKey) {
++        return getCraftWorld().chunkMetadataStore.getMetadata(this, metadataKey);
++    }
++
++    @Override
++    public boolean hasMetadata(String metadataKey) {
++        return getCraftWorld().chunkMetadataStore.hasMetadata(this, metadataKey);
++    }
++
++    @Override
++    public void removeMetadata(String metadataKey, Plugin owningPlugin) {
++        getCraftWorld().chunkMetadataStore.removeMetadata(this, metadataKey, owningPlugin);
++    }
++    // MCCLab end - Add Chunk Metadata
++
+     @Override
+     public Collection<GeneratedStructure> getStructures() {
+         return this.getCraftWorld().getStructures(this.getX(), this.getZ());
+diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
+index b842519f6595ee7c0cc21621be17502915084146..64c35614e25383dd822a8b92370dc2f8bdda0e47 100644
+--- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
++++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
+@@ -160,6 +160,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+     private final BiomeProvider biomeProvider;
+     private final List<BlockPopulator> populators = new ArrayList<BlockPopulator>();
+     private final BlockMetadataStore blockMetadata = new BlockMetadataStore(this);
++    public final org.bukkit.craftbukkit.metadata.ChunkMetadataStore chunkMetadataStore = new org.bukkit.craftbukkit.metadata.ChunkMetadataStore(this); // MCCLab - Add ChunkMetaDataStore
+     private final Object2IntOpenHashMap<SpawnCategory> spawnCategoryLimit = new Object2IntOpenHashMap<>();
+     private final CraftPersistentDataContainer persistentDataContainer = new CraftPersistentDataContainer(CraftWorld.DATA_TYPE_REGISTRY);
+     private net.kyori.adventure.pointer.Pointers adventure$pointers; // Paper - implement pointers
+diff --git a/src/main/java/org/bukkit/craftbukkit/metadata/ChunkMetadataStore.java b/src/main/java/org/bukkit/craftbukkit/metadata/ChunkMetadataStore.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..5308a686ff6f9a23c9f4faf627a50335e99f59b6
+--- /dev/null
++++ b/src/main/java/org/bukkit/craftbukkit/metadata/ChunkMetadataStore.java
+@@ -0,0 +1,83 @@
++package org.bukkit.craftbukkit.metadata;
++
++import com.google.common.base.Preconditions;
++import org.bukkit.Chunk;
++import org.bukkit.World;
++import org.bukkit.metadata.MetadataStore;
++import org.bukkit.metadata.MetadataStoreBase;
++import org.bukkit.metadata.MetadataValue;
++import org.bukkit.plugin.Plugin;
++
++import java.util.List;
++
++/**
++ * A ChunkMetadataStore stores metadata values for {@link Chunk} objects.
++ */
++public class ChunkMetadataStore extends MetadataStoreBase<Chunk> implements MetadataStore<Chunk> {
++
++    private final World owningWorld;
++    /**
++     * Initializes a ChunkMetadataStore.
++     * @param owningWorld The world to which this ChunkMetadataStore belongs.
++     */
++    public ChunkMetadataStore(World owningWorld) {
++        this.owningWorld = owningWorld;
++    }
++
++    /**
++     * Generates a unique metadata key for a {@link Chunk} object based on its coordinates in the world.
++     * @param chunk the chunk
++     * @param metadataKey The name identifying the metadata value
++     * @return a unique metadata key
++     * @see MetadataStoreBase#disambiguate(Object, String)
++     */
++    @Override
++    protected String disambiguate(Chunk chunk, String metadataKey) {
++        return chunk.getChunkKey() + ":" + metadataKey;
++    }
++
++
++    /**
++     * Retrieves the metadata for a {@link Chunk}, ensuring the chunk being asked for actually belongs to this ChunkMetadataStore's
++     * owning world.
++     * @see MetadataStoreBase#getMetadata(Object, String)
++     */
++    @Override
++    public List<MetadataValue> getMetadata(Chunk chunk, String metadataKey) {
++        Preconditions.checkArgument(chunk.getWorld() == this.owningWorld, "Chunk does not belong to world %s", this.owningWorld.getName());
++        return super.getMetadata(chunk, metadataKey);
++    }
++
++    /**
++     * Tests to see if a metadata value has been added to a {@link Chunk}, ensuring the chunk being interrogated belongs
++     * to this ChunkMetadataStore's owning world.
++     * @see MetadataStoreBase#hasMetadata(Object, String)
++     */
++    @Override
++    public boolean hasMetadata(Chunk chunk, String metadataKey) {
++        Preconditions.checkArgument(chunk.getWorld() == this.owningWorld, "Chunk does not belong to world %s", this.owningWorld.getName());
++        return super.hasMetadata(chunk, metadataKey);
++    }
++
++    /**
++     * Removes metadata from from a {@link Chunk} belonging to a given {@link Plugin}, ensuring the chunk being deleted from belongs
++     * to this ChunkMetadataStore's owning world.
++     * @see MetadataStoreBase#removeMetadata(Object, String, org.bukkit.plugin.Plugin)
++     */
++    @Override
++    public void removeMetadata(Chunk chunk, String metadataKey, Plugin owningPlugin) {
++        Preconditions.checkArgument(chunk.getWorld() == this.owningWorld, "Chunk does not belong to world %s", this.owningWorld.getName());
++        super.removeMetadata(chunk, metadataKey, owningPlugin);
++    }
++
++    /**
++     * Sets or overwrites a metadata value on a {@link Chunk} from a given {@link Plugin}, ensuring the target chunk belongs
++     * to this ChunkMetadataStore's owning world.
++     * @see MetadataStoreBase#setMetadata(Object, String, org.bukkit.metadata.MetadataValue)
++     */
++    @Override
++    public void setMetadata(Chunk chunk, String metadataKey, MetadataValue newMetadataValue) {
++        Preconditions.checkArgument(chunk.getWorld() == this.owningWorld, "Chunk does not belong to world %s", this.owningWorld.getName());
++        super.setMetadata(chunk, metadataKey, newMetadataValue);
++    }
++}
