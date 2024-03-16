@@ -89,11 +89,12 @@ public class SingleHudText implements SingleHudElement {
 
         public void setRenderedText(TextComponent renderedText) {
             setVisible(true);
-            this.renderedText =  renderedText.content(renderedText.content().replace(" ", Strings.repeat(" ", 4)));
+            this.renderedText = renderedText.content(renderedText.content().replace(" ", Strings.repeat(" ", 4)));
         }
 
+        @Deprecated
         public void setRenderedText(String text) {
-            this.setRenderedText(Component.text(text.replace(" ", Strings.repeat(" ", 4)))); // TODO: Spaces are not seperated far enough so we append some more. This is a quick fix. Needs revision
+            this.setRenderedText(Component.text(text)); // TODO: Spaces are not seperated far enough so we append some more. This is a quick fix. Needs revision
         }
 
         public void clearRenderedText() {

@@ -17,10 +17,13 @@ public class FakeBlockCommand extends Command {
 
     public FakeBlockCommand() {
         super("fakeblock");
+        setPermission("mccreativelab.command.fakeblock");
     }
 
     @Override
     public boolean execute(@NotNull CommandSender sender, @NotNull String commandLabel, @NotNull String[] args) {
+        if(!sender.hasPermission("mccreativelab.command.fakeblock"))
+            return false;
         if(!(sender instanceof Player player))
             return false;
         if(args.length == 0)

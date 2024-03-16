@@ -4,6 +4,7 @@ import com.google.gson.JsonObject;
 import de.verdox.mccreativelab.Wrappers;
 import de.verdox.mccreativelab.behaviour.BlockBehaviour;
 import de.verdox.mccreativelab.world.block.display.FakeBlockDisplay;
+import de.verdox.mccreativelab.world.block.event.FakeBlockDropExperienceEvent;
 import de.verdox.mccreativelab.world.block.event.FakeBlockDropItemsEvent;
 import de.verdox.mccreativelab.world.block.util.FakeBlockUtil;
 import de.verdox.mccreativelab.world.block.replaced.ReplacedCrop;
@@ -20,9 +21,12 @@ import org.bukkit.block.Block;
 import org.bukkit.block.PistonMoveReaction;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
+import org.bukkit.entity.ExperienceOrb;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.BlockEvent;
 import org.bukkit.event.block.BlockFertilizeEvent;
+import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -31,6 +35,7 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 public abstract class FakeBlock implements Keyed, BlockBehaviour {
     private final FakeBlockState[] fakeBlockStates;
@@ -81,6 +86,10 @@ public abstract class FakeBlock implements Keyed, BlockBehaviour {
         return List.of();
     }
 
+    protected int getExperienceToDrop(Block block, FakeBlockState fakeBlockState, @Nullable Entity causeOfExperienceDrop, @Nullable ItemStack toolUsed, boolean ignoreTool){
+        return 0;
+    }
+
     public void remove(Location location, boolean withEffects) {
         remove(location, withEffects, false, null);
     }
@@ -95,17 +104,34 @@ public abstract class FakeBlock implements Keyed, BlockBehaviour {
         if (withEffects)
             FakeBlockUtil.simulateBlockBreakWithParticlesAndSound(fakeBlockState, location.getBlock());
         FakeBlockStorage.setFakeBlockState(location, null, false);
-        if(dropLoot)
+        if(dropLoot) {
             dropBlockLoot(location, fakeBlockState, causeOfBreak, tool, ignoreTool);
+            dropBlockExperience(location, fakeBlockState, causeOfBreak, tool, ignoreTool);
+        }
     }
 
     public void dropBlockLoot(Location location, FakeBlockState fakeBlockState, @Nullable Entity causeOfBreak, @Nullable ItemStack tool, boolean ignoreTool){
         List<ItemStack> itemsToDrop = fakeBlockState.getFakeBlock().drawLoot(location.getBlock(), fakeBlockState, causeOfBreak, tool, ignoreTool);
+        if(itemsToDrop.isEmpty())
+            return;
         FakeBlockDropItemsEvent fakeBlockDropItemsEvent = new FakeBlockDropItemsEvent(location.getBlock(), fakeBlockState, itemsToDrop, causeOfBreak, tool, ignoreTool);
         if(!fakeBlockDropItemsEvent.callEvent())
             return;
         for (ItemStack stack : fakeBlockDropItemsEvent.getItems())
             location.getBlock().getWorld().dropItemNaturally(location, stack.clone());
+    }
+
+    public void dropBlockExperience(Location location, FakeBlockState fakeBlockState, @Nullable Entity causeOfBreak, @Nullable ItemStack tool, boolean ignoreTool){
+        int experience = fakeBlockState.getFakeBlock().getExperienceToDrop(location.getBlock(), fakeBlockState, causeOfBreak, tool, ignoreTool);
+        if(experience == 0)
+            return;
+        FakeBlockDropExperienceEvent fakeBlockDropItemsEvent = new FakeBlockDropExperienceEvent(location.getBlock(), fakeBlockState, experience, causeOfBreak, tool, ignoreTool);
+        if(!fakeBlockDropItemsEvent.callEvent())
+            return;
+        location.getBlock().getWorld().spawnEntity(location.getBlock().getLocation(), EntityType.EXPERIENCE_ORB, CreatureSpawnEvent.SpawnReason.DEFAULT, entity -> {
+            ExperienceOrb experienceOrb = (ExperienceOrb) entity;
+            experienceOrb.setExperience(experience);
+        });
     }
 
     @Override
@@ -370,7 +396,6 @@ public abstract class FakeBlock implements Keyed, BlockBehaviour {
         private float speedFactor = 1.0F;
         private float jumpFactor = 1.0F;
         private boolean immutable;
-
         FakeBlockProperties() {
 
         }

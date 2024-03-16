@@ -1,7 +1,6 @@
 package de.verdox.mccreativelab.generator;
 
 import de.verdox.mccreativelab.MCCreativeLabExtension;
-import de.verdox.mccreativelab.event.MCCreativeLabReloadEvent;
 import de.verdox.mccreativelab.generator.resourcepack.CustomResourcePack;
 import de.verdox.mccreativelab.util.io.ZipUtil;
 import io.vertx.core.Handler;
@@ -10,16 +9,15 @@ import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerRequest;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
+import org.bukkit.configuration.InvalidConfigurationException;
+import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerKickEvent;
-import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerResourcePackStatusEvent;
-import org.bukkit.event.server.ServerLoadEvent;
 import org.codehaus.plexus.util.FileUtils;
-import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -30,7 +28,12 @@ import java.nio.file.Path;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.*;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 public class ResourcePackFileHoster implements Handler<HttpServerRequest>, Listener {
@@ -38,39 +41,81 @@ public class ResourcePackFileHoster implements Handler<HttpServerRequest>, Liste
     private final Map<String, ResourcePackInfo> availableResourcePacks = new HashMap<>();
     private final String hostname;
     private final int port;
+    private final boolean requireResourcePack;
 
-    public ResourcePackFileHoster(String hostname, int port) {
+    public ResourcePackFileHoster() throws IOException, InvalidConfigurationException {
+
+        File configFile = new File(MCCreativeLabExtension.getInstance().getDataFolder()+"/config.yml");
+        configFile.getParentFile().mkdirs();
+        FileConfiguration config = MCCreativeLabExtension.getInstance().getConfig();
+
+        if(configFile.isFile())
+            config.load(configFile);
+
+        config.options().copyDefaults(true);
+        config.addDefault("hostName", "0.0.0.0");
+        config.addDefault("port", 8080);
+        config.addDefault("require", true);
+        config.save(configFile);
+
+        this.hostname = config.getString("hostName", "0.0.0.0");
+        this.port = config.getInt("port", 8080);
+        this.requireResourcePack = config.getBoolean("require");
         Bukkit.getLogger().info("Starting ResourcePackFileHoster on " + hostname + ":" + port);
-        this.hostname = hostname;
-        this.port = port;
         this.httpServer = Vertx.vertx().createHttpServer();
-        this.httpServer.exceptionHandler(event -> Bukkit.getLogger()
-                                                        .warning("Exception happened in ResourcePackFileHoster"));
+        this.httpServer.exceptionHandler(event -> Bukkit.getLogger().warning("Exception happened in ResourcePackFileHoster: " + event.getLocalizedMessage()));
         this.httpServer.requestHandler(this);
         this.httpServer.listen(port, hostname);
     }
 
     public void closeAndWait() throws InterruptedException {
-        this.httpServer.close();
+        this.httpServer.close().result();
     }
+
 
     @Override
     public void handle(HttpServerRequest event) {
-        Bukkit.getLogger().info("Receiving a request " + event.absoluteURI());
-        var split = event.absoluteURI().split("/");
-        if (split.length == 0)
-            return;
-        String hash = split[split.length - 1];
-        ResourcePackInfo resourcePackInfo = availableResourcePacks.getOrDefault(hash, null);
-        if (resourcePackInfo == null) {
-            Bukkit.getLogger().warning("Someone requested a resource pack with hash " + hash + " that does not exist");
-            return;
+        try{
+            var split = event.absoluteURI().split("/");
+            if (split.length == 0) {
+                event.response().end();
+                return;
+            }
+
+            String hash = split[split.length - 1];
+            if(!isValidHex(hash)){
+                Bukkit.getLogger().warning("Received a request from "+event.remoteAddress()+ " that does not seem to be a hash: "+hash);
+                event.response().end();
+                return;
+            }
+            ResourcePackInfo resourcePackInfo = availableResourcePacks.getOrDefault(hash, null);
+            if (resourcePackInfo == null) {
+                Bukkit.getLogger().warning("Someone requested a resource pack with hash " + hash + " that does not exist");
+                event.response().end();
+                return;
+            }
+            event.response().sendFile(resourcePackInfo.file.getAbsolutePath());
+            Bukkit.getLogger().info("Sending resource pack with hash " + hash+ " to "+event.remoteAddress());
         }
-        event.response().sendFile(resourcePackInfo.file.getAbsolutePath());
-        Bukkit.getLogger().info("Sending resource pack with hash " + hash);
+        finally {
+
+        }
     }
 
-    //TODO: Do this on server reload aswell. Makes quick changes possible
+    private static boolean isValidHex(String input) {
+        // Regular expression for hexadecimal string
+        String hexPattern = "^[0-9A-Fa-f]+$";
+
+        // Compile the pattern
+        Pattern pattern = Pattern.compile(hexPattern);
+
+        // Match the input against the pattern
+        Matcher matcher = pattern.matcher(input);
+
+        // Return true if the input matches the pattern, false otherwise
+        return matcher.matches();
+    }
+
     public void createResourcePackZipFiles() throws IOException {
         deleteZipFiles();
 
@@ -171,19 +216,21 @@ public class ResourcePackFileHoster implements Handler<HttpServerRequest>, Liste
     public void sendResourcePackToPlayer(Player player, ResourcePackFileHoster.ResourcePackInfo packInfo) {
         String downloadURL = MCCreativeLabExtension.getResourcePackFileHoster().createDownloadUrl(packInfo.hash());
 
-        player.setResourcePack(packInfo.getUUID(), downloadURL, packInfo.hashBytes(), (Component) null, true);
+        player.setResourcePack(packInfo.getUUID(), downloadURL, packInfo.hashBytes(), (Component) null, requireResourcePack);
     }
 
     @EventHandler
     public void kickPlayersIfResourcePackWasNotAppliedButIsRequired(PlayerResourcePackStatusEvent e) {
         switch (e.getStatus()) {
-            case DECLINED, FAILED_DOWNLOAD, FAILED_RELOAD, INVALID_URL ->
-                e.getPlayer().kick(null, PlayerKickEvent.Cause.RESOURCE_PACK_REJECTION);
+            case DECLINED, FAILED_DOWNLOAD, FAILED_RELOAD, INVALID_URL, DISCARDED -> {
+                if(requireResourcePack) e.getPlayer().kick(null, PlayerKickEvent.Cause.RESOURCE_PACK_REJECTION);
+            }
         }
     }
 
     @EventHandler
     public void applyRequiredResourcePackOnJoin(PlayerJoinEvent e) {
-        MCCreativeLabExtension.getInstance().getResourcePackFileHoster().sendDefaultResourcePackToPlayer(e.getPlayer());
+        Bukkit.getLogger().info("Sending resource pack to "+e.getPlayer());
+        sendDefaultResourcePackToPlayer(e.getPlayer());
     }
 }

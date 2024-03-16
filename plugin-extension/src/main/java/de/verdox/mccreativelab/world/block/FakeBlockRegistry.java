@@ -130,15 +130,7 @@ public class FakeBlockRegistry extends CustomRegistry<FakeBlock> {
         }
 
         private void init(CustomResourcePack customResourcePack) {
-            for (int i = 0; i < 10; i++) {
-                final int destroyIndex = i;
-                NamespacedKey key = new NamespacedKey("mccreativelab", "item/blockbreak/fake_destroy_stage" + destroyIndex);
-                ItemTextureData.ModelType modelType = ItemTextureData.ModelType.createFullCubeWithSingleTexture(() -> new NamespacedKey("minecraft", "block/destroy_stage_" + destroyIndex));
-                ItemTextureData itemTextureData = new ItemTextureData(key, Material.BRAIN_CORAL, ID_COUNTER.getAndIncrement(), null, modelType);
-                customResourcePack.register(itemTextureData);
-                texturesPerDamage.put(i, itemTextureData);
 
-            }
         }
 
         @EventHandler

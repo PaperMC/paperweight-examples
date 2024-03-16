@@ -98,7 +98,6 @@ public class FakeBlockStorage {
             if (forceLoad)
                 location.getChunk().load(true);
             else {
-                Bukkit.getLogger().warning("Tried to get FakeBlockState from unloaded chunk at location"+location);
                 return null;
             }
         }

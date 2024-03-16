@@ -34,21 +34,10 @@ public class Debug implements Listener {
                     )
             )
         );
-    public static final DebugHud DEBUG_HUD = new DebugHud(new NamespacedKey("mccreativelab", "debug_hud"));
     public static final DebugMenu DEBUG_MENU = new DebugMenu(new NamespacedKey("mccreativelab","debug_menu"));
 
     public static void init() {
-        MCCreativeLabExtension.getCustomResourcePack().register(DEBUG_HUD);
         MCCreativeLabExtension.getCustomResourcePack().register(DEBUG_MENU);
-    }
-
-    @EventHandler
-    public void playerJoin(PlayerJoinEvent e) {
-        MCCreativeLabExtension.getHudRenderer().getOrStartActiveHud(e.getPlayer(), DEBUG_HUD)
-                              .editRenderedElement("debugText", SingleHudText.RenderedSingleHudText.class, renderedSingleHudText -> {
-                                  renderedSingleHudText.setRenderedText(Bukkit.getServer().getName() + "" + Bukkit
-                                      .getServer().getMinecraftVersion());
-                              });
     }
 
     @EventHandler

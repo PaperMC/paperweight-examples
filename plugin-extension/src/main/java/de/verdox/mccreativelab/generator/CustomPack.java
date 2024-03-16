@@ -35,6 +35,8 @@ public abstract class CustomPack<C extends CustomPack<C>> {
         this.wasModified = false;
     }
 
+    public void onShutdown() throws IOException {}
+
     public File installPack(boolean reload) throws IOException {
         isReloading = reload;
         try{

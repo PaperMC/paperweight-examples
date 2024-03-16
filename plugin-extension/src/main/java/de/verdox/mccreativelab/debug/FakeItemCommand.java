@@ -18,10 +18,13 @@ import java.util.List;
 public class FakeItemCommand extends Command {
     public FakeItemCommand() {
         super("fakeItem");
+        setPermission("mccreativelab.command.fakeitem");
     }
 
     @Override
     public boolean execute(@NotNull CommandSender sender, @NotNull String commandLabel, @NotNull String[] args) {
+        if(!sender.hasPermission("mccreativelab.command.fakeitem"))
+            return false;
         if(!(sender instanceof Player player))
             return false;
         if(args.length == 0) {

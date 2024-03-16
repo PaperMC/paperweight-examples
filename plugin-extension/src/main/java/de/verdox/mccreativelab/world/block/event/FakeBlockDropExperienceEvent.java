@@ -11,16 +11,16 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
-public class FakeBlockDropItemsEvent extends FakeBlockEvent implements Cancellable {
+public class FakeBlockDropExperienceEvent extends FakeBlockEvent implements Cancellable {
     private static final HandlerList HANDLER_LIST = new HandlerList();
-    private final List<ItemStack> itemsToDrop;
     private final Entity causeOfBreak;
     private final ItemStack tool;
     private final boolean ignoreTool;
     private boolean cancelled;
-    public FakeBlockDropItemsEvent(@NotNull Block theBlock, FakeBlock.@NotNull FakeBlockState fakeBlockState, @NotNull List<ItemStack> itemsToDrop, @Nullable Entity causeOfBreak, @Nullable ItemStack tool, boolean ignoreTool) {
+    private int experienceToDrop;
+    public FakeBlockDropExperienceEvent(@NotNull Block theBlock, FakeBlock.@NotNull FakeBlockState fakeBlockState, int experienceToDrop, @Nullable Entity causeOfBreak, @Nullable ItemStack tool, boolean ignoreTool) {
         super(theBlock, fakeBlockState);
-        this.itemsToDrop = itemsToDrop;
+        this.experienceToDrop = experienceToDrop;
         this.causeOfBreak = causeOfBreak;
         this.tool = tool;
         this.ignoreTool = ignoreTool;
@@ -30,8 +30,12 @@ public class FakeBlockDropItemsEvent extends FakeBlockEvent implements Cancellab
         return causeOfBreak;
     }
 
-    public List<ItemStack> getItems() {
-        return itemsToDrop;
+    public int getExperienceToDrop() {
+        return experienceToDrop;
+    }
+
+    public void setExperienceToDrop(int experienceToDrop) {
+        this.experienceToDrop = experienceToDrop;
     }
 
     public ItemStack getTool() {

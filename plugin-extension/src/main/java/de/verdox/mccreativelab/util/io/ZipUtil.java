@@ -2,6 +2,7 @@ package de.verdox.mccreativelab.util.io;
 
 import java.io.*;
 import java.nio.file.Path;
+import java.util.function.Supplier;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
@@ -48,11 +49,14 @@ public class ZipUtil {
             fis.close();
         }
     }
-
     public static File extractFilesFromZipFileResource(String zipResourcePath, String targetFolderPath) {
-        try (InputStream inputStream = ZipUtil.class.getResourceAsStream(zipResourcePath)) {
+        return extractFilesFromZipFileResource(() -> ZipUtil.class.getResourceAsStream(zipResourcePath), targetFolderPath);
+    }
+
+    public static File extractFilesFromZipFileResource(Supplier<InputStream> zipFile, String targetFolderPath) {
+        try (InputStream inputStream = zipFile.get()) {
             if (inputStream == null) {
-                System.err.println("Unable to find the specified resource: " + zipResourcePath);
+                System.err.println("Unable to find the specified zip file");
                 return null;
             }
 

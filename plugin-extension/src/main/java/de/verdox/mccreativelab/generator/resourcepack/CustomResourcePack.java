@@ -14,6 +14,7 @@ import de.verdox.mccreativelab.generator.resourcepack.types.sound.SoundData;
 import de.verdox.mccreativelab.util.gson.JsonObjectBuilder;
 import de.verdox.mccreativelab.util.gson.JsonUtil;
 import de.verdox.mccreativelab.util.io.AssetUtil;
+import de.verdox.mccreativelab.util.io.ZipUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -31,11 +32,24 @@ public class CustomResourcePack extends CustomPack<CustomResourcePack> {
     private final LanguageStorage languageStorage = new LanguageStorage(this);
     private final ResourcePackMapper resourcePackMapper = new ResourcePackMapper();
     private final ItemTextureData emptyItem;
+    private final List<File> includedResourcePacks = new LinkedList<>();
 
     public CustomResourcePack(String packName, int packFormat, String description, AssetPath savePath) {
         super(packName, packFormat, description, savePath);
         emptyItem = new ItemTextureData(new NamespacedKey("fixedminecraft", "item/empty_item"), Material.GRAY_STAINED_GLASS_PANE, CustomModelDataProvider.drawCustomModelData(Material.GRAY_STAINED_GLASS_PANE), new Asset<>("/empty_block/textures/empty.png"), null);
         register(emptyItem);
+    }
+
+    @Override
+    public void onShutdown() throws IOException {
+        for (File includedResourcePack : includedResourcePacks) {
+            FileUtils.deleteDirectory(includedResourcePack);
+        }
+    }
+
+    public void includeThirdPartyResourcePack(Asset<CustomResourcePack> zipFile){
+        File includedResourcePack = ZipUtil.extractFilesFromZipFileResource(zipFile.assetInputStream(), CustomResourcePack.resourcePacksFolder.toPath().toString());
+        includedResourcePacks.add(includedResourcePack);
     }
 
     public ItemTextureData getEmptyItem() {

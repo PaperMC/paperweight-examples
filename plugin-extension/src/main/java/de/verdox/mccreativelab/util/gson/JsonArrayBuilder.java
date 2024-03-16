@@ -53,6 +53,18 @@ public class JsonArrayBuilder extends JsonElementBuilder<JsonArray> {
         return this;
     }
 
+    public JsonArrayBuilder remove(String primitive) {
+        return remove(JsonPrimitiveBuilder.create(primitive));
+    }
+
+    public JsonArrayBuilder remove(boolean primitive) {
+        return remove(JsonPrimitiveBuilder.create(primitive));
+    }
+
+    public JsonArrayBuilder remove(Number primitive) {
+        return remove(JsonPrimitiveBuilder.create(primitive));
+    }
+
     public JsonElementBuilder<?> get(int index, Consumer<JsonElementBuilder<?>> consumer) {
         consumer.accept(new JsonElementBuilder<>(element.get(index)));
         return this;

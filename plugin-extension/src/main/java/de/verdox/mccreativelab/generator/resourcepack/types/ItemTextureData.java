@@ -1,5 +1,6 @@
 package de.verdox.mccreativelab.generator.resourcepack.types;
 
+import com.google.common.hash.Hashing;
 import com.google.gson.JsonObject;
 import de.verdox.mccreativelab.generator.Asset;
 import de.verdox.mccreativelab.generator.resourcepack.CustomResourcePack;
@@ -17,6 +18,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -44,10 +46,24 @@ public class ItemTextureData extends ResourcePackResource {
 
     public ItemTextureData(@NotNull NamespacedKey namespacedKey,
                            @NotNull Material material,
+                           @Nullable Asset<CustomResourcePack> pngFile,
+                           @Nullable ModelType modelType, boolean useVanillaTexture) {
+        this(namespacedKey, material, Math.abs(Hashing.sha256().hashString(namespacedKey.asString(),StandardCharsets.UTF_8).asInt()), pngFile, modelType, useVanillaTexture);
+    }
+
+    public ItemTextureData(@NotNull NamespacedKey namespacedKey,
+                           @NotNull Material material,
                            int customModelData,
                            @Nullable Asset<CustomResourcePack> pngFile,
                            @Nullable ModelType modelType){
         this(namespacedKey, material, customModelData, pngFile, modelType, false);
+    }
+
+    public ItemTextureData(@NotNull NamespacedKey namespacedKey,
+                           @NotNull Material material,
+                           @Nullable Asset<CustomResourcePack> pngFile,
+                           @Nullable ModelType modelType){
+        this(namespacedKey, material, pngFile, modelType, false);
     }
 
     public ItemStack createItem() {
@@ -81,7 +97,7 @@ public class ItemTextureData extends ResourcePackResource {
         var builder = JsonObjectBuilder.create(jsonToWriteToFile)
                                        .getOrCreateArray("overrides", jsonArrayBuilder -> {
                                            for (ItemTextureData installedItem : installedItems) {
-                                               String textureKey = installedItem.useVanillaTexture ? installedItem.getMaterial().getKey().getKey() : installedItem.key().toString();
+                                               String textureKey = installedItem.useVanillaTexture ? NamespacedKey.minecraft("item/"+installedItem.getMaterial().getKey().value()).asString() : installedItem.key().toString();
                                                jsonArrayBuilder.add(
                                                    JsonObjectBuilder
                                                        .create()

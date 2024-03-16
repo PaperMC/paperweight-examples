@@ -18,6 +18,9 @@ import org.bukkit.Keyed;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.block.Block;
+import org.bukkit.enchantments.Enchantment;
+import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.potion.PotionEffect;
@@ -52,6 +55,10 @@ public class FakeItem implements Keyed, ItemBehaviour {
         return nameTranslatable;
     }
 
+    public Consumer<ItemMeta> getMetaConsumer() {
+        return metaConsumer;
+    }
+
     public void setFakeItemProperties(FakeItemProperties fakeItemProperties) {
         this.fakeItemProperties = fakeItemProperties;
     }
@@ -76,6 +83,10 @@ public class FakeItem implements Keyed, ItemBehaviour {
         this.key = key;
     }
 
+    public boolean isItem(ItemStack stack){
+        return CustomItemData.fromItemStack(stack).isSame(createItemStack());
+    }
+
     public final ItemStack createItemStack() {
         ItemStack stack = new ItemStack(material);
         if (metaConsumer != null)
@@ -94,6 +105,10 @@ public class FakeItem implements Keyed, ItemBehaviour {
         if (fakeBlockState == null)
             return block.getDestroySpeed(stack, true);
         return 1.0f;
+    }
+
+    public void onClick(InventoryClickEvent clickEvent){
+
     }
 
     @Override
@@ -158,6 +173,25 @@ public class FakeItem implements Keyed, ItemBehaviour {
         return new BehaviourResult.Bool(fakeItemProperties.foodProperties != null, BehaviourResult.Bool.Type.REPLACE_VANILLA);
     }
 
+    @Override
+    public BehaviourResult.Bool canDropOnDeath(ItemStack stack) {
+        return new BehaviourResult.Bool(!fakeItemProperties.preventDrop, BehaviourResult.Bool.Type.REPLACE_VANILLA);
+    }
+
+    @Override
+    public BehaviourResult.Bool isEnchantable(ItemStack stack) {
+        return new BehaviourResult.Bool(fakeItemProperties.enchantable, BehaviourResult.Bool.Type.REPLACE_VANILLA);
+    }
+
+    @Override
+    public BehaviourResult.Bool canFitInsideContainerItems(ItemStack stack) {
+        return new BehaviourResult.Bool(fakeItemProperties.fitsInsideContainerItem, BehaviourResult.Bool.Type.REPLACE_VANILLA);
+    }
+
+    @Override
+    public BehaviourResult.Bool canBreakWhenMaxDamage(ItemStack stack) {
+        return new BehaviourResult.Bool(fakeItemProperties.canBreak, BehaviourResult.Bool.Type.REPLACE_VANILLA);
+    }
 
     @Override
     public @NotNull NamespacedKey getKey() {
@@ -207,21 +241,23 @@ public class FakeItem implements Keyed, ItemBehaviour {
         }
 
         T buildItem() {
-            int customModelData = CustomModelDataProvider.drawCustomModelData(vanillaMaterial);
+            //int customModelData = CustomModelDataProvider.drawCustomModelData(vanillaMaterial);
+            // Generating customModelData with deterministic hash value of the item key
+            ItemTextureData itemTextureData = new ItemTextureData(new NamespacedKey(namespacedKey.namespace(), "item/" + namespacedKey.value()), vanillaMaterial, texture, null, texture == null);
+            int customModelData = itemTextureData.getCustomModelData();
             T value = itemBuilder.get();
 
             value.setMaterial(vanillaMaterial);
             value.setCustomModelData(customModelData);
             value.setKey(namespacedKey);
 
-            if (this.translatable != null) value.setNameTranslatable(translatable);
-            if (this.fakeItemProperties != null) value.setFakeItemProperties(fakeItemProperties);
-            if (this.itemMetaBuilder != null) value.setMetaConsumer(itemMetaBuilder);
+            if (this.translatable != null && value.getNameTranslatable() == null) value.setNameTranslatable(translatable);
+            if (this.fakeItemProperties != null && value.getFakeItemProperties() == null) value.setFakeItemProperties(fakeItemProperties);
+            if (this.itemMetaBuilder != null && value.getMetaConsumer() == null) value.setMetaConsumer(itemMetaBuilder);
 
             Objects.requireNonNull(namespacedKey);
             Objects.requireNonNull(vanillaMaterial);
 
-            ItemTextureData itemTextureData = new ItemTextureData(new NamespacedKey(namespacedKey.namespace(), "item/" + namespacedKey.value()), vanillaMaterial, customModelData, texture, null, texture == null);
             MCCreativeLabExtension.getCustomResourcePack().register(itemTextureData);
             if (translatable != null) MCCreativeLabExtension.getCustomResourcePack().addTranslation(translatable);
 
@@ -236,9 +272,65 @@ public class FakeItem implements Keyed, ItemBehaviour {
         private @Nullable ItemStack craftingRemainingItem;
         private @Nullable FakeItem.FoodProperties foodProperties;
         private boolean isFireResistant;
+        private boolean enchantable;
+        private boolean fitsInsideContainerItem;
+        private boolean canBreak;
+        private boolean preventNormalDurabilityChange;
+        private boolean preventDrop;
+        private boolean preventInventoryClick;
+
+        boolean isPreventNormalDurabilityChange() {
+            return preventNormalDurabilityChange;
+        }
+
+        boolean isPreventDrop() {
+            return preventDrop;
+        }
+
+        boolean isPreventInventoryClick() {
+            return preventInventoryClick;
+        }
+
+        public FakeItemProperties preventDrop(boolean preventDrop) {
+            this.preventDrop = preventDrop;
+            return this;
+        }
+
+        public FakeItemProperties preventInventoryClick(boolean preventInventoryClick) {
+            this.preventInventoryClick = preventInventoryClick;
+            return this;
+        }
+
+        public int getMaxStackSize() {
+            return maxStackSize;
+        }
+
+        public int getMaxDamage() {
+            return maxDamage;
+        }
 
         public FakeItemProperties food(FoodProperties foodComponent) {
             this.foodProperties = foodComponent;
+            return this;
+        }
+
+        public FakeItemProperties preventNormalDurabilityChange(boolean preventNormalDurabilityChange) {
+            this.preventNormalDurabilityChange = preventNormalDurabilityChange;
+            return this;
+        }
+
+        public FakeItemProperties breaksWhenMaxDamageReached(boolean canBreak) {
+            this.canBreak = canBreak;
+            return this;
+        }
+
+        public FakeItemProperties fitsInsideContainerItem(boolean fitsInsideContainerItem) {
+            this.fitsInsideContainerItem = fitsInsideContainerItem;
+            return this;
+        }
+
+        public FakeItemProperties enchantable(boolean enchantable) {
+            this.enchantable = enchantable;
             return this;
         }
 

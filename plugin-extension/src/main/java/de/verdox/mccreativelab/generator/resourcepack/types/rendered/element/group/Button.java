@@ -51,6 +51,7 @@ public record Button(SingleHudText text, @Nullable SingleHudTexture selected, @N
         }
 
         private void showButtonTextures(boolean selected, boolean enabled, boolean disabled) {
+            setVisible(true);
             if (this.buttonEnabled != null)
                 this.buttonEnabled.setVisible(enabled);
             if (this.buttonDisabled != null)

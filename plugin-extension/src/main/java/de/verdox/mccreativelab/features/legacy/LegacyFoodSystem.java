@@ -39,20 +39,6 @@ public class LegacyFoodSystem extends LegacyFeature {
         // - Food heilt direkt
         // - Spieler werden intern auf Food Level 0 gesetzt, sodass sprinten deaktiviert ist.
 
-        setHealAmountWhenEaten(Material.BREAD, 5);
-        setHealAmountWhenEaten(Material.COOKED_COD, 5);
-        setHealAmountWhenEaten(Material.COOKED_SALMON, 5);
-        setHealAmountWhenEaten(Material.COOKED_PORKCHOP, 8);
-        setHealAmountWhenEaten(Material.COD, 3);
-        setHealAmountWhenEaten(Material.SALMON, 3);
-        setHealAmountWhenEaten(Material.PORKCHOP, 3);
-        setHealAmountWhenEaten(Material.MUSHROOM_STEW, 10);
-        setHealAmountWhenEaten(Material.CAKE, 2);
-
-        setHealAmountWhenEaten(Material.GOLDEN_APPLE, 20);
-
-        setHealAmountWhenEaten(Material.COOKIE, 1);
-
         CustomResourcePack customResourcePack = MCCreativeLabExtension.getCustomResourcePack();
         Asset<CustomResourcePack> empty = new Asset<>("/empty_block/textures/empty.png");
         customResourcePack.register(new AssetBasedResourcePackResource(new NamespacedKey("minecraft", "gui/sprites/hud/food_empty"), empty, ResourcePackAssetTypes.TEXTURES, "png"));

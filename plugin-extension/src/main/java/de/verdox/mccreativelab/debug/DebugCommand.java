@@ -22,10 +22,14 @@ public class DebugCommand extends Command {
 
     public DebugCommand() {
         super("debug");
+        setPermission("mccreativelab.command.debug");
     }
+
 
     @Override
     public boolean execute(@NotNull CommandSender sender, @NotNull String commandLabel, @NotNull String[] args) {
+        if(!sender.hasPermission("mccreativelab.command.debug"))
+            return false;
         if (args.length >= 1) {
             String argument1 = args[0];
 
@@ -73,7 +77,7 @@ public class DebugCommand extends Command {
             }
             else if(argument1.equals("herobrine") && sender instanceof Player player){
                 Location summonLocation = player.getLocation();
-                MCCreativeLabExtension.getLegacyFeatures().herobrineFeature.testSpawnHerobrineModel(summonLocation);
+                //MCCreativeLabExtension.getLegacyFeatures().herobrineFeature.testSpawnHerobrineModel(summonLocation);
             }
             else if(argument1.equals("printhud") && sender instanceof Player player){
                 HudRendererImpl hudRenderer = (HudRendererImpl) MCCreativeLabExtension.getHudRenderer();

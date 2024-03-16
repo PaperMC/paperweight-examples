@@ -8,6 +8,7 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.function.BiConsumer;
 
@@ -21,11 +22,12 @@ public class RegistryLookUpCommand<T> extends Command {
         Objects.requireNonNull(consumeEntry);
         this.registry = registry;
         this.consumeEntry = consumeEntry;
+        setPermission("mccreativelab.command.registry.lookup."+getName().toLowerCase(Locale.ROOT));
     }
 
     @Override
     public boolean execute(@NotNull CommandSender sender, @NotNull String commandLabel, @NotNull String[] args) {
-        if(!(sender instanceof Player player))
+        if(!(sender instanceof Player player) || !player.hasPermission("mccreativelab.command.registry.lookup."+getName().toLowerCase(Locale.ROOT)))
             return false;
         if(args.length == 0) {
             sender.sendMessage("Please provide a valid entry");

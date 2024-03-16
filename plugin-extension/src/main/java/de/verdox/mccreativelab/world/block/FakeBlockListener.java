@@ -1,6 +1,7 @@
 package de.verdox.mccreativelab.world.block;
 
 import com.destroystokyo.paper.event.block.BlockDestroyEvent;
+import org.bukkit.GameMode;
 import org.bukkit.block.Block;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -52,8 +53,9 @@ public class FakeBlockListener implements Listener {
                                                                                              .getLocation(), false);
         if (fakeBlockState == null)
             return;
-        if(e.isDropItems()){
+        if(e.isDropItems() && !e.getPlayer().getGameMode().equals(GameMode.CREATIVE)){
             fakeBlockState.getFakeBlock().dropBlockLoot(e.getBlock().getLocation(), fakeBlockState, e.getPlayer(), e.getPlayer().getInventory().getItemInMainHand(), false);
+            fakeBlockState.getFakeBlock().dropBlockExperience(e.getBlock().getLocation(), fakeBlockState, e.getPlayer(), e.getPlayer().getInventory().getItemInMainHand(), false);
             e.setDropItems(false);
         }
     }

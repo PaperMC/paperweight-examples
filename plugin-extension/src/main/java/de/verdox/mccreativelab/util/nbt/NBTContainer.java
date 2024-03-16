@@ -154,6 +154,20 @@ public class NBTContainer {
             persistentDataContainer.set(createNameSpacedKey(key), PersistentDataType.LONG_ARRAY, value);
     }
 
+    public void setDoubleList(String key, List<Double> list) {
+        if (list == null)
+            remove(key);
+        else
+            persistentDataContainer.set(createNameSpacedKey(key), PersistentDataType.LIST.doubles(), list);
+    }
+
+    public List<Double> getDoubleList(String key) {
+        NamespacedKey namespacedKey = createNameSpacedKey(key);
+        if (!persistentDataContainer.has(namespacedKey))
+            return new LinkedList<>();
+        return persistentDataContainer.get(namespacedKey, PersistentDataType.LIST.doubles());
+    }
+
     public long[] getLongArray(String key) {
         NamespacedKey namespacedKey = createNameSpacedKey(key);
         if (!persistentDataContainer.has(namespacedKey))
@@ -161,7 +175,7 @@ public class NBTContainer {
         return persistentDataContainer.get(namespacedKey, PersistentDataType.LONG_ARRAY);
     }
 
-    public void set(String key, List<NBTContainer> value) {
+    public void set(String key, Collection<NBTContainer> value) {
         if (value == null)
             remove(key);
         else
@@ -271,7 +285,7 @@ public class NBTContainer {
         return array;
     }
 
-    public void setStringList(String key, List<String> stringList) {
+    public void setStringList(String key, Collection<String> stringList) {
         if (stringList == null) {
             remove(key);
             return;
@@ -287,7 +301,7 @@ public class NBTContainer {
         return getNBTContainerList(key).stream().map(nbtContainer -> nbtContainer.getString("value")).toList();
     }
 
-    public void setUUIDList(String key, List<UUID> uuidList) {
+    public void setUUIDList(String key, Collection<UUID> uuidList) {
         if (uuidList == null) {
             remove(key);
             return;
@@ -367,7 +381,7 @@ public class NBTContainer {
         return getItemStacks(key).toArray(ItemStack[]::new);
     }
 
-    public void setItemStackList(String key, List<ItemStack> itemStacks) {
+    public void setItemStackList(String key, Collection<ItemStack> itemStacks) {
         if (itemStacks == null) {
             remove(key);
             return;
@@ -409,9 +423,7 @@ public class NBTContainer {
         }
         NBTContainer nbtContainer = createNBTContainer();
         nbtContainer.set("level", location.getWorld().getName());
-        nbtContainer.set("x", location.x());
-        nbtContainer.set("y", location.y());
-        nbtContainer.set("z", location.z());
+        nbtContainer.set("pos", location.toVector());
         nbtContainer.set("yaw", location.getYaw());
         nbtContainer.set("pitch", location.getPitch());
         set(key, nbtContainer);
@@ -426,12 +438,12 @@ public class NBTContainer {
         World world = Bukkit.getWorld(worldName);
         if (world == null)
             return null;
-        double x = nbtContainer.getDouble("x");
-        double y = nbtContainer.getDouble("y");
-        double z = nbtContainer.getDouble("z");
+        Vector pos = nbtContainer.getVector("pos");
+        if (pos == null)
+            return null;
         float yaw = nbtContainer.getFloat("yaw");
         float pitch = nbtContainer.getFloat("pitch");
-        return new Location(Bukkit.getWorld(worldName), x, y, z, yaw, pitch);
+        return pos.toLocation(world, yaw, pitch);
     }
 
     public void set(String key, Vector vector) {
@@ -439,22 +451,32 @@ public class NBTContainer {
             remove(key);
             return;
         }
-        NBTContainer nbtContainer = createNBTContainer();
-        nbtContainer.set("x", vector.getX());
-        nbtContainer.set("y", vector.getY());
-        nbtContainer.set("z", vector.getZ());
-        set(key, nbtContainer);
+        setDoubleList(key, List.of(vector.getX(), vector.getY(), vector.getZ()));
     }
 
     @Nullable
     public Vector getVector(String key) {
-        NBTContainer nbtContainer = getNBTContainer(key);
-        if (nbtContainer == null)
+        List<Double> components = getDoubleList(key);
+        if (components.size() != 3)
             return null;
-        double x = nbtContainer.getDouble("x");
-        double y = nbtContainer.getDouble("y");
-        double z = nbtContainer.getDouble("z");
-        return new Vector(x, y, z);
+        return new Vector(components.get(0), components.get(1), components.get(2));
+    }
+
+    public void setVectorList(String key, Collection<Vector> list) {
+        if (list == null) {
+            remove(key);
+            return;
+        }
+        set(key, list.stream().map(vector -> {
+            NBTContainer nbtContainer = createNBTContainer();
+            nbtContainer.set("v", vector);
+            return nbtContainer;
+        }).toList());
+    }
+
+    public List<Vector> getVectorList(String key) {
+        return getNBTContainerList(key).stream().map(nbtContainer -> nbtContainer.getVector("v"))
+                                       .filter(Objects::nonNull).toList();
     }
 
     @Override

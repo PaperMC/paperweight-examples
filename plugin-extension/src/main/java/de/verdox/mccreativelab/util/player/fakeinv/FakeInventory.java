@@ -31,6 +31,7 @@ public class FakeInventory implements Listener {
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     public void playerDeathEvent(PlayerDeathEvent e) {
+        if(!hasFakeInventory(e.getPlayer())) return;
         stopFakeInventoryOfPlayer(e.getPlayer());
 
         if (!e.getKeepInventory()) {

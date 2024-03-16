@@ -20,8 +20,7 @@ public record HudMultiLineText(List<SingleHudText> lines, int charsPerLine,
 
     @Override
     public RenderedGroup<SingleHudText, ? extends HudElementGroup<SingleHudText>, ?> toRenderedElement() {
-        return new RenderedGroupMultiLineText(this, lines.stream().map(SingleHudText::toRenderedElement)
-                                                         .collect(Collectors.toList()));
+        return new RenderedGroupMultiLineText(this, lines.stream().map(SingleHudText::toRenderedElement).collect(Collectors.toList()));
     }
 
 
@@ -31,18 +30,21 @@ public record HudMultiLineText(List<SingleHudText> lines, int charsPerLine,
         }
 
         public void setRawText(List<String> text) {
+            setVisible(true);
             for (int line = 0; line < text.size() && line < getGroupedRenderedElements().size(); line++) {
                 getGroupedRenderedElements().get(line).setRenderedText(text.get(line));
             }
         }
 
         public void setText(List<TextComponent> text) {
+            setVisible(true);
             for (int line = 0; line < text.size() && line < getGroupedRenderedElements().size(); line++) {
                 getGroupedRenderedElements().get(line).setRenderedText(text.get(line));
             }
         }
 
         public void clearText() {
+            setVisible(false);
             getGroupedRenderedElements().forEach(SingleHudText.RenderedSingleHudText::clearRenderedText);
         }
 

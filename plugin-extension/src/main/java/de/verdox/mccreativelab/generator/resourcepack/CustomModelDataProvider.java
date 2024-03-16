@@ -1,7 +1,9 @@
 package de.verdox.mccreativelab.generator.resourcepack;
 
+import com.google.common.hash.Hashing;
 import org.bukkit.Material;
 
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 

@@ -65,6 +65,8 @@ public abstract class ComponentRendered<C extends ComponentRendered<C,T>, T exte
     @Override
     public void beforeResourceInstallation(CustomResourcePack customPack) throws IOException {
         customPack.register(this.hudTexturesFont);
+        for (BitMap bitMap : this.hudTexturesFont.getBitMaps())
+            customPack.registerIfNotAlready(bitMap.bitmapImageAsset());
         for (Font hudTextFont : hudTextFonts) {
             customPack.register(hudTextFont);
             for (BitMap bitMap : hudTextFont.getBitMaps()) {

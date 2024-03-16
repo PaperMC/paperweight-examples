@@ -3,6 +3,7 @@ package de.verdox.mccreativelab.world.item;
 import de.verdox.mccreativelab.recipe.CustomItemData;
 import de.verdox.mccreativelab.registry.CustomRegistry;
 import de.verdox.mccreativelab.registry.Reference;
+import org.bukkit.inventory.ItemStack;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;
@@ -22,6 +23,10 @@ public class FakeItemRegistry extends CustomRegistry<FakeItem> {
         if(!customItemDataFakeItemMapping.containsKey(customItemData))
             return null;
         return customItemDataFakeItemMapping.get(customItemData);
+    }
+
+    public Reference<? extends FakeItem> getFakeItem(@Nullable ItemStack stack){
+        return stack == null ? null : getFakeItem(CustomItemData.fromItemStack(stack));
     }
 
 
