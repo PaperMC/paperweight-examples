@@ -1,0 +1,48 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <mail.ysp@web.de>
+Date: Sun, 17 Mar 2024 00:35:46 +0100
+Subject: [PATCH] Adding getAllBlockDataVariants metod
+
+
+diff --git a/src/main/java/org/bukkit/Bukkit.java b/src/main/java/org/bukkit/Bukkit.java
+index 623bb80067c76da6306b5624b693de22cd9e8920..19d5a2910a629d6dccba1a966b55fc2a953a6da0 100644
+--- a/src/main/java/org/bukkit/Bukkit.java
++++ b/src/main/java/org/bukkit/Bukkit.java
+@@ -2379,6 +2379,17 @@ public final class Bukkit {
+         return server.advancementIterator();
+     }
+ 
++    // Paper start - Adding getAllBlockDataVariants methods
++    /**
++     * Returns all block data variants of a material block
++     * @param material - The Block material
++     * @return - The List of block data variants
++     */
++    public static List<BlockData> getAllBlockDataVariants(Material material){
++        return server.getAllBlockDataVariants(material);
++    }
++    // Paper start - Adding getAllBlockDataVariants methods
++
+     /**
+      * Creates a new {@link BlockData} instance for the specified Material, with
+      * all properties initialized to unspecified defaults.
+diff --git a/src/main/java/org/bukkit/Server.java b/src/main/java/org/bukkit/Server.java
+index 17c80336d3fa021db33560291df894297c708974..3be7c91f81d5f887ce736697b3dd151cc48e1f08 100644
+--- a/src/main/java/org/bukkit/Server.java
++++ b/src/main/java/org/bukkit/Server.java
+@@ -2039,6 +2039,15 @@ public interface Server extends PluginMessageRecipient, net.kyori.adventure.audi
+     @NotNull
+     Iterator<Advancement> advancementIterator();
+ 
++    // Paper start - Adding getAllBlockDataVariants methods
++    /**
++     * Returns all block data variants of a material block
++     * @param material - The Block material
++     * @return - The List of block data variants
++     */
++    List<BlockData> getAllBlockDataVariants(Material material);
++    // Paper start - Adding getAllBlockDataVariants methods
++
+     /**
+      * Creates a new {@link BlockData} instance for the specified Material, with
+      * all properties initialized to unspecified defaults.

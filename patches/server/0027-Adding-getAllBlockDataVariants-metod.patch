@@ -1,0 +1,26 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <mail.ysp@web.de>
+Date: Sun, 17 Mar 2024 00:35:46 +0100
+Subject: [PATCH] Adding getAllBlockDataVariants metod
+
+
+diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
+index 4a2cd4ef8bea74ae592fa5dc6aa6931c6464cc02..c38cb7a554e0a6fcc268abf8ac4c53760e25218a 100644
+--- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
++++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
+@@ -2818,6 +2818,15 @@ public final class CraftServer implements Server {
+         }));
+     }
+ 
++    // Paper start - Adding getAllBlockDataVariants methods
++    @Override
++    public List<BlockData> getAllBlockDataVariants(org.bukkit.Material material) {
++        if(!material.isBlock())
++            throw new IllegalArgumentException(material.getKey()+" is not a block type.");
++        return CraftMagicNumbers.getBlock(material).getStateDefinition().getPossibleStates().stream().map(state -> ((BlockData) CraftBlockData.createData(state))).toList();
++    }
++    // Paper end - Adding getAllBlockDataVariants methods
++
+     @Override
+     public BlockData createBlockData(org.bukkit.Material material) {
+         Preconditions.checkArgument(material != null, "Material cannot be null");
