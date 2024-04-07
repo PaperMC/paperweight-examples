@@ -74,7 +74,7 @@ paperweight {
             isBareDirectory = true
             upstreamDirPath = "paper-api-generator/generated"
             patchDir = layout.projectDirectory.dir("patches/generatedApi")
-            outputDir = layout.projectDirectory.dir("mccreativelab-api-generator/generated")
+            outputDir = layout.projectDirectory.dir("paper-api-generator/generated")
         }
     }
 }
