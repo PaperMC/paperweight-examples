@@ -23,6 +23,7 @@ import de.verdox.mccreativelab.world.item.fuel.FuelSettings;
 import de.verdox.mccreativelab.world.sound.ReplacedSoundGroups;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
+import org.bukkit.WorldCreator;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;

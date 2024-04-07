@@ -1,0 +1,343 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <mail.ysp@web.de>
+Date: Thu, 21 Mar 2024 18:04:18 +0100
+Subject: [PATCH] Temp patch #2
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/ItemBehaviourUtil.java b/src/main/java/de/verdox/mccreativelab/behaviour/ItemBehaviourUtil.java
+index 35abb85b42d088fafddf1179b0254fdece69b78f..29b745da7bde2fc4199ae04b3bbdae92fe7d293a 100644
+--- a/src/main/java/de/verdox/mccreativelab/behaviour/ItemBehaviourUtil.java
++++ b/src/main/java/de/verdox/mccreativelab/behaviour/ItemBehaviourUtil.java
+@@ -164,12 +164,24 @@ public class ItemBehaviourUtil extends BehaviourUtil {
+             () -> stack.getItem().canFitInsideContainerItems());
+     }
+ 
++    public static boolean canBreakWhenMaxDamage(ItemStack stack) {
++        return evaluateBoolean(getBehaviour(stack),
++            itemBehaviour -> itemBehaviour.canBreakWhenMaxDamage(stack.asBukkitMirror()),
++            () -> true);
++    }
++
+     public static boolean isEnchantable(ItemStack stack) {
+         return evaluateBoolean(getBehaviour(stack),
+             itemBehaviour -> itemBehaviour.isEnchantable(stack.asBukkitMirror()),
+             () -> stack.getItem().isEnchantable(stack));
+     }
+ 
++    public static boolean canDrop(ItemStack stack) {
++        return evaluateBoolean(getBehaviour(stack),
++            itemBehaviour -> itemBehaviour.canDropOnDeath(stack.asBukkitMirror()),
++            () -> true);
++    }
++
+     public static CustomItemData fromStack(ItemStack stack) {
+         return CustomItemData.fromItemStack(stack.getBukkitStack());
+     }
+diff --git a/src/main/java/de/verdox/mccreativelab/event/EventToPacketFactory.java b/src/main/java/de/verdox/mccreativelab/event/EventToPacketFactory.java
+index 2748a943d3508d4f87de536b993bdc7ab30270a8..9417740c1eab52440baa6c4ce1b291b729504c1c 100644
+--- a/src/main/java/de/verdox/mccreativelab/event/EventToPacketFactory.java
++++ b/src/main/java/de/verdox/mccreativelab/event/EventToPacketFactory.java
+@@ -57,7 +57,7 @@ public class EventToPacketFactory {
+             return null;
+         NamespacedKey soundType = CraftNamespacedKey.fromMinecraft(sound.unwrapKey().get().location());
+         Player player = except != null ? (Player) except.getBukkitEntity() : null;
+-        Sound.Source adventureSource = io.papermc.paper.adventure.PaperAdventure.asAdventure(category);
++        Sound.Source adventureSource = Sound.Source.NAMES.value(category.getName());
+         Location location = new Location(serverLevel.getWorld(), x, y, z);
+ 
+         return new WorldSoundEvent(serverLevel.getWorld(), location, player, entity != null ? entity.getBukkitEntity() : null, soundType, adventureSource, volume, pitch, seed);
+diff --git a/src/main/java/de/verdox/mccreativelab/worldgen/CraftWorldGenChunk.java b/src/main/java/de/verdox/mccreativelab/worldgen/CraftWorldGenChunk.java
+index 25a26d86246dac83eb5359628b544e6b8f2d5668..f19343ae1336cac0e2ea167643d6ccf0caf2b065 100644
+--- a/src/main/java/de/verdox/mccreativelab/worldgen/CraftWorldGenChunk.java
++++ b/src/main/java/de/verdox/mccreativelab/worldgen/CraftWorldGenChunk.java
+@@ -10,6 +10,8 @@ import org.bukkit.block.BlockState;
+ import org.bukkit.block.data.BlockData;
+ import org.bukkit.craftbukkit.CraftWorld;
+ import org.bukkit.entity.Entity;
++import org.bukkit.generator.structure.GeneratedStructure;
++import org.bukkit.generator.structure.Structure;
+ import org.bukkit.metadata.MetadataValue;
+ import org.bukkit.persistence.PersistentDataContainer;
+ import org.bukkit.plugin.Plugin;
+@@ -116,7 +118,12 @@ public class CraftWorldGenChunk implements WorldGenChunk {
+                 return null;
+             }
+ 
+-            @Override
++        @Override
++        public @NotNull ChunkSnapshot getChunkSnapshot(boolean includeMaxblocky, boolean includeBiome, boolean includeBiomeTempRain, boolean includeLightData) {
++            return null;
++        }
++
++        @Override
+             public boolean isEntitiesLoaded() {
+                 return false;
+             }
+@@ -221,7 +228,17 @@ public class CraftWorldGenChunk implements WorldGenChunk {
+                 return null;
+             }
+ 
+-            @Override
++        @Override
++        public @NotNull Collection<GeneratedStructure> getStructures() {
++            return null;
++        }
++
++        @Override
++        public @NotNull Collection<GeneratedStructure> getStructures(@NotNull Structure structure) {
++            return null;
++        }
++
++        @Override
+             public void setAlwaysTicking(boolean alwaysTicking) {
+ 
+             }
+diff --git a/src/main/java/io/papermc/paper/CraftBiomeTag.java b/src/main/java/io/papermc/paper/CraftBiomeTag.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..67f06687d28b5ce91fdf52ea2a6b024944917f40
+--- /dev/null
++++ b/src/main/java/io/papermc/paper/CraftBiomeTag.java
+@@ -0,0 +1,34 @@
++package io.papermc.paper;
++
++import net.minecraft.core.Holder;
++import net.minecraft.core.Registry;
++import net.minecraft.core.registries.Registries;
++import net.minecraft.data.registries.VanillaRegistries;
++import net.minecraft.resources.ResourceKey;
++import net.minecraft.tags.TagKey;
++import org.bukkit.block.Biome;
++import org.bukkit.craftbukkit.util.CraftNamespacedKey;
++import org.jetbrains.annotations.NotNull;
++
++import java.util.Collections;
++import java.util.IdentityHashMap;
++import java.util.Map;
++import java.util.Set;
++import java.util.stream.Collectors;
++
++public class CraftBiomeTag extends CraftVanillaRegistryTag<net.minecraft.world.level.biome.Biome, Biome> {
++    private static final Map<Biome, ResourceKey<net.minecraft.world.level.biome.Biome>> KEY_CACHE = Collections.synchronizedMap(new IdentityHashMap<>());
++    public CraftBiomeTag(ResourceKey<Registry<net.minecraft.world.level.biome.Biome>> registry, TagKey<net.minecraft.world.level.biome.Biome> tag) {
++        super(registry, tag);
++    }
++
++    @Override
++    public boolean isTagged(@NotNull Biome item) {
++        return vanillaLookup().getOrThrow(KEY_CACHE.computeIfAbsent(item, biome -> ResourceKey.create(Registries.BIOME, CraftNamespacedKey.toMinecraft(biome.getKey())))).is(tag);
++    }
++
++    @Override
++    public @NotNull Set<Biome> getValues() {
++        return getHandle().stream().map(Holder::unwrapKey).map(biomeResourceKey -> CraftNamespacedKey.fromMinecraft(biomeResourceKey.get().location())).map(org.bukkit.Registry.BIOME::get).collect(Collectors.toSet());
++    }
++}
+diff --git a/src/main/java/io/papermc/paper/CraftVanillaRegistryTag.java b/src/main/java/io/papermc/paper/CraftVanillaRegistryTag.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..8ef36add49ee65bd1ac7d1d45c183c5652b5d2d6
+--- /dev/null
++++ b/src/main/java/io/papermc/paper/CraftVanillaRegistryTag.java
+@@ -0,0 +1,37 @@
++package io.papermc.paper;
++
++import net.minecraft.core.HolderLookup;
++import net.minecraft.core.HolderSet;
++import net.minecraft.core.Registry;
++import net.minecraft.data.registries.VanillaRegistries;
++import net.minecraft.resources.ResourceKey;
++import net.minecraft.tags.TagKey;
++import org.bukkit.Keyed;
++import org.bukkit.NamespacedKey;
++import org.bukkit.Tag;
++import org.bukkit.craftbukkit.util.CraftNamespacedKey;
++
++public abstract class CraftVanillaRegistryTag<N, B extends Keyed> implements Tag<B> {
++    private final ResourceKey<Registry<N>> registryResourceKey;
++    protected final TagKey<N> tag;
++    protected HolderSet.Named<N> handle;
++
++    public CraftVanillaRegistryTag(ResourceKey<Registry<N>> registryResourceKey, TagKey<N> tag) {
++        this.registryResourceKey = registryResourceKey;
++        this.tag = tag;
++        this.handle = vanillaLookup().get(tag).orElseThrow();
++    }
++
++    protected HolderLookup.RegistryLookup<N> vanillaLookup(){
++        return VanillaRegistries.createLookup().lookupOrThrow(registryResourceKey);
++    }
++
++    protected HolderSet.Named<N> getHandle() {
++        return this.handle;
++    }
++
++    @Override
++    public NamespacedKey getKey() {
++        return CraftNamespacedKey.fromMinecraft(this.tag.location());
++    }
++}
+diff --git a/src/main/java/net/minecraft/network/FriendlyByteBuf.java b/src/main/java/net/minecraft/network/FriendlyByteBuf.java
+index 180c368f792259b854e47d8c1e3cdccc56c98b90..276911d26f4d69f8d249b14e249cd33db84a193c 100644
+--- a/src/main/java/net/minecraft/network/FriendlyByteBuf.java
++++ b/src/main/java/net/minecraft/network/FriendlyByteBuf.java
+@@ -655,12 +655,17 @@ public class FriendlyByteBuf extends ByteBuf {
+                 // MCCLab start - Send the calculated damage value
+                 if(stack.getMaxDamage() != stack.getItem().getMaxDamage() && nbttagcompound != null && item.canBeDepleted()) {
+                     nbttagcompound = nbttagcompound.copy();
+-                    float actualDamagePercentage = stack.getDamageValue() * 1f / stack.getMaxDamage();
++                    int damage = stack.getDamageValue();
++                    if(nbttagcompound.contains("Damage_Saved"))
++                        damage = nbttagcompound.getInt("Damage_Saved");
++                    float actualDamagePercentage = damage * 1f / stack.getMaxDamage();
+                     int vanillaDamage = Math.round(stack.getItem().getMaxDamage() * actualDamagePercentage);
+                     vanillaDamage = Math.max(0, vanillaDamage);
+                     vanillaDamage = Math.min(vanillaDamage, stack.getItem().getMaxDamage());
+                     nbttagcompound.putInt(ItemStack.TAG_DAMAGE, vanillaDamage);
++                    nbttagcompound.putInt("Damage_Saved", damage);
+                 }
++                if(stack.getTag() != null) stack.getTag().remove("Damage_Saved");
+                 // MCCLab end - Send the calculated damage value
+             }
+ 
+diff --git a/src/main/java/net/minecraft/server/level/ServerPlayer.java b/src/main/java/net/minecraft/server/level/ServerPlayer.java
+index ff3aab390f8a19d9d711ef5ab88d6d2219adfa08..06437a3366e2b6485841c37a5f0f7e2105de071d 100644
+--- a/src/main/java/net/minecraft/server/level/ServerPlayer.java
++++ b/src/main/java/net/minecraft/server/level/ServerPlayer.java
+@@ -960,7 +960,7 @@ public class ServerPlayer extends Player {
+ 
+         if (!keepInventory) {
+             for (ItemStack item : this.getInventory().getContents()) {
+-                if (!item.isEmpty() && !EnchantmentHelper.hasVanishingCurse(item)) {
++                if (!item.isEmpty() && !EnchantmentHelper.hasVanishingCurse(item) && de.verdox.mccreativelab.behaviour.ItemBehaviourUtil.canDrop(item)) { // MCCreativeLab - Add ItemBehaviour
+                     loot.add(new DefaultDrop(item, stack -> this.drop(stack, true, false, false))); // Paper - Restore vanilla drops behavior; drop function taken from Inventory#dropAll (don't fire drop event)
+                 }
+             }
+diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
+index 0ebdb947bca5c87be2f921ea91ca6c67bbd96cc4..827df788c8ec7b09d84afbfa674b9654508ba1a9 100644
+--- a/src/main/java/net/minecraft/world/entity/Entity.java
++++ b/src/main/java/net/minecraft/world/entity/Entity.java
+@@ -2729,6 +2729,8 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+     }
+     @Nullable
+     public ItemEntity spawnAtLocation(ItemStack stack, float yOffset, @Nullable java.util.function.Consumer<? super ItemEntity> delayedAddConsumer) {
++        if(!de.verdox.mccreativelab.behaviour.ItemBehaviourUtil.canDrop(stack))
++            return null;
+         // Paper end - Restore vanilla drops behavior
+         if (stack.isEmpty()) {
+             return null;
+diff --git a/src/main/java/net/minecraft/world/item/ItemStack.java b/src/main/java/net/minecraft/world/item/ItemStack.java
+index 69cc544b5ffa7e370736befb9b7fbd503f38af29..512f4d80ebab6fe153767c9265cf5d2e07dcfe56 100644
+--- a/src/main/java/net/minecraft/world/item/ItemStack.java
++++ b/src/main/java/net/minecraft/world/item/ItemStack.java
+@@ -681,8 +681,8 @@ public final class ItemStack {
+             }
+ 
+             j = this.getDamageValue() + amount;
+-            this.setDamageValue(j);
+-            return j >= this.getMaxDamage();
++            this.setDamageValue(Math.min(j, this.getMaxDamage())); // MCCreativeLab - Only allow max damage for items not more
++            return j >= this.getMaxDamage() && de.verdox.mccreativelab.behaviour.ItemBehaviourUtil.canBreakWhenMaxDamage(this); // MCCreativeLab - Add ItemBehavior
+         }
+     }
+ 
+diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
+index c38cb7a554e0a6fcc268abf8ac4c53760e25218a..ae1d8b5cb973ae6a4001bc0d19e8cee2029214ac 100644
+--- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
++++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
+@@ -2905,6 +2905,14 @@ public final class CraftServer implements Server {
+                 }
+             }
+             // Paper end
++            case org.bukkit.Tag.REGISTRY_BIOME -> {
++                Preconditions.checkArgument(clazz == org.bukkit.block.Biome.class, "Biome namespace must have Biome type");
++                TagKey<net.minecraft.world.level.biome.Biome> biomeTagKey = TagKey.create(net.minecraft.core.registries.Registries.BIOME, key);
++                if (net.minecraft.data.registries.VanillaRegistries.createLookup().lookupOrThrow(net.minecraft.core.registries.Registries.BIOME).get(biomeTagKey).isPresent()) {
++                    return (org.bukkit.Tag<T>) new io.papermc.paper.CraftBiomeTag(net.minecraft.core.registries.Registries.BIOME, biomeTagKey);
++                }
++            }
++
+             default -> throw new IllegalArgumentException();
+         }
+ 
+@@ -2944,6 +2952,14 @@ public final class CraftServer implements Server {
+                 return gameEvents.getTags().map(pair -> (org.bukkit.Tag<T>) new io.papermc.paper.CraftGameEventTag(gameEvents, pair.getFirst())).collect(ImmutableList.toImmutableList());
+             }
+             // Paper end
++            case org.bukkit.Tag.REGISTRY_BIOME -> {
++                Preconditions.checkArgument(clazz == org.bukkit.block.Biome.class);
++
++                return net.minecraft.data.registries.VanillaRegistries
++                    .createLookup()
++                    .lookupOrThrow(net.minecraft.core.registries.Registries.BIOME).listTagIds()
++                    .map(biomeTagKey -> (org.bukkit.Tag<T>) new io.papermc.paper.CraftBiomeTag(net.minecraft.core.registries.Registries.BIOME, biomeTagKey)).toList();
++            }
+             default -> throw new IllegalArgumentException();
+         }
+     }
+diff --git a/src/test/java/de/verdox/mccreativelab/CustomItemDataTest.java b/src/test/java/de/verdox/mccreativelab/CustomItemDataTest.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..ef65acae627f101172ae8fc0c55b9b3935f8b380
+--- /dev/null
++++ b/src/test/java/de/verdox/mccreativelab/CustomItemDataTest.java
+@@ -0,0 +1,62 @@
++package de.verdox.mccreativelab;
++
++import de.verdox.mccreativelab.recipe.CustomItemData;
++import org.bukkit.Material;
++import org.bukkit.inventory.ItemStack;
++import org.bukkit.support.AbstractTestingBase;
++import org.junit.jupiter.api.Assertions;
++import org.junit.jupiter.api.Test;
++public class CustomItemDataTest extends AbstractTestingBase {
++
++    @Test
++    public void testNoCustomModelData1(){
++        ItemStack stack = new ItemStack(Material.STONE);
++        CustomItemData customItemData = new CustomItemData(Material.STONE, 0);
++
++        Assertions.assertTrue(customItemData.isSame(stack));
++    }
++
++    @Test
++    public void testNoCustomModelData2(){
++        ItemStack stack = new ItemStack(Material.STICK);
++        CustomItemData customItemData = new CustomItemData(Material.STONE, 0);
++
++        Assertions.assertFalse(customItemData.isSame(stack));
++    }
++
++    @Test
++    public void testNoCustomModelData3(){
++        ItemStack stack = new ItemStack(Material.STICK);
++        CustomItemData customItemData = new CustomItemData(Material.STICK, 1);
++
++        Assertions.assertFalse(customItemData.isSame(stack));
++    }
++
++    @Test
++    public void testNoCustomModelData4(){
++        ItemStack stack = new ItemStack(Material.STICK);
++        stack.editMeta(itemMeta -> itemMeta.setCustomModelData(1));
++        CustomItemData customItemData = new CustomItemData(Material.STICK, 0);
++
++        Assertions.assertFalse(customItemData.isSame(stack));
++    }
++
++    @Test
++    public void testWithCustomModelData1(){
++        ItemStack stack = new ItemStack(Material.STONE);
++        stack.editMeta(itemMeta -> itemMeta.setCustomModelData(1));
++        CustomItemData customItemData = new CustomItemData(Material.STONE, 1);
++
++        Assertions.assertTrue(customItemData.isSame(stack));
++    }
++
++    @Test
++    public void testWithCustomModelData2(){
++        ItemStack stack = new ItemStack(Material.STICK);
++        stack.editMeta(itemMeta -> itemMeta.setCustomModelData(1));
++        CustomItemData customItemData = new CustomItemData(Material.STONE, 1);
++
++        Assertions.assertFalse(customItemData.isSame(stack));
++    }
++
++}

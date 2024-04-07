@@ -2223,7 +2223,7 @@ index 5a3b8cb9e275f747c82cf13a2a911a7654de8fc6..27cb1abd2fe768d041706fab53982b28
                  nonNullList.set(i, itemStack.copyWithCount(1));
                  break;
 diff --git a/src/main/java/net/minecraft/world/item/crafting/Recipe.java b/src/main/java/net/minecraft/world/item/crafting/Recipe.java
-index 0fb013458ab1ada05542780d80e5f3858b95517b..e08af5adfdbda2d1d37fdd130b013e70bd20f94f 100644
+index e2d6c8ed586ef429cc712139e501df696ed10f6e..e18422bf3af7cade7a10229900261ae8f59a5db7 100644
 --- a/src/main/java/net/minecraft/world/item/crafting/Recipe.java
 +++ b/src/main/java/net/minecraft/world/item/crafting/Recipe.java
 @@ -27,9 +27,9 @@ public interface Recipe<C extends Container> {

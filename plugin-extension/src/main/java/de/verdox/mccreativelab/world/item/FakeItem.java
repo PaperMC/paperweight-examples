@@ -39,6 +39,10 @@ public class FakeItem implements Keyed, ItemBehaviour {
     private Consumer<ItemMeta> metaConsumer;
     private Translatable nameTranslatable;
 
+    public CustomItemData asCustomItemData(){
+        return new CustomItemData(material, customModelData);
+    }
+
     public Material getMaterial() {
         return material;
     }

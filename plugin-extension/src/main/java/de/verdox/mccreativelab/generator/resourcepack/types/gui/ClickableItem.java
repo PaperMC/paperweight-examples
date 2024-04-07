@@ -53,7 +53,7 @@ public class ClickableItem {
         private int xSize = 1;
         private int ySize = 1;
         private BiConsumer<InventoryClickEvent, ActiveGUI> onClick;
-        private ItemStack item = new ItemStack(Material.LIGHT_GRAY_STAINED_GLASS_PANE);
+        private ItemStack item = new ItemStack(Material.STICK);
         Consumer<ItemMeta> metaSetup = meta -> {
         };
 

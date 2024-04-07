@@ -126,7 +126,7 @@ index 7c29750e534eae4266bf7a63c50e3827401d6569..6159c071cd6f104483df878b0968b5e6
              int i = aitemstack.length;
  
 diff --git a/src/main/java/net/minecraft/world/item/crafting/Recipe.java b/src/main/java/net/minecraft/world/item/crafting/Recipe.java
-index e2d6c8ed586ef429cc712139e501df696ed10f6e..840ae57544e4f5c6e8a1bddd8cd1a09efb06625e 100644
+index e18422bf3af7cade7a10229900261ae8f59a5db7..1b45f741cd14cceee42b9e754a5d5b0447095dcf 100644
 --- a/src/main/java/net/minecraft/world/item/crafting/Recipe.java
 +++ b/src/main/java/net/minecraft/world/item/crafting/Recipe.java
 @@ -71,7 +71,7 @@ public interface Recipe<C extends Container> {

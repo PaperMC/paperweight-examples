@@ -42,6 +42,13 @@ public interface MCCBlockData extends MCCWrapped {
         public @NotNull NamespacedKey getKey() {
             return getHandle().getMaterial().getKey();
         }
+
+        @Override
+        public boolean matches(MCCWrapped mccWrapped) {
+            if(mccWrapped instanceof Vanilla vanilla)
+                return vanilla.getHandle().equals(getHandle());
+            return false;
+        }
     }
 
     class FakeBlockState extends MCCWrapped.Impl<de.verdox.mccreativelab.world.block.FakeBlock.FakeBlockState> implements MCCBlockData {
@@ -71,6 +78,13 @@ public interface MCCBlockData extends MCCWrapped {
         @Override
         public @NotNull NamespacedKey getKey() {
             return getHandle().getFakeBlock().getKey();
+        }
+
+        @Override
+        public boolean matches(MCCWrapped mccWrapped) {
+            if(mccWrapped instanceof FakeBlockState fakeBlockState)
+                return fakeBlockState.getHandle().equals(getHandle());
+            return false;
         }
     }
 }

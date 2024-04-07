@@ -137,8 +137,13 @@ public class ResourcePackFileHoster implements Handler<HttpServerRequest>, Liste
                 long end = System.currentTimeMillis() - start;
                 Bukkit.getLogger().info("Created Zip file "+zipFile+" in "+end+" ms");
                 try {
-                    String hash = calculateSHA1String(zipFile.getPath());
+                    Bukkit.getLogger().info("Calculating sha1 hash of resource pack");
+                    start = System.currentTimeMillis();
                     byte[] hashBytes = calculateSHA1(zipFile.getPath());
+                    String hash = calculateSHA1String(hashBytes);
+                    end = System.currentTimeMillis() - start;
+                    Bukkit.getLogger().info("Took "+end+" ms");
+
                     ResourcePackInfo resourcePackInfo = new ResourcePackInfo(resourcePackName, zipFile, createDownloadUrl(hash), hash, hashBytes, true, null);
                     availableResourcePacks.put(hash, resourcePackInfo);
                     Bukkit.getLogger()
@@ -169,9 +174,8 @@ public class ResourcePackFileHoster implements Handler<HttpServerRequest>, Liste
         });
     }
 
-    private String calculateSHA1String(String filePath) throws IOException, NoSuchAlgorithmException {
+    private String calculateSHA1String(byte[] hashBytes) throws IOException, NoSuchAlgorithmException {
         // Konvertiere den Hash zu einem Hex-String
-        byte[] hashBytes = calculateSHA1(filePath);
         StringBuilder hexStringBuilder = new StringBuilder();
         for (byte hashByte : hashBytes) {
             hexStringBuilder.append(String.format("%02x", hashByte));

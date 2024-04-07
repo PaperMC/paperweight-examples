@@ -42,19 +42,15 @@ public class FakeBlockCommand extends Command {
                 return true;
             }
             else if(args[0].equalsIgnoreCase("get")){
-                try {
-                    FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockState(block.getLocation(), true);
-                    FakeBlock fakeBlock = FakeBlockStorage.getFakeBlock(block.getLocation(), true);
-                    if(fakeBlock == null){
-                        player.sendMessage(Component.text("No fake block found"));
-                        return true;
-                    }
-
-                    player.sendMessage(Component.text("Found fake block: "+ MCCreativeLabExtension.getFakeBlockRegistry().getKey(fakeBlock)+" | "+fakeBlock.getBlockStateID(fakeBlockState)));
+                FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockState(block.getLocation(), true);
+                FakeBlock fakeBlock = FakeBlockStorage.getFakeBlock(block.getLocation(), true);
+                if(fakeBlock == null){
+                    player.sendMessage(Component.text("No fake block found"));
                     return true;
-                } catch (PaletteValueUnknownException e) {
-                    throw new RuntimeException(e);
                 }
+
+                player.sendMessage(Component.text("Found fake block: "+ MCCreativeLabExtension.getFakeBlockRegistry().getKey(fakeBlock)+" | "+fakeBlock.getBlockStateID(fakeBlockState)));
+                return true;
             }
             else if(args[0].equalsIgnoreCase("damage")){
                 player.sendBlockDamage(block.getLocation(), 0.9f, 12355);

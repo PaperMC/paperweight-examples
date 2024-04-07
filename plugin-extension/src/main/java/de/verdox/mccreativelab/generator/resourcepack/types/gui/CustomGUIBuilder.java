@@ -35,7 +35,7 @@ public class CustomGUIBuilder extends ComponentRendered<CustomGUIBuilder, Active
     Consumer<ActiveGUI> onClose;
     Consumer<ActiveGUI> whileOpen;
     int updateInterval = 20;
-    TriConsumer<ClickableItem, InventoryClickEvent, ActiveGUI> clickConsumer;
+    BiConsumer<InventoryClickEvent, ActiveGUI> clickConsumer;
     private final Set<Integer> blockedSlots = new HashSet<>();
     final Map<String, GUIElement> guiElements = new HashMap<>();
     private int chestSize;
@@ -159,7 +159,7 @@ public class CustomGUIBuilder extends ComponentRendered<CustomGUIBuilder, Active
         return this;
     }
 
-    public CustomGUIBuilder withClick(TriConsumer<ClickableItem, InventoryClickEvent, ActiveGUI> clickConsumer) {
+    public CustomGUIBuilder withClick(BiConsumer<InventoryClickEvent, ActiveGUI> clickConsumer) {
         this.clickConsumer = clickConsumer;
         return this;
     }

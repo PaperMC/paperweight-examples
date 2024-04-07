@@ -1,0 +1,22 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <mail.ysp@web.de>
+Date: Thu, 21 Mar 2024 17:57:48 +0100
+Subject: [PATCH] Adding dropExperience function
+
+
+diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
+index ed9d89d708c452abf63748419316bddae5b678a6..2524e78240182507aa25a228e1b49366396d34e3 100644
+--- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
++++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
+@@ -831,6 +831,11 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+         return this.generateTree(loc, CraftWorld.rand, type);
+     }
+ 
++    @Override
++    public void dropExperience(Location spawnPosition, int amount, org.bukkit.entity.ExperienceOrb.SpawnReason reason, Entity trigger, @Nullable Entity source) {
++        net.minecraft.world.entity.ExperienceOrb.award(getHandle(), new Vec3(spawnPosition.getBlockX(), spawnPosition.getBlockY(), spawnPosition.getBlockZ()), amount, reason, trigger == null ? null : ((CraftEntity) trigger).getHandle(), source == null ? null : ((CraftEntity) source).getHandle());
++    }
++
+     @Override
+     public boolean generateTree(Location loc, TreeType type, BlockChangeDelegate delegate) {
+         this.world.captureTreeGeneration = true;

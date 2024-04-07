@@ -17,4 +17,13 @@ public interface RenderedElementBehavior<V extends ActiveComponentRendered<V,?>,
             }
         };
     }
+
+    static <V extends ActiveComponentRendered<V,?>, T extends HudElement.Rendered<?>> RenderedElementBehavior<V, T> createOnOpen(TriConsumer<V, Player, T> function){
+        return new RenderedElementBehavior<V, T>() {
+            @Override
+            public void onOpen(V parentElement, Player player, T element) {
+                function.accept(parentElement, player, element);
+            }
+        };
+    }
 }

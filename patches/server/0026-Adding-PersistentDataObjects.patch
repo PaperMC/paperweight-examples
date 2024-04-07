@@ -159,10 +159,10 @@ index f55fdd57ced259ad5a95878840e98ffaa3db2e05..8445c2a97781fe40be1369f0de2aee9a
  }
 diff --git a/src/main/java/org/bukkit/craftbukkit/persistence/CraftPersistentDataObjectCache.java b/src/main/java/org/bukkit/craftbukkit/persistence/CraftPersistentDataObjectCache.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..9e7f45d9f3e53acb32d8a3945f5bc7c4bd89b9ad
+index 0000000000000000000000000000000000000000..4f1bd2007cdee660df8af089c668e3562021df89
 --- /dev/null
 +++ b/src/main/java/org/bukkit/craftbukkit/persistence/CraftPersistentDataObjectCache.java
-@@ -0,0 +1,126 @@
+@@ -0,0 +1,127 @@
 +package org.bukkit.craftbukkit.persistence;
 +
 +import com.google.common.base.Preconditions;
@@ -192,6 +192,7 @@ index 0000000000000000000000000000000000000000..9e7f45d9f3e53acb32d8a3945f5bc7c4
 +                CraftPersistentDataObjectCache craftPersistentDataObjectCache = weakReference.getPersistentDataObjectCache();
 +                craftPersistentDataObjectCache.saveObjectsToTags(false);
 +                craftPersistentDataObjectCache.persistentDataObjectMap.clear();
++                counter++;
 +            }
 +            return counter;
 +        }

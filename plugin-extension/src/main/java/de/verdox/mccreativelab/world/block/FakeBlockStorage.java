@@ -26,15 +26,7 @@ public class FakeBlockStorage {
         return setFakeBlockState(location, fakeBlock != null ? fakeBlock.getDefaultBlockState() : null, forceLoad);
     }
 
-    public static FakeBlock getFakeBlockOrThrow(Location location, boolean forceLoad) {
-        try {
-            return getFakeBlock(location, forceLoad);
-        } catch (PaletteValueUnknownException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public static FakeBlock getFakeBlock(Location location, boolean forceLoad) throws PaletteValueUnknownException {
+    public static FakeBlock getFakeBlock(Location location, boolean forceLoad) {
         FakeBlock.FakeBlockState fakeBlockState = getFakeBlockState(location, forceLoad);
         if (fakeBlockState == null)
             return null;
@@ -72,10 +64,6 @@ public class FakeBlockStorage {
             location.getBlock().setBlockData(fakeBlockState.getFakeBlockDisplay().getHitBox().getBlockData());
         }
         return true;
-    }
-
-    public static @NotNull FakeBlock.FakeBlockState getFakeBlockStateOrThrow(Location location, boolean forceLoad) {
-        return Objects.requireNonNull(getFakeBlockState(location, forceLoad));
     }
 
     public static @Nullable FakeBlock.FakeBlockState getFakeBlockState(Location location, boolean forceLoad) {

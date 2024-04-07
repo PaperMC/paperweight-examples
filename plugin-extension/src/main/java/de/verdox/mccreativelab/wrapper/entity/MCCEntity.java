@@ -29,5 +29,12 @@ public interface MCCEntity extends MCCWrapped {
         public MCCEntityType getType() {
             return MCCEntityType.wrap(getHandle().getType());
         }
+
+        @Override
+        public boolean matches(MCCWrapped mccWrapped) {
+            if(mccWrapped instanceof MCCBlockData.Vanilla vanilla)
+                return vanilla.getHandle().equals(getHandle());
+            return false;
+        }
     }
 }

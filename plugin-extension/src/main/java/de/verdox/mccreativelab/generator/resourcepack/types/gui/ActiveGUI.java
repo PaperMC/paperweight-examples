@@ -161,6 +161,9 @@ public class ActiveGUI extends ActiveComponentRendered<ActiveGUI, CustomGUIBuild
             e.setCancelled(true);
             return;
         }
+
+        if (getComponentRendered().clickConsumer != null)
+            getComponentRendered().clickConsumer.accept(e, this);
     }
 
     @EventHandler

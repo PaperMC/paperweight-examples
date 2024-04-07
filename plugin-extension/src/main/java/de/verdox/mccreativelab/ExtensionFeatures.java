@@ -6,6 +6,8 @@ import de.verdox.mccreativelab.generator.resourcepack.ResourcePackMapper;
 import de.verdox.mccreativelab.generator.resourcepack.types.hud.renderer.HudRenderer;
 import de.verdox.mccreativelab.generator.resourcepack.types.hud.renderer.HudRendererImpl;
 import de.verdox.mccreativelab.serialization.MCCSerializer;
+import de.verdox.mccreativelab.util.player.inventory.PlayerInventoryCacheStrategy;
+import de.verdox.mccreativelab.util.player.inventory.PlayerInventoryCachedData;
 import org.bukkit.Bukkit;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -24,6 +26,10 @@ public class ExtensionFeatures implements Listener {
         MCCreativeLabExtension.registerRegistryLookupCommand("hud", resourcePackMapper.getHudsRegistry(), hudRenderer::getOrStartActiveHud);
         MCCreativeLabExtension.registerRegistryLookupCommand("gui", resourcePackMapper.getGuiRegistry(), (player, customGUIBuilder) -> customGUIBuilder.createMenuForPlayer(player));
         MCCreativeLabExtension.registerRegistryLookupCommand("menu", resourcePackMapper.getMenuRegistry(), (player, customMenu) -> customMenu.createMenuForPlayer(player));
+
+        Bukkit.getPluginManager().registerEvents(new PlayerInventoryCachedData.Listener(), MCCreativeLabExtension.getInstance());
+        PlayerInventoryCachedData.register(PlayerInventoryCacheStrategy.CachedAmounts.class, PlayerInventoryCacheStrategy.CachedAmounts::new);
+        PlayerInventoryCachedData.register(PlayerInventoryCacheStrategy.CachedSlots.class, PlayerInventoryCacheStrategy.CachedSlots::new);
     }
 
     public void onDisable(){

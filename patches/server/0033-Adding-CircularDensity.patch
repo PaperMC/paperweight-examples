@@ -1,0 +1,233 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <mail.ysp@web.de>
+Date: Fri, 29 Mar 2024 20:10:19 +0100
+Subject: [PATCH] Adding CircularDensity
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/io/DensityFunctionImageGenerator.java b/src/main/java/de/verdox/mccreativelab/io/DensityFunctionImageGenerator.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..5973d747b8a7e3c04a02f05ae779fd796971af39
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/io/DensityFunctionImageGenerator.java
+@@ -0,0 +1,115 @@
++package de.verdox.mccreativelab.io;
++
++import net.minecraft.util.Mth;
++import net.minecraft.util.RandomSource;
++import net.minecraft.world.level.levelgen.synth.ImprovedNoise;
++import net.minecraft.world.level.levelgen.synth.PerlinNoise;
++
++import javax.imageio.ImageIO;
++import java.awt.*;
++import java.awt.image.BufferedImage;
++import java.io.File;
++import java.io.IOException;
++import java.util.List;
++
++public class DensityFunctionImageGenerator {
++    private final String name;
++    private final int width;
++    private final int height;
++    private final Noise noise1;
++
++    private static final double min = -1.0;
++    private static final double max = 1.0;
++
++    public DensityFunctionImageGenerator(String name, int width, int height, Noise noise) {
++        this.name = name;
++        this.width = width;
++        this.height = height;
++        noise1 = noise;
++    }
++
++    public void buildImage() {
++        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
++
++        // Iteriere über alle Pixel im Bild
++        for (int x = 0; x < width; x++) {
++            for (int y = 0; y < height; y++) {
++                // Frage den Wert von compute an der aktuellen Position ab
++                double value = noise1.compute(x + width / 2, y + height / 2);
++
++                // Interpoliere die Farbe basierend auf dem Wert
++                Color color = interpolateColor(value, min, max);
++
++                // Setze die Farbe des Pixels im Bild
++                image.setRGB(x, y, color.getRGB());
++            }
++        }
++
++        // Speichere das generierte Bild
++        File outputFile = new File(name + ".png");
++        try {
++            ImageIO.write(image, "png", outputFile);
++            System.out.println("Bild erfolgreich generiert: " + outputFile.getAbsolutePath());
++        } catch (IOException e) {
++            System.err.println("Fehler beim Speichern des Bildes: " + e.getMessage());
++        }
++    }
++
++    public static void main(String[] args) {
++        new DensityFunctionImageGenerator("simple", 3000, 3000, simpleCircle).buildImage();
++        new DensityFunctionImageGenerator("second", 3000, 3000, secondAttempt).buildImage();
++    }
++
++    private static final PerlinNoise noise = PerlinNoise.create(RandomSource.create(), List.of(1, 2, 3));
++    private static final ImprovedNoise improvedNoise = new ImprovedNoise(RandomSource.create());
++
++    // Beispiel-Funktion compute
++
++    static Noise simpleCircle = (x, z) -> {
++        int blockRadius = (int) (3000 + Math.sin(3 * x) + Math.sin(Math.PI * x) + Math.sin(4 * Math.E * x) + Math.sin(3 * z) + Math.sin(Math.PI * z) + Math.sin(4 * Math.E * z));
++
++        double scale = 2 * Math.PI / blockRadius;
++        double distance = Math.sqrt(x * x + z * z);
++        double angle = distance * scale;
++
++        return Math.cos(angle + Math.PI);
++    };
++
++    static Noise secondAttempt = (x, z) -> {
++        int blockRadius = 3000;
++        double scale = 2 * Math.PI / blockRadius;
++        double distance = Math.sqrt(x * x + z * z);
++        double angle = distance * scale;
++
++        return Math.cos(angle + Math.PI + Math.sin(3 * x) + Math.sin(Math.PI * x) + Math.sin(4 * Math.E * x) + Math.sin(3 * z) + Math.sin(Math.PI * z) + Math.sin(4 * Math.E * z));
++    };
++
++    // Interpoliere die Farbe basierend auf dem Wert und den Min/Max-Werten
++    public static Color interpolateColor(double value, double min, double max) {
++        // Berechne den Anteil des Wertes zwischen min und max
++        double proportion = (value - min) / (max - min);
++
++        // Interpoliere die Farbe basierend auf dem Wert
++        int red, green, blue;
++        if (proportion < 0.5) {
++            red = 0;
++            green = (int) (255 * 2 * proportion);
++            blue = (int) (255 * (1 - 2 * proportion));
++        } else {
++            red = (int) (255 * 2 * (proportion - 0.5));
++            green = (int) (255 * (1 - 2 * (proportion - 0.5)));
++            blue = 0;
++        }
++
++        // Begrenze die Farbwerte auf den Bereich [0, 255]
++        red = Math.min(Math.max(red, 0), 255);
++        green = Math.min(Math.max(green, 0), 255);
++        blue = Math.min(Math.max(blue, 0), 255);
++
++        return new Color(red, green, blue);
++    }
++
++    public interface Noise {
++        double compute(int x, int z);
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/worldgen/CircularDensity.java b/src/main/java/de/verdox/mccreativelab/worldgen/CircularDensity.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..0a90b7ed6ad94392cd5bc36e83c6fb260af5a6bb
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/worldgen/CircularDensity.java
+@@ -0,0 +1,80 @@
++package de.verdox.mccreativelab.worldgen;
++
++import com.mojang.serialization.Codec;
++import com.mojang.serialization.MapCodec;
++import com.mojang.serialization.codecs.RecordCodecBuilder;
++import net.minecraft.util.KeyDispatchDataCodec;
++import net.minecraft.util.Mth;
++import net.minecraft.util.RandomSource;
++import net.minecraft.world.level.levelgen.DensityFunction;
++import net.minecraft.world.level.levelgen.synth.ImprovedNoise;
++
++public class CircularDensity implements DensityFunction.SimpleFunction {
++    private static final ImprovedNoise improvedNoise = new ImprovedNoise(RandomSource.create());
++    private final int patternRadius;
++    private final double fromValue;
++    private final double toValue;
++    private final double scale;
++
++    public CircularDensity(int patternRadius, double fromValue, double toValue) {
++        this.patternRadius = patternRadius;
++        this.fromValue = fromValue;
++        this.toValue = toValue;
++        this.scale = 2 * Math.PI / patternRadius;
++    }
++
++    private static final MapCodec<CircularDensity> DATA_CODEC = RecordCodecBuilder.mapCodec((instance) -> {
++        return instance.group(
++                           Codec.intRange(0, 1000000).fieldOf("patternRadius").forGetter(CircularDensity::getPatternRadius),
++                           Codec.doubleRange(-1000000.0D, 1000000.0D).fieldOf("from_value").forGetter(CircularDensity::getFromValue),
++                           Codec.doubleRange(-1000000.0D, 1000000.0D).fieldOf("to_value").forGetter(CircularDensity::getToValue))
++                       .apply(instance, CircularDensity::new);
++    });
++    public static final KeyDispatchDataCodec<CircularDensity> CODEC = KeyDispatchDataCodec.of(DATA_CODEC);
++
++    @Override
++    public double compute(FunctionContext pos) {
++        return computeRaw(pos.blockX(), pos.blockZ());
++    }
++
++    private double computeRaw(int x, int z) {
++        double distance = Mth.sqrt(x * x + z * z);
++        double angle = distance * scale;
++        return Math.cos(angle + Math.PI) + improvedNoise.noise(x, 0, z) * 0.05;
++    }
++
++    private double noise(int x, int z) {
++        return Math.sin(x * 0.1) + Math.cos(z * 0.1);
++    }
++
++    @Override
++    public double minValue() {
++        return fromValue;
++    }
++
++    @Override
++    public double maxValue() {
++        return toValue;
++    }
++
++    @Override
++    public KeyDispatchDataCodec<? extends DensityFunction> codec() {
++        return CODEC;
++    }
++
++    public double getFromValue() {
++        return fromValue;
++    }
++
++    public double getScale() {
++        return scale;
++    }
++
++    public double getToValue() {
++        return toValue;
++    }
++
++    public int getPatternRadius() {
++        return patternRadius;
++    }
++}
+diff --git a/src/main/java/net/minecraft/world/level/levelgen/DensityFunctions.java b/src/main/java/net/minecraft/world/level/levelgen/DensityFunctions.java
+index 01b60aaf484e1e327ca42d3573fd86d2abd749fa..2fa88960c38ddec37030aa22f2cac876266d533a 100644
+--- a/src/main/java/net/minecraft/world/level/levelgen/DensityFunctions.java
++++ b/src/main/java/net/minecraft/world/level/levelgen/DensityFunctions.java
+@@ -5,6 +5,7 @@ import com.mojang.logging.LogUtils;
+ import com.mojang.serialization.Codec;
+ import com.mojang.serialization.MapCodec;
+ import com.mojang.serialization.codecs.RecordCodecBuilder;
++import de.verdox.mccreativelab.worldgen.CircularDensity;
+ import it.unimi.dsi.fastutil.doubles.Double2DoubleFunction;
+ import java.util.Arrays;
+ import java.util.Optional;
+@@ -74,6 +75,7 @@ public final class DensityFunctions {
+ 
+         register(registry, "spline", DensityFunctions.Spline.CODEC);
+         register(registry, "constant", DensityFunctions.Constant.CODEC);
++        register(registry, "circular", CircularDensity.CODEC);
+         return register(registry, "y_clamped_gradient", DensityFunctions.YClampedGradient.CODEC);
+     }
+ 

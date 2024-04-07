@@ -36,5 +36,12 @@ public interface MCCEntityType extends MCCWrapped {
         public @NotNull NamespacedKey getKey() {
             return getHandle().getKey();
         }
+
+        @Override
+        public boolean matches(MCCWrapped mccWrapped) {
+            if(mccWrapped instanceof Vanilla vanilla)
+                return vanilla.getHandle().equals(getHandle());
+            return false;
+        }
     }
 }

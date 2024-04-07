@@ -4,27 +4,27 @@ import de.verdox.mccreativelab.MCCreativeLabExtension;
 import de.verdox.mccreativelab.serialization.NBTSerializer;
 import de.verdox.mccreativelab.util.nbt.NBTContainer;
 import de.verdox.mccreativelab.wrapper.MCCWrapped;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
-import org.bukkit.block.data.BlockData;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
 import java.util.List;
 
-public interface MCCBlock extends MCCWrapped {
-    static MCCBlock wrap(Material blockMaterial) {
+public interface MCCBlockType extends MCCWrapped {
+    static MCCBlockType wrap(Material blockMaterial) {
         assert blockMaterial.isBlock();
         return new Vanilla(blockMaterial);
     }
 
     List<MCCBlockData> getAllBlockStates();
 
-    static MCCBlock wrap(de.verdox.mccreativelab.world.block.FakeBlock fakeBlock) {
-        return new FakeBlock(fakeBlock);
+    static MCCBlockType wrap(de.verdox.mccreativelab.world.block.FakeBlock fakeBlock) {
+        return new FakeBlockType(fakeBlock);
     }
 
-    class Vanilla extends MCCWrapped.Impl<Material> implements MCCBlock {
+    class Vanilla extends MCCWrapped.Impl<Material> implements MCCBlockType {
 
         public static final NBTSerializer<Vanilla> SERIALIZER = new NBTSerializer<>() {
             @Override
@@ -51,28 +51,37 @@ public interface MCCBlock extends MCCWrapped {
 
         @Override
         public List<MCCBlockData> getAllBlockStates() {
+            if(MCCreativeLabExtension.isServerSoftware())
+                return Bukkit.getAllBlockDataVariants(getHandle()).stream().map(MCCBlockData::wrap).toList();
             return List.of();
+        }
+
+        @Override
+        public boolean matches(MCCWrapped mccWrapped) {
+            if(mccWrapped instanceof Vanilla vanilla)
+                return vanilla.getHandle().equals(getHandle());
+            return false;
         }
     }
 
-    class FakeBlock extends MCCWrapped.Impl<de.verdox.mccreativelab.world.block.FakeBlock> implements MCCBlock {
+    class FakeBlockType extends MCCWrapped.Impl<de.verdox.mccreativelab.world.block.FakeBlock> implements MCCBlockType {
 
-        public static final NBTSerializer<FakeBlock> SERIALIZER = new NBTSerializer<>() {
+        public static final NBTSerializer<FakeBlockType> SERIALIZER = new NBTSerializer<>() {
             @Override
-            public void serialize(FakeBlock data, NBTContainer nbtContainer) {
+            public void serialize(FakeBlockType data, NBTContainer nbtContainer) {
                 nbtContainer.set("block_type", data.getHandle().getKey().asString());
             }
 
             @Override
-            public FakeBlock deserialize(NBTContainer nbtContainer) {
+            public FakeBlockType deserialize(NBTContainer nbtContainer) {
                 if(!nbtContainer.has("block_type"))
                     return null;
                 NamespacedKey namespacedKey = NamespacedKey.fromString(nbtContainer.getString("block_type"));
-                return new FakeBlock(MCCreativeLabExtension.getFakeBlockRegistry().get(namespacedKey));
+                return new FakeBlockType(MCCreativeLabExtension.getFakeBlockRegistry().get(namespacedKey));
             }
         };
 
-        protected FakeBlock(de.verdox.mccreativelab.world.block.FakeBlock handle) {
+        protected FakeBlockType(de.verdox.mccreativelab.world.block.FakeBlock handle) {
             super(handle);
         }
 
@@ -84,6 +93,13 @@ public interface MCCBlock extends MCCWrapped {
         @Override
         public List<MCCBlockData> getAllBlockStates() {
             return Arrays.stream(getHandle().getFakeBlockStates()).map(MCCBlockData::wrap).toList();
+        }
+
+        @Override
+        public boolean matches(MCCWrapped mccWrapped) {
+            if(mccWrapped instanceof FakeBlockType fakeBlock)
+                return fakeBlock.getHandle().equals(getHandle());
+            return false;
         }
     }
 
