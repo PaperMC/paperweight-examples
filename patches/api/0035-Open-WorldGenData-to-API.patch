@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
-From: derverdox <mail.ysp@web.de>
-Date: Sun, 7 Apr 2024 22:16:44 +0200
-Subject: [PATCH] Temp Patch
+From: verdox <mail.ysp@web.de>
+Date: Wed, 1 May 2024 15:10:45 +0000
+Subject: [PATCH] Open WorldGenData to API
 
 
 diff --git a/src/main/java/io/papermc/paper/world/worldgen/DensityFunction.java b/src/main/java/io/papermc/paper/world/worldgen/DensityFunction.java
@@ -52,19 +52,10 @@ index 0000000000000000000000000000000000000000..25f7eebc83169c04123bd5986057ba4f
 +    NoiseRouter getNoiseRouter();
 +}
 diff --git a/src/main/java/org/bukkit/World.java b/src/main/java/org/bukkit/World.java
-index 6247a6453f32af47e43e3230375bcf4841996487..375e346288213a2cc08255d8e7a6b0c8711b6f77 100644
+index 6247a6453f32af47e43e3230375bcf4841996487..d036b7c3cbcfd42df041d1f71e1d9cf08cbea5ba 100644
 --- a/src/main/java/org/bukkit/World.java
 +++ b/src/main/java/org/bukkit/World.java
-@@ -1,6 +1,8 @@
- package org.bukkit;
- 
- import java.io.File;
-+
-+import io.papermc.paper.world.worldgen.WorldGenData;
- import org.bukkit.generator.ChunkGenerator;
- 
- import java.util.ArrayList;
-@@ -2815,6 +2817,12 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
+@@ -2815,6 +2815,12 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
       */
      int getSimulationDistance();
  
@@ -72,7 +63,7 @@ index 6247a6453f32af47e43e3230375bcf4841996487..375e346288213a2cc08255d8e7a6b0c8
 +     * Returns the {@link WorldGenData} of this world
 +     * @return the world gen data
 +     */
-+    public WorldGenData getWorldGenData();
++    public io.papermc.paper.world.worldgen.WorldGenData getWorldGenData();
 +
      /**
       * Gets the folder of this world on disk.

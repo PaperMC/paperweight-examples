@@ -6,10 +6,10 @@ Subject: [PATCH] Add DataPackInterceptor
 
 diff --git a/src/main/java/de/verdox/mccreativelab/CraftDataPackInterceptor.java b/src/main/java/de/verdox/mccreativelab/CraftDataPackInterceptor.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..39be82b372d5fb8bd17877dfcf35c03a6b3b3bc3
+index 0000000000000000000000000000000000000000..1134449a2442b2d25639eed487002eb7597937b3
 --- /dev/null
 +++ b/src/main/java/de/verdox/mccreativelab/CraftDataPackInterceptor.java
-@@ -0,0 +1,128 @@
+@@ -0,0 +1,127 @@
 +package de.verdox.mccreativelab;
 +
 +import com.google.gson.JsonObject;
@@ -18,14 +18,18 @@ index 0000000000000000000000000000000000000000..39be82b372d5fb8bd17877dfcf35c03a
 +import net.kyori.adventure.key.Key;
 +import net.minecraft.resources.ResourceLocation;
 +import net.minecraft.server.packs.resources.IoSupplier;
-+
++import com.mojang.logging.LogUtils;
 +import javax.annotation.Nullable;
 +import java.io.*;
 +import java.nio.file.Path;
 +import java.util.*;
 +import java.util.function.Consumer;
++import org.apache.commons.io.FilenameUtils;
++import org.slf4j.Logger;
++import java.nio.charset.StandardCharsets;
 +
 +public class CraftDataPackInterceptor implements DataPackInterceptor {
++    private static final Logger LOGGER = LogUtils.getLogger();
 +    private final Set<PackAssetType> excludedTypes = new HashSet<>();
 +    private final Set<String> stringPatternExcludes = new HashSet<>();
 +    private final Map<PackAssetType, Set<Key>> exclusions = new HashMap<>();
@@ -65,19 +69,21 @@ index 0000000000000000000000000000000000000000..39be82b372d5fb8bd17877dfcf35c03a
 +
 +    @Nullable
 +    public IoSupplier<InputStream> evaluate(ResourceLocation resourceLocation, Path assetPath, IoSupplier<InputStream> ioSupplier) {
-+        if (this.installCallback == null)
-+            return ioSupplier;
 +
 +        String assetTypeName = resourceLocation.toString().split("/")[0];
 +        int indexOfStartKey = assetTypeName.indexOf(":");
 +        assetTypeName = assetTypeName.substring(indexOfStartKey + 1);
 +        PackAssetType packAssetType = PackAssetType.getByParentFolder(assetTypeName);
-+        Key key = Key.key(resourceLocation.getNamespace(), resourceLocation.getPath());
-+        if(packAssetType == null)
++        Key key = Key.key(resourceLocation.getNamespace(), FilenameUtils.removeExtension(resourceLocation.getPath().replace(assetTypeName+"/","")));
++        if(packAssetType == null) {
++            LOGGER.error("Could not determine PackAssetType "+assetTypeName+" from "+resourceLocation);
 +            return ioSupplier;
++        }
 +
 +        if(excludedTypes.contains(packAssetType) || stringPatternExcludes.stream().anyMatch(s -> resourceLocation.toString().contains(s)) || (exclusions.containsKey(packAssetType) && exclusions.get(packAssetType).contains(key)))
++            LOGGER.info("Removing "+packAssetType.name()+": "+key);
 +            return null;
++        }
 +
 +        try (InputStream inputStream = ioSupplier.get()) {
 +            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
@@ -107,11 +113,13 @@ index 0000000000000000000000000000000000000000..39be82b372d5fb8bd17877dfcf35c03a
 +                Map<Key, List<Consumer<DataPackAsset>>> map = modifies.get(packAssetType);
 +                if(map.containsKey(key)){
 +                    List<Consumer<DataPackAsset>> modifiers = map.get(key);
++                    LOGGER.info("Patching "+packAssetType.name()+": "+key);
 +                    modifiers.forEach(dataPackAssetConsumer -> dataPackAssetConsumer.accept(dataPackAsset));
 +                }
 +            }
 +
-+            this.installCallback.accept(dataPackAsset);
++            if(this.installCallback != null)
++                this.installCallback.accept(dataPackAsset);
 +
 +            // Hier kannst du das JsonObject nach Belieben manipulieren
 +            // Zum Beispiel: jsonObject.addProperty("neuesFeld", "Wert");
@@ -121,21 +129,12 @@ index 0000000000000000000000000000000000000000..39be82b372d5fb8bd17877dfcf35c03a
 +
 +            // Schließe den ByteArrayOutputStream
 +            byteArrayOutputStream.close();
-+            new IoSupplier<InputStream>() {
-+                @Override
-+                public InputStream get() throws IOException {
-+                    return new ByteArrayInputStream(jsonObject.toString().getBytes("UTF-8"));
-+                }
-+            };
++            return () -> new ByteArrayInputStream(jsonObject.toString().getBytes(StandardCharsets.UTF_8));
 +
 +        } catch (IOException e) {
-+            System.err.println("Error while manipulating DataPack resource installation");
-+            e.printStackTrace();
++            LOGGER.error("Error while manipulating DataPack resource installation", e);
 +            return ioSupplier;
 +        }
-+
-+
-+        return ioSupplier;
 +    }
 +}
 diff --git a/src/main/java/de/verdox/mccreativelab/CreativeLabImpl.java b/src/main/java/de/verdox/mccreativelab/CreativeLabImpl.java

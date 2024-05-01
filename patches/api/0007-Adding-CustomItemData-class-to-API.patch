@@ -9,7 +9,7 @@ new file mode 100644
 index 0000000000000000000000000000000000000000..988dd359a588cab2d06e39d3b915bc3d3d83b585
 --- /dev/null
 +++ b/src/main/java/de/verdox/mccreativelab/recipe/CustomItemData.java
-@@ -0,0 +1,27 @@
+@@ -0,0 +1,30 @@
 +package de.verdox.mccreativelab.recipe;
 +
 +import org.bukkit.Material;
@@ -18,22 +18,25 @@ index 0000000000000000000000000000000000000000..988dd359a588cab2d06e39d3b915bc3d
 +public record CustomItemData(Material material, int customModelData) {
 +    public ItemStack createStack() {
 +        var stack = new ItemStack(material);
-+        stack.editMeta(meta -> meta.setCustomModelData(customModelData));
++        if (customModelData != 0)
++            stack.editMeta(meta -> meta.setCustomModelData(customModelData));
 +        return stack;
 +    }
 +
 +    public boolean isSame(ItemStack stackToCheck) {
 +        if (!stackToCheck.getType().equals(material))
 +            return false;
-+        if (customModelData == 0 && !stackToCheck.hasItemMeta())
-+            return true;
-+        return stackToCheck.getType().equals(material)
-+            && stackToCheck.hasItemMeta()
-+            && stackToCheck.getItemMeta().hasCustomModelData()
-+            && stackToCheck.getItemMeta().getCustomModelData() == customModelData;
++        if (customModelData == 0)
++            return !stackToCheck.hasItemMeta() || !stackToCheck.getItemMeta().hasCustomModelData() || stackToCheck
++                .getItemMeta().getCustomModelData() == customModelData;
++        else
++            return stackToCheck.getType().equals(material)
++                && stackToCheck.hasItemMeta()
++                && stackToCheck.getItemMeta().hasCustomModelData()
++                && stackToCheck.getItemMeta().getCustomModelData() == customModelData;
 +    }
 +
-+    public static CustomItemData fromItemStack(ItemStack stack){
++    public static CustomItemData fromItemStack(ItemStack stack) {
 +        return new CustomItemData(stack.getType(), ItemStack.getCustomModelData(stack));
 +    }
 +}

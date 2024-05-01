@@ -555,7 +555,7 @@ new file mode 100644
 index 0000000000000000000000000000000000000000..b2f39dada0ebb57a2fc5aa619109fa384246c9d9
 --- /dev/null
 +++ b/src/main/java/de/verdox/mccreativelab/ai/builder/GoalFactory.java
-@@ -0,0 +1,118 @@
+@@ -0,0 +1,120 @@
 +package de.verdox.mccreativelab.ai.builder;
 +
 +import com.destroystokyo.paper.entity.RangedEntity;
@@ -568,6 +568,8 @@ index 0000000000000000000000000000000000000000..b2f39dada0ebb57a2fc5aa619109fa38
 +import org.bukkit.entity.*;
 +import org.bukkit.inventory.ItemStack;
 +import org.bukkit.inventory.RecipeChoice;
++import de.verdox.mccreativelab.random.VanillaRandomSource;
++import java.util.function.Function;
 +
 +import java.util.function.BooleanSupplier;
 +import java.util.function.Predicate;
@@ -591,7 +593,7 @@ index 0000000000000000000000000000000000000000..b2f39dada0ebb57a2fc5aa619109fa38
 +
 +    VanillaGoal<Dolphin> dolphinJump(Dolphin dolphin, int chance);
 +
-+    VanillaGoal<Mob> eatBlock(Mob mob, Predicate<BlockState> predicate);
++    VanillaGoal<Mob> eatBlock(Mob mob, Function<VanillaRandomSource, Boolean> chanceToEat, Predicate<BlockState> predicate);
 +
 +    VanillaGoal<Mob> fleeSun(Mob mob, double speed);
 +

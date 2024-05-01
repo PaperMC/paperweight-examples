@@ -29,7 +29,7 @@ index 18e48bbb04076f1535b6a4c10e139908e82da44e..ec3810d5e5182293d784b9c783582582
       * Gets if this goat has its left horn.
 diff --git a/src/main/java/org/bukkit/entity/MilkGivingEntity.java b/src/main/java/org/bukkit/entity/MilkGivingEntity.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..dfd7d5a21a349e513422364a658e2c730cb7c315
+index 0000000000000000000000000000000000000000..a030e039203b82143723853f696b948954b94ba4
 --- /dev/null
 +++ b/src/main/java/org/bukkit/entity/MilkGivingEntity.java
 @@ -0,0 +1,18 @@
@@ -38,7 +38,7 @@ index 0000000000000000000000000000000000000000..dfd7d5a21a349e513422364a658e2c73
 +/**
 + * Represents any entity that can give milk to the player
 + */
-+public interface MilkGivingEntity {
++public interface MilkGivingEntity extends LivingEntity {
 +    /**
 +     * Gets whether this entity can give milk
 +     * @return True if the entity can give milk

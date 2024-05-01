@@ -1,0 +1,76 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: verdox <mail.ysp@web.de>
+Date: Wed, 1 May 2024 15:08:49 +0000
+Subject: [PATCH] Add new functions to ItemBehaviour
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/ItemBehaviourUtil.java b/src/main/java/de/verdox/mccreativelab/behaviour/ItemBehaviourUtil.java
+index 35abb85b42d088fafddf1179b0254fdece69b78f..29b745da7bde2fc4199ae04b3bbdae92fe7d293a 100644
+--- a/src/main/java/de/verdox/mccreativelab/behaviour/ItemBehaviourUtil.java
++++ b/src/main/java/de/verdox/mccreativelab/behaviour/ItemBehaviourUtil.java
+@@ -164,12 +164,24 @@ public class ItemBehaviourUtil extends BehaviourUtil {
+             () -> stack.getItem().canFitInsideContainerItems());
+     }
+ 
++    public static boolean canBreakWhenMaxDamage(ItemStack stack) {
++        return evaluateBoolean(getBehaviour(stack),
++            itemBehaviour -> itemBehaviour.canBreakWhenMaxDamage(stack.asBukkitMirror()),
++            () -> true);
++    }
++
+     public static boolean isEnchantable(ItemStack stack) {
+         return evaluateBoolean(getBehaviour(stack),
+             itemBehaviour -> itemBehaviour.isEnchantable(stack.asBukkitMirror()),
+             () -> stack.getItem().isEnchantable(stack));
+     }
+ 
++    public static boolean canDrop(ItemStack stack) {
++        return evaluateBoolean(getBehaviour(stack),
++            itemBehaviour -> itemBehaviour.canDropOnDeath(stack.asBukkitMirror()),
++            () -> true);
++    }
++
+     public static CustomItemData fromStack(ItemStack stack) {
+         return CustomItemData.fromItemStack(stack.getBukkitStack());
+     }
+diff --git a/src/main/java/net/minecraft/server/level/ServerPlayer.java b/src/main/java/net/minecraft/server/level/ServerPlayer.java
+index ff3aab390f8a19d9d711ef5ab88d6d2219adfa08..06437a3366e2b6485841c37a5f0f7e2105de071d 100644
+--- a/src/main/java/net/minecraft/server/level/ServerPlayer.java
++++ b/src/main/java/net/minecraft/server/level/ServerPlayer.java
+@@ -960,7 +960,7 @@ public class ServerPlayer extends Player {
+ 
+         if (!keepInventory) {
+             for (ItemStack item : this.getInventory().getContents()) {
+-                if (!item.isEmpty() && !EnchantmentHelper.hasVanishingCurse(item)) {
++                if (!item.isEmpty() && !EnchantmentHelper.hasVanishingCurse(item) && de.verdox.mccreativelab.behaviour.ItemBehaviourUtil.canDrop(item)) { // MCCreativeLab - Add ItemBehaviour
+                     loot.add(new DefaultDrop(item, stack -> this.drop(stack, true, false, false))); // Paper - Restore vanilla drops behavior; drop function taken from Inventory#dropAll (don't fire drop event)
+                 }
+             }
+diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
+index 0ebdb947bca5c87be2f921ea91ca6c67bbd96cc4..827df788c8ec7b09d84afbfa674b9654508ba1a9 100644
+--- a/src/main/java/net/minecraft/world/entity/Entity.java
++++ b/src/main/java/net/minecraft/world/entity/Entity.java
+@@ -2729,6 +2729,8 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+     }
+     @Nullable
+     public ItemEntity spawnAtLocation(ItemStack stack, float yOffset, @Nullable java.util.function.Consumer<? super ItemEntity> delayedAddConsumer) {
++        if(!de.verdox.mccreativelab.behaviour.ItemBehaviourUtil.canDrop(stack))
++            return null;
+         // Paper end - Restore vanilla drops behavior
+         if (stack.isEmpty()) {
+             return null;
+diff --git a/src/main/java/net/minecraft/world/item/ItemStack.java b/src/main/java/net/minecraft/world/item/ItemStack.java
+index 69cc544b5ffa7e370736befb9b7fbd503f38af29..512f4d80ebab6fe153767c9265cf5d2e07dcfe56 100644
+--- a/src/main/java/net/minecraft/world/item/ItemStack.java
++++ b/src/main/java/net/minecraft/world/item/ItemStack.java
+@@ -681,8 +681,8 @@ public final class ItemStack {
+             }
+ 
+             j = this.getDamageValue() + amount;
+-            this.setDamageValue(j);
+-            return j >= this.getMaxDamage();
++            this.setDamageValue(Math.min(j, this.getMaxDamage())); // MCCreativeLab - Only allow max damage for items not more
++            return j >= this.getMaxDamage() && de.verdox.mccreativelab.behaviour.ItemBehaviourUtil.canBreakWhenMaxDamage(this); // MCCreativeLab - Add ItemBehavior
+         }
+     }
+ 
