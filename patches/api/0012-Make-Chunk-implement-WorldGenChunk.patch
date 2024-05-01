@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: verdox <mail.ysp@web.de>
 Date: Wed, 1 May 2024 15:12:17 +0000
-Subject: [PATCH] Make Chunk implement WorldGenChunk instead of Metadatable
+Subject: [PATCH] Make Chunk implement WorldGenChunk
 
 
 diff --git a/src/main/java/org/bukkit/Chunk.java b/src/main/java/org/bukkit/Chunk.java
@@ -12,7 +12,7 @@ index fc69334de4f82694b4e830400c37021c7685fa46..a5a4c12446d9c8e803a3838b3cc8b9ae
   * then the chunk will only be generated as far as it needs to provide the
   * requested data.
   */
--public interface Chunk extends PersistentDataHolder, org.bukkit.metadata.Metadatable {
+-public interface Chunk extends PersistentDataHolder {
 +public interface Chunk extends PersistentDataHolder, de.verdox.mccreativelab.worldgen.WorldGenChunk {
  
      /**

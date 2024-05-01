@@ -80,7 +80,7 @@ index 0000000000000000000000000000000000000000..1134449a2442b2d25639eed487002eb7
 +            return ioSupplier;
 +        }
 +
-+        if(excludedTypes.contains(packAssetType) || stringPatternExcludes.stream().anyMatch(s -> resourceLocation.toString().contains(s)) || (exclusions.containsKey(packAssetType) && exclusions.get(packAssetType).contains(key)))
++        if(excludedTypes.contains(packAssetType) || stringPatternExcludes.stream().anyMatch(s -> resourceLocation.toString().contains(s)) || (exclusions.containsKey(packAssetType) && exclusions.get(packAssetType).contains(key))) {
 +            LOGGER.info("Removing "+packAssetType.name()+": "+key);
 +            return null;
 +        }
