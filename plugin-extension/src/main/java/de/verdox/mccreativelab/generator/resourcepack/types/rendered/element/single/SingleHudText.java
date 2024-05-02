@@ -12,7 +12,10 @@ import de.verdox.mccreativelab.util.io.StringAlign;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
+import net.kyori.adventure.text.TranslatableComponent;
 import net.kyori.adventure.text.event.HoverEvent;
+import net.kyori.examination.string.MultiLineStringExaminer;
+import net.kyori.examination.string.StringExaminer;
 import org.bukkit.ChatColor;
 import org.bukkit.NamespacedKey;
 import org.jetbrains.annotations.Nullable;
@@ -75,13 +78,15 @@ public class SingleHudText implements SingleHudElement {
 
     public static class RenderedSingleHudText extends RenderedSingle<SingleHudText> {
         private TextComponent renderedText;
+        private int textLength;
 
         public RenderedSingleHudText(SingleHudText hudElement) {
             super(hudElement);
         }
 
         @Override
-        protected void onVisibilityChange(boolean newVisibility) {}
+        protected void onVisibilityChange(boolean newVisibility) {
+        }
 
         public TextComponent getRenderedText() {
             return renderedText;
@@ -90,6 +95,7 @@ public class SingleHudText implements SingleHudElement {
         public void setRenderedText(TextComponent renderedText) {
             setVisible(true);
             this.renderedText = renderedText.content(renderedText.content().replace(" ", Strings.repeat(" ", 4)));
+            this.textLength = getTextLength(this.renderedText);
         }
 
         @Deprecated
@@ -118,9 +124,9 @@ public class SingleHudText implements SingleHudElement {
             return switch (hudText.alignment()) {
                 case LEFT -> createTextComponent();
                 case CENTER -> createNegativeSpacing(Math.round(textLength * 1f / 2)).append(createTextComponent())
-                                                                                     .append(createSpacing(Math.round(textLength * 1f / 2)));
+                    .append(createSpacing(Math.round(textLength * 1f / 2)));
                 case RIGHT -> createNegativeSpacing(textLength).append(createTextComponent())
-                                                               .append(createSpacing(textLength));
+                    .append(createSpacing(textLength));
             };
         }
 
@@ -134,16 +140,22 @@ public class SingleHudText implements SingleHudElement {
             if (renderedText == null)
                 return Component.empty();
 
-            String text = ChatColor.stripColor(renderedText.content());
-            int textLength = hudText.font().getPixelWidth(text);
-            //textLength = FontUtil.calculateStringLength(text);
-
 
             TextComponent textToRender = renderedText;
-/*            if(hudText.alignment != null)
-                textToRender = hudText.alignment().align(renderedText, alignmentPixels);*/
-
             return textToRender.font(textFont).append(createNegativeSpacing(textLength));
+        }
+
+        private int getTextLength(TextComponent textComponent) {
+            int length = getHudElement().font().getPixelWidth(textComponent.content());
+            for (Component child : textComponent.children()) {
+                if (!(child instanceof TextComponent component)) {
+                    if (child instanceof TranslatableComponent)
+                        throw new IllegalStateException("HudTexts don't support components of type TranslatableComponent. Only TextComponents are allowed!");
+                    continue;
+                }
+                length += getTextLength(component);
+            }
+            return length;
         }
 
         private Component createNegativeSpacing(int spacing) {
