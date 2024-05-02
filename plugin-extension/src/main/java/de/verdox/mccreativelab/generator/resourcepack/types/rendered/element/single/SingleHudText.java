@@ -148,7 +148,7 @@ public class SingleHudText implements SingleHudElement {
             TextComponent modified = Component.text(modifiedContent);
 
             // Rekursion über alle Kinder des Components und Anhängen der modifizierten Kinder
-            for (Component child : component.children()) {
+            for (Component child : textComponent.children()) {
                 if(child instanceof TextComponent childText)
                     modified = modified.append(reFormatText(childText));
                 else
