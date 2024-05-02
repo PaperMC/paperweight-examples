@@ -1,21 +1,16 @@
 package de.verdox.mccreativelab.generator.resourcepack.types.rendered.element.single;
 
-import com.google.common.base.Strings;
 import com.google.gson.JsonObject;
 import de.verdox.mccreativelab.generator.resourcepack.types.font.Font;
 import de.verdox.mccreativelab.generator.resourcepack.types.rendered.ActiveComponentRendered;
 import de.verdox.mccreativelab.generator.resourcepack.types.rendered.element.SingleHudElement;
 import de.verdox.mccreativelab.generator.resourcepack.types.rendered.util.ScreenPosition;
-import de.verdox.mccreativelab.util.FontUtil;
 import de.verdox.mccreativelab.util.gson.JsonObjectBuilder;
 import de.verdox.mccreativelab.util.io.StringAlign;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.TranslatableComponent;
-import net.kyori.adventure.text.event.HoverEvent;
-import net.kyori.examination.string.MultiLineStringExaminer;
-import net.kyori.examination.string.StringExaminer;
 import org.bukkit.ChatColor;
 import org.bukkit.NamespacedKey;
 import org.jetbrains.annotations.Nullable;
@@ -94,7 +89,7 @@ public class SingleHudText implements SingleHudElement {
 
         public void setRenderedText(TextComponent renderedText) {
             setVisible(true);
-            this.renderedText = renderedText.content(renderedText.content().replace(" ", Strings.repeat(" ", 4)));
+            this.renderedText = reFormatText(renderedText);
             this.textLength = getTextLength(this.renderedText);
         }
 
@@ -143,6 +138,24 @@ public class SingleHudText implements SingleHudElement {
 
             TextComponent textToRender = renderedText;
             return textToRender.font(textFont).append(createNegativeSpacing(textLength));
+        }
+
+        // Methode zur Ersetzung aller Leerzeichen in einem TextComponent durch 'A'
+        private TextComponent reFormatText(TextComponent textComponent) {
+            String modifiedContent = textComponent.content().replace(" ", " ".repeat(4));
+
+            // Erstellen eines neuen TextComponents mit modifiziertem Inhalt
+            TextComponent modified = Component.text(modifiedContent);
+
+            // Rekursion über alle Kinder des Components und Anhängen der modifizierten Kinder
+            for (Component child : component.children()) {
+                if(child instanceof TextComponent childText)
+                    modified = modified.append(reFormatText(childText));
+                else
+                    modified = modified.append(child);
+            }
+
+            return modified;
         }
 
         private int getTextLength(TextComponent textComponent) {
