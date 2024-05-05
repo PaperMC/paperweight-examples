@@ -42,6 +42,7 @@ public class ResourcePackFileHoster implements Handler<HttpServerRequest>, Liste
     private final String hostname;
     private final int port;
     private final boolean requireResourcePack;
+    private final String downloadUrl;
 
     public ResourcePackFileHoster() throws IOException, InvalidConfigurationException {
 
@@ -55,11 +56,13 @@ public class ResourcePackFileHoster implements Handler<HttpServerRequest>, Liste
         config.options().copyDefaults(true);
         config.addDefault("hostName", "0.0.0.0");
         config.addDefault("port", 8080);
+        config.addDefault("downloadUrl", "0.0.0.0:8080");
         config.addDefault("require", true);
         config.save(configFile);
 
         this.hostname = config.getString("hostName", "0.0.0.0");
         this.port = config.getInt("port", 8080);
+        this.downloadUrl = config.getString("downloadUrl", "0.0.0.0:8080");
         this.requireResourcePack = config.getBoolean("require");
         Bukkit.getLogger().info("Starting ResourcePackFileHoster on " + hostname + ":" + port);
         this.httpServer = Vertx.vertx().createHttpServer();
@@ -84,7 +87,6 @@ public class ResourcePackFileHoster implements Handler<HttpServerRequest>, Liste
 
             String hash = split[split.length - 1];
             if(!isValidHex(hash)){
-                Bukkit.getLogger().warning("Received a request from "+event.remoteAddress()+ " that does not seem to be a hash: "+hash);
                 event.response().end();
                 return;
             }
@@ -156,7 +158,7 @@ public class ResourcePackFileHoster implements Handler<HttpServerRequest>, Liste
     }
 
     public String createDownloadUrl(String hash) {
-        return "http://" + this.hostname + ":" + this.port + "/" + hash;
+        return "http://" + this.downloadUrl + "/" + hash;
     }
 
     private void deleteZipFiles() throws IOException {
