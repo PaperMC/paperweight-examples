@@ -67,10 +67,15 @@ public record TextType(int xOffset, int yOffset) {
     }
 
     public static TextType getByInventoryType(InventoryType type) {
+        if(!invTypes.containsKey(type)) {
+            throw new IllegalArgumentException("Chest type " + type + " not available");
+        }
         return invTypes.get(type);
     }
 
     public static TextType getByChestSize(int size) {
+        if(!chestSizes.containsKey(size))
+            throw new IllegalArgumentException("Chest size "+size+" not available");
         return chestSizes.get(size);
     }
 
