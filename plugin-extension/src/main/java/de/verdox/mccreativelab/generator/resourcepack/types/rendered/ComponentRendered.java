@@ -191,6 +191,7 @@ public abstract class ComponentRendered<C extends ComponentRendered<C,T>, T exte
     }
 
     public C withMultiLineText(String multiLineID, int lines, int charsPerLine, int pixelsBetweenLines, StringAlign.Alignment alignment, ScreenPosition startPos, float scale, @Nullable RenderedElementBehavior<T, HudMultiLineText.RenderedGroupMultiLineText> behavior) {
+        checkIfIDTaken(multiLineID);
         var textElements = new LinkedList<SingleHudText>();
         startPos = convertScreenPosition(startPos);
         for (int i = 0; i < lines; i++) {
@@ -198,12 +199,12 @@ public abstract class ComponentRendered<C extends ComponentRendered<C,T>, T exte
             withText(textID, startPos.addToYOffset(i * (pixelsBetweenLines * -1)), alignment, scale, null);
             textElements.add((SingleHudText) elements.get(textID));
         }
-        checkIfIDTaken(multiLineID);
         registerElement(multiLineID, new HudMultiLineText(textElements, charsPerLine, alignment), behavior);
         return (C) this;
     }
 
     public C withPartlyVisibleTexture(String textureField, ScreenPosition screenPosition, Asset<CustomResourcePack> originalPicture, int parts, @Nullable RenderedElementBehavior<T, PartlyVisibleTexture.RenderedPartlyVisibleTexture> behavior) throws IOException {
+        checkIfIDTaken(textureField);
         var splitImages = AssetUtil.createPartlyVisibleCopys(originalPicture, parts);
         screenPosition = convertScreenPosition(screenPosition);
 
