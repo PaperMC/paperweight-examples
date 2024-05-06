@@ -32,7 +32,7 @@ public class SoundFile extends ResourcePackResource {
             var soundVariants = JsonArrayBuilder.create();
             soundData.getSoundVariants().forEach((namespacedKey, soundVariant) -> {
                 var variant = JsonObjectBuilder.create();
-                variant.add("name", namespacedKey.value());
+                variant.add("name", namespacedKey.asString());
                 variant.add("pitch", soundVariant.pitch());
                 variant.add("volume", soundVariant.volume());
                 soundVariants.add(variant);

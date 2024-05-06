@@ -19,11 +19,10 @@ public class ReplacedSoundGroups {
     private final Map<Wrappers.SoundGroup, Wrappers.SoundGroup> replacedSoundGroups = new HashMap<>();
 
     public ReplacedSoundGroups(){
-        if(FakeBlockRegistry.USE_ALTERNATE_FAKE_BLOCK_ENGINE) replaceGlassSoundGroup();
-        replaceWoodSoundGroup();
+
     }
 
-    private void replaceGlassSoundGroup(){
+    public void replaceGlassSoundGroup(){
         SoundData newGlassBreakSound = new SoundData(new NamespacedKey("minecraft", "block.glass.custom.break"), false, "subtitles.block.generic.break")
             .withSoundVariant(new NamespacedKey("minecraft", "block/custom/glass/break/glass1"), new Asset<>("/sounds/glass/break/glass1.ogg"), 1, 1)
             .withSoundVariant(new NamespacedKey("minecraft", "block/custom/glass/break/glass2"), new Asset<>("/sounds/glass/break/glass2.ogg"), 1, 1)
@@ -34,7 +33,7 @@ public class ReplacedSoundGroups {
         replaceSoundGroup("block.glass", Material.GLASS.createBlockData().getSoundGroup(), newGlassSoundGroup);
     }
 
-    private void replaceWoodSoundGroup(){
+    public void replaceWoodSoundGroup(){
         SoundData newWoodDigSound = new SoundData(new NamespacedKey("minecraft", "block.wood.custom.break"), false, "subtitles.block.generic.break")
             .withSoundVariant(new NamespacedKey("minecraft", "block/custom/wood/dig/wood1"), new Asset<>("/sounds/wood/dig/wood1.ogg"), 1, 1)
             .withSoundVariant(new NamespacedKey("minecraft", "block/custom/wood/dig/wood2"), new Asset<>("/sounds/wood/dig/wood2.ogg"), 1, 1)
