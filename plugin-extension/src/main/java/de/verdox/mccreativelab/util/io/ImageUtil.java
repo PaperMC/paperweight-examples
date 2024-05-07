@@ -209,6 +209,22 @@ public class ImageUtil {
         return convertedImage;
     }
 
+    public static List<BufferedImage> splitAndCropImage(InputStream inputStream, int parts) throws IOException {
+        BufferedImage originalImage = ImageIO.read(inputStream);
+        int width = originalImage.getWidth();
+        int height = originalImage.getHeight();
+        int[] originalPixels = originalImage.getRGB(0, 0, width, height, null, 0, width);
+        var imageList = new LinkedList<BufferedImage>();
+
+        for (int i = 1; i <= parts; i++) {
+            int partWidth = width * i / parts;
+            BufferedImage outputImage = new BufferedImage(partWidth, height, BufferedImage.TYPE_INT_ARGB);
+            outputImage.setRGB(0, 0, partWidth, height, originalPixels, 0, partWidth);
+            imageList.add(outputImage);
+        }
+        return imageList;
+    }
+
     public static List<BufferedImage> splitImage(InputStream inputStream, int parts) throws IOException {
         BufferedImage originalImage = ImageIO.read(inputStream);
         int width = originalImage.getWidth();

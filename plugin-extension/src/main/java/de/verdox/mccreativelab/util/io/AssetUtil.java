@@ -43,7 +43,7 @@ public class AssetUtil {
         try(InputStream stream = asset.assetInputStream().get()){
             if(stream == null)
                 throw new IOException("InputStream supplier did not contain any InputStream");
-            var split = ImageUtil.splitImage(stream, amountParts);
+            var split = ImageUtil.splitAndCropImage(stream, amountParts);
 
             for (java.awt.image.BufferedImage partImage : split) {
                 var byteStream = new ByteArrayOutputStream();
