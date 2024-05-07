@@ -1,6 +1,7 @@
 package de.verdox.mccreativelab.util.nbt;
 
 import de.verdox.mccreativelab.MCCreativeLabExtension;
+import de.verdox.mccreativelab.recipe.CustomItemData;
 import de.verdox.mccreativelab.world.block.FakeBlock;
 import net.md_5.bungee.api.chat.ItemTag;
 import org.bukkit.*;
@@ -62,6 +63,26 @@ public class NBTContainer {
 
     public void set(String key, long value) {
         persistentDataContainer.set(createNameSpacedKey(key), PersistentDataType.LONG, value);
+    }
+
+    public void set(String key, CustomItemData value) {
+        NBTContainer nbtContainer = createNBTContainer();
+        nbtContainer.set("material", value.material().name());
+        nbtContainer.set("customModelData", value.customModelData());
+        set(key, nbtContainer);
+    }
+
+    @Nullable
+    public CustomItemData getCustomItemData(String key){
+        if(!has(key))
+            return null;
+        NBTContainer nbtContainer = getNBTContainer(key);
+        if(nbtContainer == null || !nbtContainer.has("material") || !nbtContainer.has("customModelData"))
+            return null;
+
+        Material material = Material.valueOf(nbtContainer.getString("material"));
+        int customModelData = nbtContainer.getInt("customModelData");
+        return new CustomItemData(material, customModelData);
     }
 
     public long getLong(String key) {
