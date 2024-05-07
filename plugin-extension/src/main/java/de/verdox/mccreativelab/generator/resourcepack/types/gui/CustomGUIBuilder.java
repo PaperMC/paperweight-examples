@@ -107,7 +107,12 @@ public class CustomGUIBuilder extends ComponentRendered<CustomGUIBuilder, Active
     }
 
     public CustomGUIBuilder withButton(String buttonName, int index, Consumer<GUIButton.Builder> setup) {
-        return withButton(buttonName, index, setup, null);
+        return withButton(buttonName, index, setup, new GUIElementBehavior<>() {
+            @Override
+            public void onOpen(ActiveGUI parentElement, Player player, ActiveGUIElement<?> element) {
+                element.setVisible(true);
+            }
+        });
     }
 
     public CustomGUIBuilder withButton(String buttonName, int index, Consumer<GUIButton.Builder> setup, @Nullable GUIElementBehavior<?> behavior) {
@@ -128,7 +133,7 @@ public class CustomGUIBuilder extends ComponentRendered<CustomGUIBuilder, Active
 
 
         withText(textFieldID, screenPosOfTexture.withLayer(3).addToXOffset(3)
-                                                .addToYOffset(-6), guiButton.getButtonTextAlignment(), guiButton.getTextScale(), null);
+            .addToYOffset(-6), guiButton.getButtonTextAlignment(), guiButton.getTextScale(), null);
 
         try {
             if (guiButton.getButtonTexture() != null)
@@ -222,15 +227,38 @@ public class CustomGUIBuilder extends ComponentRendered<CustomGUIBuilder, Active
         return new HashSet<>(blockedSlots);
     }
 
+    /**
+     * Creates a new active gui but pushes the predecessor gui to the gui stack, so it can be reopened when this new gui closes.
+     *
+     * @param predecessor  the predecessor gui
+     * @param initialSetup the initial setup for the new gui
+     */
+    public void asNestedGUI(ActiveGUI predecessor, @Nullable Consumer<ActiveGUI> initialSetup) {
+        createMenuForPlayer(predecessor.getPlayer(), activeGUI -> {
+            predecessor.trackGUIInStack();
+            if (initialSetup != null)
+                initialSetup.accept(activeGUI);
+        });
+    }
+
+    /**
+     * Creates a new active gui but pushes the predecessor gui to the gui stack, so it can be reopened when this new gui closes.
+     *
+     * @param predecessor the predecessor gui
+     */
+    public void asNestedGUI(ActiveGUI predecessor) {
+        asNestedGUI(predecessor, null);
+    }
+
     public void createMenuForPlayer(Player player) {
         createMenuForPlayer(player, null);
     }
 
     public void createMenuForPlayer(Player player, @Nullable Consumer<ActiveGUI> initialSetup) {
         Bukkit.getScheduler().runTask(MCCreativeLabExtension.getInstance(), () -> {
-            new ActiveGUI(player, this, activeGUI -> {
+            new ActiveGUI(player, this, gui -> {
                 if (initialSetup != null)
-                    initialSetup.accept(activeGUI);
+                    initialSetup.accept(gui);
             });
         });
     }

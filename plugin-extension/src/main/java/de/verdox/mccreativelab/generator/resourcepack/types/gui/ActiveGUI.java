@@ -1,6 +1,8 @@
 package de.verdox.mccreativelab.generator.resourcepack.types.gui;
 
 import de.verdox.mccreativelab.MCCreativeLabExtension;
+import de.verdox.mccreativelab.event.GUICloseEvent;
+import de.verdox.mccreativelab.event.GUIOpenEvent;
 import de.verdox.mccreativelab.generator.resourcepack.types.gui.element.active.ActiveGUIElement;
 import de.verdox.mccreativelab.generator.resourcepack.types.rendered.ActiveComponentRendered;
 import de.verdox.mccreativelab.util.player.fakeinv.FakeInventory;
@@ -26,9 +28,10 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public class ActiveGUI extends ActiveComponentRendered<ActiveGUI, CustomGUIBuilder> implements Listener {
+    private final Consumer<ActiveGUI> initialSetup;
     private long lastShift = System.currentTimeMillis();
     private static final long SHIFT_COOLDOWN_MILLIS = 20;
-    private final Map<String, Object> tempData = new HashMap<>();
+    final Map<String, Object> tempData = new HashMap<>();
     private final Map<String, ActiveGUIElement<?>> activeGUIElements = new HashMap<>();
     private final Map<Integer, ActiveGUIElement<?>> guiElementsBySlot = new HashMap<>();
     private boolean isOpen;
@@ -36,8 +39,14 @@ public class ActiveGUI extends ActiveComponentRendered<ActiveGUI, CustomGUIBuild
     private boolean isUpdating;
     private BukkitTask updateTask;
 
+    private final Map<Integer, ClickableItem> indexToClickableItemMapping = new HashMap<>();
+
     public ActiveGUI(Player player, CustomGUIBuilder customGUIBuilder, @Nullable Consumer<ActiveGUI> initialSetup) {
         super(player, customGUIBuilder);
+        this.initialSetup = initialSetup;
+        isUpdating = true;
+        if (!new GUIOpenEvent(this.getPlayer(), this).callEvent())
+            return;
         Bukkit.getPluginManager().registerEvents(this, MCCreativeLabExtension.getInstance());
 
         customGUIBuilder.guiElements.forEach((s, guiElement) -> {
@@ -61,14 +70,21 @@ public class ActiveGUI extends ActiveComponentRendered<ActiveGUI, CustomGUIBuild
 
         if (customGUIBuilder.updateInterval > 0) {
             updateTask = Bukkit.getScheduler().runTaskTimer(MCCreativeLabExtension.getInstance(), () -> {
+                isUpdating = true;
                 if (isOpen) {
                     if (customGUIBuilder.whileOpen != null) customGUIBuilder.whileOpen.accept(this);
 
                     forEachElementBehavior((activeGUIRenderedRenderedElementBehavior, rendered) -> activeGUIRenderedRenderedElementBehavior.whileOpen(this, getPlayer(), rendered));
                     forEachGUIElementBehavior((guiElementBehavior, activeGUIElement) -> guiElementBehavior.whileOpen(this, getPlayer(), activeGUIElement));
                 }
+                isUpdating = false;
             }, 0, customGUIBuilder.updateInterval);
         }
+    }
+
+    public final void addClickableItem(int index, ClickableItem clickableItem) {
+        this.getVanillaInventory().setItem(index, clickableItem.getStack());
+        indexToClickableItemMapping.put(index, clickableItem);
     }
 
     public final void forEachGUIElementBehavior(BiConsumer<GUIElementBehavior<ActiveGUIElement<?>>, ActiveGUIElement<?>> forEach) {
@@ -88,6 +104,9 @@ public class ActiveGUI extends ActiveComponentRendered<ActiveGUI, CustomGUIBuild
         });
     }
 
+    void trackGUIInStack(){
+        PlayerGUIStack.load(getPlayer()).trackGUI(this);
+    }
     public Inventory getVanillaInventory() {
         return inventory;
     }
@@ -100,6 +119,10 @@ public class ActiveGUI extends ActiveComponentRendered<ActiveGUI, CustomGUIBuild
         return this;
     }
 
+    public void copyTemporaryDataFromGUI(ActiveGUI activeGUI) {
+        this.tempData.putAll(activeGUI.tempData);
+    }
+
     @Nullable
     public <R> R getTemporaryDataOrDefault(String key, Class<? extends R> type, R defaultVal) {
         return type.cast(tempData.getOrDefault(key, defaultVal));
@@ -110,11 +133,14 @@ public class ActiveGUI extends ActiveComponentRendered<ActiveGUI, CustomGUIBuild
         if (!(e.getInventory().equals(inventory)))
             return;
         if (isUpdating) return;
+        new GUICloseEvent(this.getPlayer(), this, e.getReason()).callEvent();
         closeActiveGUI();
     }
 
     private void closeActiveGUI() {
         if (!isOpen) return;
+
+
         if (updateTask != null) {
             updateTask.cancel();
         }
@@ -139,6 +165,12 @@ public class ActiveGUI extends ActiveComponentRendered<ActiveGUI, CustomGUIBuild
             return;
         }
 
+        if (indexToClickableItemMapping.containsKey(e.getRawSlot())) {
+            e.setCancelled(true);
+            indexToClickableItemMapping.get(e.getRawSlot()).getOnClick().accept(e, this);
+            return;
+        }
+
         ActiveGUIElement<?> activeGUIElement = guiElementsBySlot.getOrDefault(e.getRawSlot(), null);
         if ((getComponentRendered().isSlotBlocked(e.getRawSlot()) && this.inventory.equals(e.getClickedInventory())) || activeGUIElement != null) {
             e.setCancelled(true);
@@ -146,7 +178,7 @@ public class ActiveGUI extends ActiveComponentRendered<ActiveGUI, CustomGUIBuild
         }
         // Prevent inventory clicks if is using player slots
         if (getComponentRendered().isUsePlayerSlots() && Objects.equals(e.getClickedInventory(), e.getView()
-                                                                                                  .getBottomInventory()))
+            .getBottomInventory()))
             e.setCancelled(true);
 
         if (e.isShiftClick() && e.getView().getBottomInventory().equals(e.getClickedInventory())) {
@@ -157,7 +189,7 @@ public class ActiveGUI extends ActiveComponentRendered<ActiveGUI, CustomGUIBuild
             lastShift = System.currentTimeMillis();
 
             shiftItemToInventory(e.getView()
-                                  .getBottomInventory(), this.inventory, e.getSlot(), getComponentRendered().getBlockedSlots());
+                .getBottomInventory(), this.inventory, e.getSlot(), getComponentRendered().getBlockedSlots());
             e.setCancelled(true);
             return;
         }
@@ -199,6 +231,7 @@ public class ActiveGUI extends ActiveComponentRendered<ActiveGUI, CustomGUIBuild
             Bukkit.getScheduler().runTask(MCCreativeLabExtension.getInstance(), this::doUpdate);
             return;
         }
+        isUpdating = true;
 
         Component rendering = render();
         Player player = getPlayer();
@@ -206,7 +239,6 @@ public class ActiveGUI extends ActiveComponentRendered<ActiveGUI, CustomGUIBuild
         player.getOpenInventory().getCursor();
         var itemAtCursor = player.getOpenInventory().getCursor().clone();
 
-        isUpdating = true;
         try {
             if (this.inventory != null) {
                 if (!isOpen) return;
@@ -234,12 +266,12 @@ public class ActiveGUI extends ActiveComponentRendered<ActiveGUI, CustomGUIBuild
             openUpdatedInventory(player, itemAtCursor);
         } finally {
             isUpdating = false;
+            isOpen = true;
         }
     }
 
     private void openUpdatedInventory(Player player, ItemStack itemAtCursor) {
         if (!isOpen && !FakeInventory.hasFakeInventory(player)) {
-            isOpen = true;
             FakeInventory.setFakeInventoryOfPlayer(player);
         }
 
