@@ -3,13 +3,28 @@ package de.verdox.mccreativelab.wrapper.block;
 import de.verdox.mccreativelab.MCCreativeLabExtension;
 import de.verdox.mccreativelab.serialization.NBTSerializer;
 import de.verdox.mccreativelab.util.nbt.NBTContainer;
+import de.verdox.mccreativelab.world.block.FakeBlock;
+import de.verdox.mccreativelab.world.block.FakeBlockStorage;
 import de.verdox.mccreativelab.wrapper.MCCWrapped;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
+import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.jetbrains.annotations.NotNull;
 
 public interface MCCBlockData extends MCCWrapped {
+
+    void setBlock(Location location);
+
+    static MCCBlockData getFromBlock(Block block){
+        FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockState(block.getLocation(), false);
+        if(fakeBlockState != null)
+            return MCCBlockData.wrap(fakeBlockState);
+        else
+            return MCCBlockData.wrap(block.getBlockData());
+    }
+
     static MCCBlockData wrap(BlockData vanillaBlockData) {
         return new Vanilla(vanillaBlockData);
     }
@@ -49,6 +64,13 @@ public interface MCCBlockData extends MCCWrapped {
                 return vanilla.getHandle().equals(getHandle());
             return false;
         }
+
+        @Override
+        public void setBlock(Location location) {
+            location.getBlock().setBlockData(this.getHandle());
+        }
+
+
     }
 
     class FakeBlockState extends MCCWrapped.Impl<de.verdox.mccreativelab.world.block.FakeBlock.FakeBlockState> implements MCCBlockData {
@@ -85,6 +107,11 @@ public interface MCCBlockData extends MCCWrapped {
             if(mccWrapped instanceof FakeBlockState fakeBlockState)
                 return fakeBlockState.getHandle().equals(getHandle());
             return false;
+        }
+
+        @Override
+        public void setBlock(Location location) {
+            FakeBlockStorage.setFakeBlockState(location, getHandle(), false);
         }
     }
 }

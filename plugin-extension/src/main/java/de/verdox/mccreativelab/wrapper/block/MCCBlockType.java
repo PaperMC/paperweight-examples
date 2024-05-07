@@ -3,22 +3,36 @@ package de.verdox.mccreativelab.wrapper.block;
 import de.verdox.mccreativelab.MCCreativeLabExtension;
 import de.verdox.mccreativelab.serialization.NBTSerializer;
 import de.verdox.mccreativelab.util.nbt.NBTContainer;
+import de.verdox.mccreativelab.world.block.FakeBlock;
+import de.verdox.mccreativelab.world.block.FakeBlockStorage;
 import de.verdox.mccreativelab.wrapper.MCCWrapped;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.block.Block;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
 import java.util.List;
 
 public interface MCCBlockType extends MCCWrapped {
+
+    void setBlock(Location location);
+    List<MCCBlockData> getAllBlockStates();
+
+    static MCCBlockType getFromBlock(Block block){
+        FakeBlock fakeBlock = FakeBlockStorage.getFakeBlock(block.getLocation(), false);
+        if(fakeBlock != null)
+            return MCCBlockType.wrap(fakeBlock);
+        else
+            return MCCBlockType.wrap(block.getType());
+    }
+
     static MCCBlockType wrap(Material blockMaterial) {
         assert blockMaterial.isBlock();
         return new Vanilla(blockMaterial);
     }
-
-    List<MCCBlockData> getAllBlockStates();
 
     static MCCBlockType wrap(de.verdox.mccreativelab.world.block.FakeBlock fakeBlock) {
         return new FakeBlockType(fakeBlock);
@@ -47,6 +61,11 @@ public interface MCCBlockType extends MCCWrapped {
         @Override
         public @NotNull NamespacedKey getKey() {
             return getHandle().getKey();
+        }
+
+        @Override
+        public void setBlock(Location location) {
+            location.getBlock().setType(getHandle());
         }
 
         @Override
@@ -88,6 +107,11 @@ public interface MCCBlockType extends MCCWrapped {
         @Override
         public @NotNull NamespacedKey getKey() {
             return getHandle().getKey();
+        }
+
+        @Override
+        public void setBlock(Location location) {
+            FakeBlockStorage.setFakeBlock(location, getHandle(), false);
         }
 
         @Override
