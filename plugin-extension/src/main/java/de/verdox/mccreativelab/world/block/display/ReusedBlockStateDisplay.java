@@ -71,8 +71,8 @@ public class ReusedBlockStateDisplay extends FakeBlockDisplay {
         private FakeBlock.FakeBlockHitbox fakeBlockHitbox;
         private ItemTextureData.ModelType modelType;
 
-        public Builder asFullBlockDisplay(Asset<CustomResourcePack> textureAsset) {
-            withFakeHitbox(UnusedBlockStates.getUnusedBlockState(Material.NOTE_BLOCK));
+        public Builder asFullBlockDisplay(Asset<CustomResourcePack> textureAsset, int noteBlockReusableStateID) {
+            withFakeHitbox(UnusedBlockStates.getUnusedBlockState(Material.NOTE_BLOCK, noteBlockReusableStateID));
             withTexture("all", textureAsset);
             withModel(ItemTextureData.ModelType.CUBE_ALL);
             return this;
@@ -99,8 +99,8 @@ public class ReusedBlockStateDisplay extends FakeBlockDisplay {
 
         @Override
         public ReusedBlockStateDisplay build(NamespacedKey namespacedKey) {
-            Objects.requireNonNull(modelType);
-            Objects.requireNonNull(fakeBlockHitbox);
+            Objects.requireNonNull(modelType, "No ModelType specified!");
+            Objects.requireNonNull(fakeBlockHitbox, "No FakeBlockHitbox specified!");
             return new ReusedBlockStateDisplay(namespacedKey, fakeBlockHitbox, textures, modelType);
         }
     }
