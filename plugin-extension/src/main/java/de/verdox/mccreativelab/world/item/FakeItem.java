@@ -93,12 +93,11 @@ public class FakeItem implements Keyed, ItemBehaviour {
 
     public final ItemStack createItemStack() {
         ItemStack stack = new ItemStack(material);
-        if (metaConsumer != null)
-            stack.editMeta(metaConsumer);
         stack.editMeta((meta) -> {
             if (nameTranslatable != null)
-                meta.displayName(Component.translatable(nameTranslatable.key())
-                                          .decoration(TextDecoration.ITALIC, false));
+                meta.displayName(Component.translatable(nameTranslatable.key()).decoration(TextDecoration.ITALIC, false));
+            if(metaConsumer != null)
+                metaConsumer.accept(meta);
             meta.setCustomModelData(customModelData);
         });
         //stack.setItemBehaviour(this);
@@ -212,6 +211,9 @@ public class FakeItem implements Keyed, ItemBehaviour {
         private Asset<CustomResourcePack> texture;
         private Translatable translatable;
 
+        private ItemTextureData itemTextureData;
+        private ItemTextureData.ModelType modelType;
+
         public Builder(NamespacedKey namespacedKey, Material vanillaMaterial, Supplier<T> itemBuilder) {
             this.itemBuilder = itemBuilder;
             Objects.requireNonNull(vanillaMaterial);
@@ -222,6 +224,11 @@ public class FakeItem implements Keyed, ItemBehaviour {
 
         public Builder<T> withItemMeta(Consumer<ItemMeta> itemMetaBuilder) {
             this.itemMetaBuilder = itemMetaBuilder;
+            return this;
+        }
+
+        public Builder<T> withItemTextureData(ItemTextureData itemTextureData) {
+            this.itemTextureData = itemTextureData;
             return this;
         }
 
@@ -244,10 +251,19 @@ public class FakeItem implements Keyed, ItemBehaviour {
             return this;
         }
 
+        public Builder<T> withModel(ItemTextureData.ModelType modelType) {
+            this.modelType = modelType;
+            return this;
+        }
+
         T buildItem() {
             //int customModelData = CustomModelDataProvider.drawCustomModelData(vanillaMaterial);
             // Generating customModelData with deterministic hash value of the item key
-            ItemTextureData itemTextureData = new ItemTextureData(new NamespacedKey(namespacedKey.namespace(), "item/" + namespacedKey.value()), vanillaMaterial, texture, null, texture == null);
+            ItemTextureData itemTextureData;
+            if (this.itemTextureData != null)
+                itemTextureData = this.itemTextureData;
+            else
+                itemTextureData = new ItemTextureData(new NamespacedKey(namespacedKey.namespace(), "item/" + namespacedKey.value()), vanillaMaterial, texture, modelType, texture == null && modelType == null);
             int customModelData = itemTextureData.getCustomModelData();
             T value = itemBuilder.get();
 
@@ -255,14 +271,16 @@ public class FakeItem implements Keyed, ItemBehaviour {
             value.setCustomModelData(customModelData);
             value.setKey(namespacedKey);
 
-            if (this.translatable != null && value.getNameTranslatable() == null) value.setNameTranslatable(translatable);
-            if (this.fakeItemProperties != null && value.getFakeItemProperties() == null) value.setFakeItemProperties(fakeItemProperties);
+            if (this.translatable != null && value.getNameTranslatable() == null)
+                value.setNameTranslatable(translatable);
+            if (this.fakeItemProperties != null && value.getFakeItemProperties() == null)
+                value.setFakeItemProperties(fakeItemProperties);
             if (this.itemMetaBuilder != null && value.getMetaConsumer() == null) value.setMetaConsumer(itemMetaBuilder);
 
             Objects.requireNonNull(namespacedKey);
             Objects.requireNonNull(vanillaMaterial);
 
-            MCCreativeLabExtension.getCustomResourcePack().register(itemTextureData);
+            MCCreativeLabExtension.getCustomResourcePack().registerIfNotAlready(itemTextureData);
             if (translatable != null) MCCreativeLabExtension.getCustomResourcePack().addTranslation(translatable);
 
             ItemBehaviour.ITEM_BEHAVIOUR.setBehaviour(new CustomItemData(vanillaMaterial, customModelData), value);
