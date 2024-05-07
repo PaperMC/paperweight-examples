@@ -10,12 +10,11 @@ import io.papermc.paper.event.world.WorldSoundEvent;
 import net.kyori.adventure.sound.Sound;
 import org.bukkit.*;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockState;
 import org.bukkit.block.data.BlockData;
-import org.bukkit.entity.Enemy;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
-import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
@@ -62,16 +61,6 @@ public class FakeBlockSoundManager implements Listener {
         DIGGING_SOUND_DELAY.reset(e.getPlayer());
     }
 
-    @EventHandler
-    public void replaceSounds(WorldSoundEvent e){
-
-    }
-
-    @EventHandler
-    public void replaceEffect(WorldEffectEvent e){
-
-    }
-
 /*    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void simulateBlockBreakWhenCreativeOrForBlocksWithoutStandardSounds(BlockBreakEvent e) {
         if (!isBlockWithoutStandardSound(e.getBlock()))
@@ -102,6 +91,13 @@ public class FakeBlockSoundManager implements Listener {
         net.kyori.adventure.sound.Sound sound = soundGroup.getBreakSound()
                                                           .asSound(net.kyori.adventure.sound.Sound.Source.BLOCK, (soundGroup.getVolume() + 1.0F) / 2.0F, soundGroup.getPitch() * 0.8F);
         block.getWorld().playSound(sound, block.getX(), block.getY(), block.getZ());
+    }
+
+    public static void simulateBreakSound(BlockState blockState, FakeBlock.FakeBlockState fakeBlockState) {
+        Wrappers.SoundGroup soundGroup = getSoundGroup(blockState.getBlockData(), fakeBlockState);
+        net.kyori.adventure.sound.Sound sound = soundGroup.getBreakSound()
+            .asSound(net.kyori.adventure.sound.Sound.Source.BLOCK, (soundGroup.getVolume() + 1.0F) / 2.0F, soundGroup.getPitch() * 0.8F);
+        blockState.getBlock().getWorld().playSound(sound, blockState.getBlock().getX(), blockState.getBlock().getY(), blockState.getBlock().getZ());
     }
 
     public static void simulateBlockPlaceSound(Block block, FakeBlock.FakeBlockState fakeBlockState) {
@@ -137,9 +133,13 @@ public class FakeBlockSoundManager implements Listener {
     }
 
     public static Wrappers.SoundGroup getSoundGroup(@NotNull Block block, @Nullable FakeBlock.FakeBlockState fakeBlockState) {
+        return getSoundGroup(block.getBlockData(), fakeBlockState);
+    }
+
+    public static Wrappers.SoundGroup getSoundGroup(@NotNull BlockData blockData, @Nullable FakeBlock.FakeBlockState fakeBlockState) {
         if(fakeBlockState != null && fakeBlockState.getFakeBlockSoundGroup() != null)
             return fakeBlockState.getFakeBlockSoundGroup().asSoundGroup();
         else
-            return MCCreativeLabExtension.getReplacedSoundGroups().getSoundGroup(block.getBlockData());
+            return MCCreativeLabExtension.getReplacedSoundGroups().getSoundGroup(blockData);
     }
 }
