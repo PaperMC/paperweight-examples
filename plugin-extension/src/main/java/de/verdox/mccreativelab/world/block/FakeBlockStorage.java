@@ -2,16 +2,13 @@ package de.verdox.mccreativelab.world.block;
 
 import de.verdox.mccreativelab.MCCreativeLabExtension;
 import de.verdox.mccreativelab.util.storage.palette.NBTPalettedContainer;
-import de.verdox.mccreativelab.registry.exception.PaletteValueUnknownException;
 import de.verdox.mccreativelab.util.storage.palette.IdMap;
 import de.verdox.mccreativelab.util.PaletteUtil;
-import de.verdox.mccreativelab.world.item.FakeItem;
 import de.verdox.mccreativelab.worldgen.WorldGenChunk;
 import org.bukkit.*;
 import org.bukkit.persistence.PersistentDataAdapterContext;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
-import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -34,6 +31,10 @@ public class FakeBlockStorage {
     }
 
     public static boolean setFakeBlockState(Location location, @Nullable FakeBlock.FakeBlockState fakeBlockState, boolean forceLoad) {
+        return setFakeBlockState(location, fakeBlockState, true, forceLoad);
+    }
+
+    public static boolean setFakeBlockState(Location location, @Nullable FakeBlock.FakeBlockState fakeBlockState, boolean updateBlockData, boolean forceLoad) {
         FakeBlockStorage fakeBlockStorage = MCCreativeLabExtension.getFakeBlockStorage();
 
         int localX = PaletteUtil.worldXToPaletteXCoordinate(location.getBlockX());
@@ -52,16 +53,21 @@ public class FakeBlockStorage {
         }
         FakeBlockPalettedContainer fakeBlockPaletteContainer = fakeBlockStorage.getFakeBlockPalette(world, chunkKey);
         FakeBlock.FakeBlockState currentFakeBlockState = fakeBlockPaletteContainer.getData(localX, localY, localZ);
+
         if (currentFakeBlockState != null) {
             currentFakeBlockState.getFakeBlockDisplay().getFakeBlockVisualStrategy()
-                                 .removeFakeBlockDisplay(location.getBlock());
-            location.getBlock().setBlockData(Bukkit.createBlockData(Material.AIR));
-        }
-        fakeBlockPaletteContainer.setData(fakeBlockState, localX, localY, localZ);
+                .removeFakeBlockDisplay(location.getBlock());
+            fakeBlockPaletteContainer.setData(fakeBlockState, localX, localY, localZ);
+            if (updateBlockData)
+                location.getBlock().setBlockData(Bukkit.createBlockData(Material.AIR));
+        } else fakeBlockPaletteContainer.setData(fakeBlockState, localX, localY, localZ);
+
 
         if (fakeBlockState != null) {
             fakeBlockState.getFakeBlockDisplay().getFakeBlockVisualStrategy().spawnFakeBlockDisplay(location.getBlock(), fakeBlockState);
-            location.getBlock().setBlockData(fakeBlockState.getFakeBlockDisplay().getHitBox().getBlockData());
+
+            if (updateBlockData)
+                location.getBlock().setBlockData(fakeBlockState.getFakeBlockDisplay().getHitBox().getBlockData());
         }
         return true;
     }
@@ -135,8 +141,8 @@ public class FakeBlockStorage {
             PersistentDataContainer fakeBlockPaletteNBT = persistentDataContainer.get(FAKE_BLOCK_PALETTE_KEY, PersistentDataType.TAG_CONTAINER);
             if (fakeBlockPaletteNBT == null) {
                 Bukkit.getLogger()
-                      .warning("Corrupt fake block palette found for chunk " + chunk.getX() + " " + chunk.getZ() + " in world " + chunk
-                          .getWorld().getName());
+                    .warning("Corrupt fake block palette found for chunk " + chunk.getX() + " " + chunk.getZ() + " in world " + chunk
+                        .getWorld().getName());
             } else
                 fakeBlockPaletteContainer.deSerialize(FAKE_BLOCK_PALETTE_KEY, persistentDataContainer);
         }
