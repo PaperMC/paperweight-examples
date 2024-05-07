@@ -9,6 +9,7 @@ import java.util.List;
 public class StringAlign {
     public static final String LOREM_IPSUM = "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.";
 
+    @Deprecated
     public static List<String> justifyText (String text, int length) {
         int end = length, extraSpacesPerWord = 0, spillOverSpace = 0;
         String[] words;
@@ -36,7 +37,8 @@ public class StringAlign {
         return list;
     }
 
-        public static List<String> createLines(String input, int maxCharsPerLine) {
+    @Deprecated
+    public static List<String> createLines(String input, int maxCharsPerLine) {
         var result = new LinkedList<String>();
 
         var charCounter = 0;
@@ -61,7 +63,7 @@ public class StringAlign {
         return result;
     }
 
-    public static List<String> format2(String input, int maxChars, Alignment alignment) {
+    public static List<String> formatStringToLines(String input, int maxChars, Alignment alignment) {
         var output = new LinkedList<String>();
         var words = input.split(" ");
         var charCounter = 0;
@@ -69,29 +71,36 @@ public class StringAlign {
 
         for (int i = 0; i < words.length; i++) {
             var word = words[i];
+            var spaceNeeded = charCounter == 0 ? 0 : 1; // Kein Leerzeichen für das erste Wort der Zeile
 
-            var willCreateNewLine = charCounter + word.length() > maxChars;
-
-            if (willCreateNewLine) {
+            // Entscheiden, ob ein neues Wort + evtl. Leerzeichen passt oder nicht
+            if (charCounter + spaceNeeded + word.length() > maxChars) {
                 output.add(alignment.align(builder.toString(), maxChars));
                 builder = new StringBuilder();
                 charCounter = 0;
+                spaceNeeded = 0; // Zurücksetzen, da es das erste Wort der neuen Zeile ist
             }
 
-            charCounter += word.length();
-            builder.append(word);
-            if (!willCreateNewLine && i != words.length - 1)
+            // Leerzeichen hinzufügen, wenn es nicht das erste Wort in der Zeile ist
+            if (charCounter > 0) {
                 builder.append(" ");
+                charCounter++; // Leerzeichen zählen
+            }
 
+            // Wort hinzufügen
+            builder.append(word);
+            charCounter += word.length();
         }
 
+        // Den Inhalt des Builders zur Liste hinzufügen, wenn noch etwas vorhanden ist
         var content = builder.toString();
         if (!content.isEmpty())
-            output.add(alignment.align(builder.toString(), maxChars));
+            output.add(alignment.align(content, maxChars));
 
         return output;
     }
 
+    @Deprecated
     public static List<String> format(String input, int maxChars, Alignment alignment) {
         List<String> strings = splitInputString(input, maxChars);
 
@@ -138,35 +147,6 @@ public class StringAlign {
             list.add(str.substring(i, endindex));
         }
         return list;
-    }
-
-    public static String formatiereZeile(String zeile, int maxCharactersPerLine) {
-        if (zeile.length() <= maxCharactersPerLine) {
-            return zeile; // Die Zeile passt bereits in das Zeilenlimit
-        } else {
-            String[] worte = zeile.trim().split("\\s+");
-            int anzahlWorte = worte.length;
-            int anzahlLeerzeichen = maxCharactersPerLine - zeile.length() + anzahlWorte - 1;
-
-            int leerzeichenProWort = anzahlLeerzeichen / (anzahlWorte - 1);
-            int zusätzlicheLeerzeichen = anzahlLeerzeichen % (anzahlWorte - 1);
-
-            StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < anzahlWorte; i++) {
-                sb.append(worte[i]);
-
-                if (i < anzahlWorte - 1) {
-                    sb.append(" ".repeat(Math.max(0, leerzeichenProWort)));
-
-                    if (zusätzlicheLeerzeichen > 0) {
-                        sb.append(" ");
-                        zusätzlicheLeerzeichen--;
-                    }
-                }
-            }
-
-            return sb.toString();
-        }
     }
 
     public enum Alignment {
