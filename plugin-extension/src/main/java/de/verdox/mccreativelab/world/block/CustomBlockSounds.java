@@ -1,25 +1,28 @@
 package de.verdox.mccreativelab.world.block;
 
+import de.verdox.mccreativelab.MCCreativeLabExtension;
 import de.verdox.mccreativelab.Wrappers;
-import de.verdox.mccreativelab.util.EntityMetadataPredicate;
-import de.verdox.mccreativelab.world.sound.ReplacedSoundGroups;
 import io.papermc.paper.event.player.PlayerArmSwingEvent;
 import io.papermc.paper.event.world.WorldEffectEvent;
 import io.papermc.paper.event.world.WorldSoundEvent;
-import net.kyori.adventure.key.Key;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-import org.bukkit.event.player.PlayerAnimationType;
+import org.bukkit.event.block.Action;
+import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.world.GenericGameEvent;
+import org.bukkit.metadata.FixedMetadataValue;
+import org.bukkit.util.RayTraceResult;
 
 public class CustomBlockSounds implements Listener {
     @EventHandler
     public void gameEvent(GenericGameEvent genericGameEvent) {
-        if (!(genericGameEvent.getEntity() instanceof Player player))
+        if (!(genericGameEvent.getEntity() instanceof Player))
             return;
         Block block = genericGameEvent.getLocation().getBlock();
         if (!FakeBlockSoundManager.isBlockWithoutStandardSound(block))
@@ -33,11 +36,43 @@ public class CustomBlockSounds implements Listener {
             FakeBlockSoundManager.simulateBreakSound(block, fakeBlockState);
     }
 
-    @EventHandler
-    public void armSwingWhileDigging(PlayerArmSwingEvent e) {
-        if (!e.getAnimationType().equals(PlayerAnimationType.ARM_SWING))
-            return;
 
+    // The upper method will not be called when the block break was cancelled. However, the client will predict a block break and needs a sound anyway.
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void playBreakSoundEvenWhenBreakCancelled(BlockBreakEvent e) {
+        if (!e.isCancelled())
+            return;
+        if (!FakeBlockSoundManager.isBlockWithoutStandardSound(e.getBrokenState().getBlockData()))
+            return;
+        FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockState(e.getBlock().getLocation(), false);
+        FakeBlockSoundManager.simulateBreakSound(e.getBrokenState(), fakeBlockState);
+    }
+
+    @EventHandler
+    public void storeLastPlayerInteraction(PlayerInteractEvent e) {
+        e.getPlayer().setMetadata("last_click_action", new FixedMetadataValue(MCCreativeLabExtension.getInstance(), e.getAction()));
+    }
+
+    @EventHandler
+    public void simulateDiggingSoundOnArmSwing(PlayerArmSwingEvent e) {
+        Player player = e.getPlayer();
+        if (!e.getHand().isHand())
+            return;
+        if (e.getPlayer().hasMetadata("last_click_action")) {
+
+            Action action = (Action) e.getPlayer().getMetadata("last_click_action").get(0).value();
+            if (action != null && action.isRightClick())
+                return;
+
+        }
+        RayTraceResult rayTraceResult = e.getPlayer().rayTraceBlocks(7, FluidCollisionMode.NEVER);
+        if (rayTraceResult == null)
+            return;
+        Block block = rayTraceResult.getHitBlock();
+        if (block == null || !FakeBlockSoundManager.isBlockWithoutStandardSound(block))
+            return;
+        FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockState(block.getLocation(), false);
+        FakeBlockSoundManager.simulateDiggingSound(player, block, fakeBlockState);
     }
 
     @EventHandler
@@ -67,7 +102,7 @@ public class CustomBlockSounds implements Listener {
 
         if (e.getEffect().equals(Effect.STEP_SOUND)) {
             FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockState(e.getSoundLocation()
-                                                                                          .toBlockLocation(), false);
+                .toBlockLocation(), false);
             if (fakeBlockState != null) {
                 e.setExcept(null);
                 BlockData blockData = fakeBlockState.getFakeBlockDisplay().getDestroyParticleData();
