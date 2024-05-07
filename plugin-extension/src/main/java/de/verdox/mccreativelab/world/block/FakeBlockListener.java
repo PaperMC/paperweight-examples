@@ -6,14 +6,7 @@ import org.bukkit.block.Block;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-import org.bukkit.event.block.BlockBreakEvent;
-import org.bukkit.event.block.BlockDropItemEvent;
-import org.bukkit.event.block.BlockFertilizeEvent;
-import org.bukkit.event.block.BlockPlaceEvent;
-import org.bukkit.inventory.ItemStack;
-
-import javax.annotation.Nullable;
-import java.util.List;
+import org.bukkit.event.block.*;
 
 public class FakeBlockListener implements Listener {
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
@@ -24,6 +17,13 @@ public class FakeBlockListener implements Listener {
         FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockState(e.getBlock().getLocation(), false);
 
 /*        FakeBlockSoundManager.simulateBlockPlaceSound(e.getPlayer(), e.getBlock(), fakeBlockState);*/
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
+    public void preventNotePlayWhenIsFakeBlockEvent(NotePlayEvent e){
+        Block block = e.getBlock();
+        if(FakeBlockStorage.getFakeBlock(block.getLocation(), false) != null)
+            e.setCancelled(true);
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
