@@ -293,16 +293,61 @@ public class ItemTextureData extends ResourcePackResource {
 
         public static final ModelType CLICKABLE_ITEM = new ModelType("clickable_item", (namespacedKey, jsonObject) ->
             JsonObjectBuilder.create(jsonObject).add("parent", "item/generated")
-                             .add("textures", JsonObjectBuilder.create().add("layer0", namespacedKey.toString()))
-                             .add("display",
-                                 JsonObjectBuilder.create().add("gui",
-                                     JsonObjectBuilder.create()
-                                                      .add("scale", JsonArrayBuilder
-                                                          .create()
-                                                          .add(1.2f)
-                                                          .add(1)
-                                                          .add(1))))
-                             .build());
+                .add("textures", JsonObjectBuilder.create().add("layer0", namespacedKey.toString()))
+                .add("", "")
+                .add("display",
+                    JsonObjectBuilder.create()
+                        .add("gui",
+                            JsonObjectBuilder.create()
+                                .add("scale", JsonArrayBuilder
+                                    .create()
+                                    .add(1)
+                                    .add(1)
+                                    .add(1)))
+                        .add("thirdperson_righthand",
+                            JsonObjectBuilder.create()
+                                .add("scale", JsonArrayBuilder
+                                    .create()
+                                    .add(0)
+                                    .add(0)
+                                    .add(0)))
+                        .add("thirdperson_lefthand",
+                            JsonObjectBuilder.create()
+                                .add("scale", JsonArrayBuilder
+                                    .create()
+                                    .add(0)
+                                    .add(0)
+                                    .add(0)))
+                        .add("firstperson_righthand",
+                            JsonObjectBuilder.create()
+                                .add("scale", JsonArrayBuilder
+                                    .create()
+                                    .add(0)
+                                    .add(0)
+                                    .add(0)))
+                        .add("firstperson_lefthand",
+                            JsonObjectBuilder.create()
+                                .add("scale", JsonArrayBuilder
+                                    .create()
+                                    .add(0)
+                                    .add(0)
+                                    .add(0)))
+                        .add("ground",
+                            JsonObjectBuilder.create()
+                                .add("scale", JsonArrayBuilder
+                                    .create()
+                                    .add(0)
+                                    .add(0)
+                                    .add(0)))
+                        .add("head",
+                            JsonObjectBuilder.create()
+                                .add("scale", JsonArrayBuilder
+                                    .create()
+                                    .add(0)
+                                    .add(0)
+                                    .add(0)))
+                )
+                .build());
     }
 
     public Material getMaterial() {
