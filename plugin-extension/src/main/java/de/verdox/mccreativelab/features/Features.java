@@ -1,5 +1,7 @@
 package de.verdox.mccreativelab.features;
 
+import de.verdox.mccreativelab.features.gui.GuiUtility;
+
 public final class Features {
 
     public void useTrueDarkness(){
@@ -8,5 +10,9 @@ public final class Features {
 
     public void useBetaFog(){
         new BetaFogFeature().enable();
+    }
+
+    public void enableGUIUtility(){
+        new GuiUtility().enable();
     }
 }
