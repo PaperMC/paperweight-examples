@@ -9,6 +9,7 @@ import de.verdox.mccreativelab.generator.resourcepack.ResourcePackResource;
 import de.verdox.mccreativelab.recipe.CustomItemData;
 import de.verdox.mccreativelab.util.gson.JsonArrayBuilder;
 import de.verdox.mccreativelab.util.gson.JsonObjectBuilder;
+import de.verdox.mccreativelab.util.gson.JsonUtil;
 import de.verdox.mccreativelab.util.io.AssetUtil;
 import org.bukkit.*;
 import org.bukkit.block.BlockFace;
@@ -148,6 +149,23 @@ public class ItemTextureData extends ResourcePackResource {
     }
 
     public record ModelType(String modelName, BiConsumer<NamespacedKey, JsonObject> modelCreator) {
+
+        public static ModelType fromJsonAsset(Asset<CustomResourcePack> asset, Consumer<JsonObject> consumer){
+            try {
+                JsonObject jsonObject = JsonUtil.readJsonInputStream(asset.assetInputStream().get());
+                return new ModelType("", (namespacedKey, jsonObject1) -> {
+                    jsonObject1.asMap().putAll(jsonObject.asMap());
+                    consumer.accept(jsonObject1);
+                });
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        public static ModelType createJsonForModel(Consumer<JsonObject> consumer){
+            return new ModelType("", (namespacedKey, jsonObject1) -> consumer.accept(jsonObject1));
+        }
+
         public static ModelType modifyExistingModelType(ModelType modelType, BiConsumer<NamespacedKey, JsonObject> modelCreator) {
             return new ModelType(modelType.modelName, (namespacedKey, jsonObject) -> {
                 modelType.modelCreator().accept(namespacedKey, jsonObject);
