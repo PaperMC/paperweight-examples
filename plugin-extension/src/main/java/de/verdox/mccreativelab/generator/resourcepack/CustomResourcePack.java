@@ -64,8 +64,15 @@ public class CustomResourcePack extends CustomPack<CustomResourcePack> {
         return languageStorage;
     }
 
-    public void addTranslation(Translatable translatable) {
+    public Translatable addTranslation(Translatable translatable) {
         languageStorage.addTranslation(translatable);
+        return translatable;
+    }
+
+    public List<Translatable> addTranslations(List<Translatable> translatables) {
+        for (Translatable translatable : translatables)
+            languageStorage.addTranslation(translatable);
+        return translatables;
     }
 
     @Override
