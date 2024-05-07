@@ -7,9 +7,13 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.type.Sapling;
 
 public class VanillaSaplingBlockBehaviour extends VanillaCropRandomTickBehaviour {
+    public VanillaSaplingBlockBehaviour(int minLightLevel) {
+        super(minLightLevel);
+    }
+
     @Override
     public BehaviourResult.Void randomTick(Block block, VanillaRandomSource vanillaRandomSource) {
-        if(block.getLightLevel() >= 9 && drawRandomNumber() < (getAndValidateGrowth("Sapling") / (100.0f * 7))){
+        if(block.getLightLevel() >= 9 && drawRandomNumber(vanillaRandomSource) < (getAndValidateGrowth("Sapling") / (100.0f * 7))){
             var sapling = (Sapling) block.getBlockData();
             var stage = sapling.getStage();
             if(stage == 0){

@@ -9,6 +9,9 @@ import org.bukkit.block.data.Ageable;
 import org.bukkit.block.data.BlockData;
 
 public class VanillaSugarCaneRandomTickBehaviour extends VanillaCropRandomTickBehaviour {
+    public VanillaSugarCaneRandomTickBehaviour(int minLightLevel) {
+        super(minLightLevel);
+    }
 
     @Override
     public BehaviourResult.Void randomTick(Block block, VanillaRandomSource vanillaRandomSource) {
@@ -25,12 +28,12 @@ public class VanillaSugarCaneRandomTickBehaviour extends VanillaCropRandomTickBe
 
         if(heightCounter < 3){
 
-            if(age >= 15 || (modifier != 100 && drawRandomNumber() < (modifier / (100f * 16)))){
+            if(age >= 15 || (modifier != 100 && drawRandomNumber(vanillaRandomSource) < (modifier / (100f * 16)))){
                 handleBlockGrowEvent(block.getRelative(0,1,0), Bukkit.createBlockData(Material.SUGAR_CANE));
                 ageable.setAge(0);
                 block.setBlockData(ageable);
             }
-            else if(modifier == 100 || drawRandomNumber() < (modifier / (100.0f * 16))){
+            else if(modifier == 100 || drawRandomNumber(vanillaRandomSource) < (modifier / (100.0f * 16))){
                 ageable.setAge(Math.min(maxAge, ageable.getAge() + 1));
                 block.setBlockData(ageable);
             }

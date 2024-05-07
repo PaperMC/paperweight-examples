@@ -14,6 +14,11 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public class VanillaStemBlockRandomTickBehaviour extends VanillaCropRandomTickBehaviour {
     public static BlockFace[] HORIZONTAL_PLANE = new BlockFace[]{BlockFace.NORTH, BlockFace.SOUTH, BlockFace.EAST, BlockFace.WEST};
+
+    public VanillaStemBlockRandomTickBehaviour(int minLightLevel) {
+        super(minLightLevel);
+    }
+
     @Override
     public BehaviourResult.Void randomTick(Block block, VanillaRandomSource vanillaRandomSource) {
         var lightLevel = block.getLightLevel();
@@ -21,7 +26,7 @@ public class VanillaStemBlockRandomTickBehaviour extends VanillaCropRandomTickBe
             return voidResult();
 
         float growthSpeed = calculateCropGrowthSpeed(block);
-        var randomNumber = drawRandomNumber();
+        var randomNumber = drawRandomNumber(vanillaRandomSource);
 
         int modifier;
         Material fruit;
@@ -30,8 +35,7 @@ public class VanillaStemBlockRandomTickBehaviour extends VanillaCropRandomTickBe
             modifier = getAndValidateGrowth("Pumpkin");
             fruit = Material.PUMPKIN;
             attachedStem = Material.ATTACHED_PUMPKIN_STEM;
-        }
-        else {
+        } else {
             modifier = getAndValidateGrowth("Melon");
             fruit = Material.MELON;
             attachedStem = Material.ATTACHED_MELON_STEM;
@@ -45,7 +49,7 @@ public class VanillaStemBlockRandomTickBehaviour extends VanillaCropRandomTickBe
         var maxAge = ageable.getMaximumAge();
 
         if (age < maxAge) {
-            ageUpAndCallBlockGrowEvent(block, ageable);
+            ageUpAndCallBlockGrowEvent(block, ageable, age + 1);
             return voidResult();
         }
         var randomBlockFace = HORIZONTAL_PLANE[ThreadLocalRandom.current().nextInt(HORIZONTAL_PLANE.length)];
@@ -56,7 +60,7 @@ public class VanillaStemBlockRandomTickBehaviour extends VanillaCropRandomTickBe
         if (belowRelativPos.getType().isAir() && (relativeBlock.getType().equals(Material.FARMLAND) || relativeBlock
             .getType().equals(Material.DIRT))) {
 
-            if(!handleBlockGrowEvent(relativeBlock, Bukkit.createBlockData(fruit)))
+            if (!handleBlockGrowEvent(relativeBlock, Bukkit.createBlockData(fruit)))
                 return voidResult();
 
             var stemBlockData = Bukkit.createBlockData(attachedStem, blockData -> ((Directional) blockData).setFacing(randomBlockFace));
