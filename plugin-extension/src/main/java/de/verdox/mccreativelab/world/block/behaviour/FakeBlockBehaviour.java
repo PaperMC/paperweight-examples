@@ -61,7 +61,7 @@ public class FakeBlockBehaviour implements BlockBehaviour {
     public BehaviourResult.Bool canSurvive(Block block, World world) {
         FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockState(block.getLocation(), false);
 
-        if(fakeBlockState == null)
+        if (fakeBlockState == null)
             fakeBlockState = setFakeBlockStateIfReplacesVanillaBlockState(block, block.getBlockData());
 
         if (fakeBlockState != null)
@@ -74,7 +74,7 @@ public class FakeBlockBehaviour implements BlockBehaviour {
     public BehaviourResult.Void stepOn(Block block, BlockData blockData, Entity entity) {
         FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockState(block.getLocation(), false);
 
-        if(fakeBlockState == null)
+        if (fakeBlockState == null)
             fakeBlockState = setFakeBlockStateIfReplacesVanillaBlockState(block, blockData);
 
         if (fakeBlockState != null)
@@ -83,20 +83,11 @@ public class FakeBlockBehaviour implements BlockBehaviour {
         return BlockBehaviour.super.stepOn(block, blockData, entity);
     }
 
-/*    @Override
-    public BehaviourResult.Callback onRemove(Location location, BlockData newBlockData, BlockData oldBlockData, boolean moved) {
-        FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockState(location, false);
-        if (fakeBlockState != null)
-            fakeBlockState.getFakeBlock().remove(location, !moved && !newBlockData.getMaterial().equals(oldBlockData.getMaterial()) && !newBlockData.equals(oldBlockData));
-
-        return BlockBehaviour.super.onRemove(location, newBlockData, oldBlockData, moved);
-    }*/
-
     @Override
     public BehaviourResult.Void randomTick(Block block, VanillaRandomSource vanillaRandomSource) {
         FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockState(block.getLocation(), false);
 
-        if(fakeBlockState == null)
+        if (fakeBlockState == null)
             fakeBlockState = setFakeBlockStateIfReplacesVanillaBlockState(block, block.getBlockData());
 
         if (fakeBlockState != null)
@@ -109,7 +100,7 @@ public class FakeBlockBehaviour implements BlockBehaviour {
     public BehaviourResult.Void tick(Block block, VanillaRandomSource vanillaRandomSource) {
         FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockState(block.getLocation(), false);
 
-        if(fakeBlockState == null)
+        if (fakeBlockState == null)
             fakeBlockState = setFakeBlockStateIfReplacesVanillaBlockState(block, block.getBlockData());
 
         if (fakeBlockState != null)
@@ -122,13 +113,13 @@ public class FakeBlockBehaviour implements BlockBehaviour {
     public BehaviourResult.Object<BlockData> blockUpdate(Location location, BlockData blockData, BlockFace direction, BlockData neighbourBlockData, Location neighbourLocation) {
         FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockState(location, false);
 
-        if(fakeBlockState == null)
+        if (fakeBlockState == null)
             fakeBlockState = setFakeBlockStateIfReplacesVanillaBlockState(location.getBlock(), blockData);
 
         if (fakeBlockState != null) {
             BehaviourResult.Object<BlockData> result = fakeBlockState.getFakeBlock().blockUpdate(location, blockData, direction, neighbourBlockData, neighbourLocation);
             fakeBlockState.getFakeBlockDisplay().getFakeBlockVisualStrategy()
-                          .blockUpdate(location.getBlock(), fakeBlockState, direction, neighbourBlockData);
+                .blockUpdate(location.getBlock(), fakeBlockState, direction, neighbourBlockData);
             return result;
         }
         return BlockBehaviour.super.blockUpdate(location, blockData, direction, neighbourBlockData, neighbourLocation);
@@ -138,7 +129,7 @@ public class FakeBlockBehaviour implements BlockBehaviour {
     public BehaviourResult.Void onNeighbourBlockUpdate(Block block, Block sourceBlock, boolean notify) {
         FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockState(block.getLocation(), false);
 
-        if(fakeBlockState == null)
+        if (fakeBlockState == null)
             fakeBlockState = setFakeBlockStateIfReplacesVanillaBlockState(block, block.getBlockData());
 
         if (fakeBlockState != null)
@@ -151,7 +142,7 @@ public class FakeBlockBehaviour implements BlockBehaviour {
     public BehaviourResult.Void attack(Block block, Player player) {
         FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockState(block.getLocation(), false);
 
-        if(fakeBlockState == null)
+        if (fakeBlockState == null)
             fakeBlockState = setFakeBlockStateIfReplacesVanillaBlockState(block, block.getBlockData());
 
         if (fakeBlockState != null)
@@ -195,11 +186,11 @@ public class FakeBlockBehaviour implements BlockBehaviour {
     }
 
     @Nullable
-    private FakeBlock.FakeBlockState setFakeBlockStateIfReplacesVanillaBlockState(Block block, BlockData blockData){
+    private FakeBlock.FakeBlockState setFakeBlockStateIfReplacesVanillaBlockState(Block block, BlockData blockData) {
         FakeBlock.FakeBlockState fakeBlockState = FakeBlockRegistry.getFakeBlockStateFromBlockData(blockData);
-        if(fakeBlockState == null)
+        if (fakeBlockState == null)
             return null;
-        FakeBlockStorage.setFakeBlockState(block.getLocation(), fakeBlockState, false);
+        FakeBlockStorage.setFakeBlockState(block.getLocation(), fakeBlockState, false, false);
         return fakeBlockState;
     }
 }
