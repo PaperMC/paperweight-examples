@@ -34,6 +34,10 @@ public abstract class CustomRegistry<T> {
         onFreeze();
     }
 
+    public int getSize(){
+        return registry.size();
+    }
+
     protected void clear() {
         this.freeze = false;
         idCounter.set(0);
@@ -80,6 +84,7 @@ public abstract class CustomRegistry<T> {
         return registry.keySet().stream();
     }
 
+    @Nullable
     public NamespacedKey getKey(T data) {
         return dataToKeyMapping.get(data);
     }
@@ -97,6 +102,7 @@ public abstract class CustomRegistry<T> {
         return keyToId.getOrDefault(namespacedKey, -1);
     }
 
+    @Nullable
     public T get(NamespacedKey namespacedKey) {
         return registry.get(namespacedKey);
     }
