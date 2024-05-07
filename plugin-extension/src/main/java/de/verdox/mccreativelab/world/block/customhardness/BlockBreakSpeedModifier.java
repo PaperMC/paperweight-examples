@@ -64,20 +64,7 @@ public class BlockBreakSpeedModifier implements Listener {
         startBlockBreakAction(e.getPlayer(), e.getBlock(), e.getBlockFace(), e);
     }
 
-    @EventHandler
-    public void onPlayerDigAnimation(PlayerArmSwingEvent e){
-        Player player = e.getPlayer();
-        if (map.containsKey(player)){
-            BlockBreakProgress blockBreakProgress = map.get(player);
-            FakeBlockSoundManager.simulateDiggingSound(player, blockBreakProgress.block, blockBreakProgress.fakeBlockState);
-        }
-        else if(player.hasMetadata("isBreakingNormalBlock")){
-            Block block = (Block) player.getMetadata("isBreakingNormalBlock").get(0).value();
-            if(block != null && FakeBlockSoundManager.isBlockWithoutStandardSound(block))
-                FakeBlockSoundManager.simulateDiggingSound(player, block, null);
-        }
 
-    }
 
     @EventHandler
     public void onStopDigging(BlockDamageAbortEvent e) {
@@ -131,7 +118,6 @@ public class BlockBreakSpeedModifier implements Listener {
         map.put(player, new BlockBreakProgress(player, block, customBlockHardness, blockFace, fakeBlockState));
         player.addPotionEffect(new PotionEffect(PotionEffectType.SLOW_DIGGING, 1, -1, false, false, false));
         FakeBlockRegistry.fakeBlockDamage.sendBlockDamage(block, 0);
-        FakeBlockSoundManager.simulateDiggingSound(player, block, fakeBlockState);
     }
 
     public static void stopBlockBreakAction(Player player) {
@@ -147,12 +133,6 @@ public class BlockBreakSpeedModifier implements Listener {
     public static void tick(Player player) {
         if (IS_TOOL.test(player.getInventory().getItemInMainHand()) && !player.hasMetadata("isBreakingNormalBlock"))
             player.addPotionEffect(new PotionEffect(PotionEffectType.SLOW_DIGGING, 1, -1, false, false, false));
-
-/*        if(player.hasMetadata("isBreakingNormalBlock")){
-            Block block = (Block) player.getMetadata("isBreakingNormalBlock").get(0).value();
-            if(block != null && FakeBlockSoundManager.isBlockWithoutStandardSound(block))
-                FakeBlockSoundManager.simulateDiggingSound(player, block, null);
-        }*/
 
         if (!map.containsKey(player))
             return;
