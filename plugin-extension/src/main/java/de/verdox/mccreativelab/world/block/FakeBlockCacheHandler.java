@@ -2,6 +2,7 @@ package de.verdox.mccreativelab.world.block;
 
 import com.destroystokyo.paper.event.entity.EntityAddToWorldEvent;
 import de.verdox.mccreativelab.MCCreativeLabExtension;
+import de.verdox.mccreativelab.events.ChunkDataEvent;
 import de.verdox.mccreativelab.world.block.display.strategy.FakeBlockVisualStrategy;
 import de.verdox.mccreativelab.events.ChunkDataCreateEvent;
 import de.verdox.mccreativelab.events.ChunkDataLoadEvent;
@@ -10,7 +11,13 @@ import org.bukkit.Chunk;
 import org.bukkit.entity.ItemDisplay;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.WorldSaveEvent;
+
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class FakeBlockCacheHandler implements Listener {
     private static FakeBlockCacheHandler INSTANCE;
@@ -48,6 +55,8 @@ public class FakeBlockCacheHandler implements Listener {
                               .saveChunk(e.getChunk(), e.getPersistentDataContainer(), e.isUnloaded());
     }
 
+    private Map<ChunkDataEvent.ChunkPos, Set<FakeBlockVisualStrategy.PotentialItemDisplay>> potentialLoaded = new ConcurrentHashMap<>();
+
     @EventHandler
     public void linkDisplayEntitiesToFakeBlocks(EntityAddToWorldEvent e) {
         if (!(e.getEntity() instanceof ItemDisplay itemDisplay))
@@ -55,6 +64,18 @@ public class FakeBlockCacheHandler implements Listener {
         FakeBlockVisualStrategy.PotentialItemDisplay potentialItemDisplay = FakeBlockVisualStrategy.loadPotentialDisplay(itemDisplay);
         if(potentialItemDisplay == null)
             return;
-        potentialItemDisplay.load();
+        potentialLoaded.computeIfAbsent(new ChunkDataEvent.ChunkPos(e.getEntity().getChunk().getX(), e.getEntity().getChunk().getZ()), chunkPos -> new HashSet<>()).add(potentialItemDisplay);
+    }
+
+    @EventHandler
+    public void loadAndLinkDisplayEntitiesWhenChunkWasLoaded(ChunkLoadEvent e){
+        if(e.isNewChunk())
+            return;
+        ChunkDataEvent.ChunkPos chunkPos = new ChunkDataEvent.ChunkPos(e.getChunk().getX(), e.getChunk().getZ());
+        if(!potentialLoaded.containsKey(chunkPos))
+            return;
+        for (FakeBlockVisualStrategy.PotentialItemDisplay potentialItemDisplay : potentialLoaded.get(chunkPos)) {
+            potentialItemDisplay.load();
+        }
     }
 }
