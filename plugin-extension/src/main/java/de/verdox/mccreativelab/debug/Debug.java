@@ -30,7 +30,7 @@ public class Debug implements Listener {
                     )
                     .withBlockDisplay(
                         new ReusedBlockStateDisplay.Builder()
-                            .asFullBlockDisplay(new Asset<>("/debug/textures/block/tin_ore.png"))
+                            .asFullBlockDisplay(new Asset<>("/debug/textures/block/tin_ore.png"), 500)
                     )
             )
         );
