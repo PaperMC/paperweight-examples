@@ -49,11 +49,11 @@ public class SolidFullBlockEntityBasedDisplayStrategy extends FakeBlockVisualStr
 
     @Override
     public void loadItemDisplayAsBlockDisplay(PotentialItemDisplay potentialItemDisplay) {
-        if(!(potentialItemDisplay.fakeBlockState().getFakeBlockDisplay() instanceof SolidFullBlockEntityDisplay solidFullBlockEntityDisplay))
+        if(!(potentialItemDisplay.storedFakeBlockState().getFakeBlockDisplay() instanceof SolidFullBlockEntityDisplay solidFullBlockEntityDisplay))
             return;
         Block block = potentialItemDisplay.block();
         ItemDisplay itemDisplay = potentialItemDisplay.itemDisplay();
-        FakeBlock.FakeBlockState fakeBlockState = potentialItemDisplay.fakeBlockState();
+        FakeBlock.FakeBlockState fakeBlockState = potentialItemDisplay.storedFakeBlockState();
         BlockFace blockFace = BlockFace.valueOf(itemDisplay.getPersistentDataContainer()
                                                            .getOrDefault(ITEM_DISPLAY_BLOCK_FACE_KEY, PersistentDataType.STRING, "SELF"));
         if (blockFace.equals(BlockFace.SELF)) {

@@ -32,13 +32,14 @@ public abstract class FakeBlockVisualStrategy<T extends FakeBlockVisualStrategy.
 
     @Nullable
     public static PotentialItemDisplay loadPotentialDisplay(ItemDisplay itemDisplay) {
-        if (!isItemDisplayLinked(itemDisplay))
+        if (!isItemDisplayLinked(itemDisplay)) {
             return null;
+        }
 
         int linkedFakeBlockID = itemDisplay.getPersistentDataContainer()
-                                           .getOrDefault(ITEM_DISPLAY_LINKED_FAKE_BLOCK_ID, PersistentDataType.INTEGER, -1);
+            .getOrDefault(ITEM_DISPLAY_LINKED_FAKE_BLOCK_ID, PersistentDataType.INTEGER, -1);
         int linkedFakeBlockStateID = itemDisplay.getPersistentDataContainer()
-                                                .getOrDefault(ITEM_DISPLAY_LINKED_FAKE_BLOCK_STATE_ID, PersistentDataType.INTEGER, -1);
+            .getOrDefault(ITEM_DISPLAY_LINKED_FAKE_BLOCK_STATE_ID, PersistentDataType.INTEGER, -1);
         Location fakeBlockLocation = getLinkedFakeBlockLocation(itemDisplay);
 
         // Data corrupted. Removing
@@ -56,17 +57,16 @@ public abstract class FakeBlockVisualStrategy<T extends FakeBlockVisualStrategy.
             return null;
         }
         FakeBlock.FakeBlockState storedFakeBlockState = storedFakeBlock.getBlockState(linkedFakeBlockStateID);
-        // Another block is saved in this location.
-        if (!Objects.equals(storedFakeBlockState, fakeBlockStateAtLocation) || fakeBlockStateAtLocation == null) {
+        if (storedFakeBlockState == null) {
             safelyRemoveItemDisplay(itemDisplay);
             return null;
         }
-        return new PotentialItemDisplay(fakeBlockLocation.getBlock(), itemDisplay, fakeBlockStateAtLocation);
+        return new PotentialItemDisplay(fakeBlockLocation.getBlock(), itemDisplay, storedFakeBlockState);
     }
 
     public abstract void spawnFakeBlockDisplay(Block block, FakeBlock.FakeBlockState fakeBlockState);
 
-    public void removeFakeBlockDisplay(Block block){
+    public void removeFakeBlockDisplay(Block block) {
         T displayData = getFakeBlockDisplayData(block, false);
         if (displayData == null)
             return;
@@ -75,13 +75,13 @@ public abstract class FakeBlockVisualStrategy<T extends FakeBlockVisualStrategy.
     }
 
     public abstract void blockUpdate(Block block, FakeBlock.FakeBlockState fakeBlockState, BlockFace direction, BlockData neighbourBlockData);
-    protected void blockUpdateRemovalLogic(Block block, FakeBlock.FakeBlockState fakeBlockState, BlockFace direction, BlockData neighbourBlockData){
+    protected void blockUpdateRemovalLogic(Block block, FakeBlock.FakeBlockState fakeBlockState, BlockFace direction, BlockData neighbourBlockData) {
         Bukkit.getScheduler().runTaskLater(MCCreativeLabExtension.getInstance(), () -> {
             FakeBlock.FakeBlockState fakeBlockStateAfterUpdate = FakeBlockStorage.getFakeBlockState(block.getLocation(), false);
-            if(fakeBlockStateAfterUpdate != null && fakeBlockStateAfterUpdate.getFakeBlock().equals(fakeBlockState.getFakeBlock()))
+            if (fakeBlockStateAfterUpdate != null && fakeBlockStateAfterUpdate.getFakeBlock().equals(fakeBlockState.getFakeBlock()))
                 return;
             removeFakeBlockDisplay(block);
-        },1L);
+        }, 1L);
     }
 
     protected abstract void loadItemDisplayAsBlockDisplay(PotentialItemDisplay potentialItemDisplay);
@@ -91,26 +91,26 @@ public abstract class FakeBlockVisualStrategy<T extends FakeBlockVisualStrategy.
         itemDisplay.setItemStack(itemTextureData.createItem());
 
         itemDisplay.getPersistentDataContainer()
-                   .set(ITEM_DISPLAY_LINKED_X, PersistentDataType.INTEGER, block.getX());
+            .set(ITEM_DISPLAY_LINKED_X, PersistentDataType.INTEGER, block.getX());
         itemDisplay.getPersistentDataContainer()
-                   .set(ITEM_DISPLAY_LINKED_Y, PersistentDataType.INTEGER, block.getY());
+            .set(ITEM_DISPLAY_LINKED_Y, PersistentDataType.INTEGER, block.getY());
         itemDisplay.getPersistentDataContainer()
-                   .set(ITEM_DISPLAY_LINKED_Z, PersistentDataType.INTEGER, block.getZ());
+            .set(ITEM_DISPLAY_LINKED_Z, PersistentDataType.INTEGER, block.getZ());
         itemDisplay.getPersistentDataContainer()
-                   .set(ITEM_DISPLAY_LINKED_FAKE_BLOCK_ID, PersistentDataType.INTEGER, fakeBlockID);
+            .set(ITEM_DISPLAY_LINKED_FAKE_BLOCK_ID, PersistentDataType.INTEGER, fakeBlockID);
         itemDisplay.getPersistentDataContainer()
-                   .set(ITEM_DISPLAY_LINKED_FAKE_BLOCK_STATE_ID, PersistentDataType.INTEGER, fakeBlockState
-                       .getFakeBlock().getBlockStateID(fakeBlockState));
+            .set(ITEM_DISPLAY_LINKED_FAKE_BLOCK_STATE_ID, PersistentDataType.INTEGER, fakeBlockState
+                .getFakeBlock().getBlockStateID(fakeBlockState));
         itemDisplay.setViewRange(5);
     }
 
 
-    protected T getOrCreateFakeBlockDisplayData(Block block){
+    protected T getOrCreateFakeBlockDisplayData(Block block) {
         return getFakeBlockDisplayData(block, true);
     }
 
     protected abstract T newData();
-    protected T getFakeBlockDisplayData(Block block, boolean createIfNotExist){
+    protected T getFakeBlockDisplayData(Block block, boolean createIfNotExist) {
         if (!block.hasMetadata(FAKE_BLOCK_FACE_LINKING_KEY)) {
             if (createIfNotExist)
                 block.setMetadata(FAKE_BLOCK_FACE_LINKING_KEY, new FixedMetadataValue(MCCreativeLabExtension.getInstance(), newData()));
@@ -132,16 +132,18 @@ public abstract class FakeBlockVisualStrategy<T extends FakeBlockVisualStrategy.
 
     protected static int getLinkedFakeBlockID(ItemDisplay itemDisplay) {
         return itemDisplay.getPersistentDataContainer()
-                          .getOrDefault(ITEM_DISPLAY_LINKED_FAKE_BLOCK_ID, PersistentDataType.INTEGER, -1);
+            .getOrDefault(ITEM_DISPLAY_LINKED_FAKE_BLOCK_ID, PersistentDataType.INTEGER, -1);
     }
 
     protected static void safelyRemoveItemDisplay(ItemDisplay itemDisplay) {
         Bukkit.getScheduler().runTask(MCCreativeLabExtension.getInstance(), itemDisplay::remove);
     }
 
-    public record PotentialItemDisplay(Block block, ItemDisplay itemDisplay, FakeBlock.FakeBlockState fakeBlockState) {
+    public record PotentialItemDisplay(Block block, ItemDisplay itemDisplay,
+                                       FakeBlock.FakeBlockState storedFakeBlockState) {
         public void load() {
-            fakeBlockState.getFakeBlockDisplay().getFakeBlockVisualStrategy().loadItemDisplayAsBlockDisplay(this);
+            storedFakeBlockState.getFakeBlockDisplay().getFakeBlockVisualStrategy().loadItemDisplayAsBlockDisplay(this);
+            FakeBlockStorage.setFakeBlockState(block.getLocation(), storedFakeBlockState, false);
         }
     }
 

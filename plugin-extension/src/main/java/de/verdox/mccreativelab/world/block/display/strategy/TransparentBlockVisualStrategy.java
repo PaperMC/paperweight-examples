@@ -12,9 +12,10 @@ import org.jetbrains.annotations.Nullable;
 
 public class TransparentBlockVisualStrategy extends FakeBlockVisualStrategy<TransparentBlockVisualStrategy.FakeBlockFullDisplay> {
     public static final TransparentBlockVisualStrategy INSTANCE = new TransparentBlockVisualStrategy();
+
     @Override
     public void spawnFakeBlockDisplay(Block block, FakeBlock.FakeBlockState fakeBlockState) {
-        if(!(fakeBlockState.getFakeBlockDisplay() instanceof TransparentFullBlockEntityDisplay transparentFullBlockEntityDisplay))
+        if (!(fakeBlockState.getFakeBlockDisplay() instanceof TransparentFullBlockEntityDisplay transparentFullBlockEntityDisplay))
             return;
         FakeBlockFullDisplay fakeBlockFullDisplay = getOrCreateFakeBlockDisplayData(block);
 
@@ -32,11 +33,14 @@ public class TransparentBlockVisualStrategy extends FakeBlockVisualStrategy<Tran
 
     @Override
     protected void loadItemDisplayAsBlockDisplay(PotentialItemDisplay potentialItemDisplay) {
-        if(!(potentialItemDisplay.fakeBlockState().getFakeBlockDisplay() instanceof TransparentFullBlockEntityDisplay transparentFullBlockEntityDisplay))
+        if (!(potentialItemDisplay.storedFakeBlockState().getFakeBlockDisplay() instanceof TransparentFullBlockEntityDisplay transparentFullBlockEntityDisplay))
             return;
         Block block = potentialItemDisplay.block();
         ItemDisplay itemDisplay = potentialItemDisplay.itemDisplay();
-        FakeBlock.FakeBlockState fakeBlockState = potentialItemDisplay.fakeBlockState();
+        FakeBlock.FakeBlockState fakeBlockState = potentialItemDisplay.storedFakeBlockState();
+
+        if (itemDisplay == null || block == null || transparentFullBlockEntityDisplay.getFullBlockFakeItem() == null)
+            return;
 
         setupItemDisplayNBT(itemDisplay, transparentFullBlockEntityDisplay.getFullBlockFakeItem(), block, fakeBlockState);
         getOrCreateFakeBlockDisplayData(block).setStoredItemDisplay(itemDisplay);
@@ -47,14 +51,15 @@ public class TransparentBlockVisualStrategy extends FakeBlockVisualStrategy<Tran
         return new FakeBlockFullDisplay();
     }
 
-    protected static class FakeBlockFullDisplay extends FakeBlockDisplayData{
+    protected static class FakeBlockFullDisplay extends FakeBlockDisplayData {
         @Nullable
         private ItemDisplay storedItemDisplay;
 
-        FakeBlockFullDisplay(){}
+        FakeBlockFullDisplay() {
+        }
 
         public void setStoredItemDisplay(ItemDisplay storedItemDisplay) {
-            if(this.storedItemDisplay != null && !this.storedItemDisplay.equals(storedItemDisplay))
+            if (this.storedItemDisplay != null && !this.storedItemDisplay.equals(storedItemDisplay))
                 safelyRemoveItemDisplay(this.storedItemDisplay);
             this.storedItemDisplay = storedItemDisplay;
         }
