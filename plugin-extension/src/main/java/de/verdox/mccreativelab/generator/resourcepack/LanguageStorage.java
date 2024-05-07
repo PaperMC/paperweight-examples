@@ -15,10 +15,8 @@ import org.bukkit.entity.Player;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.text.Collator;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class LanguageStorage {
@@ -34,19 +32,24 @@ public class LanguageStorage {
             JsonObject jsonObject = JsonUtil.readJsonInputStream(defaultTranslationFile);
             for (String translationKey : jsonObject.keySet()) {
                 String translation = jsonObject.get(translationKey).getAsString();
-                addTranslation(new Translatable(LanguageInfo.ENGLISH_US, translationKey, translation));
+                addTranslation(new Translatable(LanguageInfo.ENGLISH_US, translationKey, translation), true);
             }
             Bukkit.getLogger()
-                  .info("Cached " + jsonObject.keySet().size() + " vanilla translations into LanguageStorage");
+                .info("Cached " + jsonObject.keySet().size() + " vanilla translations into LanguageStorage");
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
     public void addTranslation(Translatable translatable) {
-        customTranslations.add(translatable);
+        addTranslation(translatable, false);
+    }
+
+    public void addTranslation(Translatable translatable, boolean onlyCache) {
+        if (!onlyCache)
+            customTranslations.add(translatable);
         translationKeyMapping.computeIfAbsent(translatable.key(), s -> new HashMap<>())
-                             .put(translatable.languageInfo(), translatable);
+            .put(translatable.languageInfo(), translatable);
     }
 
     public TextComponent translateToComponent(String key, LanguageInfo languageInfo, String defaultTranslation) {
@@ -58,7 +61,7 @@ public class LanguageStorage {
             return defaultTranslation;
         Map<LanguageInfo, Translatable> byLanguageTranslations = translationKeyMapping.get(key);
         if (!byLanguageTranslations.containsKey(languageInfo)) {
-            if(STANDARD.equals(languageInfo))
+            if (STANDARD.equals(languageInfo))
                 return defaultTranslation;
             return translate(key, STANDARD, defaultTranslation);
         }
@@ -90,6 +93,7 @@ public class LanguageStorage {
             .collect(Collectors.groupingBy(Translatable::languageInfo))
             .forEach((languageInfo, translations) -> {
                 JsonObjectBuilder jsonObjectBuilder = JsonObjectBuilder.create();
+                Collections.sort(translations);
                 for (Translatable translatable : translations)
                     jsonObjectBuilder.add(translatable.key(), translatable.content());
 
