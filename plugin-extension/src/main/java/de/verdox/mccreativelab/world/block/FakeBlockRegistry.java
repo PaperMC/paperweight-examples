@@ -112,6 +112,10 @@ public class FakeBlockRegistry extends CustomRegistry<FakeBlock> {
         return fakeBlock;
     }
 
+    public boolean hasReusedAnyBlockStates(){
+        return !reusedBlockStates.isEmpty();
+    }
+
     @Nullable
     public static FakeBlock.FakeBlockState getFakeBlockStateFromBlockData(BlockData blockData) {
         if (reusedBlockStates.containsKey(blockData))
