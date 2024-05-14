@@ -4,11 +4,8 @@ plugins {
     java
     `maven-publish`
 
-    // Nothing special about this, just keep it up to date
-    id("com.github.johnrengelman.shadow") version "8.1.1" apply false
-
     // In general, keep this version in sync with upstream. Sometimes a newer version than upstream might work, but an older version is extremely likely to break.
-    id("io.papermc.paperweight.patcher") version "1.5.11"
+    id("io.papermc.paperweight.patcher") version "1.7.1"
 }
 
 val paperMavenPublicUrl = "https://repo.papermc.io/repository/maven-public/"
@@ -21,8 +18,8 @@ repositories {
 }
 
 dependencies {
-    remapper("net.fabricmc:tiny-remapper:0.8.10:fat") // Must be kept in sync with upstream
-    decompiler("net.minecraftforge:forgeflower:2.0.627.2") // Must be kept in sync with upstream
+    remapper("net.fabricmc:tiny-remapper:0.10.2:fat") // Must be kept in sync with upstream
+    decompiler("org.vineflower:vineflower:1.10.1") // Must be kept in sync with upstream
     paperclip("io.papermc:paperclip:3.0.3") // You probably want this to be kept in sync with upstream
 }
 
@@ -32,7 +29,7 @@ allprojects {
 
     java {
         toolchain {
-            languageVersion = JavaLanguageVersion.of(17)
+            languageVersion = JavaLanguageVersion.of(21)
         }
     }
 }
@@ -40,7 +37,7 @@ allprojects {
 subprojects {
     tasks.withType<JavaCompile> {
         options.encoding = Charsets.UTF_8.name()
-        options.release = 17
+        options.release = 21
     }
     tasks.withType<Javadoc> {
         options.encoding = Charsets.UTF_8.name()
@@ -105,7 +102,6 @@ paperweight {
 
 tasks.generateDevelopmentBundle {
     apiCoordinates = "com.example.paperfork:forktest-api"
-    mojangApiCoordinates = "io.papermc.paper:paper-mojangapi"
     libraryRepositories = listOf(
         "https://repo.maven.apache.org/maven2/",
         paperMavenPublicUrl,
