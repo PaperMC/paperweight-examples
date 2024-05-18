@@ -137,9 +137,13 @@ public class FakeBlockSoundManager implements Listener {
     }
 
     public static Wrappers.SoundGroup getSoundGroup(@NotNull BlockData blockData, @Nullable FakeBlock.FakeBlockState fakeBlockState) {
-        if(fakeBlockState != null && fakeBlockState.getFakeBlockSoundGroup() != null)
-            return fakeBlockState.getFakeBlockSoundGroup().asSoundGroup();
-        else
+        if(fakeBlockState == null)
             return MCCreativeLabExtension.getReplacedSoundGroups().getSoundGroup(blockData);
+
+        if(fakeBlockState.getFakeBlockSoundGroup() != null)
+            return fakeBlockState.getFakeBlockSoundGroup().asSoundGroup();
+
+        BlockData blockDataToGetSoundFrom = fakeBlockState.getVanillaBlockSound() != null ? fakeBlockState.getVanillaBlockSound() : blockData;
+        return MCCreativeLabExtension.getReplacedSoundGroups().getSoundGroup(blockDataToGetSoundFrom);
     }
 }

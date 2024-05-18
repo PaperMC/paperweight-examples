@@ -3,16 +3,13 @@ package de.verdox.mccreativelab.world.block.replaced;
 import de.verdox.mccreativelab.MCCreativeLabExtension;
 import de.verdox.mccreativelab.behaviour.BlockBehaviour;
 import de.verdox.mccreativelab.world.block.FakeBlock;
-import de.verdox.mccreativelab.world.block.behaviour.ReplaceBlockStatesWithFakeBlocksBehaviour;
-import de.verdox.mccreativelab.world.block.display.TransparentFullBlockEntityDisplay;
+import de.verdox.mccreativelab.world.block.behaviour.ReplaceVanillaBlockStatesBehaviour;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.block.data.Ageable;
-import org.bukkit.block.data.BlockData;
 
 import java.util.Map;
-import java.util.function.Supplier;
 
 public class ReplacedBlocks {
     public static void init(){}
@@ -38,7 +35,7 @@ public class ReplacedBlocks {
             .withBlockState(builder -> ReplacedBerry.createFakeBerryBlockState(builder, new NamespacedKey("minecraft","block/sweet_berry_bush_stage3"), ReplacedBerry.createBerryHitbox(3), () -> Bukkit.createBlockData(Material.TORCHFLOWER_CROP, blockData -> ((Ageable) blockData).setAge(1))))
         );
     public static void setup(){
-        BlockBehaviour.BLOCK_BEHAVIOUR.setBehaviour(Material.WHEAT, new ReplaceBlockStatesWithFakeBlocksBehaviour(
+        BlockBehaviour.BLOCK_BEHAVIOUR.setBehaviour(Material.WHEAT, new ReplaceVanillaBlockStatesBehaviour(
             Map.of(
                 Bukkit.createBlockData(Material.WHEAT, (data) -> ((Ageable) data).setAge(0)), ReplacedBlocks.WHEAT.getBlockState(0),
                 Bukkit.createBlockData(Material.WHEAT, (data) -> ((Ageable) data).setAge(1)), ReplacedBlocks.WHEAT.getBlockState(1),
@@ -51,7 +48,7 @@ public class ReplacedBlocks {
             )
         ));
 
-        BlockBehaviour.BLOCK_BEHAVIOUR.setBehaviour(Material.SWEET_BERRY_BUSH, new ReplaceBlockStatesWithFakeBlocksBehaviour(
+        BlockBehaviour.BLOCK_BEHAVIOUR.setBehaviour(Material.SWEET_BERRY_BUSH, new ReplaceVanillaBlockStatesBehaviour(
             Map.of(
                 Bukkit.createBlockData(Material.SWEET_BERRY_BUSH, (data) -> ((Ageable) data).setAge(0)), ReplacedBlocks.SWEET_BERRY.getBlockState(0),
                 Bukkit.createBlockData(Material.SWEET_BERRY_BUSH, (data) -> ((Ageable) data).setAge(1)), ReplacedBlocks.SWEET_BERRY.getBlockState(1),

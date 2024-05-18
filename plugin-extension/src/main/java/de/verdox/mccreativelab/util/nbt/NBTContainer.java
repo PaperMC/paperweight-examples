@@ -35,6 +35,10 @@ public class NBTContainer {
         return new NBTContainer(namespace, persistentDataContainer.getAdapterContext().newPersistentDataContainer());
     }
 
+    public NBTContainer withNameSpace(String namespace){
+        return new NBTContainer(namespace, this.persistentDataContainer);
+    }
+
     public boolean has(String key) {
         return persistentDataContainer.has(createNameSpacedKey(key));
     }
@@ -276,6 +280,10 @@ public class NBTContainer {
 
     public Set<String> getKeys() {
         return persistentDataContainer.getKeys().stream().map(NamespacedKey::getKey).collect(Collectors.toSet());
+    }
+
+    public Set<String> getNamespacedKeys() {
+        return persistentDataContainer.getKeys().stream().map(NamespacedKey::asString).collect(Collectors.toSet());
     }
 
     public void remove(String key) {

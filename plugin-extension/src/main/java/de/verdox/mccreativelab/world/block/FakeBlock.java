@@ -4,6 +4,9 @@ import com.google.gson.JsonObject;
 import de.verdox.mccreativelab.Wrappers;
 import de.verdox.mccreativelab.behaviour.BlockBehaviour;
 import de.verdox.mccreativelab.world.block.display.FakeBlockDisplay;
+import de.verdox.mccreativelab.world.block.entity.FakeBlockEntity;
+import de.verdox.mccreativelab.world.block.entity.FakeBlockEntityStorage;
+import de.verdox.mccreativelab.world.block.entity.FakeBlockEntityType;
 import de.verdox.mccreativelab.world.block.event.FakeBlockDropExperienceEvent;
 import de.verdox.mccreativelab.world.block.event.FakeBlockDropItemsEvent;
 import de.verdox.mccreativelab.world.block.util.FakeBlockUtil;
@@ -40,18 +43,14 @@ import java.util.function.Supplier;
 public abstract class FakeBlock implements Keyed, BlockBehaviour {
     private final FakeBlockState[] fakeBlockStates;
     private final Map<FakeBlockState, Integer> blockStateToIdMapping = new HashMap<>();
-    private NamespacedKey key;
+    private final NamespacedKey key;
 
-    protected FakeBlock(List<FakeBlockState> fakeBlockStates) {
+    protected FakeBlock(NamespacedKey namespacedKey, List<FakeBlockState> fakeBlockStates) {
+        this.key = namespacedKey;
         this.fakeBlockStates = fakeBlockStates.toArray(FakeBlockState[]::new);
         for (int i = 0; i < fakeBlockStates.size(); i++) {
             blockStateToIdMapping.put(fakeBlockStates.get(i), i);
         }
-    }
-
-    FakeBlock setKey(NamespacedKey key) {
-        this.key = key;
-        return this;
     }
 
     public final FakeBlockState[] getFakeBlockStates() {
@@ -82,12 +81,34 @@ public abstract class FakeBlock implements Keyed, BlockBehaviour {
         return true;
     }
 
-    protected List<ItemStack> drawLoot(Block block, FakeBlockState fakeBlockState, @Nullable Entity causeOfItemDrop, @Nullable ItemStack toolUsed, boolean ignoreTool) {
-        return List.of();
+    public float getDestroySpeed(@NotNull FakeBlockState fakeBlockState, @NotNull Player player, @Nullable ItemStack stack){
+        return 1f;
+    }
+
+    public List<ItemStack> drawLoot(Block block, FakeBlockState fakeBlockState, @Nullable Entity causeOfItemDrop, @Nullable ItemStack toolUsed, boolean ignoreTool) {
+        return new ArrayList<>();
     }
 
     protected int getExperienceToDrop(Block block, FakeBlockState fakeBlockState, @Nullable Entity causeOfExperienceDrop, @Nullable ItemStack toolUsed, boolean ignoreTool){
         return 0;
+    }
+
+    /**
+     * Returns whether this {@link FakeBlock} has a {@link de.verdox.mccreativelab.world.block.entity.FakeBlockEntity}
+     * @return true if it has a block entity
+     */
+    public final boolean hasBlockEntity(){
+        return getFakeBlockEntityType() != null;
+    }
+
+    /**
+     * Returns the block entity type if hasBlockEntity returns true.
+     * If hasBlockEntity is false this method will never be called.
+     * @return The FakeBlockEntityType
+     */
+    @NotNull
+    public FakeBlockEntityType<?> getFakeBlockEntityType(){
+        return null;
     }
 
     public void remove(Location location, boolean withEffects) {
@@ -108,10 +129,19 @@ public abstract class FakeBlock implements Keyed, BlockBehaviour {
             dropBlockLoot(location, fakeBlockState, causeOfBreak, tool, ignoreTool);
             dropBlockExperience(location, fakeBlockState, causeOfBreak, tool, ignoreTool);
         }
+        removeBlockEntity(location);
+    }
+
+    private void removeBlockEntity(Location location) {
+        if(hasBlockEntity()){
+            FakeBlockEntity fakeBlockEntity = FakeBlockEntityStorage.getFakeBlockEntityAt(location.getBlock());
+            if(fakeBlockEntity != null)
+                fakeBlockEntity.getMarkerEntity().remove();
+        }
     }
 
     public void dropBlockLoot(Location location, FakeBlockState fakeBlockState, @Nullable Entity causeOfBreak, @Nullable ItemStack tool, boolean ignoreTool){
-        List<ItemStack> itemsToDrop = fakeBlockState.getFakeBlock().drawLoot(location.getBlock(), fakeBlockState, causeOfBreak, tool, ignoreTool);
+        List<ItemStack> itemsToDrop = new ArrayList<>(fakeBlockState.getFakeBlock().drawLoot(location.getBlock(), fakeBlockState, causeOfBreak, tool, ignoreTool));
         if(itemsToDrop.isEmpty())
             return;
         FakeBlockDropItemsEvent fakeBlockDropItemsEvent = new FakeBlockDropItemsEvent(location.getBlock(), fakeBlockState, itemsToDrop, causeOfBreak, tool, ignoreTool);
@@ -169,9 +199,9 @@ public abstract class FakeBlock implements Keyed, BlockBehaviour {
             if (blockStates.isEmpty())
                 throw new IllegalStateException(namespacedKey.asString() + " must provide at least one fake block state");
             try {
-                var constructor = fakeBlockClass.getDeclaredConstructor(List.class);
+                var constructor = fakeBlockClass.getDeclaredConstructor(NamespacedKey.class, List.class);
                 constructor.setAccessible(true);
-                return constructor.newInstance(blockStates);
+                return constructor.newInstance(namespacedKey, blockStates);
             } catch (NoSuchMethodException e) {
                 Bukkit.getLogger()
                       .warning("FakeBlock class " + fakeBlockClass.getSimpleName() + " does not implement base constructor(FakeBlockState[])");
@@ -187,13 +217,17 @@ public abstract class FakeBlock implements Keyed, BlockBehaviour {
         private FakeBlock fakeBlock;
         private final FakeBlockProperties properties;
         private final FakeBlockDisplay fakeBlockDisplay;
+        @Nullable
         private final FakeBlockSoundGroup fakeBlockSoundGroup;
+        @Nullable
+        private final BlockData vanillaBlockSound;
         private final Set<Class<? extends BlockEvent>> blockedEventsByDefault;
 
-        FakeBlockState(FakeBlockProperties properties, FakeBlockDisplay fakeBlockDisplay, FakeBlockSoundGroup fakeBlockSoundGroup, Set<Class<? extends BlockEvent>> blockedEventsByDefault) {
+        FakeBlockState(FakeBlockProperties properties, FakeBlockDisplay fakeBlockDisplay, @Nullable FakeBlockSoundGroup fakeBlockSoundGroup, @Nullable BlockData vanillaBlockSound, Set<Class<? extends BlockEvent>> blockedEventsByDefault) {
             this.properties = properties;
             this.fakeBlockDisplay = fakeBlockDisplay;
             this.fakeBlockSoundGroup = fakeBlockSoundGroup;
+            this.vanillaBlockSound = vanillaBlockSound;
             this.blockedEventsByDefault = blockedEventsByDefault;
         }
 
@@ -201,12 +235,17 @@ public abstract class FakeBlock implements Keyed, BlockBehaviour {
             return fakeBlockDisplay;
         }
 
+        @Nullable
         public FakeBlockSoundGroup getFakeBlockSoundGroup() {
             return fakeBlockSoundGroup;
         }
 
         public FakeBlockProperties getProperties() {
             return properties;
+        }
+
+        public @Nullable BlockData getVanillaBlockSound() {
+            return vanillaBlockSound;
         }
 
         public FakeBlock getFakeBlock() {
@@ -228,6 +267,7 @@ public abstract class FakeBlock implements Keyed, BlockBehaviour {
             private FakeBlockProperties fakeBlockProperties = new FakeBlockProperties();
             private FakeBlockDisplay fakeBlockDisplay;
             private FakeBlockSoundGroup fakeBlockSoundGroup;
+            private BlockData vanillaBlockSound;
             private final Set<Class<? extends BlockEvent>> blockedEventsByDefault = new HashSet<>();
 
             Builder(NamespacedKey parentBlockKey, NamespacedKey blockStateKey) {
@@ -258,13 +298,18 @@ public abstract class FakeBlock implements Keyed, BlockBehaviour {
                 return this;
             }
 
+            public Builder withVanillaBlockSound(BlockData blockSound){
+                this.vanillaBlockSound = blockSound;
+                return this;
+            }
+
             public Builder withBlockDisplay(FakeBlockDisplay.Builder<?> builder) {
                 this.fakeBlockDisplay = builder.build(blockStateKey);
                 return this;
             }
 
             FakeBlockState build() {
-                return new FakeBlockState(fakeBlockProperties, fakeBlockDisplay, fakeBlockSoundGroup, Set.copyOf(blockedEventsByDefault));
+                return new FakeBlockState(fakeBlockProperties, fakeBlockDisplay, fakeBlockSoundGroup, vanillaBlockSound, Set.copyOf(blockedEventsByDefault));
             }
         }
 

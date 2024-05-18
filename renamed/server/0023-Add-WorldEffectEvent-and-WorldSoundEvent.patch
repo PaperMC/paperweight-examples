@@ -95,7 +95,7 @@ index 0000000000000000000000000000000000000000..bed837a02b4239ebb764a01fd542224a
 +        ClientboundLevelEventPacket clientboundLevelEventPacket = new ClientboundLevelEventPacket(event.getEffect()
 +                                                                                                       .getId(), new BlockPos(event
 +            .getSoundLocation().getBlockX(), event.getSoundLocation().getBlockY(), event.getSoundLocation()
-+                                                                                        .getBlockZ()), event.getData(), event.isGlobal());
++                                                                                        .getBlockZ()), data, event.isGlobal());
 +
 +        if (event.isGlobal())
 +            serverLevel.getServer().getPlayerList().broadcastAll(clientboundLevelEventPacket);

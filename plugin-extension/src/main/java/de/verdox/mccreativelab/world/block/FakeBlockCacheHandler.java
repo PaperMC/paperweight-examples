@@ -7,8 +7,10 @@ import de.verdox.mccreativelab.world.block.display.strategy.FakeBlockVisualStrat
 import de.verdox.mccreativelab.events.ChunkDataCreateEvent;
 import de.verdox.mccreativelab.events.ChunkDataLoadEvent;
 import de.verdox.mccreativelab.events.ChunkDataSaveEvent;
+import de.verdox.mccreativelab.world.block.entity.FakeBlockEntityStorage;
 import org.bukkit.Chunk;
 import org.bukkit.entity.ItemDisplay;
+import org.bukkit.entity.Marker;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.world.ChunkLoadEvent;
@@ -55,16 +57,21 @@ public class FakeBlockCacheHandler implements Listener {
                               .saveChunk(e.getChunk(), e.getPersistentDataContainer(), e.isUnloaded());
     }
 
-    private Map<ChunkDataEvent.ChunkPos, Set<FakeBlockVisualStrategy.PotentialItemDisplay>> potentialLoaded = new ConcurrentHashMap<>();
+    private Map<ChunkDataEvent.ChunkPos, Set<FakeBlockVisualStrategy.PotentialItemDisplay>> potentialLoadedBlockVisuals = new ConcurrentHashMap<>();
+    private Map<ChunkDataEvent.ChunkPos, Set<Marker>> potentialLoadedBlockEntities = new ConcurrentHashMap<>();
 
     @EventHandler
     public void linkDisplayEntitiesToFakeBlocks(EntityAddToWorldEvent e) {
-        if (!(e.getEntity() instanceof ItemDisplay itemDisplay))
+        if ((e.getEntity() instanceof ItemDisplay itemDisplay)) {
+            FakeBlockVisualStrategy.PotentialItemDisplay potentialItemDisplay = FakeBlockVisualStrategy.loadPotentialDisplay(itemDisplay);
+            if(potentialItemDisplay == null)
+                return;
+            potentialLoadedBlockVisuals.computeIfAbsent(new ChunkDataEvent.ChunkPos(e.getEntity().getChunk().getX(), e.getEntity().getChunk().getZ()), chunkPos -> new HashSet<>()).add(potentialItemDisplay);
             return;
-        FakeBlockVisualStrategy.PotentialItemDisplay potentialItemDisplay = FakeBlockVisualStrategy.loadPotentialDisplay(itemDisplay);
-        if(potentialItemDisplay == null)
-            return;
-        potentialLoaded.computeIfAbsent(new ChunkDataEvent.ChunkPos(e.getEntity().getChunk().getX(), e.getEntity().getChunk().getZ()), chunkPos -> new HashSet<>()).add(potentialItemDisplay);
+        }
+        if(e.getEntity() instanceof Marker marker){
+            potentialLoadedBlockEntities.computeIfAbsent(new ChunkDataEvent.ChunkPos(e.getEntity().getChunk().getX(), e.getEntity().getChunk().getZ()), chunkPos -> new HashSet<>()).add(marker);
+        }
     }
 
     @EventHandler
@@ -72,10 +79,20 @@ public class FakeBlockCacheHandler implements Listener {
         if(e.isNewChunk())
             return;
         ChunkDataEvent.ChunkPos chunkPos = new ChunkDataEvent.ChunkPos(e.getChunk().getX(), e.getChunk().getZ());
-        if(!potentialLoaded.containsKey(chunkPos))
-            return;
-        for (FakeBlockVisualStrategy.PotentialItemDisplay potentialItemDisplay : potentialLoaded.get(chunkPos)) {
-            potentialItemDisplay.load();
+
+        if(potentialLoadedBlockVisuals.containsKey(chunkPos)){
+            for (FakeBlockVisualStrategy.PotentialItemDisplay potentialItemDisplay : potentialLoadedBlockVisuals.get(chunkPos)) {
+                potentialItemDisplay.load();
+            }
+            potentialLoadedBlockVisuals.remove(chunkPos);
+        }
+
+        if (potentialLoadedBlockEntities.containsKey(chunkPos)) {
+            for (Marker marker : potentialLoadedBlockEntities.get(chunkPos)) {
+                FakeBlockEntityStorage.getFakeBlockEntityAt(marker.getLocation().getBlock());
+            }
+            potentialLoadedBlockEntities.remove(chunkPos);
+
         }
     }
 }

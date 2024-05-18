@@ -16,8 +16,8 @@ import java.util.List;
 import java.util.function.Supplier;
 
 public class ReplacedBerry extends FakeBlock {
-    protected ReplacedBerry(List<FakeBlockState> fakeBlockStates) {
-        super(fakeBlockStates);
+    protected ReplacedBerry(NamespacedKey namespacedKey, List<FakeBlockState> fakeBlockStates) {
+        super(namespacedKey, fakeBlockStates);
     }
 
     public static ItemTextureData.ModelType createFakeBerryModel(NamespacedKey berryTexture){

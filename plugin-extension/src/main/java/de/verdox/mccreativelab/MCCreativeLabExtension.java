@@ -113,7 +113,7 @@ public class MCCreativeLabExtension extends JavaPlugin {
             Bukkit.getPluginManager().registerEvents(new PersistentDataSaver(), this);
         }
         Bukkit.getCommandMap().register("debug", "mccreativelab", new DebugCommand());
-        Bukkit.getPluginManager().registerEvents(resourcePackFileHoster, this);
+        resourcePackFileHoster.registerListener();
     }
 
     public static  <T> void registerRegistryLookupCommand(String name, CustomRegistry<T> customRegistry, BiConsumer<Player, T> consumer) {

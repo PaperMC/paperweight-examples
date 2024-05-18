@@ -43,6 +43,9 @@ public class ActiveGUI extends ActiveComponentRendered<ActiveGUI, CustomGUIBuild
 
     public ActiveGUI(Player player, CustomGUIBuilder customGUIBuilder, @Nullable Consumer<ActiveGUI> initialSetup) {
         super(player, customGUIBuilder);
+        if(!customGUIBuilder.isInstalled())
+            throw new IllegalArgumentException("The custom gui "+customGUIBuilder.getKey().asString()+" was not registered to the MCCreativeLab custom resource pack.");
+
         this.initialSetup = initialSetup;
         isUpdating = true;
         if (!new GUIOpenEvent(this.getPlayer(), this).callEvent())
@@ -271,7 +274,7 @@ public class ActiveGUI extends ActiveComponentRendered<ActiveGUI, CustomGUIBuild
     }
 
     private void openUpdatedInventory(Player player, ItemStack itemAtCursor) {
-        if (!isOpen && !FakeInventory.hasFakeInventory(player)) {
+        if (!isOpen && !FakeInventory.hasFakeInventory(player) && getComponentRendered().isUsePlayerSlots()) {
             FakeInventory.setFakeInventoryOfPlayer(player);
         }
 

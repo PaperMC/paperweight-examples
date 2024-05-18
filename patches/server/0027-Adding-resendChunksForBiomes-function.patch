@@ -5,10 +5,10 @@ Subject: [PATCH] Adding resendChunksForBiomes function
 
 
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-index 2030fe11e8a965ea5183675a378d43b32224b856..ed9d89d708c452abf63748419316bddae5b678a6 100644
+index 3494df23e5fe3a39bb00d1fcca4c1dc17349560f..fefde0e8027423700f6c119c23c2fe24eedb3a2a 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-@@ -1000,6 +1000,25 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+@@ -999,6 +999,25 @@ public class CraftWorld extends CraftRegionAccessor implements World {
          return this.biomeProvider;
      }
  

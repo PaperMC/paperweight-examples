@@ -12,6 +12,7 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.RayTraceResult;
 
 public interface VanillaReplacingBlockBehaviour extends BlockBehaviour {
@@ -54,13 +55,13 @@ public interface VanillaReplacingBlockBehaviour extends BlockBehaviour {
     }
 
     @Override
-    default BehaviourResult.Callback onPlace(Location location, BlockData newBlockData, BlockData oldBlockData, boolean notify) {
-        return BlockBehaviour.super.onPlace(location, newBlockData, oldBlockData, notify);
+    default BehaviourResult.Callback onPlace(Location location, BlockData newBlockData, BlockData oldBlockData, boolean notify, boolean isProcessingBlockPlaceEvent) {
+        return BlockBehaviour.super.onPlace(location, newBlockData, oldBlockData, notify, isProcessingBlockPlaceEvent);
     }
 
     @Override
-    default BehaviourResult.Callback onPlayerPlace(Player player, Location location, BlockData thePlacedState) {
-        return BlockBehaviour.super.onPlayerPlace(player, location, thePlacedState);
+    default BehaviourResult.Callback onPlayerPlace(Player player, ItemStack stackUsedToPlaceBlock, Location location, BlockData thePlacedState) {
+        return BlockBehaviour.super.onPlayerPlace(player, stackUsedToPlaceBlock, location, thePlacedState);
     }
 
     @Override
@@ -74,8 +75,8 @@ public interface VanillaReplacingBlockBehaviour extends BlockBehaviour {
     }
 
     @Override
-    default BehaviourResult.Callback onUse(Block block, Player player, EquipmentSlot hand, RayTraceResult rayTraceResult) {
-        return BlockBehaviour.super.onUse(block, player, hand, rayTraceResult);
+    default BehaviourResult.Callback onUseCallback(Block block, Player player, EquipmentSlot hand, RayTraceResult rayTraceResult, InteractionResult interactionResult) {
+        return BlockBehaviour.super.onUseCallback(block, player, hand, rayTraceResult, interactionResult);
     }
 
     @Override

@@ -1,7 +1,5 @@
 package de.verdox.mccreativelab.wrapper.entity;
 
-import de.verdox.mccreativelab.serialization.NBTSerializer;
-import de.verdox.mccreativelab.util.nbt.NBTContainer;
 import de.verdox.mccreativelab.wrapper.MCCWrapped;
 import de.verdox.mccreativelab.wrapper.block.MCCBlockData;
 import org.bukkit.NamespacedKey;

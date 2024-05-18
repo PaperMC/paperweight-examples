@@ -17,27 +17,32 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.RayTraceResult;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.function.Supplier;
 
-public class ReplacingFakeBlockBehaviour extends FakeBlockBehaviour {
+/**
+ * This behaviour is used for reused block states like note blocks.
+ */
+public class ReusedStateBehaviour extends FakeBlockBehaviour {
     private final Material replacedVanillaBlock;
     private final NamespacedKey fakeBlockKey;
     private Supplier<BlockBehaviour> replacedVanillaBehaviour;
 
-    public ReplacingFakeBlockBehaviour(Material replacedVanillaBlock, @Nullable NamespacedKey fakeBlockKey, @Nullable Supplier<BlockBehaviour> replacedVanillaBehaviour) {
+    public ReusedStateBehaviour(Material replacedVanillaBlock, @Nullable NamespacedKey fakeBlockKey, @Nullable Supplier<BlockBehaviour> replacedVanillaBehaviour) {
         this.replacedVanillaBlock = replacedVanillaBlock;
         this.fakeBlockKey = fakeBlockKey;
-        this.replacedVanillaBehaviour = replacedVanillaBehaviour != null ? replacedVanillaBehaviour : () -> new BlockBehaviour() {};
+        this.replacedVanillaBehaviour = replacedVanillaBehaviour != null ? replacedVanillaBehaviour : () -> new BlockBehaviour() {
+        };
     }
 
-    public ReplacingFakeBlockBehaviour(Material replacedVanillaBlock, @Nullable NamespacedKey fakeBlockKey, @Nullable BlockBehaviour replacedVanillaBehaviour) {
+    public ReusedStateBehaviour(Material replacedVanillaBlock, @Nullable NamespacedKey fakeBlockKey, @Nullable BlockBehaviour replacedVanillaBehaviour) {
         this(replacedVanillaBlock, fakeBlockKey, replacedVanillaBehaviour == null ? null : () -> replacedVanillaBehaviour);
     }
 
-    public ReplacingFakeBlockBehaviour(Material replacedVanillaBlock) {
+    public ReusedStateBehaviour(Material replacedVanillaBlock) {
         this(replacedVanillaBlock, null, (BlockBehaviour) null);
     }
 
@@ -67,11 +72,27 @@ public class ReplacingFakeBlockBehaviour extends FakeBlockBehaviour {
     }
 
     @Override
-    public BehaviourResult.Callback onPlayerPlace(Player player, Location location, BlockData thePlacedState) {
+    public BehaviourResult.Callback onPlace(Location location, BlockData newBlockData, BlockData oldBlockData, boolean notify, boolean isProcessingBlockPlaceEvent) {
+        //System.out.println("onPlaceByServer: " + oldBlockData.getAsString() + " -> " + newBlockData + " (notify = " + notify + ")");
         if (isReplacedVanillaBlock(location.getBlock()))
-            return getReplacedVanillaBehaviour().onPlayerPlace(player, location, thePlacedState);
+            return getReplacedVanillaBehaviour().onPlace(location, newBlockData, oldBlockData, notify, isProcessingBlockPlaceEvent);
+        return super.onPlace(location, newBlockData, oldBlockData, notify, isProcessingBlockPlaceEvent);
+    }
+
+    @Override
+    public BehaviourResult.Callback onRemove(Location location, BlockData newBlockData, BlockData oldBlockData, boolean moved) {
+        //System.out.println("onRemove: " + oldBlockData.getAsString() + " ---> " + newBlockData.getAsString() + " (moved = " + moved + ")");
+        if (isReplacedVanillaBlock(location.getBlock()))
+            return getReplacedVanillaBehaviour().onRemove(location, newBlockData, oldBlockData, moved);
+        return super.onRemove(location, newBlockData, oldBlockData, moved);
+    }
+
+    @Override
+    public BehaviourResult.Callback onPlayerPlace(Player player, ItemStack stackUsedToPlaceBlock, Location location, BlockData thePlacedState) {
+        if (isReplacedVanillaBlock(location.getBlock()))
+            return getReplacedVanillaBehaviour().onPlayerPlace(player, stackUsedToPlaceBlock, location, thePlacedState);
         replaceVanillaWithFakeBlock(location.getBlock());
-        return super.onPlayerPlace(player, location, thePlacedState);
+        return super.onPlayerPlace(player, stackUsedToPlaceBlock, location, thePlacedState);
     }
 
     @Override
@@ -82,13 +103,6 @@ public class ReplacingFakeBlockBehaviour extends FakeBlockBehaviour {
     }
 
     @Override
-    public BehaviourResult.Callback onPlace(Location location, BlockData newBlockData, BlockData oldBlockData, boolean notify) {
-        if (isReplacedVanillaBlock(location.getBlock()))
-            return getReplacedVanillaBehaviour().onPlace(location, newBlockData, oldBlockData, notify);
-        return super.onPlace(location, newBlockData, oldBlockData, notify);
-    }
-
-    @Override
     public BehaviourResult.Void stepOn(Block block, BlockData blockData, Entity entity) {
         if (isReplacedVanillaBlock(block))
             return getReplacedVanillaBehaviour().stepOn(block, blockData, entity);
@@ -96,18 +110,11 @@ public class ReplacingFakeBlockBehaviour extends FakeBlockBehaviour {
     }
 
     @Override
-    public BehaviourResult.Callback onRemove(Location location, BlockData newBlockData, BlockData oldBlockData, boolean moved) {
-        if (isReplacedVanillaBlock(location.getBlock()))
-            return getReplacedVanillaBehaviour().onRemove(location, newBlockData, oldBlockData, moved);
-        return super.onRemove(location, newBlockData, oldBlockData, moved);
-    }
-
-    @Override
-    public BehaviourResult.Callback onUse(Block block, Player player, EquipmentSlot hand, RayTraceResult rayTraceResult) {
+    public BehaviourResult.Callback onUseCallback(Block block, Player player, EquipmentSlot hand, RayTraceResult rayTraceResult, InteractionResult interactionResult) {
         if (isReplacedVanillaBlock(block))
-            return getReplacedVanillaBehaviour().onUse(block, player, hand, rayTraceResult);
+            return getReplacedVanillaBehaviour().onUseCallback(block, player, hand, rayTraceResult, interactionResult);
         replaceVanillaWithFakeBlock(block);
-        return super.onUse(block, player, hand, rayTraceResult);
+        return super.onUseCallback(block, player, hand, rayTraceResult, interactionResult);
     }
 
     @Override
@@ -159,19 +166,19 @@ public class ReplacingFakeBlockBehaviour extends FakeBlockBehaviour {
     }
 
     private void replaceVanillaWithFakeBlock(Block block) {
-        if(fakeBlockKey == null)
+        if (fakeBlockKey == null)
             return;
         FakeBlock fakeBlock = MCCreativeLabExtension.getFakeBlockRegistry().get(fakeBlockKey);
         if (fakeBlock == null)
             return;
         FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockState(block.getLocation(), false);
-        if(fakeBlockState != null)
+        if (fakeBlockState != null)
             return;
         FakeBlockStorage.setFakeBlock(block.getLocation(), fakeBlock, false);
     }
 
     private boolean isReplacedVanillaBlock(Block block) {
-        if(fakeBlockKey == null)
+        if (fakeBlockKey == null)
             return false;
         FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockState(block.getLocation(), false);
         if (fakeBlockState == null)

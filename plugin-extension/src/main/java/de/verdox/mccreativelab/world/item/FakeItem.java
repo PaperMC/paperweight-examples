@@ -13,6 +13,7 @@ import de.verdox.mccreativelab.world.block.FakeBlock;
 import de.verdox.mccreativelab.recipe.CustomItemData;
 import it.unimi.dsi.fastutil.Pair;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Keyed;
 import org.bukkit.Material;
@@ -95,7 +96,7 @@ public class FakeItem implements Keyed, ItemBehaviour {
         ItemStack stack = new ItemStack(material);
         stack.editMeta((meta) -> {
             if (nameTranslatable != null)
-                meta.displayName(Component.translatable(nameTranslatable.key()).decoration(TextDecoration.ITALIC, false));
+                meta.displayName(Component.translatable(nameTranslatable.key()).color(TextColor.color(255,255,255)).decoration(TextDecoration.ITALIC, false));
             if(metaConsumer != null)
                 metaConsumer.accept(meta);
             meta.setCustomModelData(customModelData);

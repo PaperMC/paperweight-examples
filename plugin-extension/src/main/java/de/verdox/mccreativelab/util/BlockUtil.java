@@ -21,13 +21,10 @@ public class BlockUtil {
 
         boolean hasCorrectToolForDrops;
         if (fakeBlockState != null)
-            hasCorrectToolForDrops = fakeBlockState.getFakeBlock()
-                                                   .isPreferredTool(fakeBlockState, blockState.getBlock(), player, hand);
+            hasCorrectToolForDrops = fakeBlockState.getFakeBlock().isPreferredTool(fakeBlockState, blockState.getBlock(), player, hand);
         else
-            hasCorrectToolForDrops = blockState.getBlockData()
-                                               .isPreferredTool(player.getInventory().getItemInMainHand());
-
-        return getDestroySpeed(player, blockState, fakeBlockState) / hardness / (hasCorrectToolForDrops ? 30 : 100);
+            hasCorrectToolForDrops = blockState.getBlockData().isPreferredTool(player.getInventory().getItemInMainHand());
+        return getDestroySpeed(player, blockState, fakeBlockState) / hardness / (hasCorrectToolForDrops ? 30f : 100f);
     }
 
     private static float getDestroySpeed(Player player, BlockState blockState, @Nullable FakeBlock.FakeBlockState fakeBlockState) {
@@ -36,6 +33,8 @@ public class BlockUtil {
         Reference<? extends FakeItem> fakeItemReference = MCCreativeLabExtension.getFakeItemRegistry().getFakeItem(CustomItemData.fromItemStack(hand));
         if(fakeItemReference != null)
             destroySpeed = fakeItemReference.unwrapValue().getDestroySpeed(hand, blockState.getBlock(), fakeBlockState);
+        if(fakeBlockState != null && destroySpeed == 1)
+            destroySpeed = fakeBlockState.getFakeBlock().getDestroySpeed(fakeBlockState, player, hand);
 
         if (fakeBlockState != null) {
 

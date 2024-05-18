@@ -53,7 +53,7 @@ public class FakeItemCommand extends Command {
         if(args.length <= 1)
             return List.of("get");
         if(args.length == 2)
-            return MCCreativeLabExtension.getFakeItemRegistry().streamKeys().map(NamespacedKey::asString).toList();
+            return MCCreativeLabExtension.getFakeItemRegistry().streamKeys().map(NamespacedKey::asString).filter(s -> s.contains(args[1])).toList();
         return List.of();
     }
 }

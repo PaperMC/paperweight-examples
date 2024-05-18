@@ -552,7 +552,7 @@ index 0000000000000000000000000000000000000000..953e3637e84e83319b9f85c3f72fa9a3
 +}
 diff --git a/src/main/java/de/verdox/mccreativelab/ai/builder/GoalFactory.java b/src/main/java/de/verdox/mccreativelab/ai/builder/GoalFactory.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..b2f39dada0ebb57a2fc5aa619109fa384246c9d9
+index 0000000000000000000000000000000000000000..011258d926035d40fa97ad4739dd6a4c94fe3a4f
 --- /dev/null
 +++ b/src/main/java/de/verdox/mccreativelab/ai/builder/GoalFactory.java
 @@ -0,0 +1,120 @@

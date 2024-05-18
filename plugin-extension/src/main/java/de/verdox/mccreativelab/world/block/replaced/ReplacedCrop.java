@@ -28,8 +28,8 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Supplier;
 
 public class ReplacedCrop extends FakeBlock {
-    protected ReplacedCrop(List<FakeBlockState> fakeBlockStates) {
-        super(fakeBlockStates);
+    protected ReplacedCrop(NamespacedKey namespacedKey, List<FakeBlockState> fakeBlockStates) {
+        super(namespacedKey, fakeBlockStates);
     }
 
     private final ReplacedCropRandomTickBehaviour vanillaCropRandomTickBehaviour = new ReplacedCropRandomTickBehaviour(9);
@@ -86,7 +86,7 @@ public class ReplacedCrop extends FakeBlock {
     }
 
     @Override
-    protected List<ItemStack> drawLoot(Block block, FakeBlockState fakeBlockState, @Nullable Entity causeOfItemDrop, @Nullable ItemStack toolUsed, boolean ignoreTool) {
+    public List<ItemStack> drawLoot(Block block, FakeBlockState fakeBlockState, @Nullable Entity causeOfItemDrop, @Nullable ItemStack toolUsed, boolean ignoreTool) {
         return List.copyOf(block.getDrops(toolUsed, causeOfItemDrop));
     }
 

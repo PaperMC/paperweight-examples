@@ -6,16 +6,21 @@ import de.verdox.mccreativelab.util.nbt.NBTContainer;
 import de.verdox.mccreativelab.world.block.FakeBlock;
 import de.verdox.mccreativelab.world.block.FakeBlockStorage;
 import de.verdox.mccreativelab.wrapper.MCCWrapped;
+import de.verdox.mccreativelab.wrapper.entity.MCCEntity;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.entity.Entity;
+import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.Collection;
+import java.util.List;
 
 public interface MCCBlockData extends MCCWrapped {
-
-    void setBlock(Location location);
 
     static MCCBlockData getFromBlock(Block block){
         FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockState(block.getLocation(), false);
@@ -32,6 +37,8 @@ public interface MCCBlockData extends MCCWrapped {
     static MCCBlockData wrap(de.verdox.mccreativelab.world.block.FakeBlock.FakeBlockState fakeBlockState) {
         return new FakeBlockState(fakeBlockState);
     }
+
+    void setBlock(Location location);
 
     class Vanilla extends MCCWrapped.Impl<BlockData> implements MCCBlockData {
 
@@ -67,10 +74,9 @@ public interface MCCBlockData extends MCCWrapped {
 
         @Override
         public void setBlock(Location location) {
+            FakeBlockStorage.setFakeBlock(location, null, false);
             location.getBlock().setBlockData(this.getHandle());
         }
-
-
     }
 
     class FakeBlockState extends MCCWrapped.Impl<de.verdox.mccreativelab.world.block.FakeBlock.FakeBlockState> implements MCCBlockData {

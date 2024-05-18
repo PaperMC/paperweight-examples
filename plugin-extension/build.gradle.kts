@@ -16,8 +16,9 @@ allprojects {
     }
     dependencies {
         compileOnly(project(":mccreativelab-api"))
-        compileOnly("io.vertx:vertx-core:4.5.0")
 
+        compileOnly("com.hierynomus:sshj:0.38.0")
+        compileOnly("io.vertx:vertx-core:4.5.0")
         compileOnly("ws.schild:jave-all-deps:3.5.0")
         compileOnly("org.apache.commons:commons-compress:1.26.1")
         compileOnly("commons-io:commons-io:2.16.1")

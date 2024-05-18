@@ -20,7 +20,7 @@ import org.bukkit.inventory.ItemStack;
 import java.util.Iterator;
 
 public class FakeItemListener implements Listener {
-    @EventHandler(priority = EventPriority.HIGHEST)
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void preventVanillaDurabilityChange(PlayerItemDamageEvent e){
         Reference<? extends FakeItem> fakeItemReference = MCCreativeLabExtension.getFakeItemRegistry().getFakeItem(e.getItem());
         if(fakeItemReference == null)
@@ -28,7 +28,7 @@ public class FakeItemListener implements Listener {
         e.setCancelled(fakeItemReference.unwrapValue().getFakeItemProperties().isPreventNormalDurabilityChange());
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST)
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void preventItemDrop(PlayerDropItemEvent e){
         ItemStack stack = e.getItemDrop().getItemStack();
         Reference<? extends FakeItem> fakeItemReference = MCCreativeLabExtension.getFakeItemRegistry().getFakeItem(stack);
@@ -37,7 +37,7 @@ public class FakeItemListener implements Listener {
         e.setCancelled(fakeItemReference.unwrapValue().getFakeItemProperties().isPreventDrop());
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST)
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void preventItemDrop(EntityDropItemEvent e){
         ItemStack stack = e.getItemDrop().getItemStack();
         Reference<? extends FakeItem> fakeItemReference = MCCreativeLabExtension.getFakeItemRegistry().getFakeItem(stack);
@@ -46,7 +46,7 @@ public class FakeItemListener implements Listener {
         e.setCancelled(fakeItemReference.unwrapValue().getFakeItemProperties().isPreventDrop());
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST)
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void preventItemClick(InventoryClickEvent e){
         if(e.getWhoClicked().getGameMode().equals(GameMode.CREATIVE))
             return;
@@ -59,7 +59,7 @@ public class FakeItemListener implements Listener {
         e.setCancelled(fakeItemReference.unwrapValue().getFakeItemProperties().isPreventInventoryClick());
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST)
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void preventItemClick(InventoryMoveItemEvent e){
         Reference<? extends FakeItem> fakeItemReference = MCCreativeLabExtension.getFakeItemRegistry().getFakeItem(e.getItem());
         if(fakeItemReference == null)
@@ -67,7 +67,7 @@ public class FakeItemListener implements Listener {
         e.setCancelled(fakeItemReference.unwrapValue().getFakeItemProperties().isPreventInventoryClick());
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST)
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void preventItemClick(InventoryDragEvent e){
         if(e.getWhoClicked().getGameMode().equals(GameMode.CREATIVE))
             return;

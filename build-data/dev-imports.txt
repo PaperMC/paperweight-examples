@@ -14,3 +14,11 @@
 
 minecraft net.minecraft.world.entity.ai.village.poi.PoiTypes
 minecraft net.minecraft.world.entity.npc.VillagerProfession
+
+minecraft net.minecraft.world.level.levelgen.structure.templatesystem.StructureProcessorType
+minecraft net.minecraft.world.level.levelgen.structure.pools.SinglePoolElement
+minecraft net.minecraft.world.level.levelgen.structure.PoolElementStructurePiece
+minecraft net.minecraft.world.level.levelgen.structure.templatesystem.StructureProcessor
+minecraft net.minecraft.world.entity.Marker
+# Player Force Resource Pack
+minecraft net.minecraft.server.network.config.ServerResourcePackConfigurationTask

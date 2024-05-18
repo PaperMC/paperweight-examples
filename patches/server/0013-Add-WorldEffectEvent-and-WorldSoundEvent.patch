@@ -6,7 +6,7 @@ Subject: [PATCH] Add WorldEffectEvent and WorldSoundEvent
 
 diff --git a/src/main/java/de/verdox/mccreativelab/event/EventToPacketFactory.java b/src/main/java/de/verdox/mccreativelab/event/EventToPacketFactory.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..bed837a02b4239ebb764a01fd542224aad4eb485
+index 0000000000000000000000000000000000000000..a808416df475ea14399e9e725f3a87886cdb9b52
 --- /dev/null
 +++ b/src/main/java/de/verdox/mccreativelab/event/EventToPacketFactory.java
 @@ -0,0 +1,123 @@
@@ -69,7 +69,7 @@ index 0000000000000000000000000000000000000000..bed837a02b4239ebb764a01fd542224a
 +            return null;
 +        NamespacedKey soundType = CraftNamespacedKey.fromMinecraft(sound.unwrapKey().get().location());
 +        Player player = except != null ? (Player) except.getBukkitEntity() : null;
-+        Sound.Source adventureSource = io.papermc.paper.adventure.PaperAdventure.asAdventure(category);
++        Sound.Source adventureSource = Sound.Source.valueOf(category.getName().toUpperCase());
 +        Location location = new Location(serverLevel.getWorld(), x, y, z);
 +
 +        return new WorldSoundEvent(serverLevel.getWorld(), location, player, entity != null ? entity.getBukkitEntity() : null, soundType, adventureSource, volume, pitch, seed);
@@ -95,7 +95,7 @@ index 0000000000000000000000000000000000000000..bed837a02b4239ebb764a01fd542224a
 +        ClientboundLevelEventPacket clientboundLevelEventPacket = new ClientboundLevelEventPacket(event.getEffect()
 +                                                                                                       .getId(), new BlockPos(event
 +            .getSoundLocation().getBlockX(), event.getSoundLocation().getBlockY(), event.getSoundLocation()
-+                                                                                        .getBlockZ()), event.getData(), event.isGlobal());
++                                                                                        .getBlockZ()), data, event.isGlobal());
 +
 +        if (event.isGlobal())
 +            serverLevel.getServer().getPlayerList().broadcastAll(clientboundLevelEventPacket);

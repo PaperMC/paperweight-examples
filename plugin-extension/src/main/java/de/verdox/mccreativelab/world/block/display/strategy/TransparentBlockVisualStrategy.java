@@ -17,6 +17,8 @@ public class TransparentBlockVisualStrategy extends FakeBlockVisualStrategy<Tran
     public void spawnFakeBlockDisplay(Block block, FakeBlock.FakeBlockState fakeBlockState) {
         if (!(fakeBlockState.getFakeBlockDisplay() instanceof TransparentFullBlockEntityDisplay transparentFullBlockEntityDisplay))
             return;
+        if (transparentFullBlockEntityDisplay.getFullBlockFakeItem() == null)
+            return;
         FakeBlockFullDisplay fakeBlockFullDisplay = getOrCreateFakeBlockDisplayData(block);
 
         Location blockCenter = block.getLocation().clone().add(0.5, 0.5, 0.5);

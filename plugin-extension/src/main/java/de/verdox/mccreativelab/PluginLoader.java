@@ -15,6 +15,7 @@ public class PluginLoader implements io.papermc.paper.plugin.loader.PluginLoader
 
         resolver.addDependency(new Dependency(new DefaultArtifact("ws.schild:jave-all-deps:3.5.0"), null));
         resolver.addDependency(new Dependency(new DefaultArtifact("org.apache.commons:commons-compress:1.26.1"), null));
+        resolver.addDependency(new Dependency(new DefaultArtifact("com.hierynomus:sshj:0.38.0"), null));
         resolver.addDependency(new Dependency(new DefaultArtifact("commons-io:commons-io:2.16.1"), null));
         resolver.addDependency(new Dependency(new DefaultArtifact("org.tukaani:xz:1.9"), null));
 

@@ -36,6 +36,7 @@ public abstract class ComponentRendered<C extends ComponentRendered<C,T>, T exte
     private final Map<String, HudElement> elements = new HashMap<>();
     private final Set<Font> hudTextFonts = new HashSet<>();
     private final Map<HudElement, RenderedElementBehavior<T, ? extends HudElement.Rendered<?>>> behaviors = new HashMap<>();
+    private boolean installed = false;
 
     public ComponentRendered(NamespacedKey namespacedKey) {
         super(namespacedKey);
@@ -93,6 +94,11 @@ public abstract class ComponentRendered<C extends ComponentRendered<C,T>, T exte
             }
         });
         installShaderInstructions();
+        installed = true;
+    }
+
+    public boolean isInstalled() {
+        return installed;
     }
 
     @Override

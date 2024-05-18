@@ -68,7 +68,7 @@ index 0000000000000000000000000000000000000000..54d523c62380a43c7b59d16526d27393
 +            return null;
 +        NamespacedKey soundType = CraftNamespacedKey.fromMinecraft(sound.unwrapKey().get().location());
 +        Player player = except != null ? (Player) except.getBukkitEntity() : null;
-+        Sound.Source adventureSource = io.papermc.paper.adventure.PaperAdventure.asAdventure(category);
++        Sound.Source adventureSource = Sound.Source.NAMES.value(category.getName());
 +        Location location = new Location(serverLevel.getWorld(), x, y, z);
 +
 +        return new WorldSoundEvent(serverLevel.getWorld(), location, player, entity != null ? entity.getBukkitEntity() : null, soundType, adventureSource, volume, pitch, seed);
@@ -89,7 +89,7 @@ index 0000000000000000000000000000000000000000..54d523c62380a43c7b59d16526d27393
 +        ClientboundLevelEventPacket clientboundLevelEventPacket = new ClientboundLevelEventPacket(event.getEffect()
 +                                                                                                       .getId(), new BlockPos(event
 +            .getSoundLocation().getBlockX(), event.getSoundLocation().getBlockY(), event.getSoundLocation()
-+                                                                                        .getBlockZ()), event.getData(), event.isGlobal());
++                                                                                        .getBlockZ()), data, event.isGlobal());
 +
 +        if (event.isGlobal())
 +            serverLevel.getServer().getPlayerList().broadcastAll(clientboundLevelEventPacket);

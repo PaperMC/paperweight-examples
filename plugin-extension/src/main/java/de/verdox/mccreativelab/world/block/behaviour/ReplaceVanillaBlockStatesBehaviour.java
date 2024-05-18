@@ -5,38 +5,41 @@ import de.verdox.mccreativelab.world.block.FakeBlock;
 import de.verdox.mccreativelab.world.block.FakeBlockStorage;
 import de.verdox.mccreativelab.random.VanillaRandomSource;
 import org.bukkit.Location;
-import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 
 import java.util.Map;
 
-public class ReplaceBlockStatesWithFakeBlocksBehaviour extends FakeBlockBehaviour {
+/**
+ * This behaviour is used for custom crops.
+ * Methods in this behaviour are called to replace vanilla block states entirely with a fake block state.
+ */
+public class ReplaceVanillaBlockStatesBehaviour extends FakeBlockBehaviour {
     private final Map<BlockData, FakeBlock.FakeBlockState> replacedVisualStates;
 
-    public ReplaceBlockStatesWithFakeBlocksBehaviour(Map<BlockData, FakeBlock.FakeBlockState> replacedVisualStates) {
+    public ReplaceVanillaBlockStatesBehaviour(Map<BlockData, FakeBlock.FakeBlockState> replacedVisualStates) {
         this.replacedVisualStates = replacedVisualStates;
     }
 
     @Override
-    public BehaviourResult.Callback onPlace(Location location, BlockData newBlockData, BlockData oldBlockData, boolean notify) {
+    public BehaviourResult.Callback onPlace(Location location, BlockData newBlockData, BlockData oldBlockData, boolean notify, boolean isProcessingBlockPlaceEvent) {
         FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockState(location, false);
-        if (fakeBlockState == null)
+        if (fakeBlockState == null && !isProcessingBlockPlaceEvent)
             if (replacedVisualStates.containsKey(newBlockData))
                 FakeBlockStorage.setFakeBlockState(location, this.replacedVisualStates.get(newBlockData), false);
-
-        return super.onPlace(location, newBlockData, oldBlockData, notify);
+        return super.onPlace(location, newBlockData, oldBlockData, notify, isProcessingBlockPlaceEvent);
     }
 
     @Override
-    public BehaviourResult.Callback onPlayerPlace(Player player, Location location, BlockData thePlacedState) {
+    public BehaviourResult.Callback onPlayerPlace(Player player, ItemStack stackUsedToPlaceBlock, Location location, BlockData thePlacedState) {
         FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockState(location, false);
         if (fakeBlockState == null)
             if (replacedVisualStates.containsKey(thePlacedState))
                 FakeBlockStorage.setFakeBlockState(location, this.replacedVisualStates.get(thePlacedState), false);
-        return super.onPlayerPlace(player, location, thePlacedState);
+        return super.onPlayerPlace(player, stackUsedToPlaceBlock, location, thePlacedState);
     }
 
     @Override

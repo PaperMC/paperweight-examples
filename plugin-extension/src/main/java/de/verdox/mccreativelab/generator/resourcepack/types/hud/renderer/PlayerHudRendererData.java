@@ -33,6 +33,8 @@ public class PlayerHudRendererData {
 
     @NotNull
     public ActiveHud getOrStartActiveHud(CustomHud customHud) {
+        if(!customHud.isInstalled())
+            throw new IllegalArgumentException("The customHud "+customHud.getKey().asString()+" was not registered to the MCCreativeLab custom resource pack.");
         addToRendering(customHud);
         return Objects.requireNonNull(getActiveHud(customHud));
     }
