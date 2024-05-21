@@ -16,6 +16,7 @@ import org.bukkit.event.player.PlayerQuitEvent;
 
 import java.util.Map;
 import java.util.Stack;
+import java.util.function.Supplier;
 
 /**
  * Tracks the GUIs opened by a player
@@ -26,7 +27,7 @@ public class PlayerGUIStack implements NBTPersistent, Listener {
     private final Player player;
 
     static PlayerGUIStack load(Player player) {
-        return player.getPersistentDataContainer().getPersistentDataObjectCache().loadOrCreatePersistentDataObject(new NamespacedKey("mccreativelab", "gui_stack"), new PlayerGUIStack(player));
+        return player.getPersistentDataContainer().getPersistentDataObjectCache().loadOrSupplyPersistentDataObject(new NamespacedKey("mccreativelab", "gui_stack"), () -> new PlayerGUIStack(player));
     }
 
     public PlayerGUIStack(Player player) {
