@@ -6,9 +6,10 @@ import de.verdox.mccreativelab.generator.AssetPath;
 import de.verdox.mccreativelab.generator.CustomPack;
 import de.verdox.mccreativelab.generator.Resource;
 import de.verdox.mccreativelab.generator.resourcepack.types.ItemTextureData;
+import de.verdox.mccreativelab.generator.resourcepack.types.lang.Translatable;
+import de.verdox.mccreativelab.generator.resourcepack.types.lang.Translation;
 import de.verdox.mccreativelab.generator.resourcepack.types.rendered.ShaderRendered;
 import de.verdox.mccreativelab.generator.resourcepack.types.lang.LanguageFile;
-import de.verdox.mccreativelab.generator.resourcepack.types.lang.Translatable;
 import de.verdox.mccreativelab.generator.resourcepack.types.menu.Resolution;
 import de.verdox.mccreativelab.generator.resourcepack.types.sound.SoundData;
 import de.verdox.mccreativelab.util.gson.JsonObjectBuilder;
@@ -64,15 +65,20 @@ public class CustomResourcePack extends CustomPack<CustomResourcePack> {
         return languageStorage;
     }
 
-    public Translatable addTranslation(Translatable translatable) {
-        languageStorage.addTranslation(translatable);
-        return translatable;
+    public Translation addTranslation(Translation translation) {
+        languageStorage.addTranslation(translation);
+        return translation;
     }
 
-    public List<Translatable> addTranslations(List<Translatable> translatables) {
-        for (Translatable translatable : translatables)
-            languageStorage.addTranslation(translatable);
-        return translatables;
+    public Translatable addTranslation(Translatable translation) {
+        languageStorage.addTranslation(translation);
+        return translation;
+    }
+
+    public List<Translatable> addTranslations(List<Translatable> translations) {
+        for (Translatable translation : translations)
+            languageStorage.addTranslation(translation);
+        return translations;
     }
 
     @Override
@@ -228,7 +234,7 @@ public class CustomResourcePack extends CustomPack<CustomResourcePack> {
         JsonObjectBuilder languagesJson = JsonObjectBuilder.create();
         languageStorage
             .getCustomTranslations()
-            .stream().map(Translatable::languageInfo).forEach(languageInfo -> {
+            .stream().map(Translation::languageInfo).forEach(languageInfo -> {
                 languagesJson.add(languageInfo.identifier(),
                     JsonObjectBuilder.create().add("name", languageInfo.name())
                                      .add("region", languageInfo.region())

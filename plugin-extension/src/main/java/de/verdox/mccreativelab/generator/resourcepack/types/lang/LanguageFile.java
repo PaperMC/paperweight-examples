@@ -23,7 +23,7 @@ public class LanguageFile extends ResourcePackResource {
     public void beforeResourceInstallation(CustomResourcePack customPack) throws IOException {
         JsonObject jsonObject = JsonUtil.readJsonInputStream(this.customLanguageFile.assetInputStream().get());
         for (String s : jsonObject.keySet())
-            customPack.addTranslation(new Translatable(languageInfo, s, jsonObject.get(s).getAsString()));
+            customPack.addTranslation(new Translation(languageInfo, s, jsonObject.get(s).getAsString()));
     }
 
     @Override
