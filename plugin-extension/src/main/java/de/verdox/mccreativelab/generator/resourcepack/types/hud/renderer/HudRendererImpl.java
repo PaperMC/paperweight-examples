@@ -61,6 +61,7 @@ public class HudRendererImpl extends Thread implements HudRenderer {
     @Override
     public void run() {
         while(isRunning){
+
             try {
                 var list = ticksToProcess.take().serverPlayers;
                 for (Player player : list) {
@@ -70,7 +71,10 @@ public class HudRendererImpl extends Thread implements HudRenderer {
                     if(!list.contains(player))
                         renderingDataCache.remove(player);
                 }
-            } catch (InterruptedException ignored) {}
+            } catch (Throwable e) {
+                System.out.println("An error occured in the HudRenderer");
+                e.printStackTrace();
+            }
         }
     }
 
