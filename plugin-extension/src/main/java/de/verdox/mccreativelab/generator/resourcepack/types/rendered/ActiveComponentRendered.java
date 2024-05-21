@@ -61,7 +61,6 @@ public abstract class ActiveComponentRendered<T extends ActiveComponentRendered<
     public final void hideAll() {
         renderedElements.forEach((s, renderedElement) -> renderedElement.setVisible(false));
         forceUpdate();
-        player.sendActionBar(Component.empty());
     }
 
     public final void showAll() {
