@@ -36,6 +36,8 @@ public class ClickableItem {
     public static class Builder {
         private BiConsumer<InventoryClickEvent, ActiveGUI> onClick = (inventoryClickEvent, activeGUI) -> {};
         private ItemStack item = new ItemStack(Material.STICK);
+        public boolean popGUIStack = false;
+        public boolean clearGUIStackAndClose = false;
         Consumer<ItemMeta> metaSetup = meta -> {
         };
 
@@ -72,6 +74,16 @@ public class ClickableItem {
             var copy = new Builder();
             copy.metaSetup = this.metaSetup;
             return copy;
+        }
+
+        public Builder backToLastScreenOnClick(){
+            popGUIStack = true;
+            return this;
+        }
+
+        public Builder closeGUI(){
+            clearGUIStackAndClose = true;
+            return this;
         }
 
         ItemStack createStack() {

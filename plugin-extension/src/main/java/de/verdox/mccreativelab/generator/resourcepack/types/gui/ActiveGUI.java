@@ -168,9 +168,21 @@ public class ActiveGUI extends ActiveComponentRendered<ActiveGUI, CustomGUIBuild
             return;
         }
 
+        Player player = (Player) e.getWhoClicked();
+
         if (indexToClickableItemMapping.containsKey(e.getRawSlot())) {
             e.setCancelled(true);
-            indexToClickableItemMapping.get(e.getRawSlot()).getOnClick().accept(e, this);
+
+            ClickableItem clickableItem = indexToClickableItemMapping.get(e.getRawSlot());
+            clickableItem.getOnClick().accept(e, this);
+
+            if(clickableItem.getBuilder().clearGUIStackAndClose){
+                PlayerGUIStack.load(player).clear();
+                player.closeInventory(InventoryCloseEvent.Reason.PLUGIN);
+            }
+            else if(clickableItem.getBuilder().popGUIStack){
+                player.closeInventory(InventoryCloseEvent.Reason.PLUGIN);
+            }
             return;
         }
 
