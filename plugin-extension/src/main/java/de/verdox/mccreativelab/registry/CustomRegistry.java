@@ -1,15 +1,17 @@
 package de.verdox.mccreativelab.registry;
 
 import org.bukkit.NamespacedKey;
+import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Spliterator;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
-public abstract class CustomRegistry<T> {
+public abstract class CustomRegistry<T> implements Iterable<Map.Entry<NamespacedKey, T>>{
     private final AtomicInteger idCounter = new AtomicInteger();
     private final Map<NamespacedKey, T> registry = new HashMap<>();
     private final Map<T, NamespacedKey> dataToKeyMapping = new HashMap<>();
@@ -73,7 +75,17 @@ public abstract class CustomRegistry<T> {
                 return Reference.create(CustomRegistry.this, getKey(value));
             }
         };
+    }
 
+    @NotNull
+    @Override
+    public Iterator<Map.Entry<NamespacedKey, T>> iterator() {
+        return registry.entrySet().iterator();
+    }
+
+    @Override
+    public Spliterator<Map.Entry<NamespacedKey, T>> spliterator() {
+        return registry.entrySet().spliterator();
     }
 
     public Iterator<NamespacedKey> keys() {
@@ -82,6 +94,9 @@ public abstract class CustomRegistry<T> {
 
     public Stream<NamespacedKey> streamKeys() {
         return registry.keySet().stream();
+    }
+    public Stream<T> streamValues() {
+        return registry.values().stream();
     }
 
     @Nullable
