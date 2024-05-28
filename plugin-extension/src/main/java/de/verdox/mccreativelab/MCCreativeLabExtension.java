@@ -11,6 +11,7 @@ import de.verdox.mccreativelab.generator.resourcepack.CustomResourcePack;
 import de.verdox.mccreativelab.generator.resourcepack.ResourcePackScanner;
 import de.verdox.mccreativelab.generator.resourcepack.types.hud.renderer.HudRenderer;
 import de.verdox.mccreativelab.registry.CustomRegistry;
+import de.verdox.mccreativelab.util.PlayerUtil;
 import de.verdox.mccreativelab.util.nbt.PersistentDataSaver;
 import de.verdox.mccreativelab.util.player.fakeinv.FakeInventory;
 import de.verdox.mccreativelab.world.block.*;
@@ -95,6 +96,10 @@ public class MCCreativeLabExtension extends JavaPlugin {
             Bukkit.getPluginManager().registerEvents(serverSoftwareExclusives, this);
             serverSoftwareExclusives.onEnable();
         }
+
+        PlayerUtil.startAsyncRaytracer();
+
+        
 
 
         if (isServerSoftware()) {

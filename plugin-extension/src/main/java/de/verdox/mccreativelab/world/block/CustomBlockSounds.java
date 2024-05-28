@@ -2,6 +2,8 @@ package de.verdox.mccreativelab.world.block;
 
 import de.verdox.mccreativelab.MCCreativeLabExtension;
 import de.verdox.mccreativelab.Wrappers;
+import de.verdox.mccreativelab.util.PlayerUtil;
+import de.verdox.mccreativelab.world.block.customhardness.BlockBreakSpeedModifier;
 import io.papermc.paper.event.player.PlayerArmSwingEvent;
 import io.papermc.paper.event.world.WorldEffectEvent;
 import io.papermc.paper.event.world.WorldSoundEvent;
@@ -65,14 +67,14 @@ public class CustomBlockSounds implements Listener {
                 return;
 
         }
-        RayTraceResult rayTraceResult = e.getPlayer().rayTraceBlocks(7, FluidCollisionMode.NEVER);
-        if (rayTraceResult == null)
+
+        Block rayTracedBlock = PlayerUtil.getTargetBlock(e.getPlayer());
+        if (rayTracedBlock == null)
             return;
-        Block block = rayTraceResult.getHitBlock();
-        if (block == null || !FakeBlockSoundManager.isBlockWithoutStandardSound(block))
+        FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockState(rayTracedBlock.getLocation(), false);
+        if (!FakeBlockSoundManager.isBlockWithoutStandardSound(rayTracedBlock))
             return;
-        FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockState(block.getLocation(), false);
-        FakeBlockSoundManager.simulateDiggingSound(player, block, fakeBlockState);
+        FakeBlockSoundManager.simulateDiggingSound(player, rayTracedBlock, fakeBlockState);
     }
 
     @EventHandler

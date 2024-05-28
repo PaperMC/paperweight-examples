@@ -13,7 +13,7 @@ public interface MCCWrapped extends Keyed {
     boolean matches(MCCWrapped mccWrapped);
 
     abstract class Impl<T> implements MCCWrapped {
-        private T handle;
+        private final T handle;
 
         protected Impl(T handle) {
             Objects.requireNonNull(handle);
@@ -30,6 +30,19 @@ public interface MCCWrapped extends Keyed {
             return getClass().getSimpleName() + "{" +
                 "handle=" + handle +
                 '}';
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Impl<?> impl = (Impl<?>) o;
+            return Objects.equals(handle, impl.handle);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hashCode(handle);
         }
     }
 }

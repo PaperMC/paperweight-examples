@@ -29,7 +29,7 @@ public class ReplaceVanillaBlockStatesBehaviour extends FakeBlockBehaviour {
         FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockState(location, false);
         if (fakeBlockState == null && !isProcessingBlockPlaceEvent)
             if (replacedVisualStates.containsKey(newBlockData))
-                FakeBlockStorage.setFakeBlockState(location, this.replacedVisualStates.get(newBlockData), false);
+                FakeBlockStorage.setFakeBlockState(location, this.replacedVisualStates.get(newBlockData),false, false);
         return super.onPlace(location, newBlockData, oldBlockData, notify, isProcessingBlockPlaceEvent);
     }
 
@@ -38,7 +38,7 @@ public class ReplaceVanillaBlockStatesBehaviour extends FakeBlockBehaviour {
         FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockState(location, false);
         if (fakeBlockState == null)
             if (replacedVisualStates.containsKey(thePlacedState))
-                FakeBlockStorage.setFakeBlockState(location, this.replacedVisualStates.get(thePlacedState), false);
+                FakeBlockStorage.setFakeBlockState(location, this.replacedVisualStates.get(thePlacedState), false,false);
         return super.onPlayerPlace(player, stackUsedToPlaceBlock, location, thePlacedState);
     }
 
@@ -47,7 +47,7 @@ public class ReplaceVanillaBlockStatesBehaviour extends FakeBlockBehaviour {
         FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockState(block.getLocation(), false);
         if (fakeBlockState == null)
             if (replacedVisualStates.containsKey(block.getBlockData()))
-                FakeBlockStorage.setFakeBlockState(block.getLocation(), this.replacedVisualStates.get(block.getBlockData()), false);
+                FakeBlockStorage.setFakeBlockState(block.getLocation(), this.replacedVisualStates.get(block.getBlockData()), false, false);
         return super.tick(block, vanillaRandomSource);
     }
 
@@ -56,7 +56,7 @@ public class ReplaceVanillaBlockStatesBehaviour extends FakeBlockBehaviour {
         FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockState(location, false);
         if (fakeBlockState == null)
             if (replacedVisualStates.containsKey(blockData))
-                FakeBlockStorage.setFakeBlockState(location, this.replacedVisualStates.get(blockData), false);
+                FakeBlockStorage.setFakeBlockState(location, this.replacedVisualStates.get(blockData), false, false);
 
         return super.blockUpdate(location, blockData, direction, neighbourBlockData, neighbourLocation);
     }

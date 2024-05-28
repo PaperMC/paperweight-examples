@@ -4,13 +4,14 @@ import de.verdox.mccreativelab.MCCreativeLabExtension;
 import de.verdox.mccreativelab.behaviour.BehaviourResult;
 import de.verdox.mccreativelab.behaviour.ItemBehaviour;
 import de.verdox.mccreativelab.generator.Asset;
-import de.verdox.mccreativelab.generator.resourcepack.CustomModelDataProvider;
 import de.verdox.mccreativelab.generator.resourcepack.CustomResourcePack;
 import de.verdox.mccreativelab.generator.resourcepack.types.ItemTextureData;
 import de.verdox.mccreativelab.generator.resourcepack.types.lang.LanguageInfo;
 import de.verdox.mccreativelab.generator.resourcepack.types.lang.Translatable;
+import de.verdox.mccreativelab.generator.resourcepack.types.lang.Translation;
 import de.verdox.mccreativelab.world.block.FakeBlock;
 import de.verdox.mccreativelab.recipe.CustomItemData;
+import de.verdox.mccreativelab.world.item.data.ItemDataContainer;
 import it.unimi.dsi.fastutil.Pair;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextColor;
@@ -19,9 +20,7 @@ import org.bukkit.Keyed;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.block.Block;
-import org.bukkit.enchantments.Enchantment;
 import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.potion.PotionEffect;
@@ -30,6 +29,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 public class FakeItem implements Keyed, ItemBehaviour {
@@ -38,9 +38,11 @@ public class FakeItem implements Keyed, ItemBehaviour {
     private int customModelData;
     private FakeItemProperties fakeItemProperties;
     private Consumer<ItemMeta> metaConsumer;
-    private Translatable nameTranslatable;
+    private Translatable nameTranslation;
+    @Nullable
+    private Component customNameFormat;
 
-    public CustomItemData asCustomItemData(){
+    public CustomItemData asCustomItemData() {
         return new CustomItemData(material, customModelData);
     }
 
@@ -57,7 +59,7 @@ public class FakeItem implements Keyed, ItemBehaviour {
     }
 
     public Translatable getNameTranslatable() {
-        return nameTranslatable;
+        return nameTranslation;
     }
 
     public Consumer<ItemMeta> getMetaConsumer() {
@@ -68,8 +70,12 @@ public class FakeItem implements Keyed, ItemBehaviour {
         this.fakeItemProperties = fakeItemProperties;
     }
 
-    void setNameTranslatable(Translatable nameTranslatable) {
-        this.nameTranslatable = nameTranslatable;
+    void setNameTranslatable(Translatable nameTranslation) {
+        this.nameTranslation = nameTranslation;
+    }
+
+    void setCustomNameComponent(Component component) {
+        this.customNameFormat = component;
     }
 
     void setMaterial(Material material) {
@@ -88,19 +94,22 @@ public class FakeItem implements Keyed, ItemBehaviour {
         this.key = key;
     }
 
-    public boolean isItem(ItemStack stack){
+    public boolean isItem(ItemStack stack) {
         return CustomItemData.fromItemStack(stack).isSame(createItemStack());
     }
 
     public final ItemStack createItemStack() {
         ItemStack stack = new ItemStack(material);
         stack.editMeta((meta) -> {
-            if (nameTranslatable != null)
-                meta.displayName(Component.translatable(nameTranslatable.key()).color(TextColor.color(255,255,255)).decoration(TextDecoration.ITALIC, false));
-            if(metaConsumer != null)
+            if (this.customNameFormat != null) {
+                meta.displayName(customNameFormat);
+            } else if (nameTranslation != null)
+                meta.displayName(Component.translatable(nameTranslation.key()).color(TextColor.color(255, 255, 255)).decoration(TextDecoration.ITALIC, false));
+            if (metaConsumer != null)
                 metaConsumer.accept(meta);
             meta.setCustomModelData(customModelData);
         });
+        ItemDataContainer.from(stack);
         //stack.setItemBehaviour(this);
         return stack;
     }
@@ -111,7 +120,7 @@ public class FakeItem implements Keyed, ItemBehaviour {
         return 1.0f;
     }
 
-    public void onClick(InventoryClickEvent clickEvent){
+    public void onClick(InventoryClickEvent clickEvent) {
 
     }
 
@@ -210,10 +219,14 @@ public class FakeItem implements Keyed, ItemBehaviour {
         };
         private FakeItemProperties fakeItemProperties = new FakeItemProperties();
         private Asset<CustomResourcePack> texture;
-        private Translatable translatable;
+        private Translatable translation;
 
         private ItemTextureData itemTextureData;
         private ItemTextureData.ModelType modelType;
+        private final String translationKey;
+
+        @Nullable
+        private Component customNameFormat;
 
         public Builder(NamespacedKey namespacedKey, Material vanillaMaterial, Supplier<T> itemBuilder) {
             this.itemBuilder = itemBuilder;
@@ -221,6 +234,8 @@ public class FakeItem implements Keyed, ItemBehaviour {
             Objects.requireNonNull(namespacedKey);
             this.vanillaMaterial = vanillaMaterial;
             this.namespacedKey = namespacedKey;
+            this.translationKey = "custom_item.description_id." + new NamespacedKey(namespacedKey.namespace(), namespacedKey.getKey()).asString();
+            this.translation = new Translatable(translationKey);
         }
 
         public Builder<T> withItemMeta(Consumer<ItemMeta> itemMetaBuilder) {
@@ -233,13 +248,24 @@ public class FakeItem implements Keyed, ItemBehaviour {
             return this;
         }
 
-        public Builder<T> withStandardName(Translatable translatable) {
-            this.translatable = translatable;
+        public Builder<T> withStandardName(Consumer<Translatable> setup) {
+            setup.accept(this.translation);
             return this;
         }
 
-        public Builder<T> withStandardName(String standardName) {
-            return withStandardName(new Translatable(LanguageInfo.ENGLISH_US, "custom_item.description_id." + new NamespacedKey(namespacedKey.namespace(), namespacedKey.getKey()).asString(), standardName));
+        public Builder<T> withNameFormat(Function<String, Component> nameFormat) {
+            this.customNameFormat = nameFormat.apply(translationKey);
+            return this;
+        }
+
+        /**
+         * Same as withNameFormat but sets color and TextDecoration to a standard value.
+         * @param nameFormat
+         * @return
+         */
+        public Builder<T> withNameFormatAndStandardStyle(Function<String, Component> nameFormat) {
+            this.customNameFormat = nameFormat.apply(translationKey).color(TextColor.color(255, 255, 255)).decoration(TextDecoration.ITALIC, false);
+            return this;
         }
 
         public Builder<T> withProperties(FakeItemProperties fakeItemProperties) {
@@ -272,17 +298,18 @@ public class FakeItem implements Keyed, ItemBehaviour {
             value.setCustomModelData(customModelData);
             value.setKey(namespacedKey);
 
-            if (this.translatable != null && value.getNameTranslatable() == null)
-                value.setNameTranslatable(translatable);
+            if (this.translation != null && value.getNameTranslatable() == null)
+                value.setNameTranslatable(translation);
             if (this.fakeItemProperties != null && value.getFakeItemProperties() == null)
                 value.setFakeItemProperties(fakeItemProperties);
             if (this.itemMetaBuilder != null && value.getMetaConsumer() == null) value.setMetaConsumer(itemMetaBuilder);
+            if (this.customNameFormat != null) value.setCustomNameComponent(this.customNameFormat);
 
             Objects.requireNonNull(namespacedKey);
             Objects.requireNonNull(vanillaMaterial);
 
             MCCreativeLabExtension.getCustomResourcePack().registerIfNotAlready(itemTextureData);
-            if (translatable != null) MCCreativeLabExtension.getCustomResourcePack().addTranslation(translatable);
+            if (translation != null) MCCreativeLabExtension.getCustomResourcePack().addTranslation(translation);
 
             ItemBehaviour.ITEM_BEHAVIOUR.setBehaviour(new CustomItemData(vanillaMaterial, customModelData), value);
             return value;
@@ -296,8 +323,8 @@ public class FakeItem implements Keyed, ItemBehaviour {
         private @Nullable FakeItem.FoodProperties foodProperties;
         private boolean isFireResistant;
         private boolean enchantable;
-        private boolean fitsInsideContainerItem;
-        private boolean canBreak;
+        private boolean fitsInsideContainerItem = true;
+        private boolean canBreak = true;
         private boolean preventNormalDurabilityChange;
         private boolean preventDrop;
         private boolean preventInventoryClick;

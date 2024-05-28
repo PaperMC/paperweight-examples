@@ -1,5 +1,6 @@
 package de.verdox.mccreativelab.world.block.entity;
 
+import de.verdox.mccreativelab.behaviour.entity.EntityBehaviour;
 import de.verdox.mccreativelab.util.nbt.NBTContainer;
 import de.verdox.mccreativelab.util.nbt.NBTPersistent;
 import de.verdox.mccreativelab.world.block.FakeBlock;
@@ -65,6 +66,10 @@ public abstract class FakeBlockEntity implements NBTPersistent, Keyed {
     }
 
     protected void loadNBT(NBTContainer storage) {
+    }
+
+    public void onUnload(){
+
     }
 
     /**

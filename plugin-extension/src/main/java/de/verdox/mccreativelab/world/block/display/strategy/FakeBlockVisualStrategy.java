@@ -143,7 +143,7 @@ public abstract class FakeBlockVisualStrategy<T extends FakeBlockVisualStrategy.
                                        FakeBlock.FakeBlockState storedFakeBlockState) {
         public void load() {
             storedFakeBlockState.getFakeBlockDisplay().getFakeBlockVisualStrategy().loadItemDisplayAsBlockDisplay(this);
-            FakeBlockStorage.setFakeBlockState(block.getLocation(), storedFakeBlockState, false);
+            FakeBlockStorage.setFakeBlockState(block.getLocation(), storedFakeBlockState, false, false);
         }
     }
 

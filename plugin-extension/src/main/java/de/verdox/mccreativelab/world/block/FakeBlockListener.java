@@ -4,6 +4,7 @@ import com.destroystokyo.paper.event.block.BlockDestroyEvent;
 import com.destroystokyo.paper.event.entity.EntityAddToWorldEvent;
 import de.verdox.mccreativelab.world.block.entity.FakeBlockEntity;
 import de.verdox.mccreativelab.world.block.entity.FakeBlockEntityStorage;
+import io.papermc.paper.event.player.PlayerArmSwingEvent;
 import org.bukkit.GameMode;
 import org.bukkit.block.Block;
 import org.bukkit.event.EventHandler;
@@ -11,6 +12,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.*;
 import org.bukkit.event.inventory.HopperInventorySearchEvent;
+import org.bukkit.util.RayTraceResult;
 
 public class FakeBlockListener implements Listener {
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
@@ -62,7 +64,6 @@ public class FakeBlockListener implements Listener {
             return;
         e.setInventory(fakeBlockEntity.getContainerOfEntity());
     }
-
 
 /*    @EventHandler(priority = EventPriority.MONITOR)
     public void removeItemDisplaysIfBlockPlaceWasCancelled(BlockPlaceEvent e){

@@ -1,6 +1,6 @@
 package de.verdox.mccreativelab.util;
 
-import de.verdox.mccreativelab.generator.resourcepack.types.lang.Translatable;
+import de.verdox.mccreativelab.generator.resourcepack.types.lang.Translation;
 import de.verdox.mccreativelab.util.io.StringAlign;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
@@ -35,7 +35,7 @@ public class LoreUtil {
         return createLore(text, 20, textComponent -> textComponent);
     }
 
-    public static ItemStack formatItem(Player player, ItemStack stack, Translatable title, Translatable description) {
+    public static ItemStack formatItem(Player player, ItemStack stack, Translation title, Translation description) {
         stack.editMeta(itemMeta -> {
             itemMeta.displayName(title.asTranslatableComponent());
             createLore(description.translate(player));

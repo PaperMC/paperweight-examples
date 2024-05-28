@@ -1,5 +1,6 @@
 package de.verdox.mccreativelab.wrapper;
 
+import de.verdox.mccreativelab.MCCreativeLabExtension;
 import de.verdox.mccreativelab.recipe.CustomItemData;
 import de.verdox.mccreativelab.registry.Reference;
 import de.verdox.mccreativelab.world.item.FakeItem;
@@ -19,6 +20,14 @@ public interface MCCItemType extends MCCWrapped {
 
     static MCCItemType of(Reference<? extends FakeItem> fakeItem) {
         return of(fakeItem.unwrapValue());
+    }
+
+    static MCCItemType of(ItemStack itemStack){
+        Reference<? extends FakeItem> reference = MCCreativeLabExtension.getFakeItemRegistry().getFakeItem(itemStack);
+        if(reference != null)
+            return MCCItemType.of(reference);
+        else
+            return MCCItemType.of(itemStack.getType());
     }
 
     int getCustomModelData();

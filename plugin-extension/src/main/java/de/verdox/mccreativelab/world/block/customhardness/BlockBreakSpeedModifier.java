@@ -17,17 +17,17 @@ import io.papermc.paper.event.player.PlayerArmSwingEvent;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
-import org.bukkit.block.BlockState;
-import org.bukkit.block.data.BlockData;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockDamageAbortEvent;
 import org.bukkit.event.block.BlockDamageEvent;
+import org.bukkit.event.player.PlayerAnimationType;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.EquipmentSlot;
@@ -40,30 +40,71 @@ import org.bukkit.util.Vector;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Predicate;
 
 public class BlockBreakSpeedModifier implements Listener {
     private static final EntityMetadataPredicate.TickDelay DELAY_BETWEEN_BREAK_PARTICLES = new EntityMetadataPredicate.TickDelay("DiggingParticlesDelay", 2);
     private static final EntityMetadataPredicate.TickDelay DELAY_BETWEEN_BLOCK_BREAKS = new EntityMetadataPredicate.TickDelay("BlockBreakDelay", 5);
+    private static final EntityMetadataPredicate.TickDelay DELAY_ARM_SWING_DETECTION = new EntityMetadataPredicate.TickDelay("ArmSwingDetection", 1);
     private static final Map<Player, BlockBreakProgress> map = new HashMap<>();
+    private static final Map<Block, Set<Player>> blockBrokenToPlayerMapping = new HashMap<>();
 
     @EventHandler
     public void onInteract(PlayerInteractEvent e) {
         if (e.getClickedBlock() == null || e.getAction().isRightClick())
             stopBlockBreakAction(e.getPlayer());
-        if(e.getPlayer().getGameMode().equals(GameMode.CREATIVE))
+        if (e.getPlayer().getGameMode().equals(GameMode.CREATIVE))
             return;
-        if(e.getClickedBlock() != null && e.getAction().isLeftClick())
+        if (e.getClickedBlock() != null && e.getAction().isLeftClick())
             startBlockBreakAction(e.getPlayer(), e.getClickedBlock(), e.getBlockFace(), e);
     }
+
+/*    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    public void cachePlayerInteractionsToPreventAnimationFalsePositives(PlayerInteractEvent e) {
+        Player player = e.getPlayer();
+        player.setMetadata("lastInteraction", new FixedMetadataValue(MCCreativeLabExtension.getInstance(), e.getAction()));
+    }*/
+
+/*    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    public void detectBlockBreakOnArmSwing(PlayerArmSwingEvent e) {
+        Player player = e.getPlayer();
+
+        if (!player.hasMetadata("lastInteraction"))
+            return;
+        Action action = (Action) player.getMetadata("lastInteraction").get(0).value();
+        if (!Action.LEFT_CLICK_BLOCK.equals(action)) {
+            return;
+        }
+
+        RayTraceResult rayTraceResult = e.getPlayer().rayTraceBlocks(7);
+        if (rayTraceResult == null) {
+            stopBlockBreakAction(e.getPlayer());
+            return;
+        }
+
+
+
+        Block targetBlock = rayTraceResult.getHitBlock();
+        BlockFace hitBlockFace = rayTraceResult.getHitBlockFace();
+
+        if (map.containsKey(e.getPlayer()) || targetBlock == null || !e.getHand().equals(EquipmentSlot.HAND))
+            return;
+
+        if(!DELAY_ARM_SWING_DETECTION.isAllowed(e.getPlayer()))
+            return;
+        DELAY_ARM_SWING_DETECTION.reset(player);
+
+        startBlockBreakAction(e.getPlayer(), targetBlock, hitBlockFace, e);
+    }*/
 
     @EventHandler
     public void onStartDigging(BlockDamageEvent e) {
         startBlockBreakAction(e.getPlayer(), e.getBlock(), e.getBlockFace(), e);
     }
-
 
 
     @EventHandler
@@ -101,7 +142,7 @@ public class BlockBreakSpeedModifier implements Listener {
             customBlockHardness = fakeBlockState.getProperties().getHardness();
         else if (MCCreativeLabExtension.getBlockBreakSpeedSettings().hasCustomBlockHardness(bukkitMaterial))
             customBlockHardness = MCCreativeLabExtension.getBlockBreakSpeedSettings().getCustomBlockHardness(block.getType());
-        else if(fakeItemReference != null && block.getBlockData().getDestroySpeed(diggingItem) != fakeItemReference.unwrapValue().getDestroySpeed(diggingItem, block, fakeBlockState)){
+        else if (fakeItemReference != null && block.getBlockData().getDestroySpeed(diggingItem) != fakeItemReference.unwrapValue().getDestroySpeed(diggingItem, block, fakeBlockState)) {
             customBlockHardness = block.getBlockData().getMaterial().getHardness();
         }
 
@@ -116,8 +157,17 @@ public class BlockBreakSpeedModifier implements Listener {
 
         cancellable.setCancelled(true);
         map.put(player, new BlockBreakProgress(player, block, customBlockHardness, blockFace, fakeBlockState));
+        blockBrokenToPlayerMapping.computeIfAbsent(block, block1 -> new HashSet<>()).add(player);
         player.addPotionEffect(new PotionEffect(PotionEffectType.SLOW_DIGGING, 1, -1, false, false, false));
         FakeBlockRegistry.fakeBlockDamage.sendBlockDamage(block, 0);
+    }
+
+    public static void stopBlockBreakAtBlock(Block block) {
+        if (!blockBrokenToPlayerMapping.containsKey(block))
+            return;
+        for (Player player : blockBrokenToPlayerMapping.get(block)) {
+            stopBlockBreakAction(player);
+        }
     }
 
     public static void stopBlockBreakAction(Player player) {
@@ -125,7 +175,18 @@ public class BlockBreakSpeedModifier implements Listener {
             player.removeMetadata("isBreakingNormalBlock", MCCreativeLabExtension.getInstance());
         if (!map.containsKey(player))
             return;
-        map.remove(player).resetBlockDamage();
+        BlockBreakProgress blockBreakProgress = map.remove(player);
+        blockBreakProgress.resetBlockDamage();
+        if (blockBrokenToPlayerMapping.containsKey(blockBreakProgress.block)) {
+            Set<Player> playersBreakingBlock = blockBrokenToPlayerMapping.get(blockBreakProgress.block);
+            playersBreakingBlock.remove(player);
+            if (playersBreakingBlock.isEmpty())
+                blockBrokenToPlayerMapping.remove(blockBreakProgress.block);
+        }
+
+        blockBrokenToPlayerMapping.remove(blockBreakProgress.block);
+        // We reset the arm swing detection here to reduce false positive detection
+        DELAY_ARM_SWING_DETECTION.reset(player);
     }
 
     private static final Predicate<ItemStack> IS_TOOL = stack -> stack.getType().name().contains("AXE") || stack.getType().name().contains("SHOVEL") || stack.getType().name().contains("HOE") || stack.getType().name().contains("SWORD") || stack.getType().equals(Material.SHEARS);
@@ -163,7 +224,7 @@ public class BlockBreakSpeedModifier implements Listener {
 
         public void incrementTicks() {
             player.addPotionEffect(new PotionEffect(PotionEffectType.SLOW_DIGGING, 1, -1, false, false, false));
-            if(!DELAY_BETWEEN_BLOCK_BREAKS.isAllowed(player))
+            if (!DELAY_BETWEEN_BLOCK_BREAKS.isAllowed(player))
                 return;
 
 

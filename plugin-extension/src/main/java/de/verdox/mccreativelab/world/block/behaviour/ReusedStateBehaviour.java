@@ -174,7 +174,7 @@ public class ReusedStateBehaviour extends FakeBlockBehaviour {
         FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockState(block.getLocation(), false);
         if (fakeBlockState != null)
             return;
-        FakeBlockStorage.setFakeBlock(block.getLocation(), fakeBlock, false);
+        FakeBlockStorage.setFakeBlock(block.getLocation(), fakeBlock, false, false);
     }
 
     private boolean isReplacedVanillaBlock(Block block) {

@@ -1,17 +1,20 @@
 package de.verdox.mccreativelab;
 
+import de.verdox.itemformat.BasicItemFormat;
 import de.verdox.mccreativelab.event.MCCreativeLabReloadEvent;
 import de.verdox.mccreativelab.features.legacy.LegacyFeatures;
 import de.verdox.mccreativelab.world.block.FakeBlockRegistry;
 import de.verdox.mccreativelab.world.block.FakeBlockStorage;
 import de.verdox.mccreativelab.world.block.replaced.ReplacedBlocks;
 import de.verdox.mccreativelab.world.item.FakeItemRegistry;
+import de.verdox.mccreativelab.world.item.data.ItemDataContainer;
 import de.verdox.mccreativelab.world.sound.ReplacedSoundGroups;
 import org.bukkit.Bukkit;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.server.ServerLoadEvent;
+import org.bukkit.inventory.ItemStack;
 
 public class ServerSoftwareExclusives implements Listener {
     private static FakeBlockRegistry FAKE_BLOCK_REGISTRY;
@@ -27,6 +30,9 @@ public class ServerSoftwareExclusives implements Listener {
         replacedSoundGroups  = new ReplacedSoundGroups();
         fakeBlockStorage = new FakeBlockStorage();
         legacyFeatures = new LegacyFeatures();
+        FakeBlockRegistry.setupFakeBlocks();
+        ReplacedBlocks.setup();
+        //BasicItemFormat.BASIC_FORMAT.setBehaviour(ItemDataContainer::from);
     }
 
     public void onEnable(){
@@ -45,9 +51,6 @@ public class ServerSoftwareExclusives implements Listener {
                 }
                 replacedSoundGroups.replaceWoodSoundGroup();
             }
-
-            FakeBlockRegistry.setupFakeBlocks();
-            ReplacedBlocks.setup();
             Bukkit.getLogger().info("ServerSoftware exclusive features started");
         }
     }

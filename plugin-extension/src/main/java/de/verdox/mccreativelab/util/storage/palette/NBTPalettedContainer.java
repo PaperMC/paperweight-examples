@@ -1,5 +1,7 @@
 package de.verdox.mccreativelab.util.storage.palette;
 
+import de.verdox.mccreativelab.util.nbt.NBTContainer;
+import de.verdox.mccreativelab.util.nbt.NBTPersistent;
 import de.verdox.mccreativelab.util.storage.HashedThreeDimensionalStorage;
 import de.verdox.mccreativelab.util.storage.NBTThreeDimensionalStorageSerializer;
 import de.verdox.mccreativelab.util.storage.ThreeDimensionalStorage;
@@ -8,17 +10,13 @@ import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 
 import javax.annotation.Nullable;
+import java.util.Objects;
 
-public class NBTPalettedContainer<T> {
-    private static final NamespacedKey PALETTE_DATA_ARRAY_KEY = new NamespacedKey("mccreativelab", "data");
-    private static final NamespacedKey PALETTE_UNIQUE_DATA_LIST_KEY = new NamespacedKey("mccreativelab", "unique_data");
-    private static final NamespacedKey SERIALIZATION_ID = new NamespacedKey("mccreativelab", "serialization_id");
-    private final IdMap<T> idMap;
+public class NBTPalettedContainer<T> implements NBTPersistent {
     private final ThreeDimensionalStorage<Short, T> storage;
 
     public NBTPalettedContainer(IdMap<T> idMap, int xSize, int ySize, int zSize) {
         this.storage = new HashedThreeDimensionalStorage<>(idMap, new ThreeDimensionalStorage.IndexingStrategy.Short(xSize, ySize, zSize));
-        this.idMap = idMap;
         if (xSize <= 0 || ySize <= 0 || zSize <= 0)
             throw new IllegalArgumentException("Values must be greater than 0");
     }
@@ -40,10 +38,28 @@ public class NBTPalettedContainer<T> {
         persistentDataContainer.set(namespacedKey, PersistentDataType.TAG_CONTAINER, serializedStorage);
     }
 
+    public boolean isEmpty(){
+        return storage.isEmpty();
+    }
+
     public final void deSerialize(NamespacedKey namespacedKey, PersistentDataContainer persistentDataContainer) {
         if(!persistentDataContainer.has(namespacedKey, PersistentDataType.TAG_CONTAINER))
             return;
         PersistentDataContainer serializedStorage = persistentDataContainer.getOrDefault(namespacedKey, PersistentDataType.TAG_CONTAINER, persistentDataContainer.getAdapterContext().newPersistentDataContainer());
         NBTThreeDimensionalStorageSerializer.deSerialize(storage, serializedStorage);
+    }
+
+    @Override
+    public void saveNBTData(NBTContainer storage) {
+        NBTContainer threeDimensionalStorageNBT = storage.createNBTContainer();
+        this.storage.saveNBTData(threeDimensionalStorageNBT);
+        storage.set("serializedThreeDimensionalStorage", threeDimensionalStorageNBT);
+    }
+
+    @Override
+    public void loadNBTData(NBTContainer storage) {
+        if(!storage.has("serializedThreeDimensionalStorage"))
+            return;
+        this.storage.loadNBTData(Objects.requireNonNull(storage.getNBTContainer("serializedThreeDimensionalStorage")));
     }
 }

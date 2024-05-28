@@ -2,6 +2,7 @@ package de.verdox.mccreativelab.util.player.inventory;
 
 import de.verdox.mccreativelab.recipe.CustomItemData;
 import de.verdox.mccreativelab.world.item.FakeItem;
+import de.verdox.mccreativelab.wrapper.MCCItemType;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
@@ -26,44 +27,44 @@ public interface PlayerInventoryCacheStrategy {
     void removeSlotFromCache(int slot, ItemStack stack);
 
     class CachedAmounts implements PlayerInventoryCacheStrategy {
-        private final Map<CustomItemData, Integer> cachedAmounts = new HashMap<>();
+        private final Map<MCCItemType, Integer> cachedAmounts = new HashMap<>();
 
-        public int getAmount(CustomItemData customItemData){
-            return cachedAmounts.getOrDefault(customItemData, 0);
+        public int getAmount(MCCItemType mccItemType){
+            return cachedAmounts.getOrDefault(mccItemType, 0);
         }
 
         public int getAmount(Material material){
-            return getAmount(new CustomItemData(material, 0));
+            return getAmount(MCCItemType.of(material));
         }
 
         public int getAmount(ItemStack stack){
-            return getAmount(CustomItemData.fromItemStack(stack));
+            return getAmount(MCCItemType.of(stack));
         }
 
         public int getAmount(FakeItem fakeItem){
-            return getAmount(new CustomItemData(fakeItem.getMaterial(), fakeItem.getCustomModelData()));
+            return getAmount(MCCItemType.of(fakeItem));
         }
 
         @Override
         public void cacheItemInSlot(int slot, ItemStack stack) {
-            CustomItemData customItemData = CustomItemData.fromItemStack(stack);
+            MCCItemType type = MCCItemType.of(stack);
             int newAmount = stack.getAmount();
-            if (cachedAmounts.containsKey(customItemData))
-                newAmount += cachedAmounts.get(customItemData);
-            cachedAmounts.put(customItemData, newAmount);
+            if (cachedAmounts.containsKey(type))
+                newAmount += cachedAmounts.get(type);
+            cachedAmounts.put(type, newAmount);
         }
 
         @Override
         public void removeSlotFromCache(int slot, ItemStack stack) {
-            CustomItemData customItemData = CustomItemData.fromItemStack(stack);
-            if (!cachedAmounts.containsKey(customItemData))
+            MCCItemType type = MCCItemType.of(stack);
+            if (!cachedAmounts.containsKey(type))
                 return;
-            int newAmount = cachedAmounts.get(customItemData);
+            int newAmount = cachedAmounts.get(type);
             newAmount -= stack.getAmount();
             if (newAmount > 0)
-                cachedAmounts.put(customItemData, newAmount);
+                cachedAmounts.put(type, newAmount);
             else
-                cachedAmounts.remove(customItemData);
+                cachedAmounts.remove(type);
         }
     }
 
