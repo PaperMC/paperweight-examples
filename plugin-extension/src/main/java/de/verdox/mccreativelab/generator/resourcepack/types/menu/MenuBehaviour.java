@@ -85,8 +85,8 @@ public class MenuBehaviour implements Listener {
 
         if (activeMenu.getCustomMenu().doEffects) {
             this.effectTask = Bukkit.getScheduler().runTaskTimer(platformPlugin, () -> {
-                player.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, 20, 3, false, false, false));
-                player.addPotionEffect(new PotionEffect(PotionEffectType.SLOW_DIGGING, 20, -1, false, false, false));
+                player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 20, 3, false, false, false));
+                player.addPotionEffect(new PotionEffect(PotionEffectType.MINING_FATIGUE, 20, -1, false, false, false));
                 player.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 30, 1, false, false, false));
             }, 0L, 20L);
         }

@@ -158,7 +158,7 @@ public class BlockBreakSpeedModifier implements Listener {
         cancellable.setCancelled(true);
         map.put(player, new BlockBreakProgress(player, block, customBlockHardness, blockFace, fakeBlockState));
         blockBrokenToPlayerMapping.computeIfAbsent(block, block1 -> new HashSet<>()).add(player);
-        player.addPotionEffect(new PotionEffect(PotionEffectType.SLOW_DIGGING, 1, -1, false, false, false));
+        player.addPotionEffect(new PotionEffect(PotionEffectType.MINING_FATIGUE, 1, -1, false, false, false));
         FakeBlockRegistry.fakeBlockDamage.sendBlockDamage(block, 0);
     }
 
@@ -193,7 +193,7 @@ public class BlockBreakSpeedModifier implements Listener {
 
     public static void tick(Player player) {
         if (IS_TOOL.test(player.getInventory().getItemInMainHand()) && !player.hasMetadata("isBreakingNormalBlock"))
-            player.addPotionEffect(new PotionEffect(PotionEffectType.SLOW_DIGGING, 1, -1, false, false, false));
+            player.addPotionEffect(new PotionEffect(PotionEffectType.MINING_FATIGUE, 1, -1, false, false, false));
 
         if (!map.containsKey(player))
             return;
@@ -223,7 +223,7 @@ public class BlockBreakSpeedModifier implements Listener {
         }
 
         public void incrementTicks() {
-            player.addPotionEffect(new PotionEffect(PotionEffectType.SLOW_DIGGING, 1, -1, false, false, false));
+            player.addPotionEffect(new PotionEffect(PotionEffectType.MINING_FATIGUE, 1, -1, false, false, false));
             if (!DELAY_BETWEEN_BLOCK_BREAKS.isAllowed(player))
                 return;
 

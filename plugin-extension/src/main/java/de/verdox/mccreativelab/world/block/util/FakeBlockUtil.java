@@ -72,7 +72,7 @@ public class FakeBlockUtil {
             zPos = pos * normalOfBlockFace.getBlockZ();
         }
 
-        player.spawnParticle(Particle.BLOCK_DUST,
+        player.spawnParticle(Particle.BLOCK,
                  block.getLocation().clone()
                       .add(0.5, 0.5, 0.5)
                       .add(xPos, yPos, zPos)

@@ -41,7 +41,7 @@ public class BlockUtil {
             //destroySpeed = fakeBlockState.getFakeBlock().getDestroySpeed(fakeBlockState, blockState.getBlock(), hand);
 
             if (destroySpeed > 1) {
-                int enchantLevel = getEnchantmentLevel(player, Enchantment.DIG_SPEED);
+                int enchantLevel = getEnchantmentLevel(player, Enchantment.EFFICIENCY);
                 if (enchantLevel > 0)
                     destroySpeed += enchantLevel * (enchantLevel + 1);
             }
@@ -49,10 +49,10 @@ public class BlockUtil {
             destroySpeed = blockState.getBlock().getDestroySpeed(hand, true);
 
         // Haste effect
-        if (player.hasPotionEffect(PotionEffectType.FAST_DIGGING))
-            destroySpeed *= 0.2D * player.getPotionEffect(PotionEffectType.FAST_DIGGING).getAmplifier() + 1.0D;
+        if (player.hasPotionEffect(PotionEffectType.HASTE))
+            destroySpeed *= 0.2D * player.getPotionEffect(PotionEffectType.HASTE).getAmplifier() + 1.0D;
         // water check
-        if (player.isInWater() && hasEnchantmentLevel(player, Enchantment.WATER_WORKER))
+        if (player.isInWater() && hasEnchantmentLevel(player, Enchantment.AQUA_AFFINITY))
             destroySpeed /= 5.0D;
         // in air check
         if (!player.isOnGround())
