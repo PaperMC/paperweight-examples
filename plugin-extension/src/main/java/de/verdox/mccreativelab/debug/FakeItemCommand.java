@@ -54,6 +54,8 @@ public class FakeItemCommand extends Command {
             return List.of("get");
         if(args.length == 2)
             return MCCreativeLabExtension.getFakeItemRegistry().streamKeys().map(NamespacedKey::asString).filter(s -> s.contains(args[1])).toList();
+        if(args.length == 3)
+            return super.tabComplete(sender, alias, args);
         return List.of();
     }
 }
