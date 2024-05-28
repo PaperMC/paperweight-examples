@@ -1493,11 +1493,11 @@ index 0000000000000000000000000000000000000000..1ddcdde38bca26cbe2f67c41633f4181
 +        }
 +
 +        private Component createNegativeSpacing(int spacing) {
-+            return Component.translatable("space.-" + Math.abs(spacing)).font(Key.key("space:default"));
++            return Component.translation("space.-" + Math.abs(spacing)).font(Key.key("space:default"));
 +        }
 +
 +        private Component createSpacing(int spacing) {
-+            return Component.translatable("space." + Math.abs(spacing)).font(Key.key("space:default"));
++            return Component.translation("space." + Math.abs(spacing)).font(Key.key("space:default"));
 +        }
 +    }
 +}
@@ -1540,7 +1540,7 @@ index 0000000000000000000000000000000000000000..459556496c26fa99c72677326f54fa44
 +
 +            //TODO: Texture width aber ohne transparente Pixel. Muss umgeschrieben werden
 +            return Component.text(getHudElement().bitMap().character()[0]).color(TextColor.color(0,0,0)).font(Key.key(fontKey.toString()))
-+                            .append(Component.translatable("space.-" + ((getHudElement().width() + 1)))
++                            .append(Component.translation("space.-" + ((getHudElement().width() + 1)))
 +                                             .font(Key.key("space:default")));
 +        }
 +    }

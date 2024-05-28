@@ -23,7 +23,7 @@ out vec2 texCoord0;
 
 #define ACTIONBAR_OFFSET 64
 
-// Function to convert a vertical ascent into a ID.
+
 float get_id(float offset) {
     if (offset <= 0)
     return 0;
@@ -33,6 +33,10 @@ float get_id(float offset) {
 void main() {
     vec3 pos = Position;
 
+    // TODO: IMPORTANT FOR 1.20.6 Shader compat !!!
+    // On 1.20.6 change to ->
+    // vertexDistance = fog_distance(ModelViewMat, Position, FogShape);
+    // because IViewRotMat was removed
     vertexDistance = fog_distance(ModelViewMat, IViewRotMat * Position, FogShape);
 
     //vec4 lightColor = minecraft_sample_lightmap(Sampler0, UV2);
@@ -47,7 +51,7 @@ void main() {
 
     float id = get_id((round(guiSize.y - Position.y)) * -1);
 
-    // Detect if GUI text.
+
     if (id > 99 && Color.a != 0.0) {
         float yOffset = 0;
         float xOffset = 0;

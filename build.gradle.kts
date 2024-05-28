@@ -6,7 +6,7 @@ plugins {
     id("com.github.johnrengelman.shadow") version "8.1.1" apply false
 
     // In general, keep this version in sync with upstream. Sometimes a newer version than upstream might work, but an older version is extremely likely to break.
-    id("io.papermc.paperweight.patcher") version "1.5.11"
+    id("io.papermc.paperweight.patcher") version "1.7.1"
 }
 
 val paperMavenPublicUrl = "https://repo.papermc.io/repository/maven-public/"
@@ -19,8 +19,8 @@ repositories {
 }
 
 dependencies {
-    remapper("net.fabricmc:tiny-remapper:0.8.10:fat") // Must be kept in sync with upstream
-    decompiler("net.minecraftforge:forgeflower:2.0.627.2") // Must be kept in sync with upstream
+    remapper("net.fabricmc:tiny-remapper:0.10.2:fat") // Must be kept in sync with upstream
+    decompiler("org.vineflower:vineflower:1.10.1") // Must be kept in sync with upstream
     paperclip("io.papermc:paperclip:3.0.3") // You probably want this to be kept in sync with upstream
     implementation("com.squareup:javapoet:1.13.0")
 }
@@ -33,6 +33,10 @@ allprojects {
         toolchain {
             languageVersion.set(JavaLanguageVersion.of(17))
         }
+    }
+
+    tasks.compileJava{
+        options.isWarnings = false;
     }
 }
 
@@ -83,7 +87,7 @@ paperweight {
 // Everything below here is optional if you don't care about publishing API or dev bundles to your repository
 //
 
-tasks.generateDevelopmentBundle {
+/*tasks.generateDevelopmentBundle {
     apiCoordinates.set("de.verdox.mccreativelab:mccreativelab-api")
     mojangApiCoordinates.set("io.papermc.paper:paper-mojangapi")
     libraryRepositories.set(
@@ -93,7 +97,7 @@ tasks.generateDevelopmentBundle {
             // "https://my.repo/", // This should be a repo hosting your API (in this example, 'com.example.paperfork:forktest-api')
         )
     )
-}
+}*/
 
 allprojects {
     // Publishing API:
