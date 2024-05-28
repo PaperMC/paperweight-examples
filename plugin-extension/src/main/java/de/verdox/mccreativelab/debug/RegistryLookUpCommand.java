@@ -1,6 +1,8 @@
 package de.verdox.mccreativelab.debug;
 
 import de.verdox.mccreativelab.registry.CustomRegistry;
+import net.kyori.adventure.text.Component;
+import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -22,31 +24,42 @@ public class RegistryLookUpCommand<T> extends Command {
         Objects.requireNonNull(consumeEntry);
         this.registry = registry;
         this.consumeEntry = consumeEntry;
-        setPermission("mccreativelab.command.registry.lookup."+getName().toLowerCase(Locale.ROOT));
+        setPermission("mccreativelab.command.registry.lookup." + getName().toLowerCase(Locale.ROOT));
     }
 
     @Override
     public boolean execute(@NotNull CommandSender sender, @NotNull String commandLabel, @NotNull String[] args) {
-        if(!(sender instanceof Player player) || !player.hasPermission("mccreativelab.command.registry.lookup."+getName().toLowerCase(Locale.ROOT)))
+        if (!(sender instanceof Player player) || !player.hasPermission("mccreativelab.command.registry.lookup." + getName().toLowerCase(Locale.ROOT)))
             return false;
-        if(args.length == 0) {
+        if (args.length == 0) {
             sender.sendMessage("Please provide a valid entry");
             return false;
         }
-        if(args[0].equalsIgnoreCase("get")){
-            if(args.length == 2){
+        if (args[0].equalsIgnoreCase("get")) {
+            if (args.length >= 2) {
                 String keyAsString = args[1];
-                try{
+                try {
                     NamespacedKey namespacedKey = NamespacedKey.fromString(keyAsString);
-                    if(!registry.contains(namespacedKey)){
+                    if (!registry.contains(namespacedKey)) {
                         sender.sendMessage("Please provide a valid entry");
                         return false;
                     }
                     T entry = registry.get(namespacedKey);
-                    consumeEntry.accept(player, entry);
-                }
-                catch (Exception e){
-                    sender.sendMessage("Please provide a valid entry");
+
+                    Player playerToShow = player;
+                    if (args.length == 3) {
+                        playerToShow = Bukkit.getPlayer(args[2]);
+                        if (playerToShow == null) {
+                            player.sendMessage(Component.text("Player not found"));
+                            return false;
+                        }
+                    }
+
+                    consumeEntry.accept(playerToShow, entry);
+                    player.sendMessage(Component.text("Showing to " + playerToShow.getName()));
+                } catch (Exception e) {
+                    sender.sendMessage("An internal error occured in the registry");
+                    e.printStackTrace();
                     return false;
                 }
             }
@@ -56,10 +69,10 @@ public class RegistryLookUpCommand<T> extends Command {
 
     @Override
     public @NotNull List<String> tabComplete(@NotNull CommandSender sender, @NotNull String alias, @NotNull String[] args) throws IllegalArgumentException {
-        if(args.length <= 1)
+        if (args.length <= 1)
             return List.of("get");
-        if(args.length == 2)
-            return registry.streamKeys().map(NamespacedKey::asString).toList();
+        else if (args.length == 2)
+            return registry.streamKeys().map(NamespacedKey::asString).filter(s -> s.contains(args[1])).toList();
         return List.of();
     }
 }
