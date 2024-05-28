@@ -160,10 +160,10 @@ index 0000000000000000000000000000000000000000..3cd35eddfb5e7d6d728eb46309e58e62
 +    }
 +}
 diff --git a/src/main/java/org/bukkit/Registry.java b/src/main/java/org/bukkit/Registry.java
-index e1fb4d8cca6a9c59047b1396f5c40bea957d777a..47a4f2b1ea4b13293b8279ffbc6f9648c66fd1ca 100644
+index 88bb3b9ae99fae97ec21972b75ec43cb6b7b22b5..48185c28b1a709cb0b5d3353460560e6a1bb5753 100644
 --- a/src/main/java/org/bukkit/Registry.java
 +++ b/src/main/java/org/bukkit/Registry.java
-@@ -77,7 +77,7 @@ public interface Registry<T extends Keyed> extends Iterable<T> {
+@@ -81,7 +81,7 @@ public interface Registry<T extends Keyed> extends Iterable<T> {
       *
       * @see Attribute
       */
@@ -172,16 +172,16 @@ index e1fb4d8cca6a9c59047b1396f5c40bea957d777a..47a4f2b1ea4b13293b8279ffbc6f9648
      /**
       * Server banner patterns.
       *
-@@ -89,7 +89,7 @@ public interface Registry<T extends Keyed> extends Iterable<T> {
+@@ -93,7 +93,7 @@ public interface Registry<T extends Keyed> extends Iterable<T> {
       *
       * @see Biome
       */
 -    Registry<Biome> BIOME = new SimpleRegistry<>(Biome.class);
 +    Registry<Biome> BIOME = Objects.requireNonNull(Bukkit.getRegistry(Biome.class), "No registry present for Biome. This is a bug.");
      /**
-      * Custom boss bars.
+      * Server block types.
       *
-@@ -152,6 +152,26 @@ public interface Registry<T extends Keyed> extends Iterable<T> {
+@@ -172,6 +172,26 @@ public interface Registry<T extends Keyed> extends Iterable<T> {
       * @see Material
       */
      Registry<Material> MATERIAL = new SimpleRegistry<>(Material.class, (mat) -> !mat.isLegacy());
@@ -208,7 +208,7 @@ index e1fb4d8cca6a9c59047b1396f5c40bea957d777a..47a4f2b1ea4b13293b8279ffbc6f9648
      /**
       * Server mob effects.
       *
-@@ -175,6 +195,7 @@ public interface Registry<T extends Keyed> extends Iterable<T> {
+@@ -195,6 +215,7 @@ public interface Registry<T extends Keyed> extends Iterable<T> {
       *
       * @see Statistic
       */
@@ -216,7 +216,7 @@ index e1fb4d8cca6a9c59047b1396f5c40bea957d777a..47a4f2b1ea4b13293b8279ffbc6f9648
      Registry<Statistic> STATISTIC = new SimpleRegistry<>(Statistic.class);
      /**
       * Server structures.
-@@ -218,7 +239,7 @@ public interface Registry<T extends Keyed> extends Iterable<T> {
+@@ -245,7 +266,7 @@ public interface Registry<T extends Keyed> extends Iterable<T> {
       *
       * @see Villager.Profession
       */
@@ -226,21 +226,23 @@ index e1fb4d8cca6a9c59047b1396f5c40bea957d777a..47a4f2b1ea4b13293b8279ffbc6f9648
       * Villager type.
       *
 diff --git a/src/main/java/org/bukkit/attribute/Attribute.java b/src/main/java/org/bukkit/attribute/Attribute.java
-index 37f93b7e9f722e76631c3e7d3e770526ee0c3926..a44ee6f481e787c27cf0ffc3b676e59b7b943668 100644
+index 063cb21e33d039933e9ef295564db595cfd9f8c9..a44ee6f481e787c27cf0ffc3b676e59b7b943668 100644
 --- a/src/main/java/org/bukkit/attribute/Attribute.java
 +++ b/src/main/java/org/bukkit/attribute/Attribute.java
-@@ -1,5 +1,6 @@
+@@ -1,128 +1,92 @@
  package org.bukkit.attribute;
  
+-import org.bukkit.Bukkit;
 +
  import org.bukkit.Keyed;
  import org.bukkit.NamespacedKey;
+-import org.bukkit.Translatable;
  import org.jetbrains.annotations.NotNull;
-@@ -7,80 +8,85 @@ import org.jetbrains.annotations.NotNull;
+ 
  /**
   * Types of attributes which may be present on an {@link Attributable}.
   */
--public enum Attribute implements Keyed, net.kyori.adventure.translation.Translatable { // Paper - Adventure translations
+-public enum Attribute implements Keyed, Translatable, net.kyori.adventure.translation.Translatable { // Paper - Adventure translations
 -
 +public interface Attribute extends Keyed, net.kyori.adventure.translation.Translatable { // Paper - Adventure translations
      /**
@@ -293,6 +295,10 @@ index 37f93b7e9f722e76631c3e7d3e770526ee0c3926..a44ee6f481e787c27cf0ffc3b676e59b
       * Armor durability bonus of an Entity.
       */
 -    GENERIC_ARMOR_TOUGHNESS("generic.armor_toughness"),
+-    /**
+-     * The fall damage multiplier of an Entity.
+-     */
+-    GENERIC_FALL_DAMAGE_MULTIPLIER("generic.fall_damage_multiplier"),
 +    Attribute GENERIC_ARMOR_TOUGHNESS = getAttribute("generic.armor_toughness");
      /**
       * Luck bonus of an Entity.
@@ -303,25 +309,59 @@ index 37f93b7e9f722e76631c3e7d3e770526ee0c3926..a44ee6f481e787c27cf0ffc3b676e59b
       * Maximum absorption of an Entity.
       */
 -    GENERIC_MAX_ABSORPTION("generic.max_absorption"),
+-    /**
+-     * The distance which an Entity can fall without damage.
+-     */
+-    GENERIC_SAFE_FALL_DISTANCE("generic.safe_fall_distance"),
+-    /**
+-     * The relative scale of an Entity.
+-     */
+-    GENERIC_SCALE("generic.scale"),
+-    /**
+-     * The height which an Entity can walk over.
+-     */
+-    GENERIC_STEP_HEIGHT("generic.step_height"),
+-    /**
+-     * The gravity applied to an Entity.
+-     */
+-    GENERIC_GRAVITY("generic.gravity"),
 +    Attribute GENERIC_MAX_ABSORPTION = getAttribute("generic.max_absorption");
      /**
-      * Strength with which a horse will jump.
+-     * Strength with which an Entity will jump.
++     * Strength with which a horse will jump.
       */
--    HORSE_JUMP_STRENGTH("horse.jump_strength"),
+-    GENERIC_JUMP_STRENGTH("generic.jump_strength"),
+-    /**
+-     * The block reach distance of a Player.
+-     */
+-    PLAYER_BLOCK_INTERACTION_RANGE("player.block_interaction_range"),
+-    /**
+-     * The entity reach distance of a Player.
+-     */
+-    PLAYER_ENTITY_INTERACTION_RANGE("player.entity_interaction_range"),
+-    /**
+-     * Block break speed of a Player.
+-     */
+-    PLAYER_BLOCK_BREAK_SPEED("player.block_break_speed"),
 +    Attribute HORSE_JUMP_STRENGTH = getAttribute("horse.jump_strength");
      /**
       * Chance of a zombie to spawn reinforcements.
       */
 -    ZOMBIE_SPAWN_REINFORCEMENTS("zombie.spawn_reinforcements");
--
--    private final NamespacedKey key;
 +    Attribute ZOMBIE_SPAWN_REINFORCEMENTS = getAttribute("zombie.spawn_reinforcements");
  
+-    private final NamespacedKey key;
+-
 -    private Attribute(String key) {
 -        this.key = NamespacedKey.minecraft(key);
 +    default String name(){
 +        return de.verdox.mccreativelab.data.FakeEnum.restoreEnumNameSchemeFromKey(getKey());
-+    }
+     }
+-
+-    @NotNull
+-    @Override
+-    public NamespacedKey getKey() {
+-        return key;
 +    static Attribute valueOf(String name){
 +        return de.verdox.mccreativelab.data.FakeEnum.valueOf(name, org.bukkit.Registry.ATTRIBUTE);
 +    }
@@ -331,17 +371,19 @@ index 37f93b7e9f722e76631c3e7d3e770526ee0c3926..a44ee6f481e787c27cf0ffc3b676e59b
  
      @NotNull
 -    @Override
--    public NamespacedKey getKey() {
--        return key;
+-    public String getTranslationKey() {
+-        return Bukkit.getUnsafe().getTranslationKey(this);
 +    static Attribute getAttribute(@NotNull NamespacedKey namespacedKey) {
 +        Attribute attribute = org.bukkit.Registry.ATTRIBUTE.get(namespacedKey);
 +        com.google.common.base.Preconditions.checkNotNull(attribute, "No Attribute found for %s", namespacedKey);
 +        return attribute;
      }
+-
      // Paper start
+-    @SuppressWarnings("deprecation")
 -    @Override
 -    public @NotNull String translationKey() {
--        return "attribute.name." + this.key.getKey();
+-        return Bukkit.getUnsafe().getTranslationKey(this);
 +    @NotNull
 +    static Attribute getAttribute(@NotNull String key) {
 +        return getAttribute(NamespacedKey.minecraft(key));

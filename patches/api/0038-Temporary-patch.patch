@@ -1,0 +1,553 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: verdox <mail.ysp@web.de>
+Date: Tue, 28 May 2024 15:22:09 +0000
+Subject: [PATCH] Temporary patch
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/CreativeLab.java b/src/main/java/de/verdox/mccreativelab/CreativeLab.java
+index a7992255aaed5beb35736447d56b7b2735ed02cb..6ae6fa4dd9ac10c12eeb57310b2fcf434d6229df 100644
+--- a/src/main/java/de/verdox/mccreativelab/CreativeLab.java
++++ b/src/main/java/de/verdox/mccreativelab/CreativeLab.java
+@@ -1,7 +1,31 @@
+ package de.verdox.mccreativelab;
+ 
++import de.verdox.mccreativelab.container.CustomInventory;
++import org.bukkit.inventory.Inventory;
++import org.jetbrains.annotations.NotNull;
++
+ public interface CreativeLab {
+     de.verdox.mccreativelab.data.DataPackInterceptor getDataPackInterceptor();
++
+     de.verdox.mccreativelab.data.VanillaRegistryManipulator getRegistryManipulator();
++
+     de.verdox.mccreativelab.advancement.AdvancementBuilder createAdvancement();
++
++    Inventory openCustomContainerMenu(@NotNull CustomInventory customInventory, @NotNull org.bukkit.entity.Player player, @NotNull net.kyori.adventure.text.Component title);
++
++    /**
++     * Returns a stream of all possible {@link org.bukkit.block.data.BlockData} definitions of a valid block {@link org.bukkit.Material}
++     *
++     * @param blockMaterial - The material of the block
++     * @return - the stream
++     */
++    java.util.stream.Stream<org.bukkit.block.data.BlockData> streamAllBlockDataVariants(org.bukkit.Material blockMaterial);
++
++    /**
++     * Returns an iterator that iterates through all possible {@link org.bukkit.block.data.BlockData} definitions of a valid block {@link org.bukkit.Material}
++     *
++     * @param blockMaterial - The material of the block
++     * @return - the iterator
++     */
++    java.util.Iterator<org.bukkit.block.data.BlockData> iterateThroughAllBlockDataVariants(org.bukkit.Material blockMaterial);
+ }
+diff --git a/src/main/java/de/verdox/mccreativelab/MCCreativeLab.java b/src/main/java/de/verdox/mccreativelab/MCCreativeLab.java
+index 1e301142a2e6341cef550cfd1e4ed1c5e5cd7e40..6c53e6aaf1ff4b09cc7a33128446f55188b0f54e 100644
+--- a/src/main/java/de/verdox/mccreativelab/MCCreativeLab.java
++++ b/src/main/java/de/verdox/mccreativelab/MCCreativeLab.java
+@@ -1,22 +1,54 @@
+ package de.verdox.mccreativelab;
+ 
+-public final class MCCreativeLab{
++import de.verdox.mccreativelab.container.CustomInventory;
++import org.bukkit.block.data.BlockData;
++import org.jetbrains.annotations.NotNull;
++
++public final class MCCreativeLab {
+     private static CreativeLab creativeLab;
++
+     public static void setCreativeLab(CreativeLab creativeLab) {
+-        if(MCCreativeLab.creativeLab != null)
++        if (MCCreativeLab.creativeLab != null)
+             throw new UnsupportedOperationException("Cannot redefine singleton CreativeLab");
+ 
+         MCCreativeLab.creativeLab = creativeLab;
+     }
+-    public static de.verdox.mccreativelab.data.DataPackInterceptor getDataPackInterceptor(){
++
++    public static de.verdox.mccreativelab.data.DataPackInterceptor getDataPackInterceptor() {
+         return creativeLab.getDataPackInterceptor();
+     }
+ 
+-    public static de.verdox.mccreativelab.data.VanillaRegistryManipulator getRegistryManipulator(){
++    public static de.verdox.mccreativelab.data.VanillaRegistryManipulator getRegistryManipulator() {
+         return creativeLab.getRegistryManipulator();
+     }
+ 
+-    public static de.verdox.mccreativelab.advancement.AdvancementBuilder createAdvancement(){
++    public static de.verdox.mccreativelab.advancement.AdvancementBuilder createAdvancement() {
+         return creativeLab.createAdvancement();
+     }
++
++    public static org.bukkit.inventory.Inventory openCustomContainerMenu(@NotNull CustomInventory customInventory, @NotNull org.bukkit.entity.Player player, @NotNull net.kyori.adventure.text.Component title) {
++        return creativeLab.openCustomContainerMenu(customInventory, player, title);
++    }
++
++
++    /**
++     * Returns a stream of all possible {@link org.bukkit.block.data.BlockData} definitions of a valid block {@link org.bukkit.Material}
++     *
++     * @param blockMaterial - The material of the block
++     * @return - the stream
++     */
++    public static java.util.stream.Stream<BlockData> streamAllBlockDataVariants(org.bukkit.Material blockMaterial) {
++        return creativeLab.streamAllBlockDataVariants(blockMaterial);
++    }
++
++    /**
++     * Returns an iterator that iterates through all possible {@link org.bukkit.block.data.BlockData} definitions of a valid block {@link org.bukkit.Material}
++     *
++     * @param blockMaterial - The material of the block
++     * @return - the iterator
++     */
++    public static java.util.Iterator<BlockData> iterateThroughAllBlockDataVariants(org.bukkit.Material blockMaterial) {
++        return creativeLab.iterateThroughAllBlockDataVariants(blockMaterial);
++    }
++
+ }
+diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/BlockBehaviour.java b/src/main/java/de/verdox/mccreativelab/behaviour/BlockBehaviour.java
+index 62bf361289c4ccb7c70cc835cd97c723def1dc09..2cdfedb483bdefe621c3425a31d1f4300775d442 100644
+--- a/src/main/java/de/verdox/mccreativelab/behaviour/BlockBehaviour.java
++++ b/src/main/java/de/verdox/mccreativelab/behaviour/BlockBehaviour.java
+@@ -14,6 +14,7 @@ import org.bukkit.entity.Player;
+ import org.bukkit.inventory.EquipmentSlot;
+ import org.bukkit.inventory.ItemStack;
+ import org.bukkit.util.RayTraceResult;
++import org.bukkit.util.Vector;
+ 
+ public interface BlockBehaviour extends Behaviour {
+     MultiCustomBehaviour<Material, BlockBehaviour> BLOCK_BEHAVIOUR = new MultiCustomBehaviour<>(BlockBehaviour.class, new BlockBehaviour() {}, "MCCLab - BlockBehaviour");
+@@ -100,7 +101,7 @@ public interface BlockBehaviour extends Behaviour {
+     }
+ 
+     /**
+-     * This callback is run after the server placed a block due to any reason
++     * This callback is run after the server placed a block due to any reason. This method is NOT called when a player places block!
+      *
+      * @param location     The location
+      * @param newBlockData The new block data
+@@ -108,18 +109,18 @@ public interface BlockBehaviour extends Behaviour {
+      * @param notify       Whether this notifies the world
+      * @return callback
+      */
+-    default BehaviourResult.Callback onPlace(Location location, BlockData newBlockData, BlockData oldBlockData, boolean notify) {
++    default BehaviourResult.Callback onPlace(Location location, BlockData newBlockData, BlockData oldBlockData, boolean notify, boolean isProcessingBlockPlaceEvent) {
+         return BehaviourResult.Callback.DEFAULT_INSTANCE;
+     }
+ 
+     /**
+-     * This callback is run after a player placed a block
++     * This callback is run after a player successfully placed a block. If the Block Place Action was cancelled by an event this function is not called.
+      *
+      * @param player   The player
+      * @param location The location
+      * @return callback
+      */
+-    default BehaviourResult.Callback onPlayerPlace(Player player, Location location, BlockData thePlacedState) {
++    default BehaviourResult.Callback onPlayerPlace(Player player, ItemStack stackUsedToPlaceBlock, Location location, BlockData thePlacedState) {
+         return BehaviourResult.Callback.DEFAULT_INSTANCE;
+     }
+ 
+@@ -137,7 +138,7 @@ public interface BlockBehaviour extends Behaviour {
+ 
+ 
+     /**
+-     * This callback is run after the server removes a block due to any reason
++     * This callback is run after the server removes a block due to any reason. This does not include a player breaking a block.
+      *
+      * @param location     The location
+      * @param newBlockData The new block data
+@@ -162,29 +163,38 @@ public interface BlockBehaviour extends Behaviour {
+     }
+ 
+     /**
+-     * This callback is run after a player interacted with this block. This method is not run on blocks that call bukkit events! Only on those that do not define any specific onUse Behaviour
++     * This method is run when a player interacts with a block in any way. By overriding this method, various bukkit events, paper code, and fixed won't be called.
+      *
+      * @param block          The block
+      * @param player         The player
+      * @param hand           The Hand used to interact
+      * @param rayTraceResult The interaction info
+-     * @return callback
++     * @return The result of this interaction
+      */
+-    default BehaviourResult.Callback onUse(Block block, Player player, EquipmentSlot hand, RayTraceResult rayTraceResult) {
+-        return BehaviourResult.Callback.DEFAULT_INSTANCE;
++    default BehaviourResult.Object<InteractionResult> use(Block block, Player player, EquipmentSlot hand, RayTraceResult rayTraceResult) {
++        return BehaviourResult.Object.DEFAULT_INSTANCE;
+     }
+ 
+     /**
+-     * This method is run when a player interacts with a block in any way.
++     * This callback is run after a player interacted with this block. This method is not run on blocks that call bukkit events! Only on those that do not define any specific onUse Behaviour
+      *
+      * @param block          The block
+      * @param player         The player
+      * @param hand           The Hand used to interact
+      * @param rayTraceResult The interaction info
+-     * @return The result of this interaction
++     * @return callback
+      */
+-    default BehaviourResult.Object<InteractionResult> use(Block block, Player player, EquipmentSlot hand, RayTraceResult rayTraceResult) {
+-        return BehaviourResult.Object.DEFAULT_INSTANCE;
++    default BehaviourResult.Callback onUseCallback(Block block, Player player, EquipmentSlot hand, RayTraceResult rayTraceResult, InteractionResult interactionResult) {
++        return BehaviourResult.Callback.DEFAULT_INSTANCE;
++    }
++
++    /**
++     * This callback is run after a block was successfully moved by a piston
++     *
++     * @return callback
++     */
++    default BehaviourResult.Callback onPistonMoveBlock(BlockData blockDataMoved, Location positionBeforeMove, Location positionAfterMove, Block piston, Vector moveDirection) {
++        return BehaviourResult.Callback.DEFAULT_INSTANCE;
+     }
+ 
+     /**
+diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/InventoryHopperBehaviour.java b/src/main/java/de/verdox/mccreativelab/behaviour/InventoryHopperBehaviour.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..0fcfc817c2619232c4e70c7a0fb4a52f479f8a53
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/behaviour/InventoryHopperBehaviour.java
+@@ -0,0 +1,75 @@
++package de.verdox.mccreativelab.behaviour;
++
++import org.bukkit.block.BlockFace;
++import org.bukkit.block.Hopper;
++import org.bukkit.inventory.Inventory;
++import org.bukkit.inventory.ItemStack;
++import org.jetbrains.annotations.NotNull;
++import org.jetbrains.annotations.Nullable;
++
++public interface InventoryHopperBehaviour extends Behaviour {
++
++    /**
++     * This method is called when a {@link org.bukkit.block.Hopper} attempts to place an {@link ItemStack}.
++     *
++     * @param inventory The inventory
++     * @param slot      The slot
++     * @param stack     The item being placed
++     * @return True if the hopper can place it
++     */
++    default BehaviourResult.Bool canPlaceItem(@NotNull Inventory inventory, int slot, @NotNull ItemStack stack) {
++        return BehaviourResult.Bool.DEFAULT_INSTANCE;
++    }
++
++    /**
++     * This method is called when a {@link org.bukkit.block.Hopper} attempts to take an {@link ItemStack}.
++     *
++     * @param inventory The inventory
++     * @param hopper    The hopper involved in this action. (Not a snapshot)
++     * @param slot      The slot
++     * @param stack     The item being placed
++     * @return True if the hopper can place it
++     */
++    default BehaviourResult.Bool canTakeItem(@NotNull Inventory inventory, @NotNull Hopper hopper, int slot, @NotNull ItemStack stack) {
++        return BehaviourResult.Bool.DEFAULT_INSTANCE;
++    }
++
++    /**
++     * This method is called when a {@link org.bukkit.block.Hopper} checks which slot to use from a particular {@link BlockFace}.
++     *
++     * @param inventory The inventory
++     * @param direction The direction
++     * @return The respective slots
++     */
++    default BehaviourResult.Object<int[]> getSlotsForFace(@NotNull Inventory inventory, @NotNull BlockFace direction) {
++        return BehaviourResult.Object.DEFAULT_INSTANCE;
++    }
++
++    /**
++     * This method is called when a {@link org.bukkit.block.Hopper} checks if it can place an {@link ItemStack} through a particular {@link BlockFace}.
++     *
++     * @param inventory The inventory
++     * @param slot      The slot
++     * @param stack     The item being placed
++     * @param blockFace The blockFace
++     * @return True if the hopper can place it
++     */
++    default BehaviourResult.Bool canPlaceItemThroughFace(@NotNull Inventory inventory, int slot, @NotNull ItemStack stack, @Nullable BlockFace blockFace) {
++        return BehaviourResult.Bool.DEFAULT_INSTANCE;
++    }
++
++    /**
++     * This method is called when a {@link org.bukkit.block.Hopper} checks if it can take an {@link ItemStack} through a particular {@link BlockFace}.
++     *
++     * @param inventory The inventory
++     * @param hopper    The hopper involved in this action. (Not a snapshot)
++     * @param slot      The slot
++     * @param stack     The item being placed
++     * @param blockFace The blockFace
++     * @return True if the hopper can place it
++     */
++    default BehaviourResult.Bool canTakeItemThroughFace(@NotNull Inventory inventory, @NotNull Hopper hopper, int slot, @NotNull ItemStack stack, BlockFace blockFace) {
++        return BehaviourResult.Bool.DEFAULT_INSTANCE;
++    }
++
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/container/CustomInventory.java b/src/main/java/de/verdox/mccreativelab/container/CustomInventory.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..7ea085bfa2de6f6396316a4d01fa52499c0644c3
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/container/CustomInventory.java
+@@ -0,0 +1,41 @@
++package de.verdox.mccreativelab.container;
++
++import org.bukkit.entity.Player;
++import org.bukkit.inventory.ItemStack;
++
++public interface CustomInventory {
++
++    Slot[] getSlots();
++    ItemStack quickMoveStack(Player player, int slot);
++
++    interface Slot {
++        default void onQuickCraft(ItemStack stack, int amount) {
++        }
++
++        default void onSwapCraft(int amount) {
++        }
++
++        default void onTake(Player player, ItemStack stack) {
++        }
++
++        default boolean mayPlace(ItemStack stack) {
++            return true;
++        }
++
++        default int getMaxStackSize() {
++            return 64;
++        }
++
++        default int getMaxStackSize(ItemStack stack) {
++            return Math.min(getMaxStackSize(), stack.getMaxStackSize());
++        }
++
++        default boolean isActive() {
++            return true;
++        }
++
++        default boolean mayPickUp(Player player){
++            return true;
++        }
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/data/DataPackInterceptor.java b/src/main/java/de/verdox/mccreativelab/data/DataPackInterceptor.java
+index 59a7d6ffa7a1d525c36956c96b3c97800a1cb7e2..221c6b80854e8efd165b554369b5d36d5127f630 100644
+--- a/src/main/java/de/verdox/mccreativelab/data/DataPackInterceptor.java
++++ b/src/main/java/de/verdox/mccreativelab/data/DataPackInterceptor.java
+@@ -5,6 +5,7 @@ import net.kyori.adventure.key.Key;
+ 
+ import javax.annotation.Nullable;
+ import java.util.function.Consumer;
++import java.util.function.Function;
+ 
+ public interface DataPackInterceptor {
+     DataPackInterceptor exclude(String pathContains);
+@@ -13,7 +14,21 @@ public interface DataPackInterceptor {
+ 
+     DataPackInterceptor exclude(PackAssetType packAssetType, Key key);
+ 
+-    DataPackInterceptor modify(PackAssetType packAssetType, Key key, Consumer<DataPackAsset> consumer);
++    /**
++     * Modifies a data pack element loaded into the server. The provided function modifies the asset and returns true if the asset should be loaded.
++     * @param packAssetType - The Pack Asset Type
++     * @param key - The Key
++     * @param modifier - The modification function
++     * @return - The interceptor
++     */
++    DataPackInterceptor modify(PackAssetType packAssetType, Key key, Function<DataPackAsset, Boolean> modifier);
++
++    /**
++     * Modifies a data pack element loaded into the server. The provided function modifies the asset and returns true if the asset should be loaded.
++     * @param modifier - The modification function
++     * @return - The interceptor
++     */
++    DataPackInterceptor modify(Function<DataPackAsset, Boolean> modifier);
+ 
+     DataPackInterceptor onInstall(Consumer<DataPackAsset> installCallback);
+ 
+diff --git a/src/main/java/org/bukkit/World.java b/src/main/java/org/bukkit/World.java
+index e07048c269c51ffa943ba2fe0aa2985db0460a17..b409c317dd6c18eb5447f6f6b983da98e8a02ed3 100644
+--- a/src/main/java/org/bukkit/World.java
++++ b/src/main/java/org/bukkit/World.java
+@@ -2841,7 +2841,7 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
+     int getSimulationDistance();
+ 
+     /**
+-     * Returns the {@link WorldGenData} of this world
++     * Returns the {@link io.papermc.paper.world.worldgen.WorldGenData} of this world
+      * @return the world gen data
+      */
+     public io.papermc.paper.world.worldgen.WorldGenData getWorldGenData();
+diff --git a/src/main/java/org/bukkit/event/inventory/FurnaceRunOutOfFuelEvent.java b/src/main/java/org/bukkit/event/inventory/FurnaceRunOutOfFuelEvent.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..ac40f43e4e3da2744b544c1229052a2c46f2cc7f
+--- /dev/null
++++ b/src/main/java/org/bukkit/event/inventory/FurnaceRunOutOfFuelEvent.java
+@@ -0,0 +1,28 @@
++package org.bukkit.event.inventory;
++
++import org.bukkit.block.Block;
++import org.bukkit.event.HandlerList;
++import org.bukkit.event.block.BlockEvent;
++import org.jetbrains.annotations.NotNull;
++
++/**
++ * This event is called when a furnace runs out of fuel
++ */
++public class FurnaceRunOutOfFuelEvent extends BlockEvent {
++    private static final HandlerList handlers = new HandlerList();
++
++    public FurnaceRunOutOfFuelEvent(@NotNull Block theBlock) {
++        super(theBlock);
++    }
++
++    @NotNull
++    @Override
++    public HandlerList getHandlers() {
++        return handlers;
++    }
++
++    @NotNull
++    public static HandlerList getHandlerList() {
++        return handlers;
++    }
++}
+diff --git a/src/main/java/org/bukkit/event/inventory/InventoryCloseEvent.java b/src/main/java/org/bukkit/event/inventory/InventoryCloseEvent.java
+index 4db0a07db156c61867644f50c185e63b695e2462..89ea04f0ea805aeeaef644f01ef72068200276de 100644
+--- a/src/main/java/org/bukkit/event/inventory/InventoryCloseEvent.java
++++ b/src/main/java/org/bukkit/event/inventory/InventoryCloseEvent.java
+@@ -4,7 +4,9 @@ package org.bukkit.event.inventory;
+ import org.bukkit.entity.HumanEntity;
+ import org.bukkit.event.HandlerList;
+ import org.bukkit.inventory.InventoryView;
++import org.jetbrains.annotations.Contract;
+ import org.jetbrains.annotations.NotNull;
++import org.jetbrains.annotations.Nullable;
+ 
+ /**
+  * This event is called when a player closes an inventory.
+@@ -32,6 +34,10 @@ public class InventoryCloseEvent extends InventoryEvent {
+     private static final HandlerList handlers = new HandlerList();
+     // Paper start
+     private final Reason reason;
++
++    @Nullable
++    private InventoryView newInventory;
++
+     @NotNull
+     public Reason getReason() {
+         return reason;
+@@ -86,6 +92,21 @@ public class InventoryCloseEvent extends InventoryEvent {
+         // Paper end
+     }
+ 
++    public InventoryCloseEvent(@NotNull InventoryView transaction, @NotNull Reason reason, @Nullable InventoryView newInventory) {
++        super(transaction);
++        this.reason = reason;
++        this.newInventory = newInventory;
++    }
++
++    /**
++     * If the {@link Reason} is OPEN_NEW this function will return the new inventory that is opened instead
++     * Else this function will always return null
++     * @return The new inventory if available
++     */
++    public @Nullable InventoryView getNewInventory() {
++        return newInventory;
++    }
++
+     /**
+      * Returns the player involved in this event
+      *
+diff --git a/src/main/java/org/bukkit/event/world/AsyncStructureGenerateEvent.java b/src/main/java/org/bukkit/event/world/AsyncStructureGenerateEvent.java
+index bff596278758e5f901114167a295ee79ab555bef..d89f02c67330d49ccdceae63167586a595ac1783 100644
+--- a/src/main/java/org/bukkit/event/world/AsyncStructureGenerateEvent.java
++++ b/src/main/java/org/bukkit/event/world/AsyncStructureGenerateEvent.java
+@@ -32,7 +32,6 @@ import org.jetbrains.annotations.Nullable;
+  * <p>
+  * Care should be taken to check {@link #isAsynchronous()} and treat the event
+  * appropriately.
+- * <p>
+  */
+ @ApiStatus.Experimental
+ public class AsyncStructureGenerateEvent extends WorldEvent {
+diff --git a/src/main/java/org/bukkit/inventory/Inventory.java b/src/main/java/org/bukkit/inventory/Inventory.java
+index 0d519813c12d98b28d62e6d01d7ec6e8c2dba3c3..1476d496c8cc374d1031991f59e83e0821764594 100644
+--- a/src/main/java/org/bukkit/inventory/Inventory.java
++++ b/src/main/java/org/bukkit/inventory/Inventory.java
+@@ -429,4 +429,22 @@ public interface Inventory extends Iterable<ItemStack> {
+      */
+     @Nullable
+     public Location getLocation();
++
++    /**
++     * Used to set a {@link de.verdox.mccreativelab.behaviour.InventoryHopperBehaviour}
++     * @param behaviour the new behaviour
++     */
++    public void setInventoryHopperBehaviour(@org.jetbrains.annotations.Nullable de.verdox.mccreativelab.behaviour.InventoryHopperBehaviour behaviour);
++
++    /**
++     * Returns the current{@link de.verdox.mccreativelab.behaviour.InventoryHopperBehaviour}
++     * @return the current behaviour
++     */
++    public @org.jetbrains.annotations.Nullable de.verdox.mccreativelab.behaviour.InventoryHopperBehaviour getInventoryHopperBehaviour();
++
++    /**
++     * Returns whether a {@link de.verdox.mccreativelab.behaviour.InventoryHopperBehaviour} exists.
++     * @return true if it has a custom behaviour
++     */
++    public boolean hasInventoryHopperBehaviour();
+ }
+diff --git a/src/main/java/org/bukkit/persistence/PersistentDataObject.java b/src/main/java/org/bukkit/persistence/PersistentDataObject.java
+index 720f7a3efc0640571aad30af2ed582ca7a85d5b8..51a5c62a4b06fc1b95fb1f0b82cea3a0fb073d6c 100644
+--- a/src/main/java/org/bukkit/persistence/PersistentDataObject.java
++++ b/src/main/java/org/bukkit/persistence/PersistentDataObject.java
+@@ -6,7 +6,6 @@ import org.jetbrains.annotations.NotNull;
+  * Represents a complex data object that is serialized into a PersistentDataContainer.
+  * PersistentDataObjects will be cached in a PersistentDataContainer and thus will be serialized automatically when the vanilla server serializes the PersistentDataHolder.
+  * Besides, they can have attributes and state changing functions.
+- * <p>
+  */
+ public interface PersistentDataObject {
+     /**
+diff --git a/src/main/java/org/bukkit/persistence/PersistentDataObjectCache.java b/src/main/java/org/bukkit/persistence/PersistentDataObjectCache.java
+index 319717bb8c26e73a6ff12a07490f8685addf162c..2ad5ccab7910ce446ce7aeff18c26a7d40256fb9 100644
+--- a/src/main/java/org/bukkit/persistence/PersistentDataObjectCache.java
++++ b/src/main/java/org/bukkit/persistence/PersistentDataObjectCache.java
+@@ -4,6 +4,8 @@ import org.bukkit.NamespacedKey;
+ import org.jetbrains.annotations.NotNull;
+ import org.jetbrains.annotations.Nullable;
+ 
++import java.util.function.Supplier;
++
+ /**
+  * Holds persistent data objects that are serialized into a {@link PersistentDataContainer}
+  */
+@@ -11,12 +13,24 @@ public interface PersistentDataObjectCache {
+     /**
+      * Load or creates a persistent data object.
+      * @param key the key of the persistent data object
+-     * @param newObject the object that will be used if no object could be loaded. This object will be stored in the PersistentDataContainer
++     * @param newObjectSupplier A supplier supplying the object that will be used if no object could be loaded. This object will be stored in the PersistentDataContainer
++     * @return the persistent data object
++     * @param <T> the type of persistent data object
++     */
++    @NotNull
++    <T extends PersistentDataObject> T loadOrSupplyPersistentDataObject(@NotNull NamespacedKey key, Supplier<T> newObjectSupplier);
++
++    /**
++     * Load or creates a persistent data object.
++     * @param key the key of the persistent data object
++     * @param newObjectSupplier A supplier supplying the object that will be used if no object could be loaded. This object will be stored in the PersistentDataContainer
+      * @return the persistent data object
+      * @param <T> the type of persistent data object
+      */
+     @NotNull
+-    <T extends PersistentDataObject> T loadOrCreatePersistentDataObject(@NotNull NamespacedKey key, T newObject);
++    default <T extends PersistentDataObject> T loadOrCreatePersistentDataObject(@NotNull NamespacedKey key, T newObjectSupplier){
++        return loadOrSupplyPersistentDataObject(key, () -> newObjectSupplier);
++    }
+ 
+     /**
+      * Loads a persistent data object.

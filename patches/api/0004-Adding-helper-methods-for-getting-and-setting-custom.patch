@@ -6,10 +6,10 @@ Subject: [PATCH] Adding helper methods for getting and setting customModelData
 
 
 diff --git a/src/main/java/org/bukkit/inventory/ItemStack.java b/src/main/java/org/bukkit/inventory/ItemStack.java
-index 245a730a54c4b241a9a67eccceefafd2763bd238..d95d5cb4f40954e9a102d82f370b8b5341c8390b 100644
+index c64413a6740b604282984dea2a8430a6e7478d68..7669ff31f7896c128a9ce08f3fd941f1b44ee80f 100644
 --- a/src/main/java/org/bukkit/inventory/ItemStack.java
 +++ b/src/main/java/org/bukkit/inventory/ItemStack.java
-@@ -26,6 +26,34 @@ import org.jetbrains.annotations.Nullable;
+@@ -28,6 +28,34 @@ import org.jetbrains.annotations.Nullable;
   * returns false.</b>
   */
  public class ItemStack implements Cloneable, ConfigurationSerializable, Translatable, net.kyori.adventure.text.event.HoverEventSource<net.kyori.adventure.text.event.HoverEvent.ShowItem>, net.kyori.adventure.translation.Translatable { // Paper

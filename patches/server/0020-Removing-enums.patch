@@ -97,41 +97,12 @@ index 0000000000000000000000000000000000000000..5c6d277657dcc5aa7a03cceb87124fa8
 +        return "CraftPoiType{key=" + this.getKey() + "}";
 +    }
 +}
-diff --git a/src/main/java/org/bukkit/craftbukkit/CraftRegistry.java b/src/main/java/org/bukkit/craftbukkit/CraftRegistry.java
-index 4fc02698a9312496e7f9bce1c64f317374d2a42f..688c778ca71e7010298406b6156cf805ae27f30a 100644
---- a/src/main/java/org/bukkit/craftbukkit/CraftRegistry.java
-+++ b/src/main/java/org/bukkit/craftbukkit/CraftRegistry.java
-@@ -92,6 +92,24 @@ public class CraftRegistry<B extends Keyed, M> implements Registry<B> {
-      * @return the bukkit registry of the provided class
-      */
-     public static <B extends Keyed> Registry<?> createRegistry(Class<B> bukkitClass, RegistryAccess registryHolder) {
-+        if(bukkitClass == org.bukkit.attribute.Attribute.class){
-+            return new CraftRegistry<>(org.bukkit.attribute.Attribute.class, registryHolder.registryOrThrow(Registries.ATTRIBUTE), org.bukkit.craftbukkit.attribute.CraftAttribute::new);
-+        }
-+        if(bukkitClass == org.bukkit.block.Biome.class){
-+            return new CraftRegistry<>(org.bukkit.block.Biome.class, registryHolder.registryOrThrow(Registries.BIOME), org.bukkit.craftbukkit.block.CraftBiome::new);
-+        }
-+        if(bukkitClass == org.bukkit.craftbukkit.entity.CraftVillager.Profession.class){
-+            return new CraftRegistry<>(org.bukkit.craftbukkit.entity.CraftVillager.Profession.class, registryHolder.registryOrThrow(Registries.VILLAGER_PROFESSION), org.bukkit.craftbukkit.entity.CraftVillager.CraftProfession::new);
-+        }
-+        if(bukkitClass == org.bukkit.PoiType.class){
-+            return new CraftRegistry<>(org.bukkit.PoiType.class, registryHolder.registryOrThrow(Registries.POINT_OF_INTEREST_TYPE), CraftPoiType::new);
-+        }
-+        if(bukkitClass == org.bukkit.EntityActivity.class){
-+            return new CraftRegistry<>(org.bukkit.EntityActivity.class, registryHolder.registryOrThrow(Registries.ACTIVITY), CraftEntityActivity::new);
-+        }
-+        if(bukkitClass == org.bukkit.EntitySchedule.class){
-+            return new CraftRegistry<>(org.bukkit.EntitySchedule.class, registryHolder.registryOrThrow(Registries.SCHEDULE), CraftEntitySchedule::new);
-+        }
-         if (bukkitClass == Enchantment.class) {
-             return new CraftRegistry<>(Enchantment.class, registryHolder.registryOrThrow(Registries.ENCHANTMENT), CraftEnchantment::new);
-         }
 diff --git a/src/main/java/org/bukkit/craftbukkit/attribute/CraftAttribute.java b/src/main/java/org/bukkit/craftbukkit/attribute/CraftAttribute.java
-index f9e8c1f8416c4e5ae11e1d742cf3655faa480ce9..bf05d0de7ca27db1a8e1f58ad0e597aab2ecf5fa 100644
+index 10e4318782107644f67818109784fff60d017e0a..4886ef920f6e627bbe6ff492651c9b806621102a 100644
 --- a/src/main/java/org/bukkit/craftbukkit/attribute/CraftAttribute.java
 +++ b/src/main/java/org/bukkit/craftbukkit/attribute/CraftAttribute.java
-@@ -8,7 +8,14 @@ import org.bukkit.attribute.Attribute;
- import org.bukkit.craftbukkit.CraftRegistry;
+@@ -12,7 +12,14 @@ import org.bukkit.craftbukkit.legacy.FieldRename;
+ import org.bukkit.craftbukkit.util.ApiVersion;
  import org.bukkit.craftbukkit.util.CraftNamespacedKey;
  
 -public class CraftAttribute {
@@ -203,24 +174,25 @@ index 6c15d40979fd3e3d246a447c432b321fbf29ada3..2aa1d4ad72fc4842bdda301d9335a3d4
          public static Profession minecraftToBukkit(VillagerProfession minecraft) {
              Preconditions.checkArgument(minecraft != null);
 diff --git a/src/main/java/org/bukkit/craftbukkit/inventory/CraftMetaItem.java b/src/main/java/org/bukkit/craftbukkit/inventory/CraftMetaItem.java
-index 5cd0fbac267f9c69c5de4c200a95860f5c56d42e..2a28ae5feda94cec382d1179d93f16348c37ac50 100644
+index d5789326d70bb8b029c5448270bbaa6faf52e6e1..c602278ee5e177b69f191bb1c73e6e74aad566cf 100644
 --- a/src/main/java/org/bukkit/craftbukkit/inventory/CraftMetaItem.java
 +++ b/src/main/java/org/bukkit/craftbukkit/inventory/CraftMetaItem.java
-@@ -680,7 +680,7 @@ class CraftMetaItem implements ItemMeta, Damageable, Repairable, BlockDataMeta {
+@@ -760,7 +760,7 @@ class CraftMetaItem implements ItemMeta, Damageable, Repairable, BlockDataMeta {
                      continue;
                  }
                  AttributeModifier modifier = (AttributeModifier) o;
--                Attribute attribute = EnumUtils.getEnum(Attribute.class, attributeName.toUpperCase(Locale.ROOT));
+-                Attribute attribute = CraftAttribute.stringToBukkit(attributeName);
 +                Attribute attribute = Attribute.getAttribute(org.bukkit.NamespacedKey.minecraft(attributeName.toUpperCase(Locale.ROOT))); // MCCLab
                  if (attribute == null) {
                      continue;
                  }
-@@ -1543,7 +1543,7 @@ class CraftMetaItem implements ItemMeta, Damageable, Repairable, BlockDataMeta {
+@@ -1852,7 +1852,8 @@ class CraftMetaItem implements ItemMeta, Damageable, Repairable, BlockDataMeta {
              if (modCollection == null || modCollection.isEmpty()) {
                  continue;
              }
--            mods.put(entry.getKey().name(), new ArrayList<>(modCollection));
+-            mods.put(CraftAttribute.bukkitToString(entry.getKey()), new ArrayList<>(modCollection));
 +            mods.put(entry.getKey().getKey().getKey().replace(".", "_"), new ArrayList<>(modCollection)); // MCCLab
++            //mods.put(CraftAttribute.bukkitToString(entry.getKey()), new ArrayList<>(modCollection));
          }
          builder.put(key.BUKKIT, mods);
      }

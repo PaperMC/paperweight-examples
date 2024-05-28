@@ -5,10 +5,10 @@ Subject: [PATCH] Adding dropExperience function
 
 
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-index fefde0e8027423700f6c119c23c2fe24eedb3a2a..07430b09434e972dc6f33b57d8452b203bfe476f 100644
+index 725512c2a9b138faa874a33e8c5d5e64cbc3251d..3b32b01b5aa3a2a902e36e62f322e9e720fbef44 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-@@ -830,6 +830,11 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+@@ -860,6 +860,11 @@ public class CraftWorld extends CraftRegionAccessor implements World {
          return this.generateTree(loc, CraftWorld.rand, type);
      }
  

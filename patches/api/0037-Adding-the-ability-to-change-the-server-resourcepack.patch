@@ -1,0 +1,72 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: verdox <mail.ysp@web.de>
+Date: Sat, 18 May 2024 23:18:52 +0000
+Subject: [PATCH] Adding the ability to change the server resourcepack
+
+
+diff --git a/src/main/java/org/bukkit/Bukkit.java b/src/main/java/org/bukkit/Bukkit.java
+index c1d75a9f83edf174295115033024c2c2a5d5f342..cadfa5a763e45ea2e1ce6630a86abac5209232dd 100644
+--- a/src/main/java/org/bukkit/Bukkit.java
++++ b/src/main/java/org/bukkit/Bukkit.java
+@@ -348,6 +348,16 @@ public final class Bukkit {
+         return server.getServerResourcePack();
+     }
+ 
++    // Paper start - Make server resourcepack changeable
++    /**
++     * Sets the server resource pack
++     * @param resourcePack the resource pack
++     */
++    public static void setServerResourcePack(@Nullable ResourcePack resourcePack){
++        server.setServerResourcePack(resourcePack);
++    }
++    // Paper end - Make server resourcepack changeable
++
+     /**
+      * Get the ServerTick Manager.
+      *
+diff --git a/src/main/java/org/bukkit/Server.java b/src/main/java/org/bukkit/Server.java
+index b9ebc36ae05a4aeac08c019d7f81d3f4e9e5c256..253f20f4820be6179c3a3fa182612c989e581665 100644
+--- a/src/main/java/org/bukkit/Server.java
++++ b/src/main/java/org/bukkit/Server.java
+@@ -291,6 +291,14 @@ public interface Server extends PluginMessageRecipient, net.kyori.adventure.audi
+     @Nullable
+     public ResourcePack getServerResourcePack();
+ 
++    // Paper start - Make server resourcepack changeable
++    /**
++     * Sets the server resource pack
++     * @param resourcePack the resource pack
++     */
++    public void setServerResourcePack(@Nullable ResourcePack resourcePack);
++    // Paper end - Make server resourcepack changeable
++
+     /**
+      * Gets the server resource pack uri, or empty string if not specified.
+      *
+diff --git a/src/main/java/org/bukkit/packs/ResourcePack.java b/src/main/java/org/bukkit/packs/ResourcePack.java
+index ea921799ab464fb4555a2e90513635db19116b17..1cc55bbb58e990eb0f63c83a9e8d73ad967dc101 100644
+--- a/src/main/java/org/bukkit/packs/ResourcePack.java
++++ b/src/main/java/org/bukkit/packs/ResourcePack.java
+@@ -43,7 +43,7 @@ public interface ResourcePack {
+      * @return the prompt
+      */
+     @Nullable
+-    public String getPrompt();
++    public net.kyori.adventure.text.Component getPrompt(); // Paper - Make server resourcepack changeable
+ 
+     /**
+      * Gets if the resource pack is required by the server.
+diff --git a/src/test/java/org/bukkit/plugin/TimedRegisteredListenerTest.java b/src/test/java/org/bukkit/plugin/TimedRegisteredListenerTest.java
+index 9ed416ed57676c845833736f93ed6088513c6da4..90ee4cdc682434aed66a98a687b2c549a6f381c4 100644
+--- a/src/test/java/org/bukkit/plugin/TimedRegisteredListenerTest.java
++++ b/src/test/java/org/bukkit/plugin/TimedRegisteredListenerTest.java
+@@ -25,7 +25,7 @@ public class TimedRegisteredListenerTest {
+ 
+         PlayerInteractEvent interactEvent = new PlayerInteractEvent(null, null, null, null, null);
+         PlayerMoveEvent moveEvent = new PlayerMoveEvent(null, null, null);
+-        BlockBreakEvent breakEvent = new BlockBreakEvent(null, null);
++        BlockBreakEvent breakEvent = new BlockBreakEvent(null, null, null);
+ 
+         TimedRegisteredListener trl = new TimedRegisteredListener(listener, executor, EventPriority.NORMAL, plugin, false);
+ 

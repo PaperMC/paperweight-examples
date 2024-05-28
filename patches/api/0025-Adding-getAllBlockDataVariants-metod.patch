@@ -5,10 +5,10 @@ Subject: [PATCH] Adding getAllBlockDataVariants metod
 
 
 diff --git a/src/main/java/org/bukkit/Bukkit.java b/src/main/java/org/bukkit/Bukkit.java
-index 623bb80067c76da6306b5624b693de22cd9e8920..19d5a2910a629d6dccba1a966b55fc2a953a6da0 100644
+index 0b47aa638a8945a3eecc6aa8bd22ab5e5906b4d5..c1d75a9f83edf174295115033024c2c2a5d5f342 100644
 --- a/src/main/java/org/bukkit/Bukkit.java
 +++ b/src/main/java/org/bukkit/Bukkit.java
-@@ -2379,6 +2379,17 @@ public final class Bukkit {
+@@ -2421,6 +2421,17 @@ public final class Bukkit {
          return server.advancementIterator();
      }
  
@@ -27,10 +27,10 @@ index 623bb80067c76da6306b5624b693de22cd9e8920..19d5a2910a629d6dccba1a966b55fc2a
       * Creates a new {@link BlockData} instance for the specified Material, with
       * all properties initialized to unspecified defaults.
 diff --git a/src/main/java/org/bukkit/Server.java b/src/main/java/org/bukkit/Server.java
-index 17c80336d3fa021db33560291df894297c708974..3be7c91f81d5f887ce736697b3dd151cc48e1f08 100644
+index 11741b89bfdf9a1a68ab1e76de84ce7a8119b4e0..b9ebc36ae05a4aeac08c019d7f81d3f4e9e5c256 100644
 --- a/src/main/java/org/bukkit/Server.java
 +++ b/src/main/java/org/bukkit/Server.java
-@@ -2039,6 +2039,15 @@ public interface Server extends PluginMessageRecipient, net.kyori.adventure.audi
+@@ -2079,6 +2079,15 @@ public interface Server extends PluginMessageRecipient, net.kyori.adventure.audi
      @NotNull
      Iterator<Advancement> advancementIterator();
  

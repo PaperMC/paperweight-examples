@@ -1381,10 +1381,10 @@ index 0000000000000000000000000000000000000000..0582bc507241e76964573502b880d164
 +    int nextInt(int min, int max);
 +}
 diff --git a/src/main/java/org/bukkit/entity/Entity.java b/src/main/java/org/bukkit/entity/Entity.java
-index d9929d9311e4b2b0ae13a8f6f13563257263f298..6a9b1f71eab9dd434db039ec5980377400a0cf52 100644
+index 62e3793903905b94eb1a120345015149abb33713..be92b48f06d8a15d01ee43100e5a6601087a4fe1 100644
 --- a/src/main/java/org/bukkit/entity/Entity.java
 +++ b/src/main/java/org/bukkit/entity/Entity.java
-@@ -724,6 +724,35 @@ public interface Entity extends Metadatable, CommandSender, Nameable, Persistent
+@@ -764,6 +764,35 @@ public interface Entity extends Metadatable, CommandSender, Nameable, Persistent
      @NotNull
      Set<String> getScoreboardTags();
  
@@ -1442,10 +1442,10 @@ index 0000000000000000000000000000000000000000..5f141daee39ac344774b73856cbc09fd
 +    List<Pair<PotionEffect, Float>> getEffects();
 +}
 diff --git a/src/main/java/org/bukkit/inventory/ItemStack.java b/src/main/java/org/bukkit/inventory/ItemStack.java
-index d95d5cb4f40954e9a102d82f370b8b5341c8390b..40a84efd560e070c55db894d989db80b7e67f910 100644
+index 7669ff31f7896c128a9ce08f3fd941f1b44ee80f..2cba8a66b5ec0a1429e43c21d5204e3deab933b5 100644
 --- a/src/main/java/org/bukkit/inventory/ItemStack.java
 +++ b/src/main/java/org/bukkit/inventory/ItemStack.java
-@@ -120,6 +120,7 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
+@@ -122,6 +122,7 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
          if (data != null) {
              createData(data);
          }
@@ -1453,7 +1453,7 @@ index d95d5cb4f40954e9a102d82f370b8b5341c8390b..40a84efd560e070c55db894d989db80b
      }
  
      /**
-@@ -139,6 +140,7 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
+@@ -141,6 +142,7 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
          if (stack.hasItemMeta()) {
              setItemMeta0(stack.getItemMeta(), type);
          }
@@ -1461,7 +1461,7 @@ index d95d5cb4f40954e9a102d82f370b8b5341c8390b..40a84efd560e070c55db894d989db80b
      }
  
      /**
-@@ -851,6 +853,30 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
+@@ -895,6 +897,30 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
          return this;
      }
  

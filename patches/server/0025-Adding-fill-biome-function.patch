@@ -5,10 +5,10 @@ Subject: [PATCH] Adding fill biome function
 
 
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-index b842519f6595ee7c0cc21621be17502915084146..3494df23e5fe3a39bb00d1fcca4c1dc17349560f 100644
+index 57984c73c8a435be921a108cd87d6022b0003803..a8b665fe66542565ecc20486adb35549a32a0f36 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-@@ -1050,6 +1050,56 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+@@ -1089,6 +1089,56 @@ public class CraftWorld extends CraftRegionAccessor implements World {
          }
      }
  

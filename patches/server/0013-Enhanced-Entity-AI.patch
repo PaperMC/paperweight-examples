@@ -1497,53 +1497,10 @@ index 0000000000000000000000000000000000000000..a4ecfb6a7699e62603e2a1984b2e3276
 +    }
 +}
 diff --git a/src/main/java/net/minecraft/world/entity/ai/Brain.java b/src/main/java/net/minecraft/world/entity/ai/Brain.java
-index dea20f16ac97402f754c8e47d03e9ef38de73190..be2c886a2609190afe1aa2f6d39d368e026a5f4b 100644
+index afbb027021acfbe25d534a84f1750e420bbde6e0..a0c90a3d0309117b64233c3bbe3a2cd5221d770e 100644
 --- a/src/main/java/net/minecraft/world/entity/ai/Brain.java
 +++ b/src/main/java/net/minecraft/world/entity/ai/Brain.java
-@@ -14,12 +14,10 @@ import com.mojang.serialization.DynamicOps;
- import com.mojang.serialization.MapCodec;
- import com.mojang.serialization.MapLike;
- import com.mojang.serialization.RecordBuilder;
-+import de.verdox.mccreativelab.ai.builder.CraftActivityBuilder;
- import it.unimi.dsi.fastutil.objects.ObjectArrayList;
--import java.util.Collection;
--import java.util.List;
--import java.util.Map;
--import java.util.Optional;
--import java.util.Set;
-+
-+import java.util.*;
- import java.util.function.Supplier;
- import java.util.stream.Stream;
- import javax.annotation.Nullable;
-@@ -72,15 +70,15 @@ public class Brain<E extends LivingEntity> {
-             }
- 
-             public <T> DataResult<Brain<E>> decode(DynamicOps<T> dynamicOps, MapLike<T> mapLike) {
--                MutableObject<DataResult<ImmutableList.Builder<Brain.MemoryValue<?>>>> mutableObject = new MutableObject<>(DataResult.success(ImmutableList.builder()));
-+                MutableObject<DataResult<ImmutableList.Builder<Brain.MemoryValue<?>>>> mutableObject2 = new MutableObject<>(DataResult.success(ImmutableList.builder()));
-                 mapLike.entries().forEach((pair) -> {
-                     DataResult<MemoryModuleType<?>> dataResult = BuiltInRegistries.MEMORY_MODULE_TYPE.byNameCodec().parse(dynamicOps, pair.getFirst());
-                     DataResult<? extends Brain.MemoryValue<?>> dataResult2 = dataResult.flatMap((memoryType) -> {
-                         return this.captureRead(memoryType, dynamicOps, (T)pair.getSecond());
-                     });
--                    mutableObject.setValue(mutableObject.getValue().apply2(ImmutableList.Builder::add, dataResult2));
-+                    mutableObject2.setValue(mutableObject2.getValue().apply2(ImmutableList.Builder::add, dataResult2));
-                 });
--                ImmutableList<Brain.MemoryValue<?>> immutableList = mutableObject.getValue().resultOrPartial(Brain.LOGGER::error).map(ImmutableList.Builder::build).orElseGet(ImmutableList::of);
-+                ImmutableList<Brain.MemoryValue<?>> immutableList = mutableObject2.getValue().resultOrPartial(Brain.LOGGER::error).map(ImmutableList.Builder::build).orElseGet(ImmutableList::of);
-                 return DataResult.success(new Brain<>(memoryModules, sensors, immutableList, mutableObject::getValue));
-             }
- 
-@@ -108,7 +106,6 @@ public class Brain<E extends LivingEntity> {
- 
-     public Brain(Collection<? extends MemoryModuleType<?>> memories, Collection<? extends SensorType<? extends Sensor<? super E>>> sensors, ImmutableList<Brain.MemoryValue<?>> memoryEntries, Supplier<Codec<Brain<E>>> codecSupplier) {
-         this.codec = codecSupplier;
--
-         for(MemoryModuleType<?> memoryModuleType : memories) {
-             this.memories.put(memoryModuleType, Optional.empty());
-         }
-@@ -181,14 +178,14 @@ public class Brain<E extends LivingEntity> {
+@@ -194,14 +194,14 @@ public class Brain<E extends LivingEntity> {
          if (optional == null) {
              throw new IllegalStateException("Unregistered memory fetched: " + type);
          } else {
@@ -1560,23 +1517,24 @@ index dea20f16ac97402f754c8e47d03e9ef38de73190..be2c886a2609190afe1aa2f6d39d368e
      }
  
      public <U> long getTimeUntilExpiry(MemoryModuleType<U> type) {
-@@ -346,6 +343,10 @@ public class Brain<E extends LivingEntity> {
-     }
- 
-     public void addActivityAndRemoveMemoriesWhenStopped(Activity activity, ImmutableList<? extends Pair<Integer, ? extends BehaviorControl<? super E>>> indexedTasks, Set<Pair<MemoryModuleType<?>, MemoryStatus>> requiredMemories, Set<MemoryModuleType<?>> forgettingMemories) {
+@@ -362,6 +362,11 @@ public class Brain<E extends LivingEntity> {
+         Set<Pair<MemoryModuleType<?>, MemoryStatus>> requiredMemories,
+         Set<MemoryModuleType<?>> forgettingMemories
+     ) {
 +        // MCCreativeLab start - Make it modifiable
-+        requiredMemories = new HashSet<>(requiredMemories);
-+        forgettingMemories = new HashSet<>(forgettingMemories);
++
++        requiredMemories = new java.util.HashSet<>(requiredMemories);
++        forgettingMemories = new java.util.HashSet<>(forgettingMemories);
 +        // MCCreativeLab end - Make it modifiable
          this.activityRequirements.put(activity, requiredMemories);
          if (!forgettingMemories.isEmpty()) {
              this.activityMemoriesToEraseWhenStopped.put(activity, forgettingMemories);
-@@ -360,6 +361,59 @@ public class Brain<E extends LivingEntity> {
+@@ -374,6 +379,59 @@ public class Brain<E extends LivingEntity> {
+                 .add((BehaviorControl<? super E>)pair.getSecond());
          }
- 
      }
 +    // MCCLab start - Add CraftEntityBrain
-+    public void addFromCraftBuilder(CraftActivityBuilder<?> craftActivityBuilder, boolean replaceCompleteActivity, boolean replaceActivityRequirements, boolean replaceForgettingMemories) {
++    public void addFromCraftBuilder(de.verdox.mccreativelab.ai.builder.CraftActivityBuilder<?> craftActivityBuilder, boolean replaceCompleteActivity, boolean replaceActivityRequirements, boolean replaceForgettingMemories) {
 +        if(replaceCompleteActivity)
 +            removeAllBehavioursByActivity(craftActivityBuilder.activity);
 +
@@ -1631,20 +1589,11 @@ index dea20f16ac97402f754c8e47d03e9ef38de73190..be2c886a2609190afe1aa2f6d39d368e
  
      @VisibleForTesting
      public void removeAllBehaviors() {
-@@ -483,7 +537,7 @@ public class Brain<E extends LivingEntity> {
-         private final Optional<? extends ExpirableValue<U>> value;
- 
-         static <U> Brain.MemoryValue<U> createUnchecked(MemoryModuleType<U> type, Optional<? extends ExpirableValue<?>> data) {
--            return new Brain.MemoryValue<>(type, data);
-+            return new Brain.MemoryValue(type, data);
-         }
- 
-         MemoryValue(MemoryModuleType<U> type, Optional<? extends ExpirableValue<U>> data) {
 diff --git a/src/main/java/net/minecraft/world/entity/ai/behavior/Behavior.java b/src/main/java/net/minecraft/world/entity/ai/behavior/Behavior.java
-index 1e71cde7cb7654f1c21ae5e27e2fad7b58f593eb..51078227fc7295cc27dd7485f9099c70be5f3d72 100644
+index 9379dd4056018b52c93ed4888dcdc94579bd9691..139aecc7129740f93eee46374681612ec243c413 100644
 --- a/src/main/java/net/minecraft/world/entity/ai/behavior/Behavior.java
 +++ b/src/main/java/net/minecraft/world/entity/ai/behavior/Behavior.java
-@@ -41,6 +41,10 @@ public abstract class Behavior<E extends LivingEntity> implements BehaviorContro
+@@ -42,6 +42,10 @@ public abstract class Behavior<E extends LivingEntity> implements BehaviorContro
          // Paper end - configurable behavior tick rate and timings
      }
  
@@ -1672,243 +1621,6 @@ index 1e71cde7cb7654f1c21ae5e27e2fad7b58f593eb..51078227fc7295cc27dd7485f9099c70
 +        return entryCondition;
 +    }
  }
-diff --git a/src/main/java/net/minecraft/world/entity/ai/behavior/InteractWith.java b/src/main/java/net/minecraft/world/entity/ai/behavior/InteractWith.java
-index e2a8d7ece7db2c9101eb5b4d94089bb1f152647a..822e7bf04a70e0192d68622b97fe408ff10b515e 100644
---- a/src/main/java/net/minecraft/world/entity/ai/behavior/InteractWith.java
-+++ b/src/main/java/net/minecraft/world/entity/ai/behavior/InteractWith.java
-@@ -32,7 +32,7 @@ public class InteractWith {
-                             return target.distanceToSqr(entity) <= (double)i && predicate.test(target);
-                         });
-                         optional.ifPresent((target) -> {
--                            targetValue.set(target);
-+                            targetValue.set((T) target);
-                             lookTarget.set(new EntityTracker(target, true));
-                             walkTarget.set(new WalkTarget(new EntityTracker(target, false), speed, completionRange));
-                         });
-diff --git a/src/main/java/net/minecraft/world/entity/ai/behavior/VillagerGoalPackages.java b/src/main/java/net/minecraft/world/entity/ai/behavior/VillagerGoalPackages.java
-index cd7a90ec1073b2b452ca70decefe6a594445003b..ecb068150f0a8b4518840eb9a6bc1ccf9d9d5f42 100644
---- a/src/main/java/net/minecraft/world/entity/ai/behavior/VillagerGoalPackages.java
-+++ b/src/main/java/net/minecraft/world/entity/ai/behavior/VillagerGoalPackages.java
-@@ -4,7 +4,9 @@ import com.google.common.collect.ImmutableList;
- import com.google.common.collect.ImmutableMap;
- import com.google.common.collect.ImmutableSet;
- import com.mojang.datafixers.util.Pair;
-+
- import java.util.Optional;
-+
- import net.minecraft.server.level.ServerLevel;
- import net.minecraft.world.entity.AgeableMob;
- import net.minecraft.world.entity.EntityType;
-@@ -17,16 +19,37 @@ import net.minecraft.world.entity.ai.village.poi.PoiTypes;
- import net.minecraft.world.entity.npc.Villager;
- import net.minecraft.world.entity.npc.VillagerProfession;
- import net.minecraft.world.entity.raid.Raid;
-+import org.bukkit.Bukkit;
- 
- public class VillagerGoalPackages {
-     private static final float STROLL_SPEED_MODIFIER = 0.4F;
- 
-     public static ImmutableList<Pair<Integer, ? extends BehaviorControl<? super Villager>>> getCorePackage(VillagerProfession profession, float speed) {
--        return ImmutableList.of(Pair.of(0, new Swim(0.8F)), Pair.of(0, InteractWithDoor.create()), Pair.of(0, new LookAtTargetSink(45, 90)), Pair.of(0, new VillagerPanicTrigger()), Pair.of(0, WakeUp.create()), Pair.of(0, ReactToBell.create()), Pair.of(0, SetRaidStatus.create()), Pair.of(0, ValidateNearbyPoi.create(profession.heldJobSite(), MemoryModuleType.JOB_SITE)), Pair.of(0, ValidateNearbyPoi.create(profession.acquirableJobSite(), MemoryModuleType.POTENTIAL_JOB_SITE)), Pair.of(1, new MoveToTargetSink()), Pair.of(2, PoiCompetitorScan.create()), Pair.of(3, new LookAndFollowTradingPlayerSink(speed)), Pair.of(5, GoToWantedItem.create(villager -> !villager.isSleeping(), speed, false, 4)), Pair.of(6, AcquirePoi.create(profession.acquirableJobSite(), MemoryModuleType.JOB_SITE, MemoryModuleType.POTENTIAL_JOB_SITE, true, Optional.empty())), Pair.of(7, new GoToPotentialJobSite(speed)), Pair.of(8, YieldJobSite.create(speed)), Pair.of(10, AcquirePoi.create((poiType) -> { // Paper - Fix MC-157464
-+        return ImmutableList.of(
-+            Pair.of(0, new Swim(0.8F)),
-+            Pair.of(0, InteractWithDoor.create()),
-+            Pair.of(0, new LookAtTargetSink(45, 90)),
-+            Pair.of(0, new VillagerPanicTrigger()),
-+            Pair.of(0, WakeUp.create()),
-+            Pair.of(0, ReactToBell.create()),
-+            Pair.of(0, SetRaidStatus.create()),
-+            Pair.of(0, ValidateNearbyPoi.create(profession.heldJobSite(), MemoryModuleType.JOB_SITE)),
-+            Pair.of(0, ValidateNearbyPoi.create(profession.acquirableJobSite(), MemoryModuleType.POTENTIAL_JOB_SITE)),
-+            Pair.of(1, new MoveToTargetSink()),
-+            Pair.of(2, PoiCompetitorScan.create()),
-+            Pair.of(3, new LookAndFollowTradingPlayerSink(speed)),
-+            Pair.of(5, GoToWantedItem.create(villager -> !villager.isSleeping(), speed, false, 4)),
-+            Pair.of(6, AcquirePoi.create(profession.acquirableJobSite(), MemoryModuleType.JOB_SITE, MemoryModuleType.POTENTIAL_JOB_SITE, true, Optional.empty())),
-+            Pair.of(7, new GoToPotentialJobSite(speed)),
-+            Pair.of(8, YieldJobSite.create(speed)),
-+            Pair.of(10, AcquirePoi.create((poiType) -> { // Paper - Fix MC-157464
-             return poiType.is(PoiTypes.HOME);
--        }, MemoryModuleType.HOME, false, Optional.of((byte)14))), Pair.of(10, AcquirePoi.create((poiType) -> {
-+        }, MemoryModuleType.HOME, false, Optional.of((byte) 14))),
-+            Pair.of(10, AcquirePoi.create((poiType) -> {
-             return poiType.is(PoiTypes.MEETING);
--        }, MemoryModuleType.MEETING_POINT, true, Optional.of((byte)14))), Pair.of(10, AssignProfessionFromJobSite.create()), Pair.of(10, ResetProfession.create()));
-+        }, MemoryModuleType.MEETING_POINT, true, Optional.of((byte) 14))),
-+            Pair.of(10, AssignProfessionFromJobSite.create()),
-+            Pair.of(10, ResetProfession.create()));
-     }
- 
-     public static ImmutableList<Pair<Integer, ? extends BehaviorControl<? super Villager>>> getWorkPackage(VillagerProfession profession, float speed) {
-@@ -36,54 +59,154 @@ public class VillagerGoalPackages {
-         } else {
-             workAtPoi = new WorkAtPoi();
-         }
--
--        return ImmutableList.of(getMinimalLookBehavior(), Pair.of(5, new RunOne<>(ImmutableList.of(Pair.of(workAtPoi, 7), Pair.of(StrollAroundPoi.create(MemoryModuleType.JOB_SITE, 0.4F, 4), 2), Pair.of(StrollToPoi.create(MemoryModuleType.JOB_SITE, 0.4F, 1, 10), 5), Pair.of(StrollToPoiList.create(MemoryModuleType.SECONDARY_JOB_SITE, speed, 1, 6, MemoryModuleType.JOB_SITE), 5), Pair.of(new HarvestFarmland(), profession == VillagerProfession.FARMER ? 2 : 5), Pair.of(new UseBonemeal(), profession == VillagerProfession.FARMER ? 4 : 7)))), Pair.of(10, new ShowTradesToPlayer(400, 1600)), Pair.of(10, SetLookAndInteract.create(EntityType.PLAYER, 4)), Pair.of(2, SetWalkTargetFromBlockMemory.create(MemoryModuleType.JOB_SITE, speed, 9, 100, 1200)), Pair.of(3, new GiveGiftToHero(100)), Pair.of(99, UpdateActivityFromSchedule.create()));
-+        return ImmutableList.of(
-+            getMinimalLookBehavior(),
-+            Pair.of(5, new RunOne<>(ImmutableList.of(
-+                Pair.of(workAtPoi, 7),
-+                Pair.of(StrollAroundPoi.create(MemoryModuleType.JOB_SITE, 0.4F, 4), 2),
-+                Pair.of(StrollToPoi.create(MemoryModuleType.JOB_SITE, 0.4F, 1, 10), 5),
-+                Pair.of(StrollToPoiList.create(MemoryModuleType.SECONDARY_JOB_SITE, speed, 1, 6, MemoryModuleType.JOB_SITE), 5),
-+                Pair.of(new HarvestFarmland(), profession == VillagerProfession.FARMER ? 2 : 5),
-+                Pair.of(new UseBonemeal(), profession == VillagerProfession.FARMER ? 4 : 7)))),
-+            Pair.of(10, new ShowTradesToPlayer(400, 1600)),
-+            Pair.of(10, SetLookAndInteract.create(EntityType.PLAYER, 4)),
-+            Pair.of(2, SetWalkTargetFromBlockMemory.create(MemoryModuleType.JOB_SITE, speed, 9, 100, 1200)),
-+            Pair.of(3, new GiveGiftToHero(100)),
-+            Pair.of(99, UpdateActivityFromSchedule.create()));
-     }
- 
-     public static ImmutableList<Pair<Integer, ? extends BehaviorControl<? super Villager>>> getPlayPackage(float speed) {
--        return ImmutableList.of(Pair.of(0, new MoveToTargetSink(80, 120)), getFullLookBehavior(), Pair.of(5, PlayTagWithOtherKids.create()), Pair.of(5, new RunOne<>(ImmutableMap.of(MemoryModuleType.VISIBLE_VILLAGER_BABIES, MemoryStatus.VALUE_ABSENT), ImmutableList.of(Pair.of(InteractWith.of(EntityType.VILLAGER, 8, MemoryModuleType.INTERACTION_TARGET, speed, 2), 2), Pair.of(InteractWith.of(EntityType.CAT, 8, MemoryModuleType.INTERACTION_TARGET, speed, 2), 1), Pair.of(VillageBoundRandomStroll.create(speed), 1), Pair.of(SetWalkTargetFromLookTarget.create(speed, 2), 1), Pair.of(new JumpOnBed(speed), 2), Pair.of(new DoNothing(20, 40), 2)))), Pair.of(99, UpdateActivityFromSchedule.create()));
-+        return ImmutableList.of(
-+            Pair.of(0, new MoveToTargetSink(80, 120)),
-+            getFullLookBehavior(),
-+            Pair.of(5, PlayTagWithOtherKids.create()),
-+            Pair.of(5, new RunOne<>(ImmutableMap.of(MemoryModuleType.VISIBLE_VILLAGER_BABIES, MemoryStatus.VALUE_ABSENT), ImmutableList.of(
-+                    Pair.of(InteractWith.of(EntityType.VILLAGER, 8, MemoryModuleType.INTERACTION_TARGET, speed, 2), 2),
-+                    Pair.of(InteractWith.of(EntityType.CAT, 8, MemoryModuleType.INTERACTION_TARGET, speed, 2), 1),
-+                Pair.of(VillageBoundRandomStroll.create(speed), 1),
-+                Pair.of(SetWalkTargetFromLookTarget.create(speed, 2), 1),
-+                    Pair.of(new JumpOnBed(speed), 2),
-+                    Pair.of(new DoNothing(20, 40), 2)))),
-+            Pair.of(99, UpdateActivityFromSchedule.create()));
-     }
- 
-     public static ImmutableList<Pair<Integer, ? extends BehaviorControl<? super Villager>>> getRestPackage(VillagerProfession profession, float speed) {
--        return ImmutableList.of(Pair.of(2, SetWalkTargetFromBlockMemory.create(MemoryModuleType.HOME, speed, 1, 150, 1200)), Pair.of(3, ValidateNearbyPoi.create((poiType) -> {
-+        return ImmutableList.of(
-+            Pair.of(2, SetWalkTargetFromBlockMemory.create(MemoryModuleType.HOME, speed, 1, 150, 1200)),
-+            Pair.of(3, ValidateNearbyPoi.create((poiType) -> {
-             return poiType.is(PoiTypes.HOME);
--        }, MemoryModuleType.HOME)), Pair.of(3, new SleepInBed()), Pair.of(5, new RunOne<>(ImmutableMap.of(MemoryModuleType.HOME, MemoryStatus.VALUE_ABSENT), ImmutableList.of(Pair.of(SetClosestHomeAsWalkTarget.create(speed), 1), Pair.of(InsideBrownianWalk.create(speed), 4), Pair.of(GoToClosestVillage.create(speed, 4), 2), Pair.of(new DoNothing(20, 40), 2)))), getMinimalLookBehavior(), Pair.of(99, UpdateActivityFromSchedule.create()));
-+        }, MemoryModuleType.HOME)),
-+            Pair.of(3, new SleepInBed()),
-+            Pair.of(5, new RunOne<>(ImmutableMap.of(MemoryModuleType.HOME, MemoryStatus.VALUE_ABSENT), ImmutableList.of(
-+                Pair.of(SetClosestHomeAsWalkTarget.create(speed), 1),
-+                Pair.of(InsideBrownianWalk.create(speed), 4),
-+                Pair.of(GoToClosestVillage.create(speed, 4), 2),
-+                Pair.of(new DoNothing(20, 40), 2)))),
-+            getMinimalLookBehavior(),
-+            Pair.of(99, UpdateActivityFromSchedule.create()));
-     }
- 
-     public static ImmutableList<Pair<Integer, ? extends BehaviorControl<? super Villager>>> getMeetPackage(VillagerProfession profession, float speed) {
--        return ImmutableList.of(Pair.of(2, TriggerGate.triggerOneShuffled(ImmutableList.of(Pair.of(StrollAroundPoi.create(MemoryModuleType.MEETING_POINT, 0.4F, 40), 2), Pair.of(SocializeAtBell.create(), 2)))), Pair.of(10, new ShowTradesToPlayer(400, 1600)), Pair.of(10, SetLookAndInteract.create(EntityType.PLAYER, 4)), Pair.of(2, SetWalkTargetFromBlockMemory.create(MemoryModuleType.MEETING_POINT, speed, 6, 100, 200)), Pair.of(3, new GiveGiftToHero(100)), Pair.of(3, ValidateNearbyPoi.create((poiType) -> {
-+        return ImmutableList.of(
-+            Pair.of(2,
-+                TriggerGate.triggerOneShuffled(ImmutableList.of(
-+                    Pair.of(StrollAroundPoi.create(MemoryModuleType.MEETING_POINT, 0.4F, 40), 2),
-+                    Pair.of(SocializeAtBell.create(), 2)))),
-+            Pair.of(10, new ShowTradesToPlayer(400, 1600)),
-+            Pair.of(10, SetLookAndInteract.create(EntityType.PLAYER, 4)),
-+            Pair.of(2, SetWalkTargetFromBlockMemory.create(MemoryModuleType.MEETING_POINT, speed, 6, 100, 200)),
-+            Pair.of(3, new GiveGiftToHero(100)),
-+            Pair.of(3, ValidateNearbyPoi.create((poiType) -> {
-             return poiType.is(PoiTypes.MEETING);
--        }, MemoryModuleType.MEETING_POINT)), Pair.of(3, new GateBehavior<>(ImmutableMap.of(), ImmutableSet.of(MemoryModuleType.INTERACTION_TARGET), GateBehavior.OrderPolicy.ORDERED, GateBehavior.RunningPolicy.RUN_ONE, ImmutableList.of(Pair.of(new TradeWithVillager(), 1)))), getFullLookBehavior(), Pair.of(99, UpdateActivityFromSchedule.create()));
-+        }, MemoryModuleType.MEETING_POINT)),
-+            Pair.of(3, new GateBehavior<>(ImmutableMap.of(), ImmutableSet.of(MemoryModuleType.INTERACTION_TARGET), GateBehavior.OrderPolicy.ORDERED, GateBehavior.RunningPolicy.RUN_ONE, ImmutableList.of(
-+                Pair.of(new TradeWithVillager(), 1)))),
-+            getFullLookBehavior(),
-+            Pair.of(99, UpdateActivityFromSchedule.create()));
-     }
- 
-     public static ImmutableList<Pair<Integer, ? extends BehaviorControl<? super Villager>>> getIdlePackage(VillagerProfession profession, float speed) {
--        return ImmutableList.of(Pair.of(2, new RunOne<>(ImmutableList.of(Pair.of(InteractWith.of(EntityType.VILLAGER, 8, MemoryModuleType.INTERACTION_TARGET, speed, 2), 2), Pair.of(InteractWith.of(EntityType.VILLAGER, 8, AgeableMob::canBreed, AgeableMob::canBreed, MemoryModuleType.BREED_TARGET, speed, 2), 1), Pair.of(InteractWith.of(EntityType.CAT, 8, MemoryModuleType.INTERACTION_TARGET, speed, 2), 1), Pair.of(VillageBoundRandomStroll.create(speed), 1), Pair.of(SetWalkTargetFromLookTarget.create(speed, 2), 1), Pair.of(new JumpOnBed(speed), 1), Pair.of(new DoNothing(30, 60), 1)))), Pair.of(3, new GiveGiftToHero(100)), Pair.of(3, SetLookAndInteract.create(EntityType.PLAYER, 4)), Pair.of(3, new ShowTradesToPlayer(400, 1600)), Pair.of(3, new GateBehavior<>(ImmutableMap.of(), ImmutableSet.of(MemoryModuleType.INTERACTION_TARGET), GateBehavior.OrderPolicy.ORDERED, GateBehavior.RunningPolicy.RUN_ONE, ImmutableList.of(Pair.of(new TradeWithVillager(), 1)))), Pair.of(3, new GateBehavior<>(ImmutableMap.of(), ImmutableSet.of(MemoryModuleType.BREED_TARGET), GateBehavior.OrderPolicy.ORDERED, GateBehavior.RunningPolicy.RUN_ONE, ImmutableList.of(Pair.of(new VillagerMakeLove(), 1)))), getFullLookBehavior(), Pair.of(99, UpdateActivityFromSchedule.create()));
-+        return ImmutableList.of(
-+            Pair.of(2, new RunOne<>(ImmutableList.of(
-+                Pair.of(InteractWith.of(EntityType.VILLAGER, 8, MemoryModuleType.INTERACTION_TARGET, speed, 2), 2),
-+                Pair.of(InteractWith.of(EntityType.VILLAGER, 8, AgeableMob::canBreed, AgeableMob::canBreed, MemoryModuleType.BREED_TARGET, speed, 2), 1),
-+                Pair.of(InteractWith.of(EntityType.CAT, 8, MemoryModuleType.INTERACTION_TARGET, speed, 2), 1),
-+                Pair.of(VillageBoundRandomStroll.create(speed), 1),
-+                Pair.of(SetWalkTargetFromLookTarget.create(speed, 2), 1),
-+                Pair.of(new JumpOnBed(speed), 1),
-+                Pair.of(new DoNothing(30, 60), 1)))),
-+            Pair.of(3, new GiveGiftToHero(100)),
-+            Pair.of(3, SetLookAndInteract.create(EntityType.PLAYER, 4)),
-+            Pair.of(3, new ShowTradesToPlayer(400, 1600)),
-+            Pair.of(3, new GateBehavior<>(ImmutableMap.of(), ImmutableSet.of(MemoryModuleType.INTERACTION_TARGET), GateBehavior.OrderPolicy.ORDERED, GateBehavior.RunningPolicy.RUN_ONE, ImmutableList.of(
-+                Pair.of(new TradeWithVillager(), 1)))),
-+            Pair.of(3, new GateBehavior<>(ImmutableMap.of(), ImmutableSet.of(MemoryModuleType.BREED_TARGET), GateBehavior.OrderPolicy.ORDERED, GateBehavior.RunningPolicy.RUN_ONE, ImmutableList.of(
-+                Pair.of(new VillagerMakeLove(), 1)))),
-+            getFullLookBehavior(),
-+            Pair.of(99, UpdateActivityFromSchedule.create()));
-     }
- 
-     public static ImmutableList<Pair<Integer, ? extends BehaviorControl<? super Villager>>> getPanicPackage(VillagerProfession profession, float speed) {
-         float f = speed * 1.5F;
--        return ImmutableList.of(Pair.of(0, VillagerCalmDown.create()), Pair.of(1, SetWalkTargetAwayFrom.entity(MemoryModuleType.NEAREST_HOSTILE, f, 6, false)), Pair.of(1, SetWalkTargetAwayFrom.entity(MemoryModuleType.HURT_BY_ENTITY, f, 6, false)), Pair.of(3, VillageBoundRandomStroll.create(f, 2, 2)), getMinimalLookBehavior());
-+        return ImmutableList.of(
-+            Pair.of(0, VillagerCalmDown.create()),
-+            Pair.of(1, SetWalkTargetAwayFrom.entity(MemoryModuleType.NEAREST_HOSTILE, f, 6, false)),
-+            Pair.of(1, SetWalkTargetAwayFrom.entity(MemoryModuleType.HURT_BY_ENTITY, f, 6, false)),
-+            Pair.of(3, VillageBoundRandomStroll.create(f, 2, 2)),
-+            getMinimalLookBehavior());
-     }
- 
-     public static ImmutableList<Pair<Integer, ? extends BehaviorControl<? super Villager>>> getPreRaidPackage(VillagerProfession profession, float speed) {
--        return ImmutableList.of(Pair.of(0, RingBell.create()), Pair.of(0, TriggerGate.triggerOneShuffled(ImmutableList.of(Pair.of(SetWalkTargetFromBlockMemory.create(MemoryModuleType.MEETING_POINT, speed * 1.5F, 2, 150, 200), 6), Pair.of(VillageBoundRandomStroll.create(speed * 1.5F), 2)))), getMinimalLookBehavior(), Pair.of(99, ResetRaidStatus.create()));
-+        return ImmutableList.of(
-+            Pair.of(0, RingBell.create()),
-+            Pair.of(0, TriggerGate.triggerOneShuffled(ImmutableList.of(
-+                Pair.of(SetWalkTargetFromBlockMemory.create(MemoryModuleType.MEETING_POINT, speed * 1.5F, 2, 150, 200), 6),
-+                Pair.of(VillageBoundRandomStroll.create(speed * 1.5F), 2)))),
-+            getMinimalLookBehavior(),
-+            Pair.of(99, ResetRaidStatus.create()));
-     }
- 
-     public static ImmutableList<Pair<Integer, ? extends BehaviorControl<? super Villager>>> getRaidPackage(VillagerProfession profession, float speed) {
--        return ImmutableList.of(Pair.of(0, BehaviorBuilder.sequence(BehaviorBuilder.triggerIf(VillagerGoalPackages::raidExistsAndNotVictory), TriggerGate.triggerOneShuffled(ImmutableList.of(Pair.of(MoveToSkySeeingSpot.create(speed), 5), Pair.of(VillageBoundRandomStroll.create(speed * 1.1F), 2))))), Pair.of(0, new CelebrateVillagersSurvivedRaid(600, 600)), Pair.of(2, BehaviorBuilder.sequence(BehaviorBuilder.triggerIf(VillagerGoalPackages::raidExistsAndActive), LocateHidingPlace.create(24, speed * 1.4F, 1))), getMinimalLookBehavior(), Pair.of(99, ResetRaidStatus.create()));
-+        return ImmutableList.of(
-+            Pair.of(0, BehaviorBuilder.sequence(
-+                BehaviorBuilder.triggerIf(VillagerGoalPackages::raidExistsAndNotVictory),
-+                TriggerGate.triggerOneShuffled(ImmutableList.of(
-+                    Pair.of(MoveToSkySeeingSpot.create(speed), 5),
-+                    Pair.of(VillageBoundRandomStroll.create(speed * 1.1F), 2))))),
-+            Pair.of(0, new CelebrateVillagersSurvivedRaid(600, 600)),
-+            Pair.of(2, BehaviorBuilder.sequence(
-+                BehaviorBuilder.triggerIf(VillagerGoalPackages::raidExistsAndActive), LocateHidingPlace.create(24, speed * 1.4F, 1))),
-+            getMinimalLookBehavior(),
-+            Pair.of(99, ResetRaidStatus.create()));
-     }
- 
-     public static ImmutableList<Pair<Integer, ? extends BehaviorControl<? super Villager>>> getHidePackage(VillagerProfession profession, float speed) {
-         int i = 2;
--        return ImmutableList.of(Pair.of(0, SetHiddenState.create(15, 3)), Pair.of(1, LocateHidingPlace.create(32, speed * 1.25F, 2)), getMinimalLookBehavior());
-+        return ImmutableList.of(
-+            Pair.of(0, SetHiddenState.create(15, 3)),
-+            Pair.of(1, LocateHidingPlace.create(32, speed * 1.25F, 2)),
-+            getMinimalLookBehavior());
-     }
- 
-     private static Pair<Integer, BehaviorControl<LivingEntity>> getFullLookBehavior() {
--        return Pair.of(5, new RunOne<>(ImmutableList.of(Pair.of(SetEntityLookTarget.create(EntityType.CAT, 8.0F), 8), Pair.of(SetEntityLookTarget.create(EntityType.VILLAGER, 8.0F), 2), Pair.of(SetEntityLookTarget.create(EntityType.PLAYER, 8.0F), 2), Pair.of(SetEntityLookTarget.create(MobCategory.CREATURE, 8.0F), 1), Pair.of(SetEntityLookTarget.create(MobCategory.WATER_CREATURE, 8.0F), 1), Pair.of(SetEntityLookTarget.create(MobCategory.AXOLOTLS, 8.0F), 1), Pair.of(SetEntityLookTarget.create(MobCategory.UNDERGROUND_WATER_CREATURE, 8.0F), 1), Pair.of(SetEntityLookTarget.create(MobCategory.WATER_AMBIENT, 8.0F), 1), Pair.of(SetEntityLookTarget.create(MobCategory.MONSTER, 8.0F), 1), Pair.of(new DoNothing(30, 60), 2))));
-+        return Pair.of(5, new RunOne<>(ImmutableList.of(
-+            Pair.of(SetEntityLookTarget.create(EntityType.CAT, 8.0F), 8),
-+            Pair.of(SetEntityLookTarget.create(EntityType.VILLAGER, 8.0F), 2),
-+            Pair.of(SetEntityLookTarget.create(EntityType.PLAYER, 8.0F), 2),
-+            Pair.of(SetEntityLookTarget.create(MobCategory.CREATURE, 8.0F), 1),
-+            Pair.of(SetEntityLookTarget.create(MobCategory.WATER_CREATURE, 8.0F), 1),
-+            Pair.of(SetEntityLookTarget.create(MobCategory.AXOLOTLS, 8.0F), 1),
-+            Pair.of(SetEntityLookTarget.create(MobCategory.UNDERGROUND_WATER_CREATURE, 8.0F), 1),
-+            Pair.of(SetEntityLookTarget.create(MobCategory.WATER_AMBIENT, 8.0F), 1),
-+            Pair.of(SetEntityLookTarget.create(MobCategory.MONSTER, 8.0F), 1),
-+            Pair.of(new DoNothing(30, 60), 2))));
-     }
- 
-     private static Pair<Integer, BehaviorControl<LivingEntity>> getMinimalLookBehavior() {
--        return Pair.of(5, new RunOne<>(ImmutableList.of(Pair.of(SetEntityLookTarget.create(EntityType.VILLAGER, 8.0F), 2), Pair.of(SetEntityLookTarget.create(EntityType.PLAYER, 8.0F), 2), Pair.of(new DoNothing(30, 60), 8))));
-+        return Pair.of(5, new RunOne<>(ImmutableList.of(
-+            Pair.of(SetEntityLookTarget.create(EntityType.VILLAGER, 8.0F), 2),
-+            Pair.of(SetEntityLookTarget.create(EntityType.PLAYER, 8.0F), 2),
-+            Pair.of(new DoNothing(30, 60), 8))));
-     }
- 
-     private static boolean raidExistsAndActive(ServerLevel world, LivingEntity entity) {
 diff --git a/src/main/java/net/minecraft/world/entity/ai/goal/EatBlockGoal.java b/src/main/java/net/minecraft/world/entity/ai/goal/EatBlockGoal.java
 index 4e2c23ccdf4e4a4d65b291dbe20952bae1838bff..6e734ef2da4307e2a86fc70a00427240df7e7303 100644
 --- a/src/main/java/net/minecraft/world/entity/ai/goal/EatBlockGoal.java
@@ -1988,7 +1700,7 @@ index 4e2c23ccdf4e4a4d65b291dbe20952bae1838bff..6e734ef2da4307e2a86fc70a00427240
              }
  
 diff --git a/src/main/java/net/minecraft/world/entity/ai/goal/FollowMobGoal.java b/src/main/java/net/minecraft/world/entity/ai/goal/FollowMobGoal.java
-index 495ac7779ad782488d20da8daa8e28b75c1f2f0d..8661e2c98279304e54bbaea8b5ad38a0a24f6589 100644
+index 9a75a92ad7b325362a293f0390e95f6d03b1bda6..242c10d7e84fb2f17cbb95b734dc38dccf0d3bb0 100644
 --- a/src/main/java/net/minecraft/world/entity/ai/goal/FollowMobGoal.java
 +++ b/src/main/java/net/minecraft/world/entity/ai/goal/FollowMobGoal.java
 @@ -23,6 +23,19 @@ public class FollowMobGoal extends Goal {
@@ -2010,20 +1722,12 @@ index 495ac7779ad782488d20da8daa8e28b75c1f2f0d..8661e2c98279304e54bbaea8b5ad38a0
 +
      public FollowMobGoal(Mob mob, double speed, float minDistance, float maxDistance) {
          this.mob = mob;
-         this.followPredicate = (target) -> {
+         this.followPredicate = target -> target != null && mob.getClass() != target.getClass();
 diff --git a/src/main/java/net/minecraft/world/entity/ai/goal/SwellGoal.java b/src/main/java/net/minecraft/world/entity/ai/goal/SwellGoal.java
-index e241ae250f4f04a17ef2c583d00b065a4ca56a4c..9547b9c941ac47b04de15ff418af96b8bfc02b67 100644
+index 137ec75ee803789deb7b1ca93dd9369c9af362b9..cb433002b980ad0ee8f7c265975e308efff8c5c3 100644
 --- a/src/main/java/net/minecraft/world/entity/ai/goal/SwellGoal.java
 +++ b/src/main/java/net/minecraft/world/entity/ai/goal/SwellGoal.java
-@@ -1,6 +1,7 @@
- package net.minecraft.world.entity.ai.goal;
- 
- import java.util.EnumSet;
-+import java.util.function.Function;
- import javax.annotation.Nullable;
- import net.minecraft.world.entity.LivingEntity;
- import net.minecraft.world.entity.monster.Creeper;
-@@ -9,16 +10,27 @@ public class SwellGoal extends Goal {
+@@ -9,16 +9,27 @@ public class SwellGoal extends Goal {
      private final Creeper creeper;
      @Nullable
      private LivingEntity target;
@@ -2047,67 +1751,26 @@ index e241ae250f4f04a17ef2c583d00b065a4ca56a4c..9547b9c941ac47b04de15ff418af96b8
      @Override
      public boolean canUse() {
          LivingEntity livingEntity = this.creeper.getTarget();
--        return this.creeper.getSwellDir() > 0 || livingEntity != null && this.creeper.distanceToSqr(livingEntity) < 9.0D;
+-        return this.creeper.getSwellDir() > 0 || livingEntity != null && this.creeper.distanceToSqr(livingEntity) < 9.0;
 +        return this.creeper.getSwellDir() > 0 || livingEntity != null && this.creeper.distanceToSqr(livingEntity) < distanceToStartSwell;
      }
  
      // Paper start - Fix MC-179072
-@@ -48,7 +60,7 @@ public class SwellGoal extends Goal {
+@@ -48,7 +59,7 @@ public class SwellGoal extends Goal {
      public void tick() {
          if (this.target == null) {
              this.creeper.setSwellDir(-1);
--        } else if (this.creeper.distanceToSqr(this.target) > 49.0D) {
+-        } else if (this.creeper.distanceToSqr(this.target) > 49.0) {
 +        } else if (this.creeper.distanceToSqr(this.target) > distanceToStopSwell) {
              this.creeper.setSwellDir(-1);
          } else if (!this.creeper.getSensing().hasLineOfSight(this.target)) {
              this.creeper.setSwellDir(-1);
-diff --git a/src/main/java/net/minecraft/world/entity/player/Player.java b/src/main/java/net/minecraft/world/entity/player/Player.java
-index 5ca1f834f311a87323ced2578535e66efa14e47f..345dfeb4a6fd1a60e6a6ea3ad9d466b12e346fc9 100644
---- a/src/main/java/net/minecraft/world/entity/player/Player.java
-+++ b/src/main/java/net/minecraft/world/entity/player/Player.java
-@@ -1288,12 +1288,14 @@ public abstract class Player extends LivingEntity {
-                     }
- 
-                     f += f1;
-+
-                     boolean flag3 = false;
-                     double d0 = (double) (this.walkDist - this.walkDistO);
- 
-                     if (flag && !flag2 && !flag1 && this.onGround() && d0 < (double) this.getSpeed()) {
-                         ItemStack itemstack = this.getItemInHand(InteractionHand.MAIN_HAND);
- 
-+                        //TODO: MCCreativeLab Custom Sweep Attack Logic
-                         if (itemstack.getItem() instanceof SwordItem) {
-                             flag3 = true;
-                         }
-@@ -1338,6 +1340,7 @@ public abstract class Player extends LivingEntity {
-                         }
- 
-                         if (flag3) {
-+                            //TODO: MCCreativeLab Custom Sweep Attack Logic
-                             float f4 = 1.0F + EnchantmentHelper.getSweepingDamageRatio(this) * f;
-                             List<LivingEntity> list = this.level().getEntitiesOfClass(LivingEntity.class, target.getBoundingBox().inflate(1.0D, 0.25D, 1.0D));
-                             Iterator iterator = list.iterator();
-diff --git a/src/main/java/net/minecraft/world/level/block/ChiseledBookShelfBlock.java b/src/main/java/net/minecraft/world/level/block/ChiseledBookShelfBlock.java
-index 11038db46bf1b6cff41e5550dfc2088598527839..26792f39adb9a8b44ce4ad73fe48c4fd95fcd2a3 100644
---- a/src/main/java/net/minecraft/world/level/block/ChiseledBookShelfBlock.java
-+++ b/src/main/java/net/minecraft/world/level/block/ChiseledBookShelfBlock.java
-@@ -60,8 +60,7 @@ public class ChiseledBookShelfBlock extends BaseEntityBlock {
- 
-     @Override
-     public InteractionResult use(BlockState state, Level world, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
--        BlockEntity optional = world.getBlockEntity(pos);
--        if (optional instanceof ChiseledBookShelfBlockEntity chiseledBookShelfBlockEntity) {
-+        if (world.getBlockEntity(pos) instanceof ChiseledBookShelfBlockEntity chiseledBookShelfBlockEntity) {
-             Optional<Vec2> optional = getRelativeHitCoordinatesForBlockFace(hit, state.getValue(HorizontalDirectionalBlock.FACING));
-             if (optional.isEmpty()) {
-                 return InteractionResult.PASS;
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-index f264668d6ea91cd27b21b4237e73cd1c39700e09..4a2cd4ef8bea74ae592fa5dc6aa6931c6464cc02 100644
+index 94a31c8f903eb61eb6d203e8e6fe8fb0beca28b1..277b2199370f0b0333edd9caf31af1984b24f3d9 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-@@ -14,6 +14,8 @@ import com.mojang.brigadier.tree.CommandNode;
- import com.mojang.brigadier.tree.LiteralCommandNode;
+@@ -12,6 +12,8 @@ import com.mojang.brigadier.StringReader;
+ import com.mojang.brigadier.exceptions.CommandSyntaxException;
  import com.mojang.serialization.Dynamic;
  import com.mojang.serialization.Lifecycle;
 +import de.verdox.mccreativelab.ai.builder.AIFactory;
@@ -2115,15 +1778,7 @@ index f264668d6ea91cd27b21b4237e73cd1c39700e09..4a2cd4ef8bea74ae592fa5dc6aa6931c
  import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
  import java.awt.image.BufferedImage;
  import java.io.ByteArrayOutputStream;
-@@ -245,7 +247,6 @@ import org.bukkit.plugin.PluginManager;
- import org.bukkit.plugin.ServicesManager;
- import org.bukkit.plugin.SimplePluginManager;
- import org.bukkit.plugin.SimpleServicesManager;
--import org.bukkit.plugin.java.JavaPluginLoader;
- import org.bukkit.plugin.messaging.Messenger;
- import org.bukkit.plugin.messaging.StandardMessenger;
- import org.bukkit.potion.Potion;
-@@ -255,6 +256,7 @@ import org.bukkit.scoreboard.Criteria;
+@@ -253,6 +255,7 @@ import org.bukkit.scoreboard.Criteria;
  import org.bukkit.structure.StructureManager;
  import org.bukkit.util.StringUtil;
  import org.bukkit.util.permissions.DefaultPermissions;
@@ -2131,7 +1786,7 @@ index f264668d6ea91cd27b21b4237e73cd1c39700e09..4a2cd4ef8bea74ae592fa5dc6aa6931c
  import org.yaml.snakeyaml.LoaderOptions;
  import org.yaml.snakeyaml.Yaml;
  import org.yaml.snakeyaml.constructor.SafeConstructor;
-@@ -378,6 +380,15 @@ public final class CraftServer implements Server {
+@@ -376,6 +379,15 @@ public final class CraftServer implements Server {
      }
      // Paper end - Folia reagion threading API
  
@@ -2147,42 +1802,25 @@ index f264668d6ea91cd27b21b4237e73cd1c39700e09..4a2cd4ef8bea74ae592fa5dc6aa6931c
      static {
          ConfigurationSerialization.registerClass(CraftOfflinePlayer.class);
          ConfigurationSerialization.registerClass(CraftPlayerProfile.class);
-@@ -1111,6 +1122,7 @@ public final class CraftServer implements Server {
+@@ -1091,6 +1103,7 @@ public final class CraftServer implements Server {
          io.papermc.paper.plugin.PluginInitializerManager.reload(this.console); // Paper
          this.loadPlugins();
          this.enablePlugins(PluginLoadOrder.STARTUP);
 +        net.minecraft.world.level.block.Blocks.rebuildCache();
          this.enablePlugins(PluginLoadOrder.POSTWORLD);
-         this.getPluginManager().callEvent(new ServerLoadEvent(ServerLoadEvent.LoadType.RELOAD));
-         org.spigotmc.WatchdogThread.hasStarted = true; // Paper - Disable watchdog early timeout on reload
+         if (io.papermc.paper.plugin.PluginInitializerManager.instance().pluginRemapper != null) io.papermc.paper.plugin.PluginInitializerManager.instance().pluginRemapper.pluginsEnabled(); // Paper - Remap plugins
+         // Paper start - brigadier command API
 diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftLivingEntity.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftLivingEntity.java
-index f1e4dfd203d455ec089cd2b5679c4083400dbc7f..e1b40d4bd3420e448a2227616676220744ef3772 100644
+index 2d4e49f386be35ee8912c1bca38f74b8d8926f3a..b2ce763fd0790f803d19c972fc893dae124bf23e 100644
 --- a/src/main/java/org/bukkit/craftbukkit/entity/CraftLivingEntity.java
 +++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftLivingEntity.java
-@@ -9,6 +9,8 @@ import java.util.Iterator;
- import java.util.List;
- import java.util.Set;
- import java.util.UUID;
-+
-+import de.verdox.mccreativelab.ai.EntityBrain;
- import net.minecraft.network.protocol.game.ClientboundHurtAnimationPacket;
- import net.minecraft.server.level.ServerLevel;
- import net.minecraft.sounds.SoundEvent;
-@@ -18,6 +20,7 @@ import net.minecraft.world.effect.MobEffectInstance;
- import net.minecraft.world.entity.EntityType;
- import net.minecraft.world.entity.Mob;
- import net.minecraft.world.entity.MobType;
-+import net.minecraft.world.entity.ai.Brain;
- import net.minecraft.world.entity.ai.attributes.Attributes;
- import net.minecraft.world.entity.boss.wither.WitherBoss;
- import net.minecraft.world.entity.decoration.ArmorStand;
-@@ -893,6 +896,11 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
+@@ -908,6 +908,11 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
          this.getHandle().getBrain().setMemory(CraftMemoryKey.bukkitToMinecraft(memoryKey), CraftMemoryMapper.toNms(t));
      }
  
 +    @Override
-+    public <T extends LivingEntity> EntityBrain<T> getBrain(Class<? extends T> type) {
-+        return new de.verdox.mccreativelab.ai.CraftEntityBrain<>((Brain<net.minecraft.world.entity.LivingEntity>) getHandle().getBrain());
++    public <T extends LivingEntity> de.verdox.mccreativelab.ai.EntityBrain<T> getBrain(Class<? extends T> type) {
++        return new de.verdox.mccreativelab.ai.CraftEntityBrain<>((net.minecraft.world.entity.ai.Brain<net.minecraft.world.entity.LivingEntity>) getHandle().getBrain());
 +    }
 +
      @Override

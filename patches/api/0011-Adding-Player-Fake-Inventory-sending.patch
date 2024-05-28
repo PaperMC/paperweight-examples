@@ -5,10 +5,10 @@ Subject: [PATCH] Adding Player Fake Inventory sending
 
 
 diff --git a/src/main/java/org/bukkit/entity/Player.java b/src/main/java/org/bukkit/entity/Player.java
-index 254a02ddb5dc867c9dd6c2086791f7ab94247fd3..98ef4c5be4c63201d060f8ed5a41e97692aa554e 100644
+index 6c327a07bf8a6aa11a2d7dad12b2830acc539484..7019f73ed7793542b0b0140cf63ed7934eec8040 100644
 --- a/src/main/java/org/bukkit/entity/Player.java
 +++ b/src/main/java/org/bukkit/entity/Player.java
-@@ -786,6 +786,25 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
+@@ -840,6 +840,25 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
      @Deprecated
      public void playEffect(@NotNull Location loc, @NotNull Effect effect, int data);
  

@@ -5,10 +5,10 @@ Subject: [PATCH] Adding getAllBlockDataVariants metod
 
 
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-index 4a2cd4ef8bea74ae592fa5dc6aa6931c6464cc02..c38cb7a554e0a6fcc268abf8ac4c53760e25218a 100644
+index 277b2199370f0b0333edd9caf31af1984b24f3d9..f5c835cfb523fa5d13b71f93fb1cfd03e3108705 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-@@ -2818,6 +2818,15 @@ public final class CraftServer implements Server {
+@@ -2834,6 +2834,15 @@ public final class CraftServer implements Server {
          }));
      }
  

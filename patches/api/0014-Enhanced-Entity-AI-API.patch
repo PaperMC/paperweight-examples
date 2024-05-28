@@ -704,7 +704,7 @@ index 0000000000000000000000000000000000000000..1f99161b4bb432872be837a182df914f
 +    WeightedBehaviorsBuilder<E> withBehaviour(int priority, Function<BehaviorFactory, ControlledBehavior<? super E>> behaviourCreator);
 +}
 diff --git a/src/main/java/org/bukkit/Bukkit.java b/src/main/java/org/bukkit/Bukkit.java
-index ca27559cf4aa1c2e44fdca2022e213b1b1c80f4e..623bb80067c76da6306b5624b693de22cd9e8920 100644
+index 9a219b255b63f10005fc68faacb771dd32f61ac2..0b47aa638a8945a3eecc6aa8bd22ab5e5906b4d5 100644
 --- a/src/main/java/org/bukkit/Bukkit.java
 +++ b/src/main/java/org/bukkit/Bukkit.java
 @@ -14,6 +14,8 @@ import java.util.Set;
@@ -716,7 +716,7 @@ index ca27559cf4aa1c2e44fdca2022e213b1b1c80f4e..623bb80067c76da6306b5624b693de22
  import org.bukkit.Warning.WarningState;
  import org.bukkit.advancement.Advancement;
  import org.bukkit.block.data.BlockData;
-@@ -2862,4 +2864,11 @@ public final class Bukkit {
+@@ -2913,4 +2915,11 @@ public final class Bukkit {
      public static Server.Spigot spigot() {
          return server.spigot();
      }
@@ -729,7 +729,7 @@ index ca27559cf4aa1c2e44fdca2022e213b1b1c80f4e..623bb80067c76da6306b5624b693de22
 +    // Paper end - Add AI Library
  }
 diff --git a/src/main/java/org/bukkit/Server.java b/src/main/java/org/bukkit/Server.java
-index b4f8281d3797ec825a7671f38077cd65d5a1d76e..17c80336d3fa021db33560291df894297c708974 100644
+index 49d2547fcdaf779e284f513e58c1ac2ae3000bda..11741b89bfdf9a1a68ab1e76de84ce7a8119b4e0 100644
 --- a/src/main/java/org/bukkit/Server.java
 +++ b/src/main/java/org/bukkit/Server.java
 @@ -14,6 +14,8 @@ import java.util.Set;
@@ -741,7 +741,7 @@ index b4f8281d3797ec825a7671f38077cd65d5a1d76e..17c80336d3fa021db33560291df89429
  import org.bukkit.Warning.WarningState;
  import org.bukkit.advancement.Advancement;
  import org.bukkit.block.data.BlockData;
-@@ -2497,4 +2499,9 @@ public interface Server extends PluginMessageRecipient, net.kyori.adventure.audi
+@@ -2546,4 +2548,9 @@ public interface Server extends PluginMessageRecipient, net.kyori.adventure.audi
       */
      boolean isOwnedByCurrentRegion(@NotNull Entity entity);
      // Paper end - Folia region threading API
@@ -752,10 +752,10 @@ index b4f8281d3797ec825a7671f38077cd65d5a1d76e..17c80336d3fa021db33560291df89429
 +    // Paper end - Add AI Library
  }
 diff --git a/src/main/java/org/bukkit/entity/LivingEntity.java b/src/main/java/org/bukkit/entity/LivingEntity.java
-index e67455efc84f1e06d3396291d104ce65fee4591b..a35117316d281cd53b916eb9fe3e1de1df04781b 100644
+index b777e530122549455dcce6fac8d4a151c1c0af42..26bbae8074a844b98a02333a7fad78da3b179fdf 100644
 --- a/src/main/java/org/bukkit/entity/LivingEntity.java
 +++ b/src/main/java/org/bukkit/entity/LivingEntity.java
-@@ -930,6 +930,14 @@ public interface LivingEntity extends Attributable, Damageable, ProjectileSource
+@@ -962,6 +962,14 @@ public interface LivingEntity extends Attributable, Damageable, ProjectileSource
       */
      <T> void setMemory(@NotNull MemoryKey<T> memoryKey, @Nullable T memoryValue);
  
@@ -771,7 +771,7 @@ index e67455efc84f1e06d3396291d104ce65fee4591b..a35117316d281cd53b916eb9fe3e1de1
       * Get the {@link Sound} this entity will make when damaged.
       *
 diff --git a/src/main/java/org/bukkit/entity/memory/MemoryKey.java b/src/main/java/org/bukkit/entity/memory/MemoryKey.java
-index 8f601e85df580ef8106eaff8b9eafb5691a4874b..d5ac70476885b40c69054244406c24f267939d65 100644
+index d615c006c9153fb65024241604b744fbfc383efc..870654433bb3a122c94456d6e5d2b6bd127ebf5e 100644
 --- a/src/main/java/org/bukkit/entity/memory/MemoryKey.java
 +++ b/src/main/java/org/bukkit/entity/memory/MemoryKey.java
 @@ -5,9 +5,11 @@ import java.util.HashSet;
@@ -794,9 +794,9 @@ index 8f601e85df580ef8106eaff8b9eafb5691a4874b..d5ac70476885b40c69054244406c24f2
      private static final Map<NamespacedKey, MemoryKey> MEMORY_KEYS = new HashMap<>();
      //
      public static final MemoryKey<Location> HOME = new MemoryKey<>(NamespacedKey.minecraft("home"), Location.class);
-@@ -70,6 +73,13 @@ public final class MemoryKey<T> implements Keyed {
-     public static final MemoryKey<Integer> LIKED_NOTEBLOCK_COOLDOWN_TICKS = new MemoryKey<>(NamespacedKey.minecraft("liked_noteblock_cooldown_ticks"), Integer.class);
-     public static final MemoryKey<Integer> ITEM_PICKUP_COOLDOWN_TICKS = new MemoryKey<>(NamespacedKey.minecraft("item_pickup_cooldown_ticks"), Integer.class);
+@@ -76,6 +79,13 @@ public final class MemoryKey<T> implements Keyed {
+      */
+     @Deprecated // Paper
      public static final MemoryKey<Location> SNIFFER_EXPLORED_POSITIONS = new MemoryKey<>(NamespacedKey.minecraft("sniffer_explored_positions"), Location.class);
 +    public static final MemoryKey<List<Location>> SECONDARY_JOB_SITE = createListKey(NamespacedKey.minecraft("secondary_job_site"), Location.class);
 +    public static final MemoryKey<Entity> VISIBLE_VILLAGER_BABIES = new MemoryKey<>(NamespacedKey.minecraft("visible_villager_babies"), Entity.class);
@@ -808,7 +808,7 @@ index 8f601e85df580ef8106eaff8b9eafb5691a4874b..d5ac70476885b40c69054244406c24f2
  
      /**
       * Returns a {@link MemoryKey} by a {@link NamespacedKey}.
-@@ -93,4 +103,7 @@ public final class MemoryKey<T> implements Keyed {
+@@ -99,4 +109,7 @@ public final class MemoryKey<T> implements Keyed {
      public static Set<MemoryKey> values() {
          return new HashSet<>(MEMORY_KEYS.values());
      }

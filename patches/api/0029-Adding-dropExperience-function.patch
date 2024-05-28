@@ -5,10 +5,10 @@ Subject: [PATCH] Adding dropExperience function
 
 
 diff --git a/src/main/java/org/bukkit/World.java b/src/main/java/org/bukkit/World.java
-index 5db731966f4699e934fbd3c993deb5db866e2676..6247a6453f32af47e43e3230375bcf4841996487 100644
+index 7fcfdf0be9b4a8d6c71bcd74de00cabb0898dc98..b32e4220a88dd86f7bfd9b4d13b463b80eadfec6 100644
 --- a/src/main/java/org/bukkit/World.java
 +++ b/src/main/java/org/bukkit/World.java
-@@ -748,6 +748,16 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
+@@ -757,6 +757,16 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
       */
      public boolean generateTree(@NotNull Location location, @NotNull TreeType type);
  

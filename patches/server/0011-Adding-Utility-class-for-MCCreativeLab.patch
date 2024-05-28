@@ -16,29 +16,18 @@ index 0000000000000000000000000000000000000000..863d73d799e9838534faea0254d5b37e
 +
 +}
 diff --git a/src/main/java/net/minecraft/server/Bootstrap.java b/src/main/java/net/minecraft/server/Bootstrap.java
-index 438ae006a8e7da0e5124415b8350ebfd45ac6a10..8f8ffd3d917b82de9a0542cefa3621aa86abcc1d 100644
+index 6885a653bfe629c46bface19ff1eb666d74d4f1b..9588283cd5f08b1557f6f62e7c61b7efa1b43a28 100644
 --- a/src/main/java/net/minecraft/server/Bootstrap.java
 +++ b/src/main/java/net/minecraft/server/Bootstrap.java
-@@ -33,8 +33,10 @@ import net.minecraft.world.level.block.ComposterBlock;
- import net.minecraft.world.level.block.FireBlock;
- import org.slf4j.Logger;
- 
--public class Bootstrap {
-+import de.verdox.mccreativelab.CreativeLabImpl;
-+import de.verdox.mccreativelab.MCCreativeLab;
- 
-+public class Bootstrap {
-     public static final PrintStream STDOUT = System.out;
-     private static volatile boolean isBootstrapped;
-     private static final Logger LOGGER = LogUtils.getLogger();
-@@ -64,6 +66,10 @@ public class Bootstrap {
+@@ -63,6 +63,11 @@ public class Bootstrap {
              Bootstrap.isBootstrapped = true;
              Instant instant = Instant.now();
  
 +            // MCCLab - start
-+            MCCreativeLab.setCreativeLab(new CreativeLabImpl());
++            de.verdox.mccreativelab.MCCreativeLab.setCreativeLab(new de.verdox.mccreativelab.CreativeLabImpl());
 +            MinecraftServer.LOGGER.info("MCCreativeLab: initialized");
 +            // MCCLab - end
++
+             io.papermc.paper.plugin.entrypoint.LaunchEntryPointHandler.enterBootstrappers(); // Paper - Entrypoint for bootstrapping
              if (BuiltInRegistries.REGISTRY.keySet().isEmpty()) {
                  throw new IllegalStateException("Unable to load registries");
-             } else {

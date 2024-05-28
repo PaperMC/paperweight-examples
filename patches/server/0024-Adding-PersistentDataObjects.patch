@@ -5,10 +5,10 @@ Subject: [PATCH] Adding PersistentDataObjects
 
 
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index c8cebc0dcaa3e572cec8347d1f6ff65376d7d35e..c9731a60996670e393525136eeb3a709f7d96b86 100644
+index 0ed42fa899721f83b598db05be1b5f321af3614a..b39ae6a7cda67c5f3b8b101e8b93aa1f03bb2206 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
-@@ -965,6 +965,13 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -969,6 +969,13 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
          if (this.metricsRecorder.isRecording()) {
              this.cancelRecordingMetrics();
          }

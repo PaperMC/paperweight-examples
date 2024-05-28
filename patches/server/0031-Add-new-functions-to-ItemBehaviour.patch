@@ -34,10 +34,10 @@ index 35abb85b42d088fafddf1179b0254fdece69b78f..29b745da7bde2fc4199ae04b3bbdae92
          return CustomItemData.fromItemStack(stack.getBukkitStack());
      }
 diff --git a/src/main/java/net/minecraft/server/level/ServerPlayer.java b/src/main/java/net/minecraft/server/level/ServerPlayer.java
-index ff3aab390f8a19d9d711ef5ab88d6d2219adfa08..06437a3366e2b6485841c37a5f0f7e2105de071d 100644
+index f2254ff0f1bc681f456be77618d3040e26d9da31..05331d6ca4e26a6f4c92d17b127f32567e51556a 100644
 --- a/src/main/java/net/minecraft/server/level/ServerPlayer.java
 +++ b/src/main/java/net/minecraft/server/level/ServerPlayer.java
-@@ -960,7 +960,7 @@ public class ServerPlayer extends Player {
+@@ -1038,7 +1038,7 @@ public class ServerPlayer extends Player {
  
          if (!keepInventory) {
              for (ItemStack item : this.getInventory().getContents()) {
@@ -47,10 +47,10 @@ index ff3aab390f8a19d9d711ef5ab88d6d2219adfa08..06437a3366e2b6485841c37a5f0f7e21
                  }
              }
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 0ebdb947bca5c87be2f921ea91ca6c67bbd96cc4..827df788c8ec7b09d84afbfa674b9654508ba1a9 100644
+index f9798cf8023b3caf416a642e207af68c7d057c38..e0086ba1240e45aa72641679a5205aac8c2ac337 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
-@@ -2729,6 +2729,8 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -2803,6 +2803,8 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
      }
      @Nullable
      public ItemEntity spawnAtLocation(ItemStack stack, float yOffset, @Nullable java.util.function.Consumer<? super ItemEntity> delayedAddConsumer) {
@@ -59,18 +59,3 @@ index 0ebdb947bca5c87be2f921ea91ca6c67bbd96cc4..827df788c8ec7b09d84afbfa674b9654
          // Paper end - Restore vanilla drops behavior
          if (stack.isEmpty()) {
              return null;
-diff --git a/src/main/java/net/minecraft/world/item/ItemStack.java b/src/main/java/net/minecraft/world/item/ItemStack.java
-index 69cc544b5ffa7e370736befb9b7fbd503f38af29..512f4d80ebab6fe153767c9265cf5d2e07dcfe56 100644
---- a/src/main/java/net/minecraft/world/item/ItemStack.java
-+++ b/src/main/java/net/minecraft/world/item/ItemStack.java
-@@ -681,8 +681,8 @@ public final class ItemStack {
-             }
- 
-             j = this.getDamageValue() + amount;
--            this.setDamageValue(j);
--            return j >= this.getMaxDamage();
-+            this.setDamageValue(Math.min(j, this.getMaxDamage())); // MCCreativeLab - Only allow max damage for items not more
-+            return j >= this.getMaxDamage() && de.verdox.mccreativelab.behaviour.ItemBehaviourUtil.canBreakWhenMaxDamage(this); // MCCreativeLab - Add ItemBehavior
-         }
-     }
- 

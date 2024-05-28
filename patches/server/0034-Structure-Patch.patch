@@ -662,7 +662,7 @@ index 0000000000000000000000000000000000000000..8af977035bb129fad7ec98a47d1d2b8d
 +    }
 +}
 diff --git a/src/main/java/net/minecraft/world/level/levelgen/DensityFunctions.java b/src/main/java/net/minecraft/world/level/levelgen/DensityFunctions.java
-index 01b60aaf484e1e327ca42d3573fd86d2abd749fa..2fa88960c38ddec37030aa22f2cac876266d533a 100644
+index ac8447e20531ad59d5e26c6db541d6e844d56c0f..0c7f8e723df2054f370871a6c5354929eeffbfa1 100644
 --- a/src/main/java/net/minecraft/world/level/levelgen/DensityFunctions.java
 +++ b/src/main/java/net/minecraft/world/level/levelgen/DensityFunctions.java
 @@ -5,6 +5,7 @@ import com.mojang.logging.LogUtils;
@@ -673,7 +673,7 @@ index 01b60aaf484e1e327ca42d3573fd86d2abd749fa..2fa88960c38ddec37030aa22f2cac876
  import it.unimi.dsi.fastutil.doubles.Double2DoubleFunction;
  import java.util.Arrays;
  import java.util.Optional;
-@@ -74,6 +75,7 @@ public final class DensityFunctions {
+@@ -70,6 +71,7 @@ public final class DensityFunctions {
  
          register(registry, "spline", DensityFunctions.Spline.CODEC);
          register(registry, "constant", DensityFunctions.Constant.CODEC);
@@ -732,51 +732,47 @@ index 0a0a6a64af1a5b831cfdfd5b06aa316dfc402c02..d64f3c8af9017b0c1b112bfe93f96ae8
          } else {
              nbttagcompound.putString("id", "INVALID");
 diff --git a/src/main/java/net/minecraft/world/level/levelgen/structure/pools/SinglePoolElement.java b/src/main/java/net/minecraft/world/level/levelgen/structure/pools/SinglePoolElement.java
-index 8288ed76be84d7235e98e22b5bfada5dbd246586..d2fb7d164e0231ce5deec53c807ddd8f81af156c 100644
+index c0d5558bbc01ba16f56216601b4d1de9fd72a2b8..410ce3172dcf1f272090b3febc6f89f8d97e5f35 100644
 --- a/src/main/java/net/minecraft/world/level/levelgen/structure/pools/SinglePoolElement.java
 +++ b/src/main/java/net/minecraft/world/level/levelgen/structure/pools/SinglePoolElement.java
-@@ -127,7 +127,12 @@ public class SinglePoolElement extends StructurePoolElement {
+@@ -148,6 +148,11 @@ public class SinglePoolElement extends StructurePoolElement {
          if (!structureTemplate.placeInWorld(world, pos, pivot, structurePlaceSettings, random, 18)) {
              return false;
          } else {
--            for(StructureTemplate.StructureBlockInfo structureBlockInfo : StructureTemplate.processBlockInfos(world, pos, pivot, structurePlaceSettings, this.getDataMarkers(structureTemplateManager, pos, rotation, false))) {
-+            List<StructureTemplate.StructureBlockInfo> blockInfo = StructureTemplate.processBlockInfos(world, pos, pivot, structurePlaceSettings, this.getDataMarkers(structureTemplateManager, pos, rotation, false));
 +            // MCCreativeLab start - Block Processing removed all blocks from being placed
++            List<StructureTemplate.StructureBlockInfo> blockInfo = StructureTemplate.processBlockInfos(world, pos, pivot, structurePlaceSettings, this.getDataMarkers(structureTemplateManager, pos, rotation, false));
 +            if(blockInfo.isEmpty())
 +                return false;
 +            // MCCreativeLab end - Block Processing removed all blocks from being placed
-+            for(StructureTemplate.StructureBlockInfo structureBlockInfo : blockInfo) {
-                 this.handleDataMarker(world, structureBlockInfo, pos, rotation, random, box);
-             }
- 
+             for (StructureTemplate.StructureBlockInfo structureBlockInfo : StructureTemplate.processBlockInfos(
+                 world, pos, pivot, structurePlaceSettings, this.getDataMarkers(structureTemplateManager, pos, rotation, false)
+             )) {
 diff --git a/src/main/java/net/minecraft/world/level/levelgen/structure/pools/StructureTemplatePool.java b/src/main/java/net/minecraft/world/level/levelgen/structure/pools/StructureTemplatePool.java
-index 194864460a5508b6b60f445d6c7923c2ae14a15b..7f5b1f89d496e48b35125d7fa8111d1aef822af8 100644
+index 7ba11f734bd73dde165d155a633b47dac979a8e9..c2e28a7b041325beb3ef091b6220044ffab57e61 100644
 --- a/src/main/java/net/minecraft/world/level/levelgen/structure/pools/StructureTemplatePool.java
 +++ b/src/main/java/net/minecraft/world/level/levelgen/structure/pools/StructureTemplatePool.java
-@@ -104,6 +104,7 @@ public class StructureTemplatePool {
+@@ -116,6 +116,7 @@ public class StructureTemplatePool {
  
      public static enum Projection implements StringRepresentable {
          TERRAIN_MATCHING("terrain_matching", ImmutableList.of(new GravityProcessor(Heightmap.Types.WORLD_SURFACE_WG, -1))),
 +        PATH("path", ImmutableList.of(new de.verdox.mccreativelab.worldgen.structure.PathProcessor(Heightmap.Types.WORLD_SURFACE_WG, -1,1))),
          RIGID("rigid", ImmutableList.of());
  
-         public static final StringRepresentable.EnumCodec<StructureTemplatePool.Projection> CODEC = StringRepresentable.fromEnum(StructureTemplatePool.Projection::values);
+         public static final StringRepresentable.EnumCodec<StructureTemplatePool.Projection> CODEC = StringRepresentable.fromEnum(
 diff --git a/src/main/java/net/minecraft/world/level/levelgen/structure/templatesystem/StructureProcessorType.java b/src/main/java/net/minecraft/world/level/levelgen/structure/templatesystem/StructureProcessorType.java
-index 6a31414621353d2b47ff504e01a22aaa04a3f43f..b890ca2e3eb2711bde5b0f1d4ea78d85a9b47863 100644
+index cc5e33663de96c1af73352c80d9ffa894ff8d0b5..95f731fe22d9c3e1894f9d1951bd72351f883b76 100644
 --- a/src/main/java/net/minecraft/world/level/levelgen/structure/templatesystem/StructureProcessorType.java
 +++ b/src/main/java/net/minecraft/world/level/levelgen/structure/templatesystem/StructureProcessorType.java
-@@ -25,6 +25,9 @@ public interface StructureProcessorType<P extends StructureProcessor> {
+@@ -26,6 +26,7 @@ public interface StructureProcessorType<P extends StructureProcessor> {
+     StructureProcessorType<LavaSubmergedBlockProcessor> LAVA_SUBMERGED_BLOCK = register("lava_submerged_block", LavaSubmergedBlockProcessor.CODEC);
      StructureProcessorType<ProtectedBlockProcessor> PROTECTED_BLOCKS = register("protected_blocks", ProtectedBlockProcessor.CODEC);
      StructureProcessorType<CappedProcessor> CAPPED = register("capped", CappedProcessor.CODEC);
- 
-+
 +    StructureProcessorType<de.verdox.mccreativelab.worldgen.structure.PathProcessor> PATH = register("path", de.verdox.mccreativelab.worldgen.structure.PathProcessor.CODEC);
-+
-     Codec<P> codec();
  
-     static <P extends StructureProcessor> StructureProcessorType<P> register(String id, Codec<P> codec) {
+     MapCodec<P> codec();
+ 
 diff --git a/src/main/java/net/minecraft/world/level/levelgen/structure/templatesystem/StructureTemplate.java b/src/main/java/net/minecraft/world/level/levelgen/structure/templatesystem/StructureTemplate.java
-index 471e8493622c89d44a82f42f135cb308c9e0fbfe..2985e86c7849bfed55d6095e99084f50ebfc1ab0 100644
+index 9b4e2f96299bb12af7090ef70ac158c825d49d19..2647382a7c57a94a598994833c88bd225ac5d775 100644
 --- a/src/main/java/net/minecraft/world/level/levelgen/structure/templatesystem/StructureTemplate.java
 +++ b/src/main/java/net/minecraft/world/level/levelgen/structure/templatesystem/StructureTemplate.java
 @@ -265,6 +265,13 @@ public class StructureTemplate {

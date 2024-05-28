@@ -5,56 +5,54 @@ Subject: [PATCH] Adding MCCreativeLabExtension plugin
 
 
 diff --git a/build.gradle.kts b/build.gradle.kts
-index fafa1a49cf372bf1861247e3b5efc030e40e207e..6e43ee0015852c384b0edf212f5bbb6ea4b6ebc8 100644
+index dfdfd737e1aafe129dcf362d6396a24148ae1579..421b993f54ddd54b52dd8fca21ffc0fd4b1207e0 100644
 --- a/build.gradle.kts
 +++ b/build.gradle.kts
-@@ -199,12 +199,14 @@ tasks.registerRunTask("runShadow") {
-     description = "Spin up a test server from the shadowJar archiveFile"
-     classpath(tasks.shadowJar.flatMap { it.archiveFile })
+@@ -194,37 +194,44 @@ tasks.registerRunTask("runServer") {
+     description = "Spin up a test server from the Mojang mapped server jar"
+     classpath(tasks.includeMappings.flatMap { it.outputJar })
      classpath(runtimeClasspathWithoutVanillaServer)
 +    dependsOn(":plugin-extension:build")
  }
  
- tasks.registerRunTask("runReobf") {
+ tasks.registerRunTask("runReobfServer") {
      description = "Spin up a test server from the reobfJar output jar"
      classpath(tasks.reobfJar.flatMap { it.outputJar })
      classpath(runtimeClasspathWithoutVanillaServer)
 +    dependsOn(":plugin-extension:build")
  }
  
- val runtimeClasspathForRunDev = sourceSets.main.flatMap { src ->
-@@ -217,4 +219,5 @@ tasks.registerRunTask("runDev") {
-     classpath(tasks.filterProjectDir.flatMap { it.outputJar })
-     classpath(runtimeClasspathForRunDev)
-     jvmArgs("-DPaper.isRunDev=true")
+ tasks.registerRunTask("runDevServer") {
+     description = "Spin up a test server without assembling a jar"
+     classpath(sourceSets.main.map { it.runtimeClasspath })
+     jvmArgs("-DPaper.pushPaperAssetsRoot=true")
 +    dependsOn(":plugin-extension:build")
  }
-diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index d06185566b447c432d4dc2e3ba04d121bcdbc71b..c8cebc0dcaa3e572cec8347d1f6ff65376d7d35e 100644
---- a/src/main/java/net/minecraft/server/MinecraftServer.java
-+++ b/src/main/java/net/minecraft/server/MinecraftServer.java
-@@ -1855,7 +1855,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
  
-     @DontObfuscate
-     public String getServerModName() {
--        return "Paper"; // Paper
-+        return "MCCreativeLab"; // MCCreativeLab
-     }
- 
-     public SystemReport fillSystemReport(SystemReport details) {
-diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-index 9f7ed337463cc9bb370a5541d9de5cd8f9c1a78a..f264668d6ea91cd27b21b4237e73cd1c39700e09 100644
---- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-+++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-@@ -266,7 +266,7 @@ import javax.annotation.Nullable; // Paper
- import javax.annotation.Nonnull; // Paper
- 
- public final class CraftServer implements Server {
--    private final String serverName = "Paper"; // Paper
-+    private final String serverName = "MCCreativeLab"; // ForkTest // Paper
-     private final String serverVersion;
-     private final String bukkitVersion = Versioning.getBukkitVersion();
-     private final Logger logger = Logger.getLogger("Minecraft");
+ tasks.registerRunTask("runBundler") {
+     description = "Spin up a test server from the Mojang mapped bundler jar"
+     classpath(rootProject.tasks.named<io.papermc.paperweight.tasks.CreateBundlerJar>("createMojmapBundlerJar").flatMap { it.outputZip })
+     mainClass.set(null as String?)
++    dependsOn(":plugin-extension:build")
+ }
+ tasks.registerRunTask("runReobfBundler") {
+     description = "Spin up a test server from the reobf bundler jar"
+     classpath(rootProject.tasks.named<io.papermc.paperweight.tasks.CreateBundlerJar>("createReobfBundlerJar").flatMap { it.outputZip })
+     mainClass.set(null as String?)
++    dependsOn(":plugin-extension:build")
+ }
+ tasks.registerRunTask("runPaperclip") {
+     description = "Spin up a test server from the Mojang mapped Paperclip jar"
+     classpath(rootProject.tasks.named<io.papermc.paperweight.tasks.CreatePaperclipJar>("createMojmapPaperclipJar").flatMap { it.outputZip })
+     mainClass.set(null as String?)
++    dependsOn(":plugin-extension:build")
+ }
+ tasks.registerRunTask("runReobfPaperclip") {
+     description = "Spin up a test server from the reobf Paperclip jar"
+     classpath(rootProject.tasks.named<io.papermc.paperweight.tasks.CreatePaperclipJar>("createReobfPaperclipJar").flatMap { it.outputZip })
+     mainClass.set(null as String?)
++    dependsOn(":plugin-extension:build")
+ }
 diff --git a/src/main/java/org/bukkit/craftbukkit/util/Versioning.java b/src/main/java/org/bukkit/craftbukkit/util/Versioning.java
 index 774556a62eb240da42e84db4502e2ed43495be17..7f4d220c3a689e46ccaad5a1f79c1fc24057e59e 100644
 --- a/src/main/java/org/bukkit/craftbukkit/util/Versioning.java

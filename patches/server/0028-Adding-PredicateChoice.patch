@@ -46,7 +46,7 @@ index 2a2f8327a5bd3983a3a13fd663beb98906f27312..684cbfa8d93dc9af8c3442c0ba4ac81f
 +    } // Paper end - Adding PredicateChoice
  }
 diff --git a/src/main/java/io/papermc/paper/inventory/recipe/StackedContentsExtraMap.java b/src/main/java/io/papermc/paper/inventory/recipe/StackedContentsExtraMap.java
-index 63db0b843c5bd11f979e613ba6cfac9d9da956bb..7c4780ab634a06ca3a362356443079f5d70558aa 100644
+index 2258d4556a1c608e2b0ece38471350646718eb19..b231f62542fc649c7f272390a50530b03035c442 100644
 --- a/src/main/java/io/papermc/paper/inventory/recipe/StackedContentsExtraMap.java
 +++ b/src/main/java/io/papermc/paper/inventory/recipe/StackedContentsExtraMap.java
 @@ -24,6 +24,7 @@ public final class StackedContentsExtraMap {
@@ -99,10 +99,10 @@ index 63db0b843c5bd11f979e613ba6cfac9d9da956bb..7c4780ab634a06ca3a362356443079f5
              final int id = this.exactChoiceIds.getInt(stack);
              if (id >= 0) {
 diff --git a/src/main/java/net/minecraft/world/item/crafting/Ingredient.java b/src/main/java/net/minecraft/world/item/crafting/Ingredient.java
-index 7c29750e534eae4266bf7a63c50e3827401d6569..6159c071cd6f104483df878b0968b5e6a17a69aa 100644
+index e314f36951e9ac15c57137e24fce8c410373130a..9fdb0a5373d21c63be414d1b49623015898dc0ea 100644
 --- a/src/main/java/net/minecraft/world/item/crafting/Ingredient.java
 +++ b/src/main/java/net/minecraft/world/item/crafting/Ingredient.java
-@@ -36,9 +36,9 @@ public final class Ingredient implements Predicate<ItemStack> {
+@@ -41,9 +41,9 @@ public final class Ingredient implements Predicate<ItemStack> {
      @Nullable
      private IntList stackingIds;
      public boolean exact; // CraftBukkit
@@ -113,7 +113,7 @@ index 7c29750e534eae4266bf7a63c50e3827401d6569..6159c071cd6f104483df878b0968b5e6
      public Ingredient(Stream<? extends Ingredient.Value> entries) {
          this.values = (Ingredient.Value[]) entries.toArray((i) -> {
              return new Ingredient.Value[i];
-@@ -67,6 +67,11 @@ public final class Ingredient implements Predicate<ItemStack> {
+@@ -72,6 +72,11 @@ public final class Ingredient implements Predicate<ItemStack> {
          } else if (this.isEmpty()) {
              return itemstack.isEmpty();
          } else {
@@ -126,10 +126,10 @@ index 7c29750e534eae4266bf7a63c50e3827401d6569..6159c071cd6f104483df878b0968b5e6
              int i = aitemstack.length;
  
 diff --git a/src/main/java/net/minecraft/world/item/crafting/Recipe.java b/src/main/java/net/minecraft/world/item/crafting/Recipe.java
-index e18422bf3af7cade7a10229900261ae8f59a5db7..1b45f741cd14cceee42b9e754a5d5b0447095dcf 100644
+index 4b84355f6dba8cc4d0aed8d330772447c93145b2..a5a6eb0b6b8b1dac2bb18f5fd7698ffe838ed8d8 100644
 --- a/src/main/java/net/minecraft/world/item/crafting/Recipe.java
 +++ b/src/main/java/net/minecraft/world/item/crafting/Recipe.java
-@@ -71,7 +71,7 @@ public interface Recipe<C extends Container> {
+@@ -76,7 +76,7 @@ public interface Recipe<C extends Container> {
      org.bukkit.inventory.Recipe toBukkitRecipe(org.bukkit.NamespacedKey id); // CraftBukkit
  
      // Paper start - improved exact choice recipes
@@ -139,13 +139,13 @@ index e18422bf3af7cade7a10229900261ae8f59a5db7..1b45f741cd14cceee42b9e754a5d5b04
      }
      // Paper end
 diff --git a/src/main/java/org/bukkit/craftbukkit/inventory/CraftRecipe.java b/src/main/java/org/bukkit/craftbukkit/inventory/CraftRecipe.java
-index 6ba29875d78ede4aa7978ff689e588f7fed11528..b2bba76d8ebc0bd8a4404c19c8dc93cbb75e3142 100644
+index c76c78bb7757d407102271463e14716a1b012deb..20d4c39bc39e72edb7002b901fddb1b778930de0 100644
 --- a/src/main/java/org/bukkit/craftbukkit/inventory/CraftRecipe.java
 +++ b/src/main/java/org/bukkit/craftbukkit/inventory/CraftRecipe.java
-@@ -29,7 +29,15 @@ public interface CraftRecipe extends Recipe {
-         } else if (bukkit instanceof RecipeChoice.ExactChoice) {
-             stack = new Ingredient(((RecipeChoice.ExactChoice) bukkit).getChoices().stream().map((mat) -> new net.minecraft.world.item.crafting.Ingredient.ItemValue(CraftItemStack.asNMSCopy(mat))));
-             stack.exact = true;
+@@ -33,7 +33,15 @@ public interface CraftRecipe extends Recipe {
+         } else if (bukkit == RecipeChoice.empty()) {
+             stack = Ingredient.EMPTY;
+             // Paper end
 -        } else {
 +        }
 +        // Paper start - Adding PredicateChoice
@@ -159,9 +159,9 @@ index 6ba29875d78ede4aa7978ff689e588f7fed11528..b2bba76d8ebc0bd8a4404c19c8dc93cb
              throw new IllegalArgumentException("Unknown recipe stack instance " + bukkit);
          }
  
-@@ -47,7 +55,15 @@ public interface CraftRecipe extends Recipe {
+@@ -51,7 +59,15 @@ public interface CraftRecipe extends Recipe {
          if (list.itemStacks.length == 0) {
-             return null;
+             return RecipeChoice.empty(); // Paper - null breaks API contracts
          }
 -
 +        // Paper start - Adding PredicateChoice

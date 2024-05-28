@@ -5,10 +5,10 @@ Subject: [PATCH] Adding growTreeIfSapling helper method to Bukkit World class
 
 
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-index bfb178c69026e9759e9afaebb9da141b62d1f144..f51087a8125a87db1668b31e024c07e99c0568f6 100644
+index f2b20ed5063a293f0b464548f590d652170cd1d8..9396207234e7d5ffce18c2a9bd273d4c92d32609 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-@@ -164,6 +164,21 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+@@ -165,6 +165,21 @@ public class CraftWorld extends CraftRegionAccessor implements World {
      private final CraftPersistentDataContainer persistentDataContainer = new CraftPersistentDataContainer(CraftWorld.DATA_TYPE_REGISTRY);
      private net.kyori.adventure.pointer.Pointers adventure$pointers; // Paper - implement pointers
  

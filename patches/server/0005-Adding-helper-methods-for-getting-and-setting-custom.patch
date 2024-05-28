@@ -6,10 +6,10 @@ Subject: [PATCH] Adding helper methods for getting and setting customModelData
 
 
 diff --git a/src/main/java/org/bukkit/craftbukkit/inventory/CraftItemStack.java b/src/main/java/org/bukkit/craftbukkit/inventory/CraftItemStack.java
-index 870954fc59efdc1e0c6b5047f5a89dfaf7522d0e..0ca5c91630a14523ce139def943dae10e8b64eb6 100644
+index f1e1953f2dc65dc615b7b7b648c37b195d3b4c25..9f74a685e0ec51e66f2900d4782849438eb56320 100644
 --- a/src/main/java/org/bukkit/craftbukkit/inventory/CraftItemStack.java
 +++ b/src/main/java/org/bukkit/craftbukkit/inventory/CraftItemStack.java
-@@ -23,6 +23,19 @@ import org.bukkit.material.MaterialData;
+@@ -22,6 +22,19 @@ import org.bukkit.material.MaterialData;
  @DelegateDeserialization(ItemStack.class)
  public final class CraftItemStack extends ItemStack {
  

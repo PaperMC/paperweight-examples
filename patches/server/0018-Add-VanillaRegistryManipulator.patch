@@ -106,10 +106,10 @@ index 0000000000000000000000000000000000000000..818a9eb7e5d65f10bc42908070f2634e
 +    }
 +}
 diff --git a/src/main/java/net/minecraft/world/entity/ai/village/poi/PoiTypes.java b/src/main/java/net/minecraft/world/entity/ai/village/poi/PoiTypes.java
-index 66c13f9073bf29a6332018c32a2a897e6a7f1ed5..5c003f2e32c66badc7b31961293a6ad2404b863f 100644
+index 0538eff10e5906236fc4d8a098d2f680f5ad3cf2..e3dd9659fcf513683d8bf5bd197c9284c3fabd12 100644
 --- a/src/main/java/net/minecraft/world/entity/ai/village/poi/PoiTypes.java
 +++ b/src/main/java/net/minecraft/world/entity/ai/village/poi/PoiTypes.java
-@@ -58,7 +58,7 @@ public class PoiTypes {
+@@ -76,7 +76,7 @@ public class PoiTypes {
          return ResourceKey.create(Registries.POINT_OF_INTEREST_TYPE, new ResourceLocation(id));
      }
  
@@ -119,15 +119,36 @@ index 66c13f9073bf29a6332018c32a2a897e6a7f1ed5..5c003f2e32c66badc7b31961293a6ad2
          Registry.register(registry, key, poiType);
          registerBlockStates(registry.getHolderOrThrow(key), states);
 diff --git a/src/main/java/net/minecraft/world/entity/npc/VillagerProfession.java b/src/main/java/net/minecraft/world/entity/npc/VillagerProfession.java
-index ac70c2c03241e73943bd517a8c69dd05e0873634..3b2629af23f6211ef5865171522b6569b943f226 100644
+index 1316f4475802e17039800cc6128e1b065328beb7..99b770441869ab0130cf1a6552b32cfe682136ad 100644
 --- a/src/main/java/net/minecraft/world/entity/npc/VillagerProfession.java
 +++ b/src/main/java/net/minecraft/world/entity/npc/VillagerProfession.java
-@@ -63,7 +63,7 @@ public record VillagerProfession(String name, Predicate<Holder<PoiType>> heldJob
-         }, gatherableItems, secondaryJobSites, workSound);
+@@ -54,17 +54,17 @@ public record VillagerProfession(
+         return this.name;
      }
  
--    private static VillagerProfession register(String id, Predicate<Holder<PoiType>> heldWorkstation, Predicate<Holder<PoiType>> acquirableWorkstation, ImmutableSet<Item> gatherableItems, ImmutableSet<Block> secondaryJobSites, @Nullable SoundEvent workSound) {
-+    public static VillagerProfession register(String id, Predicate<Holder<PoiType>> heldWorkstation, Predicate<Holder<PoiType>> acquirableWorkstation, ImmutableSet<Item> gatherableItems, ImmutableSet<Block> secondaryJobSites, @Nullable SoundEvent workSound) {
-         return Registry.register(BuiltInRegistries.VILLAGER_PROFESSION, new ResourceLocation(id), new VillagerProfession(id, heldWorkstation, acquirableWorkstation, gatherableItems, secondaryJobSites, workSound));
+-    private static VillagerProfession register(String id, ResourceKey<PoiType> heldWorkstation, @Nullable SoundEvent workSound) {
++    public static VillagerProfession register(String id, ResourceKey<PoiType> heldWorkstation, @Nullable SoundEvent workSound) {
+         return register(id, entry -> entry.is(heldWorkstation), entry -> entry.is(heldWorkstation), workSound);
      }
- }
+ 
+-    private static VillagerProfession register(
++    public static VillagerProfession register(
+         String id, Predicate<Holder<PoiType>> heldWorkstation, Predicate<Holder<PoiType>> acquirableWorkstation, @Nullable SoundEvent workSound
+     ) {
+         return register(id, heldWorkstation, acquirableWorkstation, ImmutableSet.of(), ImmutableSet.of(), workSound);
+     }
+ 
+-    private static VillagerProfession register(
++    public static VillagerProfession register(
+         String id,
+         ResourceKey<PoiType> heldWorkstation,
+         ImmutableSet<Item> gatherableItems,
+@@ -74,7 +74,7 @@ public record VillagerProfession(
+         return register(id, entry -> entry.is(heldWorkstation), entry -> entry.is(heldWorkstation), gatherableItems, secondaryJobSites, workSound);
+     }
+ 
+-    private static VillagerProfession register(
++    public static VillagerProfession register(
+         String id,
+         Predicate<Holder<PoiType>> heldWorkstation,
+         Predicate<Holder<PoiType>> acquirableWorkstation,

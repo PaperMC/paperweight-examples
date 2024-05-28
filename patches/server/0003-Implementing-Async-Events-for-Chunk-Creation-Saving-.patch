@@ -53,7 +53,7 @@ index 0000000000000000000000000000000000000000..d133885c10963eb756463d8b5a4ff67d
 +
 +}
 diff --git a/src/main/java/io/papermc/paper/chunk/system/scheduling/NewChunkHolder.java b/src/main/java/io/papermc/paper/chunk/system/scheduling/NewChunkHolder.java
-index b66a7d4aab887309579154815a0d4abf9de506b0..88d58bae2ccf8c8d7a7d6d9067785fd6321d2f4b 100644
+index 56b07a3306e5735816c8d89601b519cb0db6379a..37f791827e928f18f36594cb1836c2336dc57259 100644
 --- a/src/main/java/io/papermc/paper/chunk/system/scheduling/NewChunkHolder.java
 +++ b/src/main/java/io/papermc/paper/chunk/system/scheduling/NewChunkHolder.java
 @@ -1817,7 +1817,7 @@ public final class NewChunkHolder {
@@ -83,31 +83,43 @@ index b66a7d4aab887309579154815a0d4abf9de506b0..88d58bae2ccf8c8d7a7d6d9067785fd6
  
              if (unloading) {
                  completing = true;
-diff --git a/src/main/java/net/minecraft/world/level/chunk/ChunkStatus.java b/src/main/java/net/minecraft/world/level/chunk/ChunkStatus.java
-index a907b79fd8291a0e92db138f37239d17424188a1..c408d84170a95cbe4ea8e766b665a8823e53630a 100644
---- a/src/main/java/net/minecraft/world/level/chunk/ChunkStatus.java
-+++ b/src/main/java/net/minecraft/world/level/chunk/ChunkStatus.java
-@@ -68,6 +68,7 @@ public class ChunkStatus {
-         }
+diff --git a/src/main/java/net/minecraft/world/level/chunk/status/ChunkStatus.java b/src/main/java/net/minecraft/world/level/chunk/status/ChunkStatus.java
+index b81c548c0e1ac53784e9c94b34b65db5f123309c..0244c1bfe2d64660593f1887f81cd3467fce4c5d 100644
+--- a/src/main/java/net/minecraft/world/level/chunk/status/ChunkStatus.java
++++ b/src/main/java/net/minecraft/world/level/chunk/status/ChunkStatus.java
+@@ -19,6 +19,7 @@ import net.minecraft.util.profiling.jfr.callback.ProfiledDuration;
+ import net.minecraft.world.level.chunk.ChunkAccess;
+ import net.minecraft.world.level.chunk.ProtoChunk;
+ import net.minecraft.world.level.levelgen.Heightmap;
++import net.minecraft.world.level.levelgen.WorldGenerationContext;
  
-         worldserver.onStructureStartsAvailable(ichunkaccess);
-+        de.verdox.mccreativelab.worldgen.ChunkDataUtil.callChunkDataCreateEvent(worldserver, ichunkaccess, ichunkaccess.persistentDataContainer); // MCCLab - Add Async Chunk Event
-         return CompletableFuture.completedFuture(Either.left(ichunkaccess));
-     }, (chunkstatus, worldserver, structuretemplatemanager, lightenginethreaded, function, ichunkaccess) -> {
-         worldserver.onStructureStartsAvailable(ichunkaccess);
+ public class ChunkStatus {
+     static final ChunkStatus.LoadingTask PASSTHROUGH_LOAD_TASK = (WorldGenContext context, ChunkStatus status, ToFullChunk fullChunkConverter, ChunkAccess chunk) -> CompletableFuture.completedFuture(chunk); // Paper - rewrite chunk system
+@@ -38,7 +39,10 @@ public class ChunkStatus {
+         false,
+         PRE_FEATURES,
+         ChunkType.PROTOCHUNK,
+-        ChunkStatusTasks::generateStructureStarts,
++        (context, status, executor, fullChunkConverter, chunks, chunk) -> {
++            de.verdox.mccreativelab.worldgen.ChunkDataUtil.callChunkDataCreateEvent(context.getWorld(), chunk, chunk.persistentDataContainer); // MCCLab - Add Async Chunk Event
++            return ChunkStatusTasks.generateStructureStarts(context, status ,executor, fullChunkConverter, chunks, chunk);
++        },
+         ChunkStatusTasks::loadStructureStarts
+     );
+     public static final ChunkStatus STRUCTURE_REFERENCES = register(
 diff --git a/src/main/java/net/minecraft/world/level/chunk/storage/ChunkSerializer.java b/src/main/java/net/minecraft/world/level/chunk/storage/ChunkSerializer.java
-index d53c4f3d47a8728d56fbd9b5e12be51885560d52..5a04f3dd6ba50b04f6d1b6e06a6528cfa9d3653e 100644
+index 26431a814f6472689484dcc7cd8183fe1676e17e..f3f2b5304595203923b288eaf60cb3a0c783386a 100644
 --- a/src/main/java/net/minecraft/world/level/chunk/storage/ChunkSerializer.java
 +++ b/src/main/java/net/minecraft/world/level/chunk/storage/ChunkSerializer.java
-@@ -364,6 +364,7 @@ public class ChunkSerializer {
+@@ -359,6 +359,7 @@ public class ChunkSerializer {
          }
  
-         if (chunkstatus_type == ChunkStatus.ChunkType.LEVELCHUNK) {
+         if (chunktype == ChunkType.LEVELCHUNK) {
 +            de.verdox.mccreativelab.worldgen.ChunkDataUtil.callChunkDataLoadEvent(world, (ChunkAccess) object1, ((ChunkAccess) object1).persistentDataContainer); // MCCLab - Add Async Chunk Event
              return new InProgressChunkHolder(new ImposterProtoChunk((LevelChunk) object1, false)); // Paper - Async chunk loading
          } else {
              ProtoChunk protochunk1 = (ProtoChunk) object1;
-@@ -399,6 +400,7 @@ public class ChunkSerializer {
+@@ -394,6 +395,7 @@ public class ChunkSerializer {
                  protochunk1.setCarvingMask(worldgenstage_features, new CarvingMask(nbttagcompound5.getLongArray(s1), ((ChunkAccess) object1).getMinBuildHeight()));
              }
  
@@ -115,7 +127,7 @@ index d53c4f3d47a8728d56fbd9b5e12be51885560d52..5a04f3dd6ba50b04f6d1b6e06a6528cf
              return new InProgressChunkHolder(protochunk1); // Paper - Async chunk loading
          }
      }
-@@ -451,9 +453,9 @@ public class ChunkSerializer {
+@@ -446,9 +448,9 @@ public class ChunkSerializer {
  
      public static CompoundTag write(ServerLevel world, ChunkAccess chunk) {
          // Paper start
@@ -127,7 +139,7 @@ index d53c4f3d47a8728d56fbd9b5e12be51885560d52..5a04f3dd6ba50b04f6d1b6e06a6528cf
          // Paper end
          // Paper start - rewrite light impl
          final int minSection = io.papermc.paper.util.WorldUtil.getMinLightSection(world);
-@@ -635,6 +637,7 @@ public class ChunkSerializer {
+@@ -624,6 +626,7 @@ public class ChunkSerializer {
  
          nbttagcompound.put("Heightmaps", nbttagcompound3);
          nbttagcompound.put("structures", ChunkSerializer.packStructureData(StructurePieceSerializationContext.fromLevel(world), chunkcoordintpair, chunk.getAllStarts(), chunk.getAllReferences()));

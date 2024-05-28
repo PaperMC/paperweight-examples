@@ -49,12 +49,12 @@ index 0000000000000000000000000000000000000000..927917f9a875595e2ff0626cbda03a08
 +    }
 +}
 diff --git a/src/main/java/org/bukkit/inventory/RecipeChoice.java b/src/main/java/org/bukkit/inventory/RecipeChoice.java
-index db8bcc66bdc4bedfffb4705db6338eda4c0ad29a..e331040030c484ad63444a0ee4e42790d639115e 100644
+index 1cd6601c9d2e86ef850011fcb9e59811207b4af7..4762b1792be1aad128b6e5657a30b457e9ef1988 100644
 --- a/src/main/java/org/bukkit/inventory/RecipeChoice.java
 +++ b/src/main/java/org/bukkit/inventory/RecipeChoice.java
-@@ -233,4 +233,39 @@ public interface RecipeChoice extends Predicate<ItemStack>, Cloneable {
-             return "ExactChoice{" + "choices=" + choices + '}';
+@@ -278,4 +278,39 @@ public interface RecipeChoice extends Predicate<ItemStack>, Cloneable {
          }
+         // Paper end - check valid ingredients
      }
 +    // Paper start - Adding PredicateChoice
 +    /**

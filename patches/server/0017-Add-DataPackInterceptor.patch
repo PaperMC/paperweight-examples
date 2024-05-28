@@ -6,7 +6,7 @@ Subject: [PATCH] Add DataPackInterceptor
 
 diff --git a/src/main/java/de/verdox/mccreativelab/CraftDataPackInterceptor.java b/src/main/java/de/verdox/mccreativelab/CraftDataPackInterceptor.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..1134449a2442b2d25639eed487002eb7597937b3
+index 0000000000000000000000000000000000000000..c3b98096686c23a913c83b8459eeab2166ff48d3
 --- /dev/null
 +++ b/src/main/java/de/verdox/mccreativelab/CraftDataPackInterceptor.java
 @@ -0,0 +1,127 @@
@@ -152,10 +152,10 @@ index 863d73d799e9838534faea0254d5b37e7f7748cb..c458c6d2b01ad827fb02aeff87a568cd
 +    }
  }
 diff --git a/src/main/java/net/minecraft/server/packs/PathPackResources.java b/src/main/java/net/minecraft/server/packs/PathPackResources.java
-index 3edd14ce90edf98798b89921ad18547809de5d2c..6b15addf9441717ad045646990864ab0f819304a 100644
+index 8d7565eda4536e8aa42dd3dcbcfac38cbf16020a..c868af18068cdd11b547556b4fb8edc5121bc5c1 100644
 --- a/src/main/java/net/minecraft/server/packs/PathPackResources.java
 +++ b/src/main/java/net/minecraft/server/packs/PathPackResources.java
-@@ -89,7 +89,13 @@ public class PathPackResources extends AbstractPackResources {
+@@ -86,7 +86,13 @@ public class PathPackResources extends AbstractPackResources {
                  if (resourceLocation == null) {
                      Util.logAndPauseIfInIde(String.format(Locale.ROOT, "Invalid path in pack: %s:%s, ignoring", namespace, string2));
                  } else {
@@ -168,5 +168,5 @@ index 3edd14ce90edf98798b89921ad18547809de5d2c..6b15addf9441717ad045646990864ab0
 +                    consumer.accept(resourceLocation, result);
 +                    // MCCLab end - Add PackInterceptor
                  }
- 
              });
+         } catch (NotDirectoryException | NoSuchFileException var10) {
