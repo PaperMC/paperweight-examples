@@ -1,10 +1,13 @@
 package de.verdox.mccreativelab.debug;
 
+import de.verdox.mccreativelab.MCCreativeLab;
 import de.verdox.mccreativelab.MCCreativeLabExtension;
+import de.verdox.mccreativelab.container.CustomInventory;
 import de.verdox.mccreativelab.debug.vanilla.VillagerAI;
 import de.verdox.mccreativelab.generator.resourcepack.types.hud.renderer.HudRendererImpl;
 import de.verdox.mccreativelab.generator.resourcepack.types.menu.ActiveMenu;
 import de.verdox.mccreativelab.world.item.data.ItemDataContainer;
+import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -45,7 +48,41 @@ public class DebugCommand extends Command {
                     player.doInventorySynchronization(false);
                     player.sendFakeInventoryContents(contents);
                 }
-            } else if (argument1.equals("testTPAsync")) {
+            } 
+            else if(argument1.equals("customInv")){
+                if (sender instanceof Player player) {
+                    MCCreativeLab.openCustomContainerMenu(new CustomInventory() {
+                        @Override
+                        public Slot[] getSlots() {
+                            return new Slot[]{
+                                new Slot() {
+                                    @Override
+                                    public boolean isActive() {
+                                        return false;
+                                    }
+
+                                    @Override
+                                    public boolean mayPlace(ItemStack stack) {
+                                        return false;
+                                    }
+
+                                    @Override
+                                    public boolean mayPickUp(Player player) {
+                                        return false;
+                                    }
+                                }
+                            };
+                        }
+
+                        @Override
+                        public ItemStack quickMoveStack(Player player, int slot) {
+                            System.out.println("QUICK MOVE STACK "+slot);
+                            return new ItemStack(Material.STONE);
+                        }
+                    }, player, Component.empty());
+                }
+            }
+            else if (argument1.equals("testTPAsync")) {
 
                 if (sender instanceof Player player) {
 
