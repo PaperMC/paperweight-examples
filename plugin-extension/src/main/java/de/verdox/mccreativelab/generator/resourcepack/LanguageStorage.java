@@ -8,27 +8,36 @@ import de.verdox.mccreativelab.generator.resourcepack.types.lang.Translation;
 import de.verdox.mccreativelab.util.gson.JsonObjectBuilder;
 import de.verdox.mccreativelab.util.gson.JsonUtil;
 import de.verdox.mccreativelab.util.io.AssetUtil;
+import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
+import net.kyori.adventure.translation.GlobalTranslator;
+import net.kyori.adventure.translation.TranslationRegistry;
 import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.text.MessageFormat;
 import java.util.*;
 import java.util.stream.Collectors;
 
 public class LanguageStorage {
+    //TODO: TranslationRegistry not UTF-8
     private static final LanguageInfo STANDARD = LanguageInfo.ENGLISH_US;
     private final Set<Translation> customTranslations = new HashSet<>();
     private final Map<String, Map<LanguageInfo, Translation>> translationKeyMapping = new HashMap<>();
     private final CustomResourcePack customResourcePack;
+    private final TranslationRegistry translationRegistry = TranslationRegistry.create(Key.key("mccreativelab","language_storage"));
 
     LanguageStorage(CustomResourcePack customResourcePack) {
         this.customResourcePack = customResourcePack;
 
         cacheMinecraftTranslations(LanguageInfo.ENGLISH_US);
+        //GlobalTranslator.translator().addSource(translationRegistry);
+        translationRegistry.defaultLocale(Locale.US);
     }
 
     public void addTranslation(Translation translation) {
@@ -36,8 +45,14 @@ public class LanguageStorage {
     }
 
     public void addTranslation(Translation translation, boolean onlyCache) {
+        if(translation.languageInfo().identifier().isEmpty())
+            return;
         if (!onlyCache)
             customTranslations.add(translation);
+
+        if(!translationKeyMapping.computeIfAbsent(translation.key(), s -> new HashMap<>()).containsKey(translation.languageInfo()))
+            translationRegistry.register(translation.key(), translation.languageInfo().toLocale(), new MessageFormat(translation.content()));
+
         translationKeyMapping.computeIfAbsent(translation.key(), s -> new HashMap<>()).put(translation.languageInfo(), translation);
 
         // We add the translation as standard translation if there is no alternative in standard translation.
@@ -55,31 +70,31 @@ public class LanguageStorage {
         addTranslation(translatable, false);
     }
 
-    public TextComponent translateToComponent(String key, LanguageInfo languageInfo, String defaultTranslation) {
-        return Component.text(translate(key, languageInfo, defaultTranslation));
+    public TextComponent translateToComponent(String key, LanguageInfo languageInfo) {
+        return Component.text(translate(key, languageInfo));
     }
 
-    public String translate(String key, LanguageInfo languageInfo, String defaultTranslation) {
+    public String translate(String key, LanguageInfo languageInfo) {
+        //String standardTranslation = translationRegistry.translate(key, languageInfo.toLocale()).format(null);
+
+        String standardTranslation = key;
+
         if (!translationKeyMapping.containsKey(key))
-            return defaultTranslation;
+            return standardTranslation;
         Map<LanguageInfo, Translation> byLanguageTranslations = translationKeyMapping.get(key);
         if (!byLanguageTranslations.containsKey(languageInfo)) {
             if (STANDARD.equals(languageInfo))
-                return defaultTranslation;
-            return translate(key, STANDARD, defaultTranslation);
+                return standardTranslation;
+            return translate(key, STANDARD);
         }
 
         return byLanguageTranslations.get(languageInfo).content();
     }
 
     public String translate(String key, Player player) {
-        return translate(key, player, key);
-    }
-
-    public String translate(String key, Player player, String fallbackText) {
         String localeKey = player.getClientOption(ClientOption.LOCALE);
         LanguageInfo languageInfo = new LanguageInfo(localeKey, "", "", false);
-        return translate(key, languageInfo, fallbackText);
+        return translate(key, languageInfo);
     }
 
     public TextComponent translateToComponent(String key, Player player) {

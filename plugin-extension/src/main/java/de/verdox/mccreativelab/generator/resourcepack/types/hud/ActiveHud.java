@@ -6,12 +6,15 @@ import org.bukkit.entity.Player;
 
 public class ActiveHud extends ActiveComponentRendered<ActiveHud, CustomHud> {
     public ActiveHud(Player player, CustomHud customHud){
-        super(player, customHud);
+        super(customHud);
+        viewers.add(player);
     }
 
     @Override
     protected void doUpdate() {
-        if (MCCreativeLabExtension.getHudRenderer().getActiveHud(getPlayer(), (CustomHud) getComponentRendered()) != null)
-            MCCreativeLabExtension.getHudRenderer().forceUpdate(getPlayer());
+        for (Player viewer : getViewers()) {
+            if (MCCreativeLabExtension.getHudRenderer().getActiveHud(viewer, getComponentRendered()) != null)
+                MCCreativeLabExtension.getHudRenderer().forceUpdate(viewer);
+        }
     }
 }

@@ -88,10 +88,7 @@ public class ResourcePackFileHoster implements Listener {
     }
 
     public void registerListener(){
-        if(MCCreativeLabExtension.isServerSoftware())
-            Bukkit.getPluginManager().registerEvents(new ServerSoftwareResourcePackApply(), MCCreativeLabExtension.getInstance());
-        else
-            Bukkit.getPluginManager().registerEvents(new ExtensionResourcePackApply(), MCCreativeLabExtension.getInstance());
+        Bukkit.getPluginManager().registerEvents(new ExtensionResourcePackApply(), MCCreativeLabExtension.getInstance());
     }
 
     public void closeAndWait() throws InterruptedException {
@@ -358,7 +355,8 @@ public class ResourcePackFileHoster implements Listener {
         @EventHandler
         public void applyRequiredResourcePackOnJoin(PlayerJoinEvent e) {
             Bukkit.getLogger().info("Sending resource pack on join to player "+e.getPlayer().getName());
-            sendDefaultResourcePackToPlayer(e.getPlayer());
+            if(!e.getPlayer().hasResourcePack())
+                sendDefaultResourcePackToPlayer(e.getPlayer());
         }
 
         @EventHandler

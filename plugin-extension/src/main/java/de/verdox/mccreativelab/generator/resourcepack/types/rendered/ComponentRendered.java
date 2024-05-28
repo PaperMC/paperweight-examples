@@ -45,7 +45,6 @@ public abstract class ComponentRendered<C extends ComponentRendered<C,T>, T exte
         var map = new HashMap<String, Integer>();
         //map.put("", 0);
         map.put(" ", 1);
-
         for (int i = 1; i <= 10; i++)
             map.put(drawNextChar() + "", (int) Math.pow(2, i));
         hudTexturesFont.addSpace(new Space(map));

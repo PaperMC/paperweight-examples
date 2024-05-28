@@ -1,12 +1,15 @@
 package de.verdox.mccreativelab.generator.resourcepack.types.rendered;
 
+import de.verdox.mccreativelab.generator.resourcepack.types.gui.ActiveGUI;
 import de.verdox.mccreativelab.generator.resourcepack.types.rendered.element.HudElement;
 import de.verdox.mccreativelab.generator.resourcepack.types.rendered.element.single.SingleHudText;
 import de.verdox.mccreativelab.util.io.StringAlign;
 import net.kyori.adventure.text.Component;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -17,14 +20,14 @@ import java.util.function.Function;
 public abstract class ActiveComponentRendered<T extends ActiveComponentRendered<T, C>, C extends ComponentRendered<C, T>> {
     private final Map<String, HudElement.Rendered<?>> renderedElements = new LinkedHashMap<>();
     private final Map<HudElement, HudElement.Rendered<?>> hudElementToRenderedElementMapping = new HashMap<>();
-    private final Player player;
     private final C componentRendered;
     private final List<HudElement.Rendered<?>> sorted;
     private Component lastRendered;
     private boolean needsUpdate = true;
+    protected final Set<Player> viewers = ConcurrentHashMap.newKeySet();
+    public final Map<String, Object> tempData = new HashMap<>();
 
-    public ActiveComponentRendered(Player player, C componentRendered) {
-        this.player = player;
+    public ActiveComponentRendered(C componentRendered) {
         this.componentRendered = componentRendered;
         componentRendered.getElements()
                          .forEach((s, hudElement) -> registerElement(s, hudElement, hudElement.toRenderedElement()));
@@ -44,7 +47,24 @@ public abstract class ActiveComponentRendered<T extends ActiveComponentRendered<
             return -1;
         })).toList();
 
-        forEachElementBehavior((activeHudRenderedHudElementBehavior, rendered) -> activeHudRenderedHudElementBehavior.onOpen((T) this, player, rendered));
+        forEachElementBehavior((activeHudRenderedHudElementBehavior, rendered) -> activeHudRenderedHudElementBehavior.onOpen((T) this, rendered));
+    }
+
+    public <R> ActiveComponentRendered<T, C> addTemporaryData(String key, @Nullable R value) {
+        if (value == null)
+            tempData.remove(key);
+        else
+            tempData.put(key, value);
+        return this;
+    }
+
+    public void copyTemporaryDataFromGUI(ActiveComponentRendered<T, C> activeGUI) {
+        this.tempData.putAll(activeGUI.tempData);
+    }
+
+    @Nullable
+    public <R> R getTemporaryDataOrDefault(String key, Class<? extends R> type, R defaultVal) {
+        return type.cast(tempData.getOrDefault(key, defaultVal));
     }
 
     public final void forEachElementBehavior(BiConsumer<RenderedElementBehavior<T, HudElement.Rendered<?>>, HudElement.Rendered<?>> forEach) {
@@ -69,7 +89,7 @@ public abstract class ActiveComponentRendered<T extends ActiveComponentRendered<
     }
 
     public final void forceUpdate() {
-        if (this.player == null || !this.player.isOnline())
+        if(viewers.isEmpty())
             return;
         doUpdate();
         this.needsUpdate = true;
@@ -130,7 +150,15 @@ public abstract class ActiveComponentRendered<T extends ActiveComponentRendered<
         this.renderedElements.put(id, renderedElement);
         this.hudElementToRenderedElementMapping.put(hudElement, renderedElement);
     }
-    public Player getPlayer() {
-        return player;
+
+    public Set<Player> getViewers() {
+        return Set.copyOf(viewers);
+    }
+
+
+
+    @Deprecated
+    public Player getPlayer(){
+        return getViewers().stream().findAny().orElse(null);
     }
 }

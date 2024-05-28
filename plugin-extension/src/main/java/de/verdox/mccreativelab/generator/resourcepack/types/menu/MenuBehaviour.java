@@ -1,6 +1,7 @@
 package de.verdox.mccreativelab.generator.resourcepack.types.menu;
 
 import com.destroystokyo.paper.event.player.PlayerJumpEvent;
+import de.verdox.mccreativelab.MCCreativeLabExtension;
 import de.verdox.mccreativelab.generator.resourcepack.types.menu.events.PlayerMenuCloseEvent;
 import de.verdox.mccreativelab.generator.resourcepack.types.menu.events.PlayerMenuOpenEvent;
 import org.bukkit.Bukkit;
@@ -15,12 +16,13 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryInteractEvent;
 import org.bukkit.event.player.*;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitTask;
+import org.jetbrains.annotations.Nullable;
 
-import java.util.Arrays;
 import java.util.function.BiConsumer;
 
 public class MenuBehaviour implements Listener {
@@ -30,7 +32,8 @@ public class MenuBehaviour implements Listener {
     private final BiConsumer<PlayerKeyInput, ActiveMenu> consumer;
     private final JavaPlugin platformPlugin;
     private final Runnable onEnd;
-    private BukkitTask bukkitTask;
+    private BukkitTask posUpdaterTask;
+    private BukkitTask effectTask;
     private Location locationBefore;
     private int lastTickButtonPressed;
     private int lastScrollTick;
@@ -47,7 +50,7 @@ public class MenuBehaviour implements Listener {
     }
 
     public void start() {
-        player.doInventorySynchronization(false);
+        //player.doInventorySynchronization(false);
         ItemStack[] fakeContents = new ItemStack[46];
 
         heldSlotBefore = player.getInventory().getHeldItemSlot();
@@ -56,21 +59,47 @@ public class MenuBehaviour implements Listener {
 
         locationBefore = player.getLocation().clone();
 
-        player.setPlayerTime(6000, false);
-        player.setPlayerWeather(WeatherType.CLEAR);
+        if (activeMenu.getCustomMenu().doFakeTime)
+            player.setPlayerTime(6000, false);
+        if (activeMenu.getCustomMenu().doFakeWeather)
+            player.setPlayerWeather(WeatherType.CLEAR);
+        player.setMetadata("hasMenuOpen", new FixedMetadataValue(MCCreativeLabExtension.getInstance(), false));
 
-        var loc = new Location(player.getLocation().getWorld(), player.getLocation().getBlockX() + 0.5, player
-                .getLocation().getBlockY(), player.getLocation().getBlockZ() + 0.5, 0, 90);
-        this.bukkitTask = Bukkit.getScheduler().runTaskTimer(platformPlugin, () -> {
+        Location locationOnOpen = getLocationOnOpen();
+
+
+        this.posUpdaterTask = Bukkit.getScheduler().runTaskTimer(platformPlugin, () -> {
             player.getInventory().setHeldItemSlot(4);
             fakeContents[45] = activeMenu.getActiveBackgroundPicture();
             player.sendFakeInventoryContents(fakeContents);
-            player.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, 2, 3, false, false, false));
-            player.addPotionEffect(new PotionEffect(PotionEffectType.SLOW_DIGGING, 2, -1, false, false, false));
-            if (player.getLocation().getPitch() == 90 && player.getLocation().getYaw() == 0)
+
+            if(!activeMenu.getCustomMenu().doYawPitchLock && !activeMenu.getCustomMenu().doPositionLoc)
                 return;
-            player.teleport(loc.set(loc.getX(), player.getLocation().getY(), loc.getZ()));
+
+            if (player.getLocation().getYaw() == 0 && player.getLocation().getPitch() == -90 && activeMenu.getCustomMenu().doYawPitchLock)
+                return;
+
+            if(locationOnOpen != null)
+                player.teleport(locationOnOpen);
         }, 0L, 1L);
+
+        if (activeMenu.getCustomMenu().doEffects) {
+            this.effectTask = Bukkit.getScheduler().runTaskTimer(platformPlugin, () -> {
+                player.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, 20, 3, false, false, false));
+                player.addPotionEffect(new PotionEffect(PotionEffectType.SLOW_DIGGING, 20, -1, false, false, false));
+                player.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 30, 1, false, false, false));
+            }, 0L, 20L);
+        }
+    }
+
+    private @Nullable Location getLocationOnOpen() {
+        Location location = null;
+
+        if (activeMenu.getCustomMenu().doYawPitchLock)
+            location = new Location(player.getLocation().getWorld(), player.getLocation().getBlockX() + 0.5, player.getLocation().getY(), player.getLocation().getBlockZ() + 0.5, 0, -90);
+        else if(activeMenu.getCustomMenu().doPositionLoc)
+            location = new Location(player.getLocation().getWorld(), player.getLocation().getBlockX() + 0.5, player.getLocation().getY(), player.getLocation().getBlockZ() + 0.5, player.getYaw(), player.getPitch());
+        return location;
     }
 
     public void close() {
@@ -82,15 +111,19 @@ public class MenuBehaviour implements Listener {
 
         player.getInventory().setHeldItemSlot(heldSlotBefore);
 
-        player.doInventorySynchronization(true);
+        //player.doInventorySynchronization(true);
         player.updateInventory();
 
         HandlerList.unregisterAll(this);
-        if (bukkitTask != null)
-            bukkitTask.cancel();
+        if (posUpdaterTask != null)
+            posUpdaterTask.cancel();
+        if (effectTask != null)
+            effectTask.cancel();
         player.teleport(locationBefore);
         if (onEnd != null)
             onEnd.run();
+
+        player.removeMetadata("hasMenuOpen", MCCreativeLabExtension.getInstance());
     }
 
     private boolean isRightPlayer(Player player) {
@@ -110,21 +143,21 @@ public class MenuBehaviour implements Listener {
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
-    private void onDamage(EntityDamageByBlockEvent e){
+    private void onDamage(EntityDamageByBlockEvent e) {
         if (!isRightPlayer(e.getEntity()))
             return;
         e.setCancelled(true);
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
-    private void onDamage(EntityDamageByEntityEvent e){
+    private void onDamage(EntityDamageByEntityEvent e) {
         if (!isRightPlayer(e.getEntity()))
             return;
         e.setCancelled(true);
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
-    public void onTarget(EntityTargetLivingEntityEvent e){
+    public void onTarget(EntityTargetLivingEntityEvent e) {
         if (e.getTarget() == null || !isRightPlayer(e.getTarget()))
             return;
         e.setCancelled(true);
@@ -226,7 +259,7 @@ public class MenuBehaviour implements Listener {
 
         var currentTick = Bukkit.getServer().getCurrentTick();
         e.setTo(new Location(e.getFrom().getWorld(), e.getFrom().getX(), e.getTo().getY(), e.getFrom().getZ(), e
-                .getFrom().getYaw(), e.getFrom().getPitch()));
+            .getFrom().getYaw(), e.getFrom().getPitch()));
 
         var lastTick = currentTick - lastTickButtonPressed;
         lastTickButtonPressed = currentTick;

@@ -40,4 +40,19 @@ public class Translatable implements GameTranslation{
     public String key(){
         return this.key;
     }
+
+    public static class Builder {
+        private final Map<LanguageInfo, String> cache = new HashMap<>();
+
+        public Builder withAdditionalTranslation(LanguageInfo languageInfo, String content){
+            this.cache.put(languageInfo, content);
+            return this;
+        }
+
+        public Translatable build(String key){
+            Translatable translatable =  new Translatable(key);
+            this.cache.forEach(translatable::withAdditionalTranslation);
+            return translatable;
+        }
+    }
 }

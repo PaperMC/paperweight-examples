@@ -1,19 +1,15 @@
 package de.verdox.mccreativelab.generator.resourcepack.types.gui;
 
-import de.verdox.mccreativelab.MCCreativeLabExtension;
 import de.verdox.mccreativelab.generator.Asset;
 import de.verdox.mccreativelab.generator.resourcepack.CustomResourcePack;
 import de.verdox.mccreativelab.generator.resourcepack.types.gui.element.GUIButton;
 import de.verdox.mccreativelab.generator.resourcepack.types.gui.element.GUIElement;
 import de.verdox.mccreativelab.generator.resourcepack.types.gui.element.active.ActiveGUIElement;
 import de.verdox.mccreativelab.generator.resourcepack.types.rendered.ComponentRendered;
-import de.verdox.mccreativelab.generator.resourcepack.types.rendered.element.HudElement;
 import de.verdox.mccreativelab.generator.resourcepack.types.rendered.util.ScreenPosition;
 import de.verdox.mccreativelab.generator.resourcepack.types.rendered.util.TextType;
 import de.verdox.mccreativelab.generator.resourcepack.types.rendered.element.single.SingleHudTexture;
 import de.verdox.mccreativelab.generator.resourcepack.types.rendered.RenderedElementBehavior;
-import org.apache.logging.log4j.util.TriConsumer;
-import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -43,15 +39,6 @@ public class CustomGUIBuilder extends ComponentRendered<CustomGUIBuilder, Active
     private boolean usePlayerSlots;
     private final Map<GUIElement, GUIElementBehavior<?>> guiElementBehaviors = new HashMap<>();
 
-    public Map<GUIElement, GUIElementBehavior<?>> getGuiElementBehaviors() {
-        return guiElementBehaviors;
-    }
-
-    public CustomGUIBuilder withUpdateInterval(int updateInterval) {
-        this.updateInterval = updateInterval;
-        return this;
-    }
-
     public CustomGUIBuilder(@NotNull NamespacedKey namespacedKey, @NotNull InventoryType type) {
         super(namespacedKey);
         this.type = type;
@@ -60,6 +47,15 @@ public class CustomGUIBuilder extends ComponentRendered<CustomGUIBuilder, Active
     public CustomGUIBuilder(@NotNull NamespacedKey namespacedKey, int amountChestRows) {
         super(namespacedKey);
         this.chestSize = amountChestRows;
+    }
+
+    public Map<GUIElement, GUIElementBehavior<?>> getGuiElementBehaviors() {
+        return guiElementBehaviors;
+    }
+
+    public CustomGUIBuilder withUpdateInterval(int updateInterval) {
+        this.updateInterval = updateInterval;
+        return this;
     }
 
     public CustomGUIBuilder withOverlayTexture(Asset<CustomResourcePack> texture) throws IOException {
@@ -88,7 +84,7 @@ public class CustomGUIBuilder extends ComponentRendered<CustomGUIBuilder, Active
             // 13 hoch / 8 nach links
             screenPosition, new RenderedElementBehavior<>() {
                 @Override
-                public void onOpen(ActiveGUI parentElement, Player player, SingleHudTexture.RenderedSingleHudTexture element) {
+                public void onOpen(ActiveGUI parentElement, SingleHudTexture.RenderedSingleHudTexture element) {
                     element.setVisible(true);
                 }
             });
@@ -109,7 +105,7 @@ public class CustomGUIBuilder extends ComponentRendered<CustomGUIBuilder, Active
     public CustomGUIBuilder withButton(String buttonName, int index, Consumer<GUIButton.Builder> setup) {
         return withButton(buttonName, index, setup, new GUIElementBehavior<>() {
             @Override
-            public void onOpen(ActiveGUI parentElement, Player player, ActiveGUIElement<?> element) {
+            public void onOpen(ActiveGUI parentElement, ActiveGUIElement<?> element) {
                 element.setVisible(true);
             }
         });
@@ -233,9 +229,9 @@ public class CustomGUIBuilder extends ComponentRendered<CustomGUIBuilder, Active
      * @param predecessor  the predecessor gui
      * @param initialSetup the initial setup for the new gui
      */
-    public void asNestedGUI(ActiveGUI predecessor, @Nullable Consumer<ActiveGUI> initialSetup) {
-        createMenuForPlayer(predecessor.getPlayer(), activeGUI -> {
-            predecessor.trackGUIInStack();
+    public ActiveGUI asNestedGUI(Player player, ActiveGUI predecessor, @Nullable Consumer<ActiveGUI> initialSetup) {
+        return createMenuForPlayer(player, activeGUI -> {
+            predecessor.trackGUIInStack(player);
             if (initialSetup != null)
                 initialSetup.accept(activeGUI);
         });
@@ -246,21 +242,23 @@ public class CustomGUIBuilder extends ComponentRendered<CustomGUIBuilder, Active
      *
      * @param predecessor the predecessor gui
      */
-    public void asNestedGUI(ActiveGUI predecessor) {
-        asNestedGUI(predecessor, null);
+    public ActiveGUI asNestedGUI(Player player, ActiveGUI predecessor) {
+        return asNestedGUI(player, predecessor, null);
     }
 
-    public void createMenuForPlayer(Player player) {
-        createMenuForPlayer(player, null);
+    public ActiveGUI createMenuForPlayer(Player player) {
+        return createMenuForPlayer(player, null);
     }
 
-    public void createMenuForPlayer(Player player, @Nullable Consumer<ActiveGUI> initialSetup) {
-        Bukkit.getScheduler().runTask(MCCreativeLabExtension.getInstance(), () -> {
-            new ActiveGUI(player, this, gui -> {
-                if (initialSetup != null)
-                    initialSetup.accept(gui);
-            });
+    public ActiveGUI createMenuForPlayer(Player player, @Nullable Consumer<ActiveGUI> initialSetup) {
+        ActiveGUI activeGUI = new ActiveGUI(this, gui -> {
+            if (initialSetup != null)
+                initialSetup.accept(gui);
         });
+
+        activeGUI.openToPlayer(player);
+
+        return activeGUI;
     }
 
 }

@@ -77,7 +77,7 @@ public class PlayerHudRendererData {
         for (ActiveHud value : cache.values()) {
             if(value.getComponentRendered().getWhileOpen() != null)
                 value.getComponentRendered().getWhileOpen().accept(value);
-            value.forEachElementBehavior((activeHudRenderedHudElementBehavior, rendered) -> activeHudRenderedHudElementBehavior.whileOpen(value, player, rendered));
+            value.forEachElementBehavior((activeHudRenderedHudElementBehavior, rendered) -> activeHudRenderedHudElementBehavior.whileOpen(value, rendered));
             var rendering = value.render();
             if (component == null)
                 component = rendering;

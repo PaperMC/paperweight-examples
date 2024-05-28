@@ -1,5 +1,6 @@
 package de.verdox.mccreativelab.generator.resourcepack.types.menu;
 
+import de.verdox.mccreativelab.MCCreativeLabExtension;
 import de.verdox.mccreativelab.generator.Asset;
 import de.verdox.mccreativelab.generator.resourcepack.CustomModelDataProvider;
 import de.verdox.mccreativelab.generator.resourcepack.CustomResourcePack;
@@ -28,6 +29,13 @@ public class CustomMenu extends ResourcePackResource {
     private boolean built = false;
     @Nullable
     private CustomHud menuHud;
+
+    boolean doEffects = true;
+    boolean doFakeWeather = true;
+    boolean doFakeTime = true;
+    boolean doYawPitchLock = true;
+    boolean doPositionLoc = true;
+
 
     public CustomMenu(@NotNull NamespacedKey namespacedKey) {
         super(namespacedKey);
@@ -76,8 +84,10 @@ public class CustomMenu extends ResourcePackResource {
             Bukkit.getLogger().warning("Can't modify a menu when it has been built");
             return this;
         }
-        if (menuHud == null)
+        if (menuHud == null) {
             menuHud = new CustomHud(new NamespacedKey(getKey().namespace(), getKey().getKey() + "/hud"));
+            MCCreativeLabExtension.getCustomResourcePack().register(menuHud);
+        }
         customHudSetup.accept(menuHud);
         return this;
     }
@@ -119,11 +129,35 @@ public class CustomMenu extends ResourcePackResource {
     @Override
     public void beforeResourceInstallation(CustomResourcePack customPack) throws IOException {
         backgroundPictures.forEach((s, itemTextureData) -> customPack.register(itemTextureData));
-        if (menuHud != null) customPack.register(menuHud);
     }
 
     @Override
     public void installResourceToPack(CustomResourcePack customPack) throws IOException {
         build();
+    }
+
+    public CustomMenu setDoEffects(boolean doEffects) {
+        this.doEffects = doEffects;
+        return this;
+    }
+
+    public CustomMenu setDoYawPitchLock(boolean doYawPitchLock) {
+        this.doYawPitchLock = doYawPitchLock;
+        return this;
+    }
+
+    public CustomMenu setDoPositionLoc(boolean doPositionLoc) {
+        this.doPositionLoc = doPositionLoc;
+        return this;
+    }
+
+    public CustomMenu setDoFakeWeather(boolean doFakeWeather) {
+        this.doFakeWeather = doFakeWeather;
+        return this;
+    }
+
+    public CustomMenu setDoFakeTime(boolean doFakeTime) {
+        this.doFakeTime = doFakeTime;
+        return this;
     }
 }

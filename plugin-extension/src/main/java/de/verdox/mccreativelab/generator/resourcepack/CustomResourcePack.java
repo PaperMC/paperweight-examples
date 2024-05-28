@@ -16,6 +16,8 @@ import de.verdox.mccreativelab.util.gson.JsonObjectBuilder;
 import de.verdox.mccreativelab.util.gson.JsonUtil;
 import de.verdox.mccreativelab.util.io.AssetUtil;
 import de.verdox.mccreativelab.util.io.ZipUtil;
+import net.kyori.adventure.key.Key;
+import net.kyori.adventure.translation.TranslationRegistry;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;

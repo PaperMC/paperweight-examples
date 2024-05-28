@@ -5,6 +5,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 
 public interface GUIElementBehavior <T extends ActiveGUIElement<?>> {
-    default void onOpen(ActiveGUI parentElement, Player player, T element){}
-    default void whileOpen(ActiveGUI parentElement, Player player, T element){}
+    default void onOpen(ActiveGUI parentElement, T element){}
+    default void whileOpen(ActiveGUI parentElement, T element){}
 }

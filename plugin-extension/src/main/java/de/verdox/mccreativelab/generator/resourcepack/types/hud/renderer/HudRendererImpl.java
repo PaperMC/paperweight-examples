@@ -8,6 +8,7 @@ import org.bukkit.entity.Player;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.logging.Level;
 
 public class HudRendererImpl extends Thread implements HudRenderer {
     private final Map<Player, PlayerHudRendererData> renderingDataCache = new ConcurrentHashMap<>();
@@ -72,8 +73,7 @@ public class HudRendererImpl extends Thread implements HudRenderer {
                         renderingDataCache.remove(player);
                 }
             } catch (Throwable e) {
-                System.out.println("An error occured in the HudRenderer");
-                e.printStackTrace();
+                Bukkit.getLogger().log(Level.SEVERE, "An error occured in the HudRenderer", e);
             }
         }
     }

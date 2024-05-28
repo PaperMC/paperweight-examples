@@ -49,20 +49,17 @@ public class PlayerGUIStack implements NBTPersistent, Listener {
         if(e.getReason().equals(InventoryCloseEvent.Reason.PLAYER)){
             StackElement stackElement = stack.pop();
 
-            if (stackElement.customGUIBuilder.equals(e.getActiveGUI().getComponentRendered()))
+            if (stackElement.activeGUI.getComponentRendered().equals(e.getActiveGUI().getComponentRendered()))
                 return;
 
-            stackElement.customGUIBuilder().createMenuForPlayer(e.getPlayer(), activeGUI -> {
-                activeGUI.tempData.putAll(stackElement.tempData);
-            });
+            stackElement.activeGUI.openToPlayer(e.getPlayer());
         }
         else
             clear();
     }
 
     public void trackGUI(ActiveGUI activeGUI) {
-        CustomGUIBuilder customGUIBuilder = activeGUI.getComponentRendered();
-        StackElement stackElement = new StackElement(customGUIBuilder, activeGUI.tempData);
+        StackElement stackElement = new StackElement(activeGUI, activeGUI.tempData);
         stack.push(stackElement);
     }
 
@@ -81,7 +78,7 @@ public class PlayerGUIStack implements NBTPersistent, Listener {
 
     }
 
-    private record StackElement(CustomGUIBuilder customGUIBuilder, Map<String, Object> tempData) {
+    private record StackElement(ActiveGUI activeGUI, Map<String, Object> tempData) {
 
     }
 }

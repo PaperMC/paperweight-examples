@@ -11,6 +11,20 @@ public record LanguageInfo(String identifier, String name, String region, boolea
     public static LanguageInfo ENGLISH_NZ = new LanguageInfo("en_nu", "New Zealand English", "New Zealand", false);
     public static LanguageInfo ENGLISH_US = new LanguageInfo("en_us", "American English", "United States", false);
 
+
+    public Locale toLocale(){
+        String[] split = identifier.split("_");
+
+        
+
+        if(split.length != 2)
+            return Locale.ENGLISH;
+        if(split[0].equals(split[1]))
+            return new Locale(split[0]);
+        else
+            return new Locale(split[0], split[1]);
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

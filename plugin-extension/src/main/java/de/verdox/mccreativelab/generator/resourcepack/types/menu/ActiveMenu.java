@@ -105,7 +105,12 @@ public class ActiveMenu {
     public void setBackgroundPicture(String id) {
         if (!customMenu.getBackgroundPictures().containsKey(id))
             throw new IllegalArgumentException("No background picture found with id " + id);
-        activeBackgroundPicture = customMenu.getBackgroundPictures().get(id).createItem();
+
+        ItemStack newBackgroundPicture = customMenu.getBackgroundPictures().get(id).createItem();
+        if(activeBackgroundPicture != null && activeBackgroundPicture.equals(newBackgroundPicture))
+            return;
+
+        activeBackgroundPicture = newBackgroundPicture;
         updateBackgroundPicture();
     }
 
