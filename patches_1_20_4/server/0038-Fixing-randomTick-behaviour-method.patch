@@ -1,0 +1,67 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: verdox <mail.ysp@web.de>
+Date: Tue, 7 May 2024 22:38:09 +0000
+Subject: [PATCH] Fixing randomTick behaviour method
+
+
+diff --git a/src/main/java/net/minecraft/world/level/block/state/BlockBehaviour.java b/src/main/java/net/minecraft/world/level/block/state/BlockBehaviour.java
+index b756bc363e7fad9150bd43e8d4bd222bc50d9bc9..f26331858c7cd60677931d313b320e8068d96967 100644
+--- a/src/main/java/net/minecraft/world/level/block/state/BlockBehaviour.java
++++ b/src/main/java/net/minecraft/world/level/block/state/BlockBehaviour.java
+@@ -1407,9 +1407,7 @@ public abstract class BlockBehaviour implements FeatureElement {
+ 
+         // MCCLab start - Add BlockBehaviour
+         public final boolean isRandomlyTicking(Level world, int x, int y, int z, BlockState blockState){
+-            if(world == null || x == -1 || z == -1 || blockState == null)
+-                return this.isRandomlyTicking();
+-            return blockBehaviour().isRandomlyTicking(world, x, y,z,blockState, this.isRandomlyTicking());
++            return blockBehaviour().isRandomlyTicking(world, x, y, z,blockState, this.isRandomlyTicking());
+         }
+ 
+         // MCCLab end - Add BlockBehaviour
+diff --git a/src/main/java/net/minecraft/world/level/chunk/LevelChunkSection.java b/src/main/java/net/minecraft/world/level/chunk/LevelChunkSection.java
+index f43e9d2a46c3fc0fb77f0e0a564ef0059f8a7209..31a0e576340032fd34b7cf98d621803afb23d901 100644
+--- a/src/main/java/net/minecraft/world/level/chunk/LevelChunkSection.java
++++ b/src/main/java/net/minecraft/world/level/chunk/LevelChunkSection.java
+@@ -12,6 +12,7 @@ import net.minecraft.world.level.block.Block;
+ import net.minecraft.world.level.block.Blocks;
+ import net.minecraft.world.level.block.state.BlockState;
+ import net.minecraft.world.level.material.FluidState;
++import org.jetbrains.annotations.NotNull;
+ 
+ public class LevelChunkSection {
+ 
+@@ -29,7 +30,7 @@ public class LevelChunkSection {
+     // Paper start - optimise collisions
+     private int specialCollidingBlocks;
+     // MCCLab start - Add BlockBehaviour
+-    private net.minecraft.world.level.Level level;
++    @NotNull private final net.minecraft.world.level.Level level;
+     private net.minecraft.world.level.ChunkPos chunkPos;
+     private int chunkSectionY;
+     // MCCLab end - Add BlockBehaviour
+@@ -48,8 +49,10 @@ public class LevelChunkSection {
+     }
+     // Paper end - optimise collisions
+ 
+-    public LevelChunkSection(PalettedContainer<BlockState> datapaletteblock, PalettedContainer<Holder<Biome>> palettedcontainerro) {
++    public LevelChunkSection(net.minecraft.world.level.Level level, net.minecraft.world.level.ChunkPos chunkPos, PalettedContainer<BlockState> datapaletteblock, PalettedContainer<Holder<Biome>> palettedcontainerro) {
+         // CraftBukkit end
++        this.level = level;
++        this.chunkPos = chunkPos;
+         this.states = datapaletteblock;
+         this.biomes = palettedcontainerro;
+         this.recalcBlockCounts();
+diff --git a/src/main/java/net/minecraft/world/level/chunk/storage/ChunkSerializer.java b/src/main/java/net/minecraft/world/level/chunk/storage/ChunkSerializer.java
+index 5a04f3dd6ba50b04f6d1b6e06a6528cfa9d3653e..114a02591651d1ab02d07b9049c532c72036062f 100644
+--- a/src/main/java/net/minecraft/world/level/chunk/storage/ChunkSerializer.java
++++ b/src/main/java/net/minecraft/world/level/chunk/storage/ChunkSerializer.java
+@@ -213,7 +213,7 @@ public class ChunkSerializer {
+                     object = new PalettedContainer<>(iregistry.asHolderIdMap(), iregistry.getHolderOrThrow(Biomes.PLAINS), PalettedContainer.Strategy.SECTION_BIOMES, null); // Paper - Anti-Xray - Add preset biomes
+                 }
+ 
+-                LevelChunkSection chunksection = new LevelChunkSection(datapaletteblock, (PalettedContainer) object); // CraftBukkit - read/write
++                LevelChunkSection chunksection = new LevelChunkSection(world, chunkPos, datapaletteblock, (PalettedContainer) object); // CraftBukkit - read/write
+ 
+                 achunksection[k] = chunksection;
+                 SectionPos sectionposition = SectionPos.of(chunkPos, b0);

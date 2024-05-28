@@ -1,0 +1,19 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: verdox <mail.ysp@web.de>
+Date: Wed, 1 May 2024 15:12:17 +0000
+Subject: [PATCH] Make Chunk implement WorldGenChunk
+
+
+diff --git a/src/main/java/org/bukkit/Chunk.java b/src/main/java/org/bukkit/Chunk.java
+index 72cb2ba120f80462378cf704a04893304ea72947..a5a4c12446d9c8e803a3838b3cc8b9aeab028328 100644
+--- a/src/main/java/org/bukkit/Chunk.java
++++ b/src/main/java/org/bukkit/Chunk.java
+@@ -19,7 +19,7 @@ import org.jetbrains.annotations.NotNull;
+  * then the chunk will only be generated as far as it needs to provide the
+  * requested data.
+  */
+-public interface Chunk extends PersistentDataHolder {
++public interface Chunk extends PersistentDataHolder, de.verdox.mccreativelab.worldgen.WorldGenChunk {
+ 
+     /**
+      * Gets the X-coordinate of this chunk

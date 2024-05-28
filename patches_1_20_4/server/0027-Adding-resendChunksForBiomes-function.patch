@@ -1,0 +1,36 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <mail.ysp@web.de>
+Date: Thu, 21 Mar 2024 17:57:26 +0100
+Subject: [PATCH] Adding resendChunksForBiomes function
+
+
+diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
+index 3494df23e5fe3a39bb00d1fcca4c1dc17349560f..fefde0e8027423700f6c119c23c2fe24eedb3a2a 100644
+--- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
++++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
+@@ -999,6 +999,25 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+         return this.biomeProvider;
+     }
+ 
++    @Override
++    public void resendChunksForBiomes(List<Chunk> chunks) {
++        Map<ServerPlayer, List<net.minecraft.world.level.chunk.LevelChunk>> resendInstruction = new HashMap<>();
++        chunks.stream()
++              .filter(Chunk::isLoaded)
++              .map(chunk -> ((CraftChunk) chunk).getHandle(ChunkStatus.FULL))
++              .filter(chunkAccess -> chunkAccess instanceof net.minecraft.world.level.chunk.LevelChunk)
++              .map(chunkAccess -> ((net.minecraft.world.level.chunk.LevelChunk) chunkAccess))
++              .forEach(levelChunk -> {
++                  List<ServerPlayer> players = levelChunk.level.chunkSource.chunkMap.getPlayers(levelChunk.getPos(), false);
++                  players.forEach(serverPlayer -> resendInstruction
++                      .computeIfAbsent(serverPlayer, serverPlayer1 -> new ArrayList<>()).add(levelChunk));
++              });
++
++        resendInstruction.forEach((serverPlayer, levelChunks) -> {
++            serverPlayer.connection.send(net.minecraft.network.protocol.game.ClientboundChunksBiomesPacket.forChunks(levelChunks));
++        });
++    }
++
+     @Override
+     public List<BlockPopulator> getPopulators() {
+         return this.populators;

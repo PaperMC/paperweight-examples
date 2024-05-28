@@ -1,0 +1,70 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <mail.ysp@web.de>
+Date: Tue, 5 Dec 2023 21:21:01 +0100
+Subject: [PATCH] Adding MCCreativeLabExtension plugin
+
+
+diff --git a/build.gradle.kts b/build.gradle.kts
+index fafa1a49cf372bf1861247e3b5efc030e40e207e..6e43ee0015852c384b0edf212f5bbb6ea4b6ebc8 100644
+--- a/build.gradle.kts
++++ b/build.gradle.kts
+@@ -199,12 +199,14 @@ tasks.registerRunTask("runShadow") {
+     description = "Spin up a test server from the shadowJar archiveFile"
+     classpath(tasks.shadowJar.flatMap { it.archiveFile })
+     classpath(runtimeClasspathWithoutVanillaServer)
++    dependsOn(":plugin-extension:build")
+ }
+ 
+ tasks.registerRunTask("runReobf") {
+     description = "Spin up a test server from the reobfJar output jar"
+     classpath(tasks.reobfJar.flatMap { it.outputJar })
+     classpath(runtimeClasspathWithoutVanillaServer)
++    dependsOn(":plugin-extension:build")
+ }
+ 
+ val runtimeClasspathForRunDev = sourceSets.main.flatMap { src ->
+@@ -217,4 +219,5 @@ tasks.registerRunTask("runDev") {
+     classpath(tasks.filterProjectDir.flatMap { it.outputJar })
+     classpath(runtimeClasspathForRunDev)
+     jvmArgs("-DPaper.isRunDev=true")
++    dependsOn(":plugin-extension:build")
+ }
+diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
+index d06185566b447c432d4dc2e3ba04d121bcdbc71b..c8cebc0dcaa3e572cec8347d1f6ff65376d7d35e 100644
+--- a/src/main/java/net/minecraft/server/MinecraftServer.java
++++ b/src/main/java/net/minecraft/server/MinecraftServer.java
+@@ -1855,7 +1855,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+ 
+     @DontObfuscate
+     public String getServerModName() {
+-        return "Paper"; // Paper
++        return "MCCreativeLab"; // MCCreativeLab
+     }
+ 
+     public SystemReport fillSystemReport(SystemReport details) {
+diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
+index 9f7ed337463cc9bb370a5541d9de5cd8f9c1a78a..f264668d6ea91cd27b21b4237e73cd1c39700e09 100644
+--- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
++++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
+@@ -266,7 +266,7 @@ import javax.annotation.Nullable; // Paper
+ import javax.annotation.Nonnull; // Paper
+ 
+ public final class CraftServer implements Server {
+-    private final String serverName = "Paper"; // Paper
++    private final String serverName = "MCCreativeLab"; // ForkTest // Paper
+     private final String serverVersion;
+     private final String bukkitVersion = Versioning.getBukkitVersion();
+     private final Logger logger = Logger.getLogger("Minecraft");
+diff --git a/src/main/java/org/bukkit/craftbukkit/util/Versioning.java b/src/main/java/org/bukkit/craftbukkit/util/Versioning.java
+index 774556a62eb240da42e84db4502e2ed43495be17..7f4d220c3a689e46ccaad5a1f79c1fc24057e59e 100644
+--- a/src/main/java/org/bukkit/craftbukkit/util/Versioning.java
++++ b/src/main/java/org/bukkit/craftbukkit/util/Versioning.java
+@@ -11,7 +11,7 @@ public final class Versioning {
+     public static String getBukkitVersion() {
+         String result = "Unknown-Version";
+ 
+-        InputStream stream = Bukkit.class.getClassLoader().getResourceAsStream("META-INF/maven/io.papermc.paper/paper-api/pom.properties");
++        InputStream stream = Bukkit.class.getClassLoader().getResourceAsStream("META-INF/maven/com.example.paperfork/mccreativelab-api/pom.properties"); // ForkTest
+         Properties properties = new Properties();
+ 
+         if (stream != null) {

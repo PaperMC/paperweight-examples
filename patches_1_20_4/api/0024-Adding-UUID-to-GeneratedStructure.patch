@@ -1,0 +1,23 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <mail.ysp@web.de>
+Date: Thu, 22 Feb 2024 00:16:20 +0100
+Subject: [PATCH] Adding UUID to GeneratedStructure
+
+
+diff --git a/src/main/java/org/bukkit/generator/structure/GeneratedStructure.java b/src/main/java/org/bukkit/generator/structure/GeneratedStructure.java
+index 4d461d9f94a1ad9feabc45081c01c167d6eb9830..21cec83007a8ac8ca526d4a1ccefc1d68dd65e73 100644
+--- a/src/main/java/org/bukkit/generator/structure/GeneratedStructure.java
++++ b/src/main/java/org/bukkit/generator/structure/GeneratedStructure.java
+@@ -35,4 +35,12 @@ public interface GeneratedStructure extends PersistentDataHolder {
+      */
+     @NotNull
+     public Collection<StructurePiece> getPieces();
++
++    // Paper start - Add UUID to GeneratedStructure
++    /**
++     * Gets the {@link java.util.UUID} of the structure
++     * @return The UUID of the structure
++     */
++    public java.util.UUID getUUID();
++    // Paper end - Add UUID to GeneratedStructure
+ }

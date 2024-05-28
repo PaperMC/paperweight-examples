@@ -1,0 +1,47 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <mail.ysp@web.de>
+Date: Sun, 3 Dec 2023 14:20:30 +0100
+Subject: [PATCH] Implementing Basic Item Format
+
+
+diff --git a/src/main/java/net/minecraft/world/item/ItemStack.java b/src/main/java/net/minecraft/world/item/ItemStack.java
+index 1ad126d992d95062a3db08374db7a927f23a0cac..0ad5497c2436b1f67f06be9cc83b16b35e44d5e1 100644
+--- a/src/main/java/net/minecraft/world/item/ItemStack.java
++++ b/src/main/java/net/minecraft/world/item/ItemStack.java
+@@ -247,6 +247,7 @@ public final class ItemStack {
+     public ItemStack(Holder<Item> item, int count, Optional<CompoundTag> nbt) {
+         this(item, count);
+         nbt.ifPresent(this::setTag);
++        de.verdox.itemformat.BasicItemFormat.applyItemFormatAndReturn(getBukkitStack());
+     }
+ 
+     public ItemStack(Holder<Item> itemEntry, int count) {
+@@ -259,7 +260,7 @@ public final class ItemStack {
+         if (this.item.canBeDepleted()) {
+             this.setDamageValue(this.getDamageValue());
+         }
+-
++        de.verdox.itemformat.BasicItemFormat.applyItemFormatAndReturn(getBukkitStack());
+     }
+ 
+     private ItemStack(@Nullable Void v) {
+@@ -295,6 +296,7 @@ public final class ItemStack {
+ 
+     private ItemStack(CompoundTag nbt) {
+         this.load(nbt);
++        de.verdox.itemformat.BasicItemFormat.applyItemFormatAndReturn(getBukkitStack());
+         // CraftBukkit end
+     }
+ 
+diff --git a/src/main/java/org/bukkit/craftbukkit/inventory/CraftItemStack.java b/src/main/java/org/bukkit/craftbukkit/inventory/CraftItemStack.java
+index 0ca5c91630a14523ce139def943dae10e8b64eb6..e8018100d3eb06d0a76b63ac485a74f949bfcd6a 100644
+--- a/src/main/java/org/bukkit/craftbukkit/inventory/CraftItemStack.java
++++ b/src/main/java/org/bukkit/craftbukkit/inventory/CraftItemStack.java
+@@ -143,6 +143,7 @@ public final class CraftItemStack extends ItemStack {
+         this.setAmount(amount);
+         this.setDurability(durability);
+         this.setItemMeta(itemMeta);
++        de.verdox.itemformat.BasicItemFormat.applyItemFormatAndReturn(this);
+     }
+ 
+     @Override

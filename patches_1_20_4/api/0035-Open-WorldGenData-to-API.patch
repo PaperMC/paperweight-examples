@@ -1,0 +1,70 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: verdox <mail.ysp@web.de>
+Date: Wed, 1 May 2024 15:10:45 +0000
+Subject: [PATCH] Open WorldGenData to API
+
+
+diff --git a/src/main/java/io/papermc/paper/world/worldgen/DensityFunction.java b/src/main/java/io/papermc/paper/world/worldgen/DensityFunction.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..bb6fb67b709f1b2c6ccbc975856297dd61613c2d
+--- /dev/null
++++ b/src/main/java/io/papermc/paper/world/worldgen/DensityFunction.java
+@@ -0,0 +1,5 @@
++package io.papermc.paper.world.worldgen;
++
++public interface DensityFunction {
++    double compute(int x, int y, int z);
++}
+diff --git a/src/main/java/io/papermc/paper/world/worldgen/NoiseRouter.java b/src/main/java/io/papermc/paper/world/worldgen/NoiseRouter.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..cea971544b51029b3f18a5d579cb2e50ca0dd60f
+--- /dev/null
++++ b/src/main/java/io/papermc/paper/world/worldgen/NoiseRouter.java
+@@ -0,0 +1,19 @@
++package io.papermc.paper.world.worldgen;
++
++public interface NoiseRouter {
++    DensityFunction barrierNoise();
++    DensityFunction fluidLevelFloodednessNoise();
++    DensityFunction fluidLevelSpreadNoise();
++    DensityFunction lavaNoise();
++    DensityFunction temperature();
++    DensityFunction vegetation();
++    DensityFunction continents();
++    DensityFunction erosion();
++    DensityFunction depth();
++    DensityFunction ridges();
++    DensityFunction initialDensityWithoutJaggedness();
++    DensityFunction finalDensity();
++    DensityFunction veinToggle();
++    DensityFunction veinRidged();
++    DensityFunction veinGap();
++}
+diff --git a/src/main/java/io/papermc/paper/world/worldgen/WorldGenData.java b/src/main/java/io/papermc/paper/world/worldgen/WorldGenData.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..25f7eebc83169c04123bd5986057ba4f3d5bec6c
+--- /dev/null
++++ b/src/main/java/io/papermc/paper/world/worldgen/WorldGenData.java
+@@ -0,0 +1,5 @@
++package io.papermc.paper.world.worldgen;
++
++public interface WorldGenData {
++    NoiseRouter getNoiseRouter();
++}
+diff --git a/src/main/java/org/bukkit/World.java b/src/main/java/org/bukkit/World.java
+index 6247a6453f32af47e43e3230375bcf4841996487..d036b7c3cbcfd42df041d1f71e1d9cf08cbea5ba 100644
+--- a/src/main/java/org/bukkit/World.java
++++ b/src/main/java/org/bukkit/World.java
+@@ -2815,6 +2815,12 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
+      */
+     int getSimulationDistance();
+ 
++    /**
++     * Returns the {@link WorldGenData} of this world
++     * @return the world gen data
++     */
++    public io.papermc.paper.world.worldgen.WorldGenData getWorldGenData();
++
+     /**
+      * Gets the folder of this world on disk.
+      *

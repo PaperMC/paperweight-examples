@@ -1,0 +1,64 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <mail.ysp@web.de>
+Date: Thu, 21 Mar 2024 17:56:55 +0100
+Subject: [PATCH] Adding fill biome command
+
+
+diff --git a/src/main/java/org/bukkit/World.java b/src/main/java/org/bukkit/World.java
+index 348a47582b58b7054fe0ee3178a45fa9fd589317..fd0892c47a15dc54c32f20b0ad7e7df67713a89a 100644
+--- a/src/main/java/org/bukkit/World.java
++++ b/src/main/java/org/bukkit/World.java
+@@ -2540,6 +2540,53 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
+     @Deprecated
+     void setBiome(int x, int z, @NotNull Biome bio);
+ 
++    /**
++     * Fills biomes in a bounding box
++     * @param from - The min block of the bounding box
++     * @param to - The max block of the bounding box
++     * @param biomeToFill - The Biome to fill
++     * @param biomeReplacePredicate - The predicate
++     */
++    void fillBiome(Block from, Block to, Biome biomeToFill, Predicate<Biome> biomeReplacePredicate);
++
++    /**
++     * Fills biomes in a bounding box
++     * @param world the world
++     * @param boundingBox the bounding box
++     * @param biomeToFill the biome to fill in the bounding box
++     * @param biomeReplacePredicate the predicate that checks which biome should be replaced
++     */
++    default void fillBiome(World world, BoundingBox boundingBox, Biome biomeToFill, Predicate<Biome> biomeReplacePredicate){
++        fillBiome(
++            world.getBlockAt(boundingBox.getMin().getBlockX(), boundingBox.getMin().getBlockY(), boundingBox.getMin().getBlockZ()),
++            world.getBlockAt(boundingBox.getMax().getBlockX(), boundingBox.getMax().getBlockY(), boundingBox.getMax().getBlockZ()),
++            biomeToFill,
++            biomeReplacePredicate
++        );
++    }
++
++    /**
++     * Fills biomes in a bounding box
++     * @param from the min block of the bounding box
++     * @param to the max block of the bounding box
++     * @param replacer a function that returns which biome is returned by which
++     */
++    void fillBiome(Block from, Block to, java.util.function.Function<Biome, Biome> replacer);
++
++    /**
++     * Fills biomes in a bounding box
++     * @param world the world
++     * @param boundingBox the bounding box
++     * @param replacer a function that returns which biome is returned by which
++     */
++    default void fillBiome(World world, BoundingBox boundingBox, java.util.function.Function<Biome, Biome> replacer){
++        fillBiome(
++            world.getBlockAt(boundingBox.getMin().getBlockX(), boundingBox.getMin().getBlockY(), boundingBox.getMin().getBlockZ()),
++            world.getBlockAt(boundingBox.getMax().getBlockX(), boundingBox.getMax().getBlockY(), boundingBox.getMax().getBlockZ()),
++            replacer
++        );
++    }
++
+     /**
+      * Gets the temperature for the given block coordinates.
+      * <p>

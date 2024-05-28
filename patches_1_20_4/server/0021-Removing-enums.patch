@@ -1,0 +1,226 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <mail.ysp@web.de>
+Date: Wed, 21 Feb 2024 01:20:52 +0100
+Subject: [PATCH] Removing enums
+
+
+diff --git a/src/main/java/org/bukkit/craftbukkit/CraftEntityActivity.java b/src/main/java/org/bukkit/craftbukkit/CraftEntityActivity.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..b25a08cc1e7bcf015764201580d020401e201172
+--- /dev/null
++++ b/src/main/java/org/bukkit/craftbukkit/CraftEntityActivity.java
+@@ -0,0 +1,22 @@
++package org.bukkit.craftbukkit;
++
++import org.bukkit.EntityActivity;
++import net.minecraft.world.entity.schedule.Activity;
++import org.bukkit.NamespacedKey;
++import org.jetbrains.annotations.NotNull;
++
++public class CraftEntityActivity extends BukkitToNMSMapping<Activity> implements EntityActivity {
++    public CraftEntityActivity(NamespacedKey key, Activity handle) {
++        super(key, handle);
++    }
++
++    @Override
++    public @NotNull String translationKey() {
++        return "activity.minecraft." + getKey().getKey();
++    }
++
++    @Override
++    public String toString() {
++        return "CraftEntityActivity{key=" + this.getKey() + "}";
++    }
++}
+diff --git a/src/main/java/org/bukkit/craftbukkit/CraftEntitySchedule.java b/src/main/java/org/bukkit/craftbukkit/CraftEntitySchedule.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..af41fd04720694a46db4e50df05a0928f9f25e9f
+--- /dev/null
++++ b/src/main/java/org/bukkit/craftbukkit/CraftEntitySchedule.java
+@@ -0,0 +1,22 @@
++package org.bukkit.craftbukkit;
++
++import net.minecraft.world.entity.schedule.Schedule;
++import org.bukkit.EntitySchedule;
++import org.bukkit.NamespacedKey;
++import org.jetbrains.annotations.NotNull;
++
++public class CraftEntitySchedule extends BukkitToNMSMapping<Schedule> implements EntitySchedule {
++    public CraftEntitySchedule(NamespacedKey key, Schedule handle) {
++        super(key, handle);
++    }
++
++    @Override
++    public @NotNull String translationKey() {
++        return "schedule.minecraft." + getKey().getKey();
++    }
++
++    @Override
++    public String toString() {
++        return "CraftEntitySchedule{key=" + this.getKey() + "}";
++    }
++}
+diff --git a/src/main/java/org/bukkit/craftbukkit/CraftPoiType.java b/src/main/java/org/bukkit/craftbukkit/CraftPoiType.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..5c6d277657dcc5aa7a03cceb87124fa8dfcc24c0
+--- /dev/null
++++ b/src/main/java/org/bukkit/craftbukkit/CraftPoiType.java
+@@ -0,0 +1,31 @@
++package org.bukkit.craftbukkit;
++
++import net.minecraft.core.registries.Registries;
++import org.bukkit.NamespacedKey;
++import org.bukkit.PoiType;
++import org.bukkit.Registry;
++import org.jetbrains.annotations.NotNull;
++
++public class CraftPoiType extends BukkitToNMSMapping<net.minecraft.world.entity.ai.village.poi.PoiType> implements PoiType {
++    public static PoiType minecraftToBukkit(net.minecraft.world.entity.ai.village.poi.PoiType minecraft) {
++        return minecraftToBukkit(minecraft, Registries.POINT_OF_INTEREST_TYPE, Registry.POI_TYPE);
++    }
++
++    public static net.minecraft.world.entity.ai.village.poi.PoiType bukkitToMinecraft(PoiType bukkit) {
++        return bukkitToMinecraft(bukkit, Registries.POINT_OF_INTEREST_TYPE);
++    }
++
++    public CraftPoiType(NamespacedKey key, net.minecraft.world.entity.ai.village.poi.PoiType handle) {
++        super(key, handle);
++    }
++
++    @Override
++    public @NotNull String translationKey() {
++        return "poitype.minecraft."+this.getKey().getKey();
++    }
++
++    @Override
++    public String toString() {
++        return "CraftPoiType{key=" + this.getKey() + "}";
++    }
++}
+diff --git a/src/main/java/org/bukkit/craftbukkit/CraftRegistry.java b/src/main/java/org/bukkit/craftbukkit/CraftRegistry.java
+index 4fc02698a9312496e7f9bce1c64f317374d2a42f..688c778ca71e7010298406b6156cf805ae27f30a 100644
+--- a/src/main/java/org/bukkit/craftbukkit/CraftRegistry.java
++++ b/src/main/java/org/bukkit/craftbukkit/CraftRegistry.java
+@@ -92,6 +92,24 @@ public class CraftRegistry<B extends Keyed, M> implements Registry<B> {
+      * @return the bukkit registry of the provided class
+      */
+     public static <B extends Keyed> Registry<?> createRegistry(Class<B> bukkitClass, RegistryAccess registryHolder) {
++        if(bukkitClass == org.bukkit.attribute.Attribute.class){
++            return new CraftRegistry<>(org.bukkit.attribute.Attribute.class, registryHolder.registryOrThrow(Registries.ATTRIBUTE), org.bukkit.craftbukkit.attribute.CraftAttribute::new);
++        }
++        if(bukkitClass == org.bukkit.block.Biome.class){
++            return new CraftRegistry<>(org.bukkit.block.Biome.class, registryHolder.registryOrThrow(Registries.BIOME), org.bukkit.craftbukkit.block.CraftBiome::new);
++        }
++        if(bukkitClass == org.bukkit.craftbukkit.entity.CraftVillager.Profession.class){
++            return new CraftRegistry<>(org.bukkit.craftbukkit.entity.CraftVillager.Profession.class, registryHolder.registryOrThrow(Registries.VILLAGER_PROFESSION), org.bukkit.craftbukkit.entity.CraftVillager.CraftProfession::new);
++        }
++        if(bukkitClass == org.bukkit.PoiType.class){
++            return new CraftRegistry<>(org.bukkit.PoiType.class, registryHolder.registryOrThrow(Registries.POINT_OF_INTEREST_TYPE), CraftPoiType::new);
++        }
++        if(bukkitClass == org.bukkit.EntityActivity.class){
++            return new CraftRegistry<>(org.bukkit.EntityActivity.class, registryHolder.registryOrThrow(Registries.ACTIVITY), CraftEntityActivity::new);
++        }
++        if(bukkitClass == org.bukkit.EntitySchedule.class){
++            return new CraftRegistry<>(org.bukkit.EntitySchedule.class, registryHolder.registryOrThrow(Registries.SCHEDULE), CraftEntitySchedule::new);
++        }
+         if (bukkitClass == Enchantment.class) {
+             return new CraftRegistry<>(Enchantment.class, registryHolder.registryOrThrow(Registries.ENCHANTMENT), CraftEnchantment::new);
+         }
+diff --git a/src/main/java/org/bukkit/craftbukkit/attribute/CraftAttribute.java b/src/main/java/org/bukkit/craftbukkit/attribute/CraftAttribute.java
+index f9e8c1f8416c4e5ae11e1d742cf3655faa480ce9..bf05d0de7ca27db1a8e1f58ad0e597aab2ecf5fa 100644
+--- a/src/main/java/org/bukkit/craftbukkit/attribute/CraftAttribute.java
++++ b/src/main/java/org/bukkit/craftbukkit/attribute/CraftAttribute.java
+@@ -8,7 +8,14 @@ import org.bukkit.attribute.Attribute;
+ import org.bukkit.craftbukkit.CraftRegistry;
+ import org.bukkit.craftbukkit.util.CraftNamespacedKey;
+ 
+-public class CraftAttribute {
++public class CraftAttribute extends org.bukkit.craftbukkit.BukkitToNMSMapping<net.minecraft.world.entity.ai.attributes.Attribute> implements Attribute{
++    public CraftAttribute(NamespacedKey key, net.minecraft.world.entity.ai.attributes.Attribute handle) {
++        super(key, handle);
++    }
++    @Override
++    public @org.jetbrains.annotations.NotNull String translationKey() {
++        return "attribute.name." + this.getKey().getKey();
++    }
+ 
+     public static Attribute minecraftToBukkit(net.minecraft.world.entity.ai.attributes.Attribute minecraft) {
+         Preconditions.checkArgument(minecraft != null);
+diff --git a/src/main/java/org/bukkit/craftbukkit/block/CraftBiome.java b/src/main/java/org/bukkit/craftbukkit/block/CraftBiome.java
+index 33d2e89ac40465b0c4633f9c51378b80f7c397a9..54e9c0eeeee8a657bdb33eef6b101dc2bd395636 100644
+--- a/src/main/java/org/bukkit/craftbukkit/block/CraftBiome.java
++++ b/src/main/java/org/bukkit/craftbukkit/block/CraftBiome.java
+@@ -9,7 +9,15 @@ import org.bukkit.block.Biome;
+ import org.bukkit.craftbukkit.CraftRegistry;
+ import org.bukkit.craftbukkit.util.CraftNamespacedKey;
+ 
+-public class CraftBiome {
++public class CraftBiome extends org.bukkit.craftbukkit.BukkitToNMSMapping<net.minecraft.world.level.biome.Biome> implements Biome {
++    public CraftBiome(org.bukkit.NamespacedKey key, net.minecraft.world.level.biome.Biome handle) {
++        super(key, handle);
++    }
++
++    @Override
++    public @org.jetbrains.annotations.NotNull String translationKey() {
++        return "biome.minecraft." + this.getKey();
++    }
+ 
+     public static Biome minecraftToBukkit(net.minecraft.world.level.biome.Biome minecraft) {
+         Preconditions.checkArgument(minecraft != null);
+@@ -28,7 +36,7 @@ public class CraftBiome {
+         return CraftBiome.minecraftToBukkit(minecraft.value());
+     }
+ 
+-    private static final java.util.Map<org.bukkit.block.Biome, ResourceKey<net.minecraft.world.level.biome.Biome>> BIOME_KEY_CACHE = java.util.Collections.synchronizedMap(new java.util.EnumMap<>(Biome.class)); // Paper
++    private static final java.util.Map<org.bukkit.block.Biome, ResourceKey<net.minecraft.world.level.biome.Biome>> BIOME_KEY_CACHE = java.util.Collections.synchronizedMap(new java.util.HashMap<>()); // Paper
+     public static net.minecraft.world.level.biome.Biome bukkitToMinecraft(Biome bukkit) {
+         if (bukkit == null || bukkit == Biome.CUSTOM) {
+             return null;
+diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftVillager.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftVillager.java
+index 6c15d40979fd3e3d246a447c432b321fbf29ada3..2aa1d4ad72fc4842bdda301d9335a3d4f7577f79 100644
+--- a/src/main/java/org/bukkit/craftbukkit/entity/CraftVillager.java
++++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftVillager.java
+@@ -191,7 +191,20 @@ public class CraftVillager extends CraftAbstractVillager implements Villager {
+         }
+     }
+ 
+-    public static class CraftProfession {
++    public static class CraftProfession extends org.bukkit.craftbukkit.BukkitToNMSMapping<VillagerProfession> implements Profession {
++
++        public CraftProfession(org.bukkit.NamespacedKey key, VillagerProfession handle) {
++            super(key, handle);
++        }
++        @Override
++        public String name() {
++            return this.getKey().getKey();
++        }
++
++        @Override
++        public @org.jetbrains.annotations.NotNull String translationKey() {
++            return "entity.minecraft.villager." + this.getKey().getKey();
++        }
+ 
+         public static Profession minecraftToBukkit(VillagerProfession minecraft) {
+             Preconditions.checkArgument(minecraft != null);
+diff --git a/src/main/java/org/bukkit/craftbukkit/inventory/CraftMetaItem.java b/src/main/java/org/bukkit/craftbukkit/inventory/CraftMetaItem.java
+index 5cd0fbac267f9c69c5de4c200a95860f5c56d42e..2a28ae5feda94cec382d1179d93f16348c37ac50 100644
+--- a/src/main/java/org/bukkit/craftbukkit/inventory/CraftMetaItem.java
++++ b/src/main/java/org/bukkit/craftbukkit/inventory/CraftMetaItem.java
+@@ -680,7 +680,7 @@ class CraftMetaItem implements ItemMeta, Damageable, Repairable, BlockDataMeta {
+                     continue;
+                 }
+                 AttributeModifier modifier = (AttributeModifier) o;
+-                Attribute attribute = EnumUtils.getEnum(Attribute.class, attributeName.toUpperCase(Locale.ROOT));
++                Attribute attribute = Attribute.getAttribute(org.bukkit.NamespacedKey.minecraft(attributeName.toUpperCase(Locale.ROOT))); // MCCLab
+                 if (attribute == null) {
+                     continue;
+                 }
+@@ -1543,7 +1543,7 @@ class CraftMetaItem implements ItemMeta, Damageable, Repairable, BlockDataMeta {
+             if (modCollection == null || modCollection.isEmpty()) {
+                 continue;
+             }
+-            mods.put(entry.getKey().name(), new ArrayList<>(modCollection));
++            mods.put(entry.getKey().getKey().getKey().replace(".", "_"), new ArrayList<>(modCollection)); // MCCLab
+         }
+         builder.put(key.BUKKIT, mods);
+     }

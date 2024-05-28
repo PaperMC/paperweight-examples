@@ -1,0 +1,23 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <mail.ysp@web.de>
+Date: Thu, 21 Mar 2024 17:57:27 +0100
+Subject: [PATCH] Adding resendChunksForBiomes function
+
+
+diff --git a/src/main/java/org/bukkit/World.java b/src/main/java/org/bukkit/World.java
+index fd0892c47a15dc54c32f20b0ad7e7df67713a89a..5db731966f4699e934fbd3c993deb5db866e2676 100644
+--- a/src/main/java/org/bukkit/World.java
++++ b/src/main/java/org/bukkit/World.java
+@@ -2324,6 +2324,12 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
+     @Nullable
+     public BiomeProvider getBiomeProvider();
+ 
++    /**
++     * Resends chunks to players
++     * @param chunks - The chunks to resend
++     */
++    public void resendChunksForBiomes(List<Chunk> chunks);
++
+     /**
+      * Saves world to disk
+      */

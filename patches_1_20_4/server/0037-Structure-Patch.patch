@@ -1,0 +1,795 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: verdox <mail.ysp@web.de>
+Date: Wed, 1 May 2024 15:16:29 +0000
+Subject: [PATCH] Structure Patch
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/io/DensityFunctionImageGenerator.java b/src/main/java/de/verdox/mccreativelab/io/DensityFunctionImageGenerator.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..5973d747b8a7e3c04a02f05ae779fd796971af39
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/io/DensityFunctionImageGenerator.java
+@@ -0,0 +1,115 @@
++package de.verdox.mccreativelab.io;
++
++import net.minecraft.util.Mth;
++import net.minecraft.util.RandomSource;
++import net.minecraft.world.level.levelgen.synth.ImprovedNoise;
++import net.minecraft.world.level.levelgen.synth.PerlinNoise;
++
++import javax.imageio.ImageIO;
++import java.awt.*;
++import java.awt.image.BufferedImage;
++import java.io.File;
++import java.io.IOException;
++import java.util.List;
++
++public class DensityFunctionImageGenerator {
++    private final String name;
++    private final int width;
++    private final int height;
++    private final Noise noise1;
++
++    private static final double min = -1.0;
++    private static final double max = 1.0;
++
++    public DensityFunctionImageGenerator(String name, int width, int height, Noise noise) {
++        this.name = name;
++        this.width = width;
++        this.height = height;
++        noise1 = noise;
++    }
++
++    public void buildImage() {
++        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
++
++        // Iteriere über alle Pixel im Bild
++        for (int x = 0; x < width; x++) {
++            for (int y = 0; y < height; y++) {
++                // Frage den Wert von compute an der aktuellen Position ab
++                double value = noise1.compute(x + width / 2, y + height / 2);
++
++                // Interpoliere die Farbe basierend auf dem Wert
++                Color color = interpolateColor(value, min, max);
++
++                // Setze die Farbe des Pixels im Bild
++                image.setRGB(x, y, color.getRGB());
++            }
++        }
++
++        // Speichere das generierte Bild
++        File outputFile = new File(name + ".png");
++        try {
++            ImageIO.write(image, "png", outputFile);
++            System.out.println("Bild erfolgreich generiert: " + outputFile.getAbsolutePath());
++        } catch (IOException e) {
++            System.err.println("Fehler beim Speichern des Bildes: " + e.getMessage());
++        }
++    }
++
++    public static void main(String[] args) {
++        new DensityFunctionImageGenerator("simple", 3000, 3000, simpleCircle).buildImage();
++        new DensityFunctionImageGenerator("second", 3000, 3000, secondAttempt).buildImage();
++    }
++
++    private static final PerlinNoise noise = PerlinNoise.create(RandomSource.create(), List.of(1, 2, 3));
++    private static final ImprovedNoise improvedNoise = new ImprovedNoise(RandomSource.create());
++
++    // Beispiel-Funktion compute
++
++    static Noise simpleCircle = (x, z) -> {
++        int blockRadius = (int) (3000 + Math.sin(3 * x) + Math.sin(Math.PI * x) + Math.sin(4 * Math.E * x) + Math.sin(3 * z) + Math.sin(Math.PI * z) + Math.sin(4 * Math.E * z));
++
++        double scale = 2 * Math.PI / blockRadius;
++        double distance = Math.sqrt(x * x + z * z);
++        double angle = distance * scale;
++
++        return Math.cos(angle + Math.PI);
++    };
++
++    static Noise secondAttempt = (x, z) -> {
++        int blockRadius = 3000;
++        double scale = 2 * Math.PI / blockRadius;
++        double distance = Math.sqrt(x * x + z * z);
++        double angle = distance * scale;
++
++        return Math.cos(angle + Math.PI + Math.sin(3 * x) + Math.sin(Math.PI * x) + Math.sin(4 * Math.E * x) + Math.sin(3 * z) + Math.sin(Math.PI * z) + Math.sin(4 * Math.E * z));
++    };
++
++    // Interpoliere die Farbe basierend auf dem Wert und den Min/Max-Werten
++    public static Color interpolateColor(double value, double min, double max) {
++        // Berechne den Anteil des Wertes zwischen min und max
++        double proportion = (value - min) / (max - min);
++
++        // Interpoliere die Farbe basierend auf dem Wert
++        int red, green, blue;
++        if (proportion < 0.5) {
++            red = 0;
++            green = (int) (255 * 2 * proportion);
++            blue = (int) (255 * (1 - 2 * proportion));
++        } else {
++            red = (int) (255 * 2 * (proportion - 0.5));
++            green = (int) (255 * (1 - 2 * (proportion - 0.5)));
++            blue = 0;
++        }
++
++        // Begrenze die Farbwerte auf den Bereich [0, 255]
++        red = Math.min(Math.max(red, 0), 255);
++        green = Math.min(Math.max(green, 0), 255);
++        blue = Math.min(Math.max(blue, 0), 255);
++
++        return new Color(red, green, blue);
++    }
++
++    public interface Noise {
++        double compute(int x, int z);
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/worldgen/CircularDensity.java b/src/main/java/de/verdox/mccreativelab/worldgen/CircularDensity.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..55a18cbe78027450e1e61514912a0539619052f5
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/worldgen/CircularDensity.java
+@@ -0,0 +1,84 @@
++package de.verdox.mccreativelab.worldgen;
++
++import com.mojang.serialization.Codec;
++import com.mojang.serialization.MapCodec;
++import com.mojang.serialization.codecs.RecordCodecBuilder;
++import net.minecraft.util.KeyDispatchDataCodec;
++import net.minecraft.world.level.levelgen.DensityFunction;
++
++public class CircularDensity implements DensityFunction.SimpleFunction {
++    private final int patternRadius;
++    private final double fromValue;
++    private final double toValue;
++    private final double scale;
++
++    public CircularDensity(int patternRadius, double fromValue, double toValue) {
++        this.patternRadius = patternRadius;
++        this.fromValue = fromValue;
++        this.toValue = toValue;
++        this.scale = 2 * Math.PI / patternRadius;
++    }
++
++    private static final MapCodec<CircularDensity> DATA_CODEC = RecordCodecBuilder.mapCodec((instance) -> {
++        return instance.group(
++                           Codec.intRange(0, 1000000).fieldOf("patternRadius").forGetter(CircularDensity::getPatternRadius),
++                           Codec.doubleRange(-1000000.0D, 1000000.0D).fieldOf("from_value").forGetter(CircularDensity::getFromValue),
++                           Codec.doubleRange(-1000000.0D, 1000000.0D).fieldOf("to_value").forGetter(CircularDensity::getToValue))
++                       .apply(instance, CircularDensity::new);
++    });
++    public static final KeyDispatchDataCodec<CircularDensity> CODEC = KeyDispatchDataCodec.of(DATA_CODEC);
++
++    @Override
++    public double compute(FunctionContext pos) {
++        return computeRaw(pos.blockX(), pos.blockZ());
++    }
++
++    private double computeRaw(int x, int z) {
++        double a = patternRadius * 100 * 2;
++        double b = 1.0 / 700;
++
++        int radius = (int) Math.sqrt(
++            Math.pow(patternRadius, 2) +
++                a * Math.sin(b * x) +
++                a * Math.sin(b * Math.PI * x) +
++                a * Math.sin(b * Math.E * x) +
++                a * Math.sin(b * z) +
++                a * Math.sin(b * Math.PI * z) +
++                a * Math.sin(b * Math.E * z)
++        );
++
++        double value = /* Distance to center -> */ Math.sqrt(x * x + z * z) * /* SCALE -> */ 2 * Math.PI / radius;
++        return Math.cos(value + (13.0 / 16 * Math.PI));
++    }
++
++    @Override
++    public double minValue() {
++        return fromValue;
++    }
++
++    @Override
++    public double maxValue() {
++        return toValue;
++    }
++
++    @Override
++    public KeyDispatchDataCodec<? extends DensityFunction> codec() {
++        return CODEC;
++    }
++
++    public double getFromValue() {
++        return fromValue;
++    }
++
++    public double getScale() {
++        return scale;
++    }
++
++    public double getToValue() {
++        return toValue;
++    }
++
++    public int getPatternRadius() {
++        return patternRadius;
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/worldgen/structure/PathProcessor.java b/src/main/java/de/verdox/mccreativelab/worldgen/structure/PathProcessor.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..9d0796acd149273d2490a1e5ed9d10617968e752
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/worldgen/structure/PathProcessor.java
+@@ -0,0 +1,299 @@
++package de.verdox.mccreativelab.worldgen.structure;
++
++import com.mojang.serialization.Codec;
++import com.mojang.serialization.codecs.RecordCodecBuilder;
++import net.minecraft.commands.arguments.blocks.BlockStateParser;
++import net.minecraft.core.BlockPos;
++import net.minecraft.core.Direction;
++import net.minecraft.server.level.ServerLevel;
++import net.minecraft.world.level.LevelReader;
++import net.minecraft.world.level.ServerLevelAccessor;
++import net.minecraft.world.level.block.Blocks;
++import net.minecraft.world.level.block.JigsawBlock;
++import net.minecraft.world.level.block.entity.JigsawBlockEntity;
++import net.minecraft.world.level.block.state.BlockState;
++import net.minecraft.world.level.levelgen.Heightmap;
++import net.minecraft.world.level.levelgen.structure.BoundingBox;
++import net.minecraft.world.level.levelgen.structure.templatesystem.*;
++import org.apache.logging.log4j.util.TriConsumer;
++import org.bukkit.HeightMap;
++import org.bukkit.Material;
++import org.jetbrains.annotations.NotNull;
++import org.jetbrains.annotations.Nullable;
++
++import java.util.*;
++import java.util.concurrent.ConcurrentHashMap;
++import java.util.concurrent.atomic.AtomicBoolean;
++import java.util.function.BiConsumer;
++
++public class PathProcessor extends StructureProcessor {
++
++    public static final Codec<PathProcessor> CODEC =
++        RecordCodecBuilder.create((instance) ->
++            instance.group(Heightmap.Types.CODEC.fieldOf("heightmap").orElse(Heightmap.Types.WORLD_SURFACE_WG).forGetter((processor) -> processor.heightmap),
++                Codec.INT.fieldOf("offset").orElse(0).forGetter((processor) -> processor.offset),
++                Codec.INT.fieldOf("maxYDelta").orElse(0).forGetter((processor) -> processor.maxYDelta)
++            ).apply(instance, PathProcessor::new));
++
++    public static final int MAX_SMOOTH_DELTA = 100;
++    private final Heightmap.Types heightmap;
++    private final int offset;
++    private final int maxYDelta;
++
++    public PathProcessor(Heightmap.Types heightmap, int offset, int maxYDelta) {
++        this.heightmap = heightmap;
++        this.offset = offset;
++        this.maxYDelta = maxYDelta;
++    }
++
++    @Override
++    protected StructureProcessorType<?> getType() {
++        return StructureProcessorType.PATH;
++    }
++
++    @Nullable
++    @Override
++    public StructureTemplate.StructureBlockInfo processBlock(LevelReader world, BlockPos pos, BlockPos pivot, StructureTemplate.StructureBlockInfo originalBlockInfo, StructureTemplate.StructureBlockInfo currentBlockInfo, StructurePlaceSettings data) {
++        Heightmap.Types types;
++        if (world instanceof ServerLevel) {
++            if (this.heightmap == Heightmap.Types.WORLD_SURFACE_WG) {
++                types = Heightmap.Types.WORLD_SURFACE;
++            } else if (this.heightmap == Heightmap.Types.OCEAN_FLOOR_WG) {
++                types = Heightmap.Types.OCEAN_FLOOR;
++            } else {
++                types = this.heightmap;
++            }
++        } else {
++            types = this.heightmap;
++        }
++
++        BlockPos blockPos = currentBlockInfo.pos();
++        int i = world.getHeight(types, blockPos.getX(), blockPos.getZ()) + this.offset;
++        int j = originalBlockInfo.pos().getY();
++
++        return new StructureTemplate.StructureBlockInfo(new BlockPos(blockPos.getX(), i + j, blockPos.getZ()), currentBlockInfo.state(), currentBlockInfo.nbt());
++    }
++
++    @Override
++    public List<StructureTemplate.StructureBlockInfo> finalizeProcessing(ServerLevelAccessor world, BlockPos pos, BlockPos pivot, List<StructureTemplate.StructureBlockInfo> originalBlockInfos, List<StructureTemplate.StructureBlockInfo> currentBlockInfos, StructurePlaceSettings data) {
++        try{
++            ProcessorHeightMap processorHeightMap = ProcessorHeightMap.fromStructureBlockInfos(currentBlockInfos);
++            processorHeightMap.smoothTerrain(1);
++            return processorHeightMap.produceResults(currentBlockInfos);
++        }
++        catch (Throwable e){
++            System.out.println("Error: "+ e);
++            e.printStackTrace();
++            return currentBlockInfos;
++        }
++    }
++
++    private List<StructureTemplate.StructureBlockInfo> smoothFunction(ServerLevelAccessor world, BlockPos pos, List<StructureTemplate.StructureBlockInfo> currentBlockInfos) {
++        ThreeDimensionalStructureCache threeDimensionalStructureCache = new ThreeDimensionalStructureCache(currentBlockInfos);
++
++
++        LinkedList<StructureTemplate.StructureBlockInfo> queue = new LinkedList<>(currentBlockInfos);
++        HashSet<StructureTemplate.StructureBlockInfo> duplicates = new HashSet<>();
++
++        int counter = 0;
++        while (!queue.isEmpty()) {
++            StructureTemplate.StructureBlockInfo currentBlockInfo = queue.poll();
++            if (currentBlockInfo == null)
++                continue;
++
++            if (threeDimensionalStructureCache.getBlock(currentBlockInfo.pos()) == null)
++                currentBlockInfo = threeDimensionalStructureCache.findRelativeOrCacheFromLevel(world, currentBlockInfo, 0, 0);
++
++            if (currentBlockInfo == null || currentBlockInfo.state().isAir()) {
++                continue;
++            }
++
++            StructureTemplate.StructureBlockInfo right = threeDimensionalStructureCache.findRelativeOrCacheFromLevel(world, currentBlockInfo, 1, 0);
++            StructureTemplate.StructureBlockInfo left = threeDimensionalStructureCache.findRelativeOrCacheFromLevel(world, currentBlockInfo, -1, 0);
++            StructureTemplate.StructureBlockInfo forward = threeDimensionalStructureCache.findRelativeOrCacheFromLevel(world, currentBlockInfo, 0, 1);
++            StructureTemplate.StructureBlockInfo backward = threeDimensionalStructureCache.findRelativeOrCacheFromLevel(world, currentBlockInfo, 0, -1);
++
++            currentBlockInfo = doSmooth(currentBlockInfo, right, threeDimensionalStructureCache);
++            currentBlockInfo = doSmooth(currentBlockInfo, left, threeDimensionalStructureCache);
++            currentBlockInfo = doSmooth(currentBlockInfo, forward, threeDimensionalStructureCache);
++            currentBlockInfo = doSmooth(currentBlockInfo, backward, threeDimensionalStructureCache);
++
++            if (shouldMarkAsComplete(world, currentBlockInfo, threeDimensionalStructureCache))
++                threeDimensionalStructureCache.markAsComplete(currentBlockInfo);
++
++            if (!duplicates.contains(right) && !threeDimensionalStructureCache.isCompleted(right)) {
++                queue.offer(right);
++                duplicates.add(right);
++            }
++
++            if (!duplicates.contains(left) && !threeDimensionalStructureCache.isCompleted(left)) {
++                queue.offer(left);
++                duplicates.add(left);
++            }
++
++            if (!duplicates.contains(forward) && !threeDimensionalStructureCache.isCompleted(forward)) {
++                queue.offer(forward);
++                duplicates.add(forward);
++            }
++
++            if (!duplicates.contains(backward) && !threeDimensionalStructureCache.isCompleted(backward)) {
++                queue.offer(backward);
++                duplicates.add(backward);
++            }
++            counter++;
++
++            if (counter >= 100000) {
++                System.out.println("Stopping Algorithm because too much left in queue: " + queue.size());
++                break;
++            }
++        }
++        return threeDimensionalStructureCache.produceResults(pos.getY() - MAX_SMOOTH_DELTA, pos.getY() + MAX_SMOOTH_DELTA);
++    }
++
++    private boolean shouldMarkAsComplete(ServerLevelAccessor world, StructureTemplate.StructureBlockInfo blockInfo, ThreeDimensionalStructureCache threeDimensionalStructureCache) {
++
++        // Es wird dann markiert wenn alle Nachbarn in einem delta von 1 in der höhe entfernt sind
++
++        for (int x = -1; x <= 1; x += 2) {
++            for (int z = -1; z <= 1; z += 2) {
++                StructureTemplate.StructureBlockInfo foundRelative = threeDimensionalStructureCache.findRelativeOrCacheFromLevel(world, blockInfo, x, z);
++                if (foundRelative == null)
++                    continue;
++
++                int yDelta = Math.abs(blockInfo.pos().getY() - foundRelative.pos().getY());
++                if (yDelta > 1)
++                    return false;
++            }
++        }
++
++        return true;
++    }
++
++    //TODO: Nur Nachbarblöcke anschauen wo kein Block drüber ist -> Begehbarer Pfad
++
++    private static StructureTemplate.StructureBlockInfo doSmooth(StructureTemplate.StructureBlockInfo currentBlockInfo, @Nullable StructureTemplate.StructureBlockInfo relativeBlock, ThreeDimensionalStructureCache threeDimensionalStructureCache) {
++        if (relativeBlock == null)
++            return currentBlockInfo;
++        int yDelta = currentBlockInfo.pos().getY() - relativeBlock.pos().getY();
++        // Delta ist klein genug um als Spieler drüber zu laufen
++        if (Math.abs(yDelta) <= 1) {
++            return currentBlockInfo;
++        } else {
++            // Delta zu groß -> Smoothen
++            threeDimensionalStructureCache.remove(currentBlockInfo);
++            StructureTemplate.StructureBlockInfo updatedBlock = new StructureTemplate.StructureBlockInfo(new BlockPos(currentBlockInfo.pos().getX(), relativeBlock.pos().getY() - 1, currentBlockInfo.pos().getZ()), Blocks.EMERALD_BLOCK.defaultBlockState(), currentBlockInfo.nbt());
++            threeDimensionalStructureCache.addToCache(updatedBlock);
++            return updatedBlock;
++        }
++    }
++
++
++    public record CompletedMark(int x, int z) {
++    }
++
++    public static class ThreeDimensionalStructureCache {
++        private final Map<Integer, Map<Integer, Map<Integer, StructureTemplate.StructureBlockInfo>>> cache = new HashMap<>();
++        private final Set<CompletedMark> completed = new HashSet<>();
++
++        public ThreeDimensionalStructureCache(List<StructureTemplate.StructureBlockInfo> list) {
++            for (StructureTemplate.StructureBlockInfo structureBlockInfo : list) {
++                if (structureBlockInfo.state().isAir())
++                    continue;
++                addToCache(structureBlockInfo);
++            }
++        }
++
++        public List<StructureTemplate.StructureBlockInfo> produceResults(int minY, int maxY) {
++            return cache.entrySet().stream()
++                .flatMap(integerMapEntry -> integerMapEntry.getValue().entrySet().stream()
++                    .flatMap(integerMapEntry1 -> integerMapEntry1.getValue().values().stream()))
++                .filter(structureBlockInfo -> structureBlockInfo.pos().getY() <= maxY)
++                .filter(structureBlockInfo -> structureBlockInfo.pos().getY() >= minY)
++                .toList();
++        }
++
++        void addToCache(StructureTemplate.StructureBlockInfo block) {
++            cache.computeIfAbsent(block.pos().getX(), integer -> new HashMap<>()).computeIfAbsent(block.pos().getZ(), integer -> new HashMap<>()).put(block.pos().getY(), block);
++        }
++
++        void markAsComplete(StructureTemplate.StructureBlockInfo block) {
++            completed.add(new CompletedMark(block.pos().getX(), block.pos().getZ()));
++        }
++
++        boolean isCompleted(@Nullable StructureTemplate.StructureBlockInfo block) {
++            if (block == null)
++                return true;
++            return completed.contains(new CompletedMark(block.pos().getX(), block.pos().getZ()));
++        }
++
++        void remove(StructureTemplate.StructureBlockInfo block) {
++            int x = block.pos().getX();
++            int y = block.pos().getY();
++            int z = block.pos().getZ();
++            if (getBlock(x, y, z) == null)
++                return;
++
++            cache.get(x).get(z).remove(y);
++        }
++
++        List<StructureTemplate.StructureBlockInfo> getNeighbours(ServerLevelAccessor world, StructureTemplate.StructureBlockInfo blockInfo) {
++            List<StructureTemplate.StructureBlockInfo> list = new ArrayList<>();
++            StructureTemplate.StructureBlockInfo right = findRelativeOrCacheFromLevel(world, blockInfo, 1, 0);
++            StructureTemplate.StructureBlockInfo left = findRelativeOrCacheFromLevel(world, blockInfo, -1, 0);
++            StructureTemplate.StructureBlockInfo forward = findRelativeOrCacheFromLevel(world, blockInfo, 0, 1);
++            StructureTemplate.StructureBlockInfo backward = findRelativeOrCacheFromLevel(world, blockInfo, 0, -1);
++
++            if (right != null) list.add(right);
++            if (left != null) list.add(left);
++            if (forward != null) list.add(forward);
++            if (backward != null) list.add(backward);
++
++            return list;
++        }
++
++        @Nullable
++        private StructureTemplate.StructureBlockInfo getBlock(int x, int y, int z) {
++            if (!cache.containsKey(x) || !cache.get(x).containsKey(z) || !cache.get(x).get(z).containsKey(y))
++                return null;
++            return cache.get(x).get(z).get(y);
++        }
++
++        @Nullable
++        private StructureTemplate.StructureBlockInfo getBlock(BlockPos blockPos) {
++            return getBlock(blockPos.getX(), blockPos.getY(), blockPos.getZ());
++        }
++
++        @Nullable
++        private StructureTemplate.StructureBlockInfo findRelative(StructureTemplate.StructureBlockInfo structureBlockInfo, int x, int z) {
++            int posX = structureBlockInfo.pos().getX() + x;
++            int posZ = structureBlockInfo.pos().getZ() + z;
++            if (!cache.containsKey(posX) || !cache.get(posX).containsKey(posZ) || cache.get(posX).get(posZ).isEmpty())
++                return null;
++            Map<Integer, StructureTemplate.StructureBlockInfo> potentialBlocksAtY = cache.get(posX).get(posZ);
++            return potentialBlocksAtY.values().stream().filter(structureBlockInfo1 -> !structureBlockInfo1.state().isAir()).findAny().orElse(null);
++        }
++
++        @Nullable
++        private StructureTemplate.StructureBlockInfo findRelativeOrCacheFromLevel(ServerLevelAccessor world, StructureTemplate.StructureBlockInfo structureBlockInfo, int x, int z) {
++            StructureTemplate.StructureBlockInfo foundRelative = findRelative(structureBlockInfo, x, z);
++            if (foundRelative != null)
++                return foundRelative;
++
++            if (world.getChunkIfLoadedImmediately(x, z) == null)
++                return null;
++
++            int posX = structureBlockInfo.pos().getX() + x;
++            int posZ = structureBlockInfo.pos().getZ() + z;
++
++            BlockPos relativeBlockPos = new BlockPos(
++                posX,
++                world.getHeight(Heightmap.Types.WORLD_SURFACE_WG, posX, posZ),
++                posZ
++            );
++            BlockState relativeBlockState = world.getBlockStateIfLoaded(relativeBlockPos);
++            StructureTemplate.StructureBlockInfo newBlockFromWorld = new StructureTemplate.StructureBlockInfo(relativeBlockPos, relativeBlockState != null ? relativeBlockState : Blocks.STONE.defaultBlockState(), null);
++            addToCache(newBlockFromWorld);
++            return newBlockFromWorld;
++        }
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/worldgen/structure/ProcessorHeightMap.java b/src/main/java/de/verdox/mccreativelab/worldgen/structure/ProcessorHeightMap.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..8af977035bb129fad7ec98a47d1d2b8d31659b2c
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/worldgen/structure/ProcessorHeightMap.java
+@@ -0,0 +1,135 @@
++package de.verdox.mccreativelab.worldgen.structure;
++
++import net.minecraft.core.BlockPos;
++import net.minecraft.world.level.block.Blocks;
++import net.minecraft.world.level.block.state.BlockState;
++import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
++import org.apache.logging.log4j.util.TriConsumer;
++
++import java.util.ArrayList;
++import java.util.List;
++import java.util.Map;
++import java.util.concurrent.ConcurrentHashMap;
++
++public class ProcessorHeightMap {
++
++    public static final boolean SHOW_CONNECTOR_BLOCKS = false;
++
++    public static final int[][] DIRECTIONS = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
++    private final Map<Integer, Map<Integer, Integer>> heightMap = new ConcurrentHashMap<>();
++
++    private ProcessorHeightMap(List<StructureTemplate.StructureBlockInfo> blockInfos) {
++        for (StructureTemplate.StructureBlockInfo blockInfo : blockInfos) {
++            if (blockInfo.state().isAir())
++                continue;
++
++            int x = blockInfo.pos().getX();
++            int z = blockInfo.pos().getZ();
++            int height = blockInfo.pos().getY();
++
++            if (!contains(x, z)) {
++                setHeight(x, z, height);
++                continue;
++            }
++
++            int storedHeight = getHeight(x, z);
++            if (height > storedHeight)
++                setHeight(x, z, height);
++        }
++    }
++
++    // Speichert oder aktualisiert einen Höhenwert bei gegebenen x und z Koordinaten.
++    public void setHeight(int x, int z, int height) {
++        heightMap.computeIfAbsent(x, k -> new ConcurrentHashMap<>()).put(z, height);
++    }
++
++    // Gibt den Höhenwert für die gegebenen x und z Koordinaten zurück.
++    // Gibt einen Standardwert zurück, falls keine Höhe gesetzt wurde.
++    public int getHeight(int x, int z) {
++        return heightMap.getOrDefault(x, new ConcurrentHashMap<>()).getOrDefault(z, -500);
++    }
++
++    public boolean contains(int x, int z) {
++        return heightMap.containsKey(x) && heightMap.get(x).containsKey(z);
++    }
++
++    public void smoothTerrain(int passes) {
++        for (int i = 0; i < passes; i++) {
++            forEach((x, z, height) -> {
++                int currentHeight = getHeight(x, z);
++
++                int averageMinHeight = getAverageHeight(x, z);
++                if (Math.abs(currentHeight - averageMinHeight) > 1)
++                    setHeight(x, z, averageMinHeight + 1);
++            });
++        }
++    }
++
++    private int getAverageMinHeight(int x, int z) {
++        int minHeight = getHeight(x, z);
++        for (int[] direction : DIRECTIONS) {
++            int dx = x + direction[0];
++            int dz = z + direction[1];
++
++            if (contains(x + dx, z + dz)) {
++                int relativeHeight = getHeight(x + dx, z + dz);
++                if (relativeHeight < minHeight)
++                    minHeight = relativeHeight;
++            }
++        }
++        return minHeight;
++    }
++
++    private int getAverageHeight(int x, int z) {
++        int sumHeight = 0;
++        int sumCounter = 0;
++        for (int[] direction : DIRECTIONS) {
++            int dx = x + direction[0];
++            int dz = z + direction[1];
++
++            if (contains(x + dx, z + dz)) {
++                int relativeHeight = getHeight(x + dx, z + dz);
++                sumHeight += relativeHeight;
++                sumCounter++;
++            }
++        }
++        return sumHeight / sumCounter;
++    }
++
++    public void forEach(TriConsumer<Integer, Integer, Integer> consumer) {
++        for (Map.Entry<Integer, Map<Integer, Integer>> xEntry : heightMap.entrySet())
++            for (Map.Entry<Integer, Integer> zEntry : xEntry.getValue().entrySet())
++                consumer.accept(xEntry.getKey(), zEntry.getKey(), zEntry.getValue());
++    }
++
++    public List<StructureTemplate.StructureBlockInfo> produceResults(List<StructureTemplate.StructureBlockInfo> blockInfos) {
++        List<StructureTemplate.StructureBlockInfo> newList = new ArrayList<>(blockInfos.size());
++        for (StructureTemplate.StructureBlockInfo blockInfo : blockInfos) {
++            int x = blockInfo.pos().getX();
++            int z = blockInfo.pos().getZ();
++
++            int adjustedHeight = contains(x, z) ? getHeight(x, z) : blockInfo.pos().getY();
++
++            BlockState blockState;
++            if (!contains(x, z))
++                blockState = blockInfo.state();
++            else {
++                if(adjustedHeight == blockInfo.pos().getY())
++                    blockState = blockInfo.state();
++                else if (SHOW_CONNECTOR_BLOCKS) {
++                    blockState =
++                        blockInfo.state().getBlock().equals(Blocks.REDSTONE_BLOCK) ? blockInfo.state() :
++                            blockInfo.state().getBlock().equals(Blocks.LAPIS_BLOCK) ? blockInfo.state() : Blocks.OBSIDIAN.defaultBlockState();
++                } else
++                    blockState = Blocks.OBSIDIAN.defaultBlockState();
++            }
++            StructureTemplate.StructureBlockInfo adjusted = new StructureTemplate.StructureBlockInfo(new BlockPos(x, adjustedHeight, z), blockState, blockInfo.nbt());
++            newList.add(adjusted);
++        }
++        return newList;
++    }
++
++    public static ProcessorHeightMap fromStructureBlockInfos(List<StructureTemplate.StructureBlockInfo> blockInfos) {
++        return new ProcessorHeightMap(blockInfos);
++    }
++}
+diff --git a/src/main/java/net/minecraft/world/level/levelgen/DensityFunctions.java b/src/main/java/net/minecraft/world/level/levelgen/DensityFunctions.java
+index 01b60aaf484e1e327ca42d3573fd86d2abd749fa..2fa88960c38ddec37030aa22f2cac876266d533a 100644
+--- a/src/main/java/net/minecraft/world/level/levelgen/DensityFunctions.java
++++ b/src/main/java/net/minecraft/world/level/levelgen/DensityFunctions.java
+@@ -5,6 +5,7 @@ import com.mojang.logging.LogUtils;
+ import com.mojang.serialization.Codec;
+ import com.mojang.serialization.MapCodec;
+ import com.mojang.serialization.codecs.RecordCodecBuilder;
++import de.verdox.mccreativelab.worldgen.CircularDensity;
+ import it.unimi.dsi.fastutil.doubles.Double2DoubleFunction;
+ import java.util.Arrays;
+ import java.util.Optional;
+@@ -74,6 +75,7 @@ public final class DensityFunctions {
+ 
+         register(registry, "spline", DensityFunctions.Spline.CODEC);
+         register(registry, "constant", DensityFunctions.Constant.CODEC);
++        register(registry, "circular", CircularDensity.CODEC);
+         return register(registry, "y_clamped_gradient", DensityFunctions.YClampedGradient.CODEC);
+     }
+ 
+diff --git a/src/main/java/net/minecraft/world/level/levelgen/structure/StructureStart.java b/src/main/java/net/minecraft/world/level/levelgen/structure/StructureStart.java
+index 0a0a6a64af1a5b831cfdfd5b06aa316dfc402c02..d64f3c8af9017b0c1b112bfe93f96ae8f23cc98f 100644
+--- a/src/main/java/net/minecraft/world/level/levelgen/structure/StructureStart.java
++++ b/src/main/java/net/minecraft/world/level/levelgen/structure/StructureStart.java
+@@ -1,9 +1,11 @@
+ package net.minecraft.world.level.levelgen.structure;
+ 
+ import com.mojang.logging.LogUtils;
++
+ import java.util.Iterator;
+ import java.util.List;
+ import javax.annotation.Nullable;
++
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Registry;
+ import net.minecraft.core.registries.Registries;
+@@ -17,6 +19,7 @@ import net.minecraft.world.level.WorldGenLevel;
+ import net.minecraft.world.level.chunk.ChunkGenerator;
+ import net.minecraft.world.level.levelgen.structure.pieces.PiecesContainer;
+ import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceSerializationContext;
++import net.minecraft.world.level.levelgen.structure.pools.StructureTemplatePool;
+ import net.minecraft.world.level.levelgen.structure.structures.OceanMonumentStructure;
+ import org.slf4j.Logger;
+ 
+@@ -39,6 +42,7 @@ public final class StructureStart {
+     // CraftBukkit end
+     // Paper start - Add UUID to GeneratedStructure
+     public java.util.UUID uuid;
++
+     public StructureStart(Structure structure, ChunkPos pos, int references, PiecesContainer children, java.util.UUID uuid) {
+         this.structure = structure;
+         this.chunkPos = pos;
+@@ -122,6 +126,8 @@ public final class StructureStart {
+                 org.bukkit.craftbukkit.util.TransformerGeneratorAccess transformerAccess = new org.bukkit.craftbukkit.util.TransformerGeneratorAccess();
+                 transformerAccess.setHandle(world);
+                 transformerAccess.setStructureTransformer(new org.bukkit.craftbukkit.util.CraftStructureTransformer(this, this.generationEventCause, world, structureAccessor, this.structure, chunkBox, chunkPos)); // Paper - Add GeneratedStructure to AsyncStructureGenerateEvent
++
++
+                 for (StructurePiece piece : pieces) {
+                     piece.postProcess(transformerAccess, structureAccessor, chunkGenerator, random, chunkBox, chunkPos, blockposition1);
+                 }
+@@ -147,7 +153,7 @@ public final class StructureStart {
+             nbttagcompound.putInt("ChunkZ", chunkPos.z);
+             nbttagcompound.putInt("references", this.references);
+             nbttagcompound.put("Children", this.pieceContainer.save(context));
+-            nbttagcompound.putUUID("uuid",uuid); // Paper - Add UUID to GeneratedStructure
++            nbttagcompound.putUUID("uuid", uuid); // Paper - Add UUID to GeneratedStructure
+             return nbttagcompound;
+         } else {
+             nbttagcompound.putString("id", "INVALID");
+diff --git a/src/main/java/net/minecraft/world/level/levelgen/structure/pools/SinglePoolElement.java b/src/main/java/net/minecraft/world/level/levelgen/structure/pools/SinglePoolElement.java
+index 8288ed76be84d7235e98e22b5bfada5dbd246586..d2fb7d164e0231ce5deec53c807ddd8f81af156c 100644
+--- a/src/main/java/net/minecraft/world/level/levelgen/structure/pools/SinglePoolElement.java
++++ b/src/main/java/net/minecraft/world/level/levelgen/structure/pools/SinglePoolElement.java
+@@ -127,7 +127,12 @@ public class SinglePoolElement extends StructurePoolElement {
+         if (!structureTemplate.placeInWorld(world, pos, pivot, structurePlaceSettings, random, 18)) {
+             return false;
+         } else {
+-            for(StructureTemplate.StructureBlockInfo structureBlockInfo : StructureTemplate.processBlockInfos(world, pos, pivot, structurePlaceSettings, this.getDataMarkers(structureTemplateManager, pos, rotation, false))) {
++            List<StructureTemplate.StructureBlockInfo> blockInfo = StructureTemplate.processBlockInfos(world, pos, pivot, structurePlaceSettings, this.getDataMarkers(structureTemplateManager, pos, rotation, false));
++            // MCCreativeLab start - Block Processing removed all blocks from being placed
++            if(blockInfo.isEmpty())
++                return false;
++            // MCCreativeLab end - Block Processing removed all blocks from being placed
++            for(StructureTemplate.StructureBlockInfo structureBlockInfo : blockInfo) {
+                 this.handleDataMarker(world, structureBlockInfo, pos, rotation, random, box);
+             }
+ 
+diff --git a/src/main/java/net/minecraft/world/level/levelgen/structure/pools/StructureTemplatePool.java b/src/main/java/net/minecraft/world/level/levelgen/structure/pools/StructureTemplatePool.java
+index 194864460a5508b6b60f445d6c7923c2ae14a15b..7f5b1f89d496e48b35125d7fa8111d1aef822af8 100644
+--- a/src/main/java/net/minecraft/world/level/levelgen/structure/pools/StructureTemplatePool.java
++++ b/src/main/java/net/minecraft/world/level/levelgen/structure/pools/StructureTemplatePool.java
+@@ -104,6 +104,7 @@ public class StructureTemplatePool {
+ 
+     public static enum Projection implements StringRepresentable {
+         TERRAIN_MATCHING("terrain_matching", ImmutableList.of(new GravityProcessor(Heightmap.Types.WORLD_SURFACE_WG, -1))),
++        PATH("path", ImmutableList.of(new de.verdox.mccreativelab.worldgen.structure.PathProcessor(Heightmap.Types.WORLD_SURFACE_WG, -1,1))),
+         RIGID("rigid", ImmutableList.of());
+ 
+         public static final StringRepresentable.EnumCodec<StructureTemplatePool.Projection> CODEC = StringRepresentable.fromEnum(StructureTemplatePool.Projection::values);
+diff --git a/src/main/java/net/minecraft/world/level/levelgen/structure/templatesystem/StructureProcessorType.java b/src/main/java/net/minecraft/world/level/levelgen/structure/templatesystem/StructureProcessorType.java
+index 6a31414621353d2b47ff504e01a22aaa04a3f43f..b890ca2e3eb2711bde5b0f1d4ea78d85a9b47863 100644
+--- a/src/main/java/net/minecraft/world/level/levelgen/structure/templatesystem/StructureProcessorType.java
++++ b/src/main/java/net/minecraft/world/level/levelgen/structure/templatesystem/StructureProcessorType.java
+@@ -25,6 +25,9 @@ public interface StructureProcessorType<P extends StructureProcessor> {
+     StructureProcessorType<ProtectedBlockProcessor> PROTECTED_BLOCKS = register("protected_blocks", ProtectedBlockProcessor.CODEC);
+     StructureProcessorType<CappedProcessor> CAPPED = register("capped", CappedProcessor.CODEC);
+ 
++
++    StructureProcessorType<de.verdox.mccreativelab.worldgen.structure.PathProcessor> PATH = register("path", de.verdox.mccreativelab.worldgen.structure.PathProcessor.CODEC);
++
+     Codec<P> codec();
+ 
+     static <P extends StructureProcessor> StructureProcessorType<P> register(String id, Codec<P> codec) {
+diff --git a/src/main/java/net/minecraft/world/level/levelgen/structure/templatesystem/StructureTemplate.java b/src/main/java/net/minecraft/world/level/levelgen/structure/templatesystem/StructureTemplate.java
+index 471e8493622c89d44a82f42f135cb308c9e0fbfe..2985e86c7849bfed55d6095e99084f50ebfc1ab0 100644
+--- a/src/main/java/net/minecraft/world/level/levelgen/structure/templatesystem/StructureTemplate.java
++++ b/src/main/java/net/minecraft/world/level/levelgen/structure/templatesystem/StructureTemplate.java
+@@ -265,6 +265,13 @@ public class StructureTemplate {
+                 int j1 = Integer.MIN_VALUE;
+                 int k1 = Integer.MIN_VALUE;
+                 List<StructureTemplate.StructureBlockInfo> list4 = StructureTemplate.processBlockInfos(world, pos, pivot, placementData, list);
++
++                // MCCreativeLab start - Block Processing removed all blocks from being placed
++                if(list4.isEmpty()){
++                    return false;
++                }
++                // MCCreativeLab end - Block Processing removed all blocks from being placed
++
+                 Iterator iterator = list4.iterator();
+ 
+                 BlockEntity tileentity;

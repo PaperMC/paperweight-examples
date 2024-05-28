@@ -1,0 +1,29 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: verdox <mail.ysp@web.de>
+Date: Wed, 1 May 2024 15:09:16 +0000
+Subject: [PATCH] CreativeMode custom durability fix
+
+
+diff --git a/src/main/java/net/minecraft/network/FriendlyByteBuf.java b/src/main/java/net/minecraft/network/FriendlyByteBuf.java
+index 180c368f792259b854e47d8c1e3cdccc56c98b90..276911d26f4d69f8d249b14e249cd33db84a193c 100644
+--- a/src/main/java/net/minecraft/network/FriendlyByteBuf.java
++++ b/src/main/java/net/minecraft/network/FriendlyByteBuf.java
+@@ -655,12 +655,17 @@ public class FriendlyByteBuf extends ByteBuf {
+                 // MCCLab start - Send the calculated damage value
+                 if(stack.getMaxDamage() != stack.getItem().getMaxDamage() && nbttagcompound != null && item.canBeDepleted()) {
+                     nbttagcompound = nbttagcompound.copy();
+-                    float actualDamagePercentage = stack.getDamageValue() * 1f / stack.getMaxDamage();
++                    int damage = stack.getDamageValue();
++                    if(nbttagcompound.contains("Damage_Saved"))
++                        damage = nbttagcompound.getInt("Damage_Saved");
++                    float actualDamagePercentage = damage * 1f / stack.getMaxDamage();
+                     int vanillaDamage = Math.round(stack.getItem().getMaxDamage() * actualDamagePercentage);
+                     vanillaDamage = Math.max(0, vanillaDamage);
+                     vanillaDamage = Math.min(vanillaDamage, stack.getItem().getMaxDamage());
+                     nbttagcompound.putInt(ItemStack.TAG_DAMAGE, vanillaDamage);
++                    nbttagcompound.putInt("Damage_Saved", damage);
+                 }
++                if(stack.getTag() != null) stack.getTag().remove("Damage_Saved");
+                 // MCCLab end - Send the calculated damage value
+             }
+ 
