@@ -2221,15 +2221,13 @@ index 2034ca2edd3aff61d94416266e75402babd3e741..6d24bf837e28a1468f6033dd811d2c7e
              return this.getBlock() instanceof EntityBlock ? ((EntityBlock) this.getBlock()).getTicker(world, this.asState(), blockEntityType) : null;
          }
  
-@@ -1326,6 +1344,15 @@ public abstract class BlockBehaviour implements FeatureElement {
+@@ -1326,6 +1344,13 @@ public abstract class BlockBehaviour implements FeatureElement {
              return this.isRandomlyTicking;
          }
  
 +        // MCCLab start - Add BlockBehaviour
 +        public final boolean isRandomlyTicking(Level world, int x, int y, int z, BlockState blockState){
-+            if(world == null || x == -1 || z == -1 || blockState == null)
-+                return this.isRandomlyTicking();
-+            return blockBehaviour().isRandomlyTicking(world, x, y,z,blockState, this.isRandomlyTicking());
++            return blockBehaviour().isRandomlyTicking(world, x, y, z,blockState, this.isRandomlyTicking());
 +        }
 +
 +        // MCCLab end - Add BlockBehaviour
@@ -2271,6 +2269,19 @@ index aadd0650a9d1a580e1b4f5ef360d5d42edf37eca..823d81cece48383500394225ec005869
 +    }
 +    // MCCLab - end
  }
+diff --git a/src/main/java/net/minecraft/world/level/chunk/storage/ChunkSerializer.java b/src/main/java/net/minecraft/world/level/chunk/storage/ChunkSerializer.java
+index f3f2b5304595203923b288eaf60cb3a0c783386a..55bf8cf64e0f3491f42ce8a7fc546c811f56546a 100644
+--- a/src/main/java/net/minecraft/world/level/chunk/storage/ChunkSerializer.java
++++ b/src/main/java/net/minecraft/world/level/chunk/storage/ChunkSerializer.java
+@@ -207,7 +207,7 @@ public class ChunkSerializer {
+                     object = new PalettedContainer<>(iregistry.asHolderIdMap(), iregistry.getHolderOrThrow(Biomes.PLAINS), PalettedContainer.Strategy.SECTION_BIOMES, null); // Paper - Anti-Xray - Add preset biomes
+                 }
+ 
+-                LevelChunkSection chunksection = new LevelChunkSection(datapaletteblock, (PalettedContainer) object); // CraftBukkit - read/write
++                LevelChunkSection chunksection = new LevelChunkSection(world, chunkPos, datapaletteblock, (PalettedContainer) object); // CraftBukkit - read/write
+ 
+                 achunksection[k] = chunksection;
+                 SectionPos sectionposition = SectionPos.of(chunkPos, b0);
 diff --git a/src/main/java/net/minecraft/world/level/chunk/LevelChunkSection.java b/src/main/java/net/minecraft/world/level/chunk/LevelChunkSection.java
 index a2a5aef769ee8bb638a5a9f3da9812fa4a85dda5..8d24184756b2c3406eb9e680f4e806dccbc1ebda 100644
 --- a/src/main/java/net/minecraft/world/level/chunk/LevelChunkSection.java
@@ -2280,13 +2291,25 @@ index a2a5aef769ee8bb638a5a9f3da9812fa4a85dda5..8d24184756b2c3406eb9e680f4e806dc
      // Paper start - optimise collisions
      private int specialCollidingBlocks;
 +    // MCCLab start - Add BlockBehaviour
-+    private net.minecraft.world.level.Level level;
-+    private net.minecraft.world.level.ChunkPos chunkPos;
++    org.jetbrains.annotations.NotNull private net.minecraft.world.level.Level level;
++    org.jetbrains.annotations.NotNull private net.minecraft.world.level.ChunkPos chunkPos;
 +    private int chunkSectionY;
 +    // MCCLab end - Add BlockBehaviour
  
      private void updateBlockCallback(final int x, final int y, final int z, final BlockState oldState, final BlockState newState) {
          if (io.papermc.paper.util.CollisionUtil.isSpecialCollidingBlock(newState)) {
+@@ -48,8 +49,10 @@ public class LevelChunkSection {
+     }
+     // Paper end - optimise collisions
+ 
+-    public LevelChunkSection(PalettedContainer<BlockState> datapaletteblock, PalettedContainer<Holder<Biome>> palettedcontainerro) {
++    public LevelChunkSection(net.minecraft.world.level.Level level, net.minecraft.world.level.ChunkPos chunkPos, PalettedContainer<BlockState> datapaletteblock, PalettedContainer<Holder<Biome>> palettedcontainerro) {
+         // CraftBukkit end
++        this.level = level;
++        this.chunkPos = chunkPos;
+         this.states = datapaletteblock;
+         this.biomes = palettedcontainerro;
+         this.recalcBlockCounts();
 @@ -56,6 +61,11 @@ public class LevelChunkSection {
          // Paper end
          this.states = new PalettedContainer<>(Block.BLOCK_STATE_REGISTRY, Blocks.AIR.defaultBlockState(), PalettedContainer.Strategy.SECTION_STATES, level == null || level.chunkPacketBlockController == null ? null : level.chunkPacketBlockController.getPresetBlockStates(level, chunkPos, chunkSectionY)); // Paper - Anti-Xray - Add preset block states
