@@ -84,7 +84,7 @@ index 56b07a3306e5735816c8d89601b519cb0db6379a..37f791827e928f18f36594cb1836c233
              if (unloading) {
                  completing = true;
 diff --git a/src/main/java/net/minecraft/world/level/chunk/status/ChunkStatus.java b/src/main/java/net/minecraft/world/level/chunk/status/ChunkStatus.java
-index b81c548c0e1ac53784e9c94b34b65db5f123309c..0244c1bfe2d64660593f1887f81cd3467fce4c5d 100644
+index b81c548c0e1ac53784e9c94b34b65db5f123309c..959e89327dcff0db7f02382ef872e7ea7e6ab083 100644
 --- a/src/main/java/net/minecraft/world/level/chunk/status/ChunkStatus.java
 +++ b/src/main/java/net/minecraft/world/level/chunk/status/ChunkStatus.java
 @@ -19,6 +19,7 @@ import net.minecraft.util.profiling.jfr.callback.ProfiledDuration;
@@ -101,7 +101,7 @@ index b81c548c0e1ac53784e9c94b34b65db5f123309c..0244c1bfe2d64660593f1887f81cd346
          ChunkType.PROTOCHUNK,
 -        ChunkStatusTasks::generateStructureStarts,
 +        (context, status, executor, fullChunkConverter, chunks, chunk) -> {
-+            de.verdox.mccreativelab.worldgen.ChunkDataUtil.callChunkDataCreateEvent(context.getWorld(), chunk, chunk.persistentDataContainer); // MCCLab - Add Async Chunk Event
++            de.verdox.mccreativelab.worldgen.ChunkDataUtil.callChunkDataCreateEvent(context.level(), chunk, chunk.persistentDataContainer); // MCCLab - Add Async Chunk Event
 +            return ChunkStatusTasks.generateStructureStarts(context, status ,executor, fullChunkConverter, chunks, chunk);
 +        },
          ChunkStatusTasks::loadStructureStarts

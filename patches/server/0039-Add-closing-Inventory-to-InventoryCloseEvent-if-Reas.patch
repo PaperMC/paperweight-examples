@@ -1,0 +1,86 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: verdox <mail.ysp@web.de>
+Date: Wed, 29 May 2024 15:10:56 +0000
+Subject: [PATCH] Add closing Inventory to InventoryCloseEvent if Reason =
+ OPEN_NEW
+
+
+diff --git a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
+index c450447585af4c8cdc87abe871c229ff895c3e53..c565e0a01f4aa63a36eb31c8bcac3b780f64c39b 100644
+--- a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
++++ b/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
+@@ -2916,6 +2916,16 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
+ 
+     }
+ 
++    public void handleOpenContainerSwitch(ServerboundContainerClosePacket packet, InventoryView newView) {
++        // Paper end - Inventory close reason
++        PacketUtils.ensureRunningOnSameThread(packet, this, this.player.serverLevel());
++
++        if (this.player.isImmobile()) return; // CraftBukkit
++        CraftEventFactory.handleInventoryCloseEvent(this.player, org.bukkit.event.inventory.InventoryCloseEvent.Reason.OPEN_NEW, newView); // CraftBukkit // Paper
++
++        this.player.doCloseContainer();
++    }
++
+     @Override
+     public void handleContainerClose(ServerboundContainerClosePacket packet) {
+         // Paper start - Inventory close reason
+diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftHumanEntity.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftHumanEntity.java
+index a3366d5bf258c430c5bbb65958d54a00d3d3574d..788db6051e10ad696124d0e6cc18a2df1a5d4b8e 100644
+--- a/src/main/java/org/bukkit/craftbukkit/entity/CraftHumanEntity.java
++++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftHumanEntity.java
+@@ -492,7 +492,7 @@ public class CraftHumanEntity extends CraftLivingEntity implements HumanEntity {
+         if (((ServerPlayer) this.getHandle()).connection == null) return;
+         if (this.getHandle().containerMenu != this.getHandle().inventoryMenu) {
+             // fire INVENTORY_CLOSE if one already open
+-            ((ServerPlayer) this.getHandle()).connection.handleContainerClose(new ServerboundContainerClosePacket(this.getHandle().containerMenu.containerId), org.bukkit.event.inventory.InventoryCloseEvent.Reason.OPEN_NEW); // Paper - Inventory close reason
++            ((ServerPlayer) this.getHandle()).connection.handleOpenContainerSwitch(new ServerboundContainerClosePacket(this.getHandle().containerMenu.containerId), inventory); // Paper - Inventory close reason
+         }
+         ServerPlayer player = (ServerPlayer) this.getHandle();
+         AbstractContainerMenu container;
+diff --git a/src/main/java/org/bukkit/craftbukkit/event/CraftEventFactory.java b/src/main/java/org/bukkit/craftbukkit/event/CraftEventFactory.java
+index 34b91eff3190848bae38b20e1d956ece497b1473..17dbd192cb51326713bb6dd0fdf11b59dfc68bb1 100644
+--- a/src/main/java/org/bukkit/craftbukkit/event/CraftEventFactory.java
++++ b/src/main/java/org/bukkit/craftbukkit/event/CraftEventFactory.java
+@@ -1411,7 +1411,7 @@ public class CraftEventFactory {
+     public static com.mojang.datafixers.util.Pair<net.kyori.adventure.text.@org.jetbrains.annotations.Nullable Component, @org.jetbrains.annotations.Nullable AbstractContainerMenu> callInventoryOpenEventWithTitle(ServerPlayer player, AbstractContainerMenu container, boolean cancelled) {
+         // Paper end - Add titleOverride to InventoryOpenEvent
+         if (player.containerMenu != player.inventoryMenu) { // fire INVENTORY_CLOSE if one already open
+-            player.connection.handleContainerClose(new ServerboundContainerClosePacket(player.containerMenu.containerId), InventoryCloseEvent.Reason.OPEN_NEW); // Paper - Inventory close reason
++            player.connection.handleOpenContainerSwitch(new ServerboundContainerClosePacket(player.containerMenu.containerId), player.inventoryMenu.getBukkitView()); // Paper - Inventory close reason
+         }
+ 
+         CraftServer server = player.level().getCraftServer();
+@@ -1606,6 +1606,15 @@ public class CraftEventFactory {
+         return event;
+     }
+ 
++    // MCCreativeLab start - Add Closing Inventory to InventoryCloseEvent when closed by another Inventory
++    public static void handleInventoryCloseEvent(net.minecraft.world.entity.player.Player human, org.bukkit.event.inventory.InventoryCloseEvent.Reason reason, @org.jetbrains.annotations.Nullable InventoryView newInventory) {
++        // Paper end
++        InventoryCloseEvent event = new InventoryCloseEvent(human.containerMenu.getBukkitView(), reason); // Paper
++        human.level().getCraftServer().getPluginManager().callEvent(event);
++        human.containerMenu.transferTo(human.inventoryMenu, human.getBukkitEntity());
++    }
++    // MCCreativeLab end - Add Closing Inventory to InventoryCloseEvent when closed by another Inventory
++
+     // Paper start
+     /**
+      * Incase plugins hooked into this or Spigot adds a new inventory close event. Prefer to pass a reason
+@@ -1613,13 +1622,10 @@ public class CraftEventFactory {
+      */
+     @Deprecated
+     public static void handleInventoryCloseEvent(net.minecraft.world.entity.player.Player human) {
+-        handleInventoryCloseEvent(human, org.bukkit.event.inventory.InventoryCloseEvent.Reason.UNKNOWN);
++        handleInventoryCloseEvent(human, org.bukkit.event.inventory.InventoryCloseEvent.Reason.UNKNOWN, null);
+     }
+     public static void handleInventoryCloseEvent(net.minecraft.world.entity.player.Player human, org.bukkit.event.inventory.InventoryCloseEvent.Reason reason) {
+-        // Paper end
+-        InventoryCloseEvent event = new InventoryCloseEvent(human.containerMenu.getBukkitView(), reason); // Paper
+-        human.level().getCraftServer().getPluginManager().callEvent(event);
+-        human.containerMenu.transferTo(human.inventoryMenu, human.getBukkitEntity());
++        handleInventoryCloseEvent(human, reason, null);
+     }
+ 
+     public static ItemStack handleEditBookEvent(ServerPlayer player, int itemInHandIndex, ItemStack itemInHand, ItemStack newBookItem) {

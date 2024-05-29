@@ -1,0 +1,33 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: verdox <mail.ysp@web.de>
+Date: Wed, 29 May 2024 13:54:15 +0000
+Subject: [PATCH] Add InventoryHopperBehaviour
+
+
+diff --git a/src/main/java/org/bukkit/inventory/Inventory.java b/src/main/java/org/bukkit/inventory/Inventory.java
+index 0d519813c12d98b28d62e6d01d7ec6e8c2dba3c3..1476d496c8cc374d1031991f59e83e0821764594 100644
+--- a/src/main/java/org/bukkit/inventory/Inventory.java
++++ b/src/main/java/org/bukkit/inventory/Inventory.java
+@@ -429,4 +429,22 @@ public interface Inventory extends Iterable<ItemStack> {
+      */
+     @Nullable
+     public Location getLocation();
++
++    /**
++     * Used to set a {@link de.verdox.mccreativelab.behaviour.InventoryHopperBehaviour}
++     * @param behaviour the new behaviour
++     */
++    public void setInventoryHopperBehaviour(@org.jetbrains.annotations.Nullable de.verdox.mccreativelab.behaviour.InventoryHopperBehaviour behaviour);
++
++    /**
++     * Returns the current{@link de.verdox.mccreativelab.behaviour.InventoryHopperBehaviour}
++     * @return the current behaviour
++     */
++    public @org.jetbrains.annotations.Nullable de.verdox.mccreativelab.behaviour.InventoryHopperBehaviour getInventoryHopperBehaviour();
++
++    /**
++     * Returns whether a {@link de.verdox.mccreativelab.behaviour.InventoryHopperBehaviour} exists.
++     * @return true if it has a custom behaviour
++     */
++    public boolean hasInventoryHopperBehaviour();
+ }

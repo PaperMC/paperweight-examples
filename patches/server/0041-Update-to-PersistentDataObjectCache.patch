@@ -1,0 +1,43 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: verdox <mail.ysp@web.de>
+Date: Wed, 29 May 2024 15:21:22 +0000
+Subject: [PATCH] Update to PersistentDataObjectCache
+
+
+diff --git a/src/main/java/org/bukkit/craftbukkit/persistence/CraftPersistentDataObjectCache.java b/src/main/java/org/bukkit/craftbukkit/persistence/CraftPersistentDataObjectCache.java
+index 4f1bd2007cdee660df8af089c668e3562021df89..11c6e848d2aa51149f1b32fc7bca3e3226508914 100644
+--- a/src/main/java/org/bukkit/craftbukkit/persistence/CraftPersistentDataObjectCache.java
++++ b/src/main/java/org/bukkit/craftbukkit/persistence/CraftPersistentDataObjectCache.java
+@@ -43,11 +43,15 @@ public class CraftPersistentDataObjectCache implements PersistentDataObjectCache
+         this.tags = tags;
+     }
+     @Override
+-    public <T extends PersistentDataObject> @NotNull T loadOrCreatePersistentDataObject(@NotNull NamespacedKey key, T newObject) {
++    public <T extends PersistentDataObject> @NotNull T loadOrSupplyPersistentDataObject(@NotNull NamespacedKey key, java.util.function.Supplier<T> newObjectSupplier) {
+         Preconditions.checkArgument(key != null, "The NamespacedKey key cannot be null");
+-        Preconditions.checkArgument(newObject != null, "The provided newObject cannot be null");
++        Preconditions.checkArgument(newObjectSupplier != null, "The provided newObject cannot be null");
+         if (persistentDataObjectMap.containsKey(key))
+             return (T) persistentDataObjectMap.get(key);
++
++        T newObject = newObjectSupplier.get();
++        Preconditions.checkArgument(newObject != null, "The newObject supplied cannot be null");
++
+         readObjectFromTags(key, newObject);
+         persistentDataObjectMap.put(key, newObject);
+         markParentAsDirty();
+diff --git a/src/main/java/org/bukkit/craftbukkit/persistence/DirtyCraftPersistentDataContainer.java b/src/main/java/org/bukkit/craftbukkit/persistence/DirtyCraftPersistentDataContainer.java
+index fc3a34b59b70a6f553e28ba5c61d8ad50f3cb9b5..4ab6a291cf379b57410be292a7ff07e2d78285fe 100644
+--- a/src/main/java/org/bukkit/craftbukkit/persistence/DirtyCraftPersistentDataContainer.java
++++ b/src/main/java/org/bukkit/craftbukkit/persistence/DirtyCraftPersistentDataContainer.java
+@@ -60,4 +60,10 @@ public final class DirtyCraftPersistentDataContainer extends CraftPersistentData
+         super.putAll(map);
+         this.dirty(true);
+     }
++
++    @Override
++    public CraftPersistentDataObjectCache getPersistentDataObjectCache() {
++        this.dirty(true);
++        return super.getPersistentDataObjectCache();
++    }
+ }

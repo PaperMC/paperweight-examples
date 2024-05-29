@@ -5,7 +5,7 @@ Subject: [PATCH] Make Chunk implement WorldGenChunk
 
 
 diff --git a/src/main/java/org/bukkit/Chunk.java b/src/main/java/org/bukkit/Chunk.java
-index 72cb2ba120f80462378cf704a04893304ea72947..a5a4c12446d9c8e803a3838b3cc8b9aeab028328 100644
+index d547ae2b20c58bc703de4532b3b591dd34ddb1c6..cd9b14e65c12614ad5d3f5ca558377f125c2018a 100644
 --- a/src/main/java/org/bukkit/Chunk.java
 +++ b/src/main/java/org/bukkit/Chunk.java
 @@ -19,7 +19,7 @@ import org.jetbrains.annotations.NotNull;

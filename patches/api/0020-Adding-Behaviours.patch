@@ -119,14 +119,15 @@ index 0000000000000000000000000000000000000000..1fb3445619006e1911c25f68489a9675
 +}
 diff --git a/src/main/java/de/verdox/mccreativelab/InteractionResult.java b/src/main/java/de/verdox/mccreativelab/InteractionResult.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..0daf40262de8269c3dece903bb8f16519da7ed46
+index 0000000000000000000000000000000000000000..c2a38adb30a24ca03ce2a65d14a06c3e1b5d9711
 --- /dev/null
 +++ b/src/main/java/de/verdox/mccreativelab/InteractionResult.java
-@@ -0,0 +1,9 @@
+@@ -0,0 +1,10 @@
 +package de.verdox.mccreativelab;
 +
 +public enum InteractionResult {
 +    SUCCESS,
++    SUCCESS_NO_ITEM_USED,
 +    CONSUME,
 +    CONSUME_PARTIAL,
 +    PASS,
@@ -1422,10 +1423,10 @@ index 62e3793903905b94eb1a120345015149abb33713..be92b48f06d8a15d01ee43100e5a6601
       * <br>
 diff --git a/src/main/java/org/bukkit/inventory/FoodProperties.java b/src/main/java/org/bukkit/inventory/FoodProperties.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..5f141daee39ac344774b73856cbc09fd35c319eb
+index 0000000000000000000000000000000000000000..88dca90d372244ff9d57263984ad797182fb3e10
 --- /dev/null
 +++ b/src/main/java/org/bukkit/inventory/FoodProperties.java
-@@ -0,0 +1,15 @@
+@@ -0,0 +1,14 @@
 +package org.bukkit.inventory;
 +
 +import it.unimi.dsi.fastutil.Pair;
@@ -1436,9 +1437,8 @@ index 0000000000000000000000000000000000000000..5f141daee39ac344774b73856cbc09fd
 +public interface FoodProperties {
 +    int getNutrition();
 +    float getSaturationModifier();
-+    boolean isMeat();
 +    boolean canAlwaysEat();
-+    boolean isFastFood();
++    float getEatSeconds();
 +    List<Pair<PotionEffect, Float>> getEffects();
 +}
 diff --git a/src/main/java/org/bukkit/inventory/ItemStack.java b/src/main/java/org/bukkit/inventory/ItemStack.java

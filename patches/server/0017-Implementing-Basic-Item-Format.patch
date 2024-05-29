@@ -23,10 +23,10 @@ index 58c38bc4361ddf24716f326b0c6fc626d434756e..82ca17b8bdbee786a02206c7c045983f
  
      public static DataResult<Unit> validateComponents(DataComponentMap components) {
 diff --git a/src/main/java/org/bukkit/craftbukkit/inventory/CraftItemStack.java b/src/main/java/org/bukkit/craftbukkit/inventory/CraftItemStack.java
-index 9f74a685e0ec51e66f2900d4782849438eb56320..5596f1b3733d19c614c85b18f94713b465e0e7f9 100644
+index dc1562e413ccce42573d032dcb42af195c004da1..c7b53331ae67fe4a5a46302c37d748e970ba96c4 100644
 --- a/src/main/java/org/bukkit/craftbukkit/inventory/CraftItemStack.java
 +++ b/src/main/java/org/bukkit/craftbukkit/inventory/CraftItemStack.java
-@@ -146,6 +146,7 @@ public final class CraftItemStack extends ItemStack {
+@@ -142,6 +142,7 @@ public final class CraftItemStack extends ItemStack {
          this.setAmount(amount);
          this.setDurability(durability);
          this.setItemMeta(itemMeta);

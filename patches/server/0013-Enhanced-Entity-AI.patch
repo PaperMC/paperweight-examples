@@ -505,7 +505,7 @@ index 0000000000000000000000000000000000000000..e16263942a7691d9a755f5f61d7f7774
 +}
 diff --git a/src/main/java/de/verdox/mccreativelab/ai/builder/CraftBehaviorFactory.java b/src/main/java/de/verdox/mccreativelab/ai/builder/CraftBehaviorFactory.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..c36e760a8d180fb5008d25085c999014b9f581bc
+index 0000000000000000000000000000000000000000..2683b9f75587c1d5c27335e819e724c34b780a44
 --- /dev/null
 +++ b/src/main/java/de/verdox/mccreativelab/ai/builder/CraftBehaviorFactory.java
 @@ -0,0 +1,576 @@
@@ -588,15 +588,15 @@ index 0000000000000000000000000000000000000000..c36e760a8d180fb5008d25085c999014
 +    }
 +
 +    @Override
-+    public AIBehavior<Animals> animalMakeLove(EntityType targetType, float speed) {
++    public AIBehavior<Animals> animalMakeLove(EntityType targetType, float speed, int approachDistance) {
 +        if (!Animals.class.isAssignableFrom(targetType.getEntityClass()))
 +            throw new IllegalArgumentException("Please provide an Animal EntityType");
-+        return asBehavior(new AnimalMakeLove((net.minecraft.world.entity.EntityType<? extends Animal>) CraftEntityType.bukkitToMinecraft(targetType), speed));
++        return asBehavior(new AnimalMakeLove((net.minecraft.world.entity.EntityType<? extends Animal>) CraftEntityType.bukkitToMinecraft(targetType), speed, approachDistance));
 +    }
 +
 +    @Override
 +    public AIBehavior<Mob> animalPanic(float speed, Predicate<Mob> panicPredicate) {
-+        return asBehavior(new AnimalPanic(speed, pathfinderMob -> panicPredicate.test(pathfinderMob.getBukkitCreature())));
++        return asBehavior(new AnimalPanic<>(speed, pathfinderMob -> panicPredicate.test(pathfinderMob.getBukkitCreature())));
 +    }
 +
 +    @Override
@@ -1497,7 +1497,7 @@ index 0000000000000000000000000000000000000000..a4ecfb6a7699e62603e2a1984b2e3276
 +    }
 +}
 diff --git a/src/main/java/net/minecraft/world/entity/ai/Brain.java b/src/main/java/net/minecraft/world/entity/ai/Brain.java
-index afbb027021acfbe25d534a84f1750e420bbde6e0..a0c90a3d0309117b64233c3bbe3a2cd5221d770e 100644
+index afbb027021acfbe25d534a84f1750e420bbde6e0..c44a88cc8143850a918a2b56dd8341f6f4eeba03 100644
 --- a/src/main/java/net/minecraft/world/entity/ai/Brain.java
 +++ b/src/main/java/net/minecraft/world/entity/ai/Brain.java
 @@ -194,14 +194,14 @@ public class Brain<E extends LivingEntity> {
@@ -1568,7 +1568,7 @@ index afbb027021acfbe25d534a84f1750e420bbde6e0..a0c90a3d0309117b64233c3bbe3a2cd5
 +    public void removeAllBehavioursByActivity(Activity activity){
 +        this.activityRequirements.remove(activity);
 +        this.activityMemoriesToEraseWhenStopped.remove(activity);
-+        Iterator<Map.Entry<Integer, Map<Activity, Set<BehaviorControl<? super E>>>>> iterator = this.availableBehaviorsByPriority.entrySet().iterator();
++        java.util.Iterator<Map.Entry<Integer, Map<Activity, Set<BehaviorControl<? super E>>>>> iterator = this.availableBehaviorsByPriority.entrySet().iterator();
 +        while(iterator.hasNext()){
 +            Map.Entry<Integer, Map<Activity, Set<BehaviorControl<? super E>>>> value = iterator.next();
 +            Map<Activity, Set<BehaviorControl<? super E>>> activityMap = value.getValue();

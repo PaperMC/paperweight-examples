@@ -5,7 +5,7 @@ Subject: [PATCH] Adding isRainingAt method to World.java
 
 
 diff --git a/src/main/java/org/bukkit/World.java b/src/main/java/org/bukkit/World.java
-index 1f9feca21306e21c506c7cbc190735db651f1289..348a47582b58b7054fe0ee3178a45fa9fd589317 100644
+index 3052aed3f0739f8dfa8e78f691ef942245562e81..7f57bcc5cb921d09c0b8122575f77b1225ae5a9d 100644
 --- a/src/main/java/org/bukkit/World.java
 +++ b/src/main/java/org/bukkit/World.java
 @@ -53,6 +53,14 @@ import org.jetbrains.annotations.Nullable;

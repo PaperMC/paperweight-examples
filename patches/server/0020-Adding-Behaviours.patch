@@ -6,20 +6,26 @@ Subject: [PATCH] Adding Behaviours
 
 diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/BehaviourUtil.java b/src/main/java/de/verdox/mccreativelab/behaviour/BehaviourUtil.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..0040afcf747f096d40917ddc73f43f5c548747a2
+index 0000000000000000000000000000000000000000..85bdd88f40096e560ecaf41aed235d85f6077de5
 --- /dev/null
 +++ b/src/main/java/de/verdox/mccreativelab/behaviour/BehaviourUtil.java
-@@ -0,0 +1,249 @@
+@@ -0,0 +1,290 @@
 +package de.verdox.mccreativelab.behaviour;
 +
++import de.verdox.mccreativelab.InteractionResult;
 +import de.verdox.mccreativelab.MultiCustomBehaviour;
++import de.verdox.mccreativelab.behaviour.interaction.ItemStackInteraction;
 +import net.minecraft.world.InteractionResultHolder;
++import net.minecraft.world.ItemInteractionResult;
++import net.minecraft.world.item.ItemStack;
 +import net.minecraft.world.level.block.state.BlockState;
 +import org.bukkit.Bukkit;
 +import org.bukkit.Material;
++import org.bukkit.block.data.BlockData;
 +import org.bukkit.craftbukkit.CraftFoodProperties;
 +import org.bukkit.craftbukkit.block.data.CraftBlockData;
 +import org.bukkit.craftbukkit.inventory.CraftItemStack;
++import org.bukkit.inventory.FoodProperties;
 +import org.jetbrains.annotations.NotNull;
 +import org.jetbrains.annotations.Nullable;
 +
@@ -27,6 +33,7 @@ index 0000000000000000000000000000000000000000..0040afcf747f096d40917ddc73f43f5c
 +import java.util.Map;
 +import java.util.function.Function;
 +import java.util.function.Supplier;
++import java.util.logging.Level;
 +
 +public class BehaviourUtil {
 +    public static final BehaviourResult.Object<Float> FLOAT_DEFAULT = new BehaviourResult.Object<>(0f, BehaviourResult.Object.Type.USE_VANILLA);
@@ -50,7 +57,7 @@ index 0000000000000000000000000000000000000000..0040afcf747f096d40917ddc73f43f5c
 +            return converter.bukkitToNMS(evaluatedValue);
 +        } catch (Throwable throwable) {
 +            Bukkit.getLogger()
-+                  .log(java.util.logging.Level.WARNING, "An error occurred while running custom behaviour logic " + behaviour.getClass(), throwable);
++                  .log(Level.WARNING, "An error occurred while running custom behaviour logic " + behaviour.getClass(), throwable);
 +            return vanillaLogic.get();
 +        }
 +    }
@@ -119,7 +126,7 @@ index 0000000000000000000000000000000000000000..0040afcf747f096d40917ddc73f43f5c
 +            return behaviourResult.replaceVanillaLogic();
 +        } catch (Throwable throwable) {
 +            Bukkit.getLogger()
-+                  .log(java.util.logging.Level.WARNING, "An error occurred while running custom behaviour logic " + multiCustomBehaviour.getKey() + " for key " + key + " with value " + behaviour, throwable);
++                  .log(Level.WARNING, "An error occurred while running custom behaviour logic " + multiCustomBehaviour.getKey() + " for key " + key + " with value " + behaviour, throwable);
 +            return false;
 +        }
 +    }
@@ -207,6 +214,7 @@ index 0000000000000000000000000000000000000000..0040afcf747f096d40917ddc73f43f5c
 +                    return net.minecraft.world.InteractionResult.PASS;
 +                return switch (bukkitValue) {
 +                    case SUCCESS -> net.minecraft.world.InteractionResult.SUCCESS;
++                    case SUCCESS_NO_ITEM_USED -> net.minecraft.world.InteractionResult.SUCCESS_NO_ITEM_USED;
 +                    case CONSUME -> net.minecraft.world.InteractionResult.CONSUME;
 +                    case CONSUME_PARTIAL -> net.minecraft.world.InteractionResult.CONSUME_PARTIAL;
 +                    case PASS -> net.minecraft.world.InteractionResult.PASS;
@@ -218,6 +226,7 @@ index 0000000000000000000000000000000000000000..0040afcf747f096d40917ddc73f43f5c
 +            public de.verdox.mccreativelab.InteractionResult nmsToBukkitValue(net.minecraft.world.InteractionResult nmsValue) {
 +                return switch (nmsValue) {
 +                    case SUCCESS -> de.verdox.mccreativelab.InteractionResult.SUCCESS;
++                    case SUCCESS_NO_ITEM_USED -> de.verdox.mccreativelab.InteractionResult.SUCCESS_NO_ITEM_USED;
 +                    case CONSUME -> de.verdox.mccreativelab.InteractionResult.CONSUME;
 +                    case CONSUME_PARTIAL -> de.verdox.mccreativelab.InteractionResult.CONSUME_PARTIAL;
 +                    case PASS -> de.verdox.mccreativelab.InteractionResult.PASS;
@@ -225,6 +234,38 @@ index 0000000000000000000000000000000000000000..0040afcf747f096d40917ddc73f43f5c
 +                };
 +            }
 +        }
++        class ItemInteractionResult implements Converter<de.verdox.mccreativelab.ItemInteractionResult, net.minecraft.world.ItemInteractionResult>{
++            public static final ItemInteractionResult INSTANCE = new ItemInteractionResult();
++
++            @Override
++            public net.minecraft.world.ItemInteractionResult bukkitToNMS(de.verdox.mccreativelab.ItemInteractionResult bukkitValue) {
++                if(bukkitValue == null)
++                    return net.minecraft.world.ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
++                return switch (bukkitValue) {
++                    case SUCCESS -> net.minecraft.world.ItemInteractionResult.SUCCESS;
++                    case CONSUME -> net.minecraft.world.ItemInteractionResult.CONSUME;
++                    case CONSUME_PARTIAL -> net.minecraft.world.ItemInteractionResult.CONSUME_PARTIAL;
++                    case PASS_TO_DEFAULT_BLOCK_INTERACTION -> net.minecraft.world.ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
++                    case SKIP_DEFAULT_BLOCK_INTERACTION -> net.minecraft.world.ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
++                    case FAIL -> net.minecraft.world.ItemInteractionResult.FAIL;
++                };
++            }
++
++            @Override
++            public de.verdox.mccreativelab.ItemInteractionResult nmsToBukkitValue(net.minecraft.world.ItemInteractionResult nmsValue) {
++                if(nmsValue == null)
++                    return de.verdox.mccreativelab.ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
++                return switch (nmsValue) {
++                    case SUCCESS -> de.verdox.mccreativelab.ItemInteractionResult.SUCCESS;
++                    case CONSUME -> de.verdox.mccreativelab.ItemInteractionResult.CONSUME;
++                    case CONSUME_PARTIAL -> de.verdox.mccreativelab.ItemInteractionResult.CONSUME_PARTIAL;
++                    case PASS_TO_DEFAULT_BLOCK_INTERACTION -> de.verdox.mccreativelab.ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
++                    case SKIP_DEFAULT_BLOCK_INTERACTION -> de.verdox.mccreativelab.ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
++                    case FAIL -> de.verdox.mccreativelab.ItemInteractionResult.FAIL;
++                };
++            }
++        }
++
 +
 +        class BlockData implements Converter<org.bukkit.block.data.BlockData, BlockState> {
 +            public static final BlockData INSTANCE = new BlockData();
@@ -236,7 +277,7 @@ index 0000000000000000000000000000000000000000..0040afcf747f096d40917ddc73f43f5c
 +
 +            @Override
 +            public CraftBlockData nmsToBukkitValue(BlockState nmsValue) {
-+                return nmsValue.createCraftBlockData();
++                return CraftBlockData.createData(nmsValue);
 +            }
 +        }
 +
@@ -261,10 +302,10 @@ index 0000000000000000000000000000000000000000..0040afcf747f096d40917ddc73f43f5c
 +}
 diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/BlockBehaviourUtil.java b/src/main/java/de/verdox/mccreativelab/behaviour/BlockBehaviourUtil.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..f52f75900a74dc271b551fd55b456019e18a779b
+index 0000000000000000000000000000000000000000..200f2bb01e58d05d13307815f727b4ca42718ddf
 --- /dev/null
 +++ b/src/main/java/de/verdox/mccreativelab/behaviour/BlockBehaviourUtil.java
-@@ -0,0 +1,192 @@
+@@ -0,0 +1,208 @@
 +package de.verdox.mccreativelab.behaviour;
 +
 +import de.verdox.mccreativelab.random.CraftVanillaRandomSource;
@@ -276,6 +317,7 @@ index 0000000000000000000000000000000000000000..f52f75900a74dc271b551fd55b456019
 +import net.minecraft.util.RandomSource;
 +import net.minecraft.world.InteractionHand;
 +import net.minecraft.world.InteractionResult;
++import net.minecraft.world.ItemInteractionResult;
 +import net.minecraft.world.entity.Entity;
 +import net.minecraft.world.entity.player.Player;
 +import net.minecraft.world.item.ItemStack;
@@ -283,8 +325,10 @@ index 0000000000000000000000000000000000000000..f52f75900a74dc271b551fd55b456019
 +import net.minecraft.world.level.Level;
 +import net.minecraft.world.level.LevelAccessor;
 +import net.minecraft.world.level.LevelReader;
++import net.minecraft.world.level.block.Blocks;
 +import net.minecraft.world.level.block.state.BlockState;
 +import net.minecraft.world.phys.BlockHitResult;
++import org.bukkit.Bukkit;
 +import org.bukkit.Location;
 +import org.bukkit.Material;
 +import org.bukkit.block.Block;
@@ -350,7 +394,7 @@ index 0000000000000000000000000000000000000000..f52f75900a74dc271b551fd55b456019
 +        }, vanillaLogic);
 +    }
 +
-+    public InteractionResult use(BlockState state, Level world, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit, Supplier<InteractionResult> vanillaLogic){
++    public ItemInteractionResult useItemOn(BlockState state, Level world, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit, Supplier<ItemInteractionResult> vanillaLogic){
 +        return BlockBehaviourUtil.evaluate(BlockBehaviour.BLOCK_BEHAVIOUR, getMaterial(state), blockBehaviour -> {
 +            Block block = world.getWorld().getBlockAt(pos.getX(), pos.getY(), pos.getZ());
 +            BlockFace blockFace = toBukkitBlockFace(hit.getDirection());
@@ -359,17 +403,27 @@ index 0000000000000000000000000000000000000000..f52f75900a74dc271b551fd55b456019
 +                                                                                                    .y(), hit
 +                .getLocation().z()), block, blockFace);
 +            return blockBehaviour.use(block, (org.bukkit.entity.Player) player.getBukkitEntity(), equipmentSlot, rayTraceResult);
-+        }, vanillaLogic, Converter.InteractionResult.INSTANCE);
++        }, vanillaLogic, Converter.ItemInteractionResult.INSTANCE);
 +    }
 +
-+    public void onPlaceCallback(BlockState state, Level world, BlockPos pos, BlockState oldState, boolean notify) {
++    public void onUseCallback(BlockState state, Level world, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit, InteractionResult interactionResult) {
++        BlockBehaviourUtil.evaluateCallback(BlockBehaviour.BLOCK_BEHAVIOUR, getMaterial(state), blockBehaviour -> {
++            Block block = world.getWorld().getBlockAt(pos.getX(), pos.getY(), pos.getZ());
++            BlockFace blockFace = toBukkitBlockFace(hit.getDirection());
++            EquipmentSlot equipmentSlot = hand.equals(InteractionHand.MAIN_HAND) ? EquipmentSlot.HAND : EquipmentSlot.OFF_HAND;
++            RayTraceResult rayTraceResult = new RayTraceResult(new Vector(hit.getLocation().x(), hit.getLocation().y(), hit.getLocation().z()), block, blockFace);
++            return blockBehaviour.onUseCallback(block, (org.bukkit.entity.Player) player.getBukkitEntity(), equipmentSlot, rayTraceResult, Converter.InteractionResult.INSTANCE.nmsToBukkitValue(interactionResult));
++        });
++    }
++
++    public void onPlaceCallback(BlockState state, Level world, BlockPos pos, BlockState oldState, boolean notify, boolean isProcessingBlockPlaceEvent) {
 +        BlockBehaviourUtil.evaluateCallback(BlockBehaviour.BLOCK_BEHAVIOUR, getMaterial(state), blockBehaviour ->
-+            blockBehaviour.onPlace(new Location(world.getWorld(), pos.getX(), pos.getY(), pos.getZ()), state.createCraftBlockData(), oldState.createCraftBlockData(), notify));
++            blockBehaviour.onPlace(new Location(world.getWorld(), pos.getX(), pos.getY(), pos.getZ()), state.createCraftBlockData(), oldState.createCraftBlockData(), notify, isProcessingBlockPlaceEvent));
 +    }
 +
-+    public void onPlayerPlaceCallback(Player player, BlockState placedState, Level world, BlockPos pos) {
++    public void onPlayerPlaceCallback(Player player, ItemStack stackUsedToPlaceBlock, BlockState placedState, Level world, BlockPos pos) {
 +        BlockBehaviourUtil.evaluateCallback(BlockBehaviour.BLOCK_BEHAVIOUR, getMaterial(placedState), blockBehaviour ->
-+            blockBehaviour.onPlayerPlace((org.bukkit.entity.Player) player.getBukkitEntity(), new Location(world.getWorld(), pos.getX(), pos.getY(), pos.getZ()), placedState.createCraftBlockData()));
++            blockBehaviour.onPlayerPlace((org.bukkit.entity.Player) player.getBukkitEntity(), stackUsedToPlaceBlock.asBukkitCopy(), new Location(world.getWorld(), pos.getX(), pos.getY(), pos.getZ()), placedState.createCraftBlockData()));
 +    }
 +
 +    public void onPlayerBreakCallback(Player player, BlockState brokenState, Level world, BlockPos pos) {
@@ -423,14 +477,17 @@ index 0000000000000000000000000000000000000000..f52f75900a74dc271b551fd55b456019
 +            );
 +    }
 +
++    public void onPistonMove(BlockState movedState, Level world, BlockPos positionBeforeMove, BlockPos positionAfterMove, BlockPos positionOfPiston, Direction moveDirection) {
++        BlockBehaviourUtil.evaluateCallback(BlockBehaviour.BLOCK_BEHAVIOUR, getMaterial(movedState), blockBehaviour -> {
 +
-+    public void onUseCallback(BlockState state, Level world, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
-+        BlockBehaviourUtil.evaluateCallback(BlockBehaviour.BLOCK_BEHAVIOUR, getMaterial(state), blockBehaviour -> {
-+            Block block = world.getWorld().getBlockAt(pos.getX(), pos.getY(), pos.getZ());
-+            BlockFace blockFace = toBukkitBlockFace(hit.getDirection());
-+            EquipmentSlot equipmentSlot = hand.equals(InteractionHand.MAIN_HAND) ? EquipmentSlot.HAND : EquipmentSlot.OFF_HAND;
-+            RayTraceResult rayTraceResult = new RayTraceResult(new Vector(hit.getLocation().x(), hit.getLocation().y(), hit.getLocation().z()), block, blockFace);
-+            return blockBehaviour.onUse(block, (org.bukkit.entity.Player) player.getBukkitEntity(), equipmentSlot, rayTraceResult);
++            BlockData movedBlockData = movedState.createCraftBlockData();
++            Location posBeforeMove = new Location(world.getWorld(), positionBeforeMove.getX(), positionBeforeMove.getY(), positionBeforeMove.getZ());
++            Location posAfterMove = new Location(world.getWorld(), positionAfterMove.getX(), positionAfterMove.getY(), positionAfterMove.getZ());
++            Block piston = world.getWorld().getBlockAt(positionOfPiston.getX(), positionOfPiston.getY(), positionOfPiston.getZ());
++            Vector dir = new Vector(moveDirection.getStepX(), moveDirection.getStepY(), moveDirection.getStepZ());
++
++
++            return blockBehaviour.onPistonMoveBlock(movedBlockData, posBeforeMove, posAfterMove, piston, dir);
 +        });
 +    }
 +
@@ -626,16 +683,17 @@ index 0000000000000000000000000000000000000000..6991cdfad5a4e5954731ad4b3598d1cd
 +}
 diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/ItemBehaviourUtil.java b/src/main/java/de/verdox/mccreativelab/behaviour/ItemBehaviourUtil.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..35abb85b42d088fafddf1179b0254fdece69b78f
+index 0000000000000000000000000000000000000000..ea435866961ac82ef90acf20eee48909bc8f433b
 --- /dev/null
 +++ b/src/main/java/de/verdox/mccreativelab/behaviour/ItemBehaviourUtil.java
-@@ -0,0 +1,210 @@
+@@ -0,0 +1,206 @@
 +package de.verdox.mccreativelab.behaviour;
 +
 +import de.verdox.mccreativelab.MultiCustomBehaviour;
 +import de.verdox.mccreativelab.recipe.CustomItemData;
 +import net.minecraft.core.BlockPos;
 +import net.minecraft.core.Direction;
++import net.minecraft.core.component.DataComponents;
 +import net.minecraft.server.level.ServerLevel;
 +import net.minecraft.stats.Stats;
 +import net.minecraft.world.InteractionHand;
@@ -707,21 +765,21 @@ index 0000000000000000000000000000000000000000..35abb85b42d088fafddf1179b0254fde
 +    public static int getMaxStackSize(ItemStack stack) {
 +        return evaluateInteger(getBehaviour(stack),
 +            itemBehaviour -> itemBehaviour.getMaxStackSize(stack.asBukkitMirror()),
-+            () -> stack.getItem().getMaxStackSize()
++            stack::getMaxStackSize
 +        );
 +    }
 +
 +    public static int getMaxDamage(ItemStack stack) {
 +        return evaluateInteger(getBehaviour(stack),
 +            itemBehaviour -> itemBehaviour.getMaxDamage(stack.asBukkitMirror()),
-+            () -> stack.getItem().getMaxDamage()
++            stack::getMaxDamage
 +        );
 +    }
 +
 +    public static boolean isCorrectToolForDrops(ItemStack stack, BlockState blockState) {
 +        return evaluateBoolean(getBehaviour(stack),
 +            itemBehaviour -> itemBehaviour.isCorrectToolForDrops(stack.asBukkitMirror(), blockState.createCraftBlockData()),
-+            () -> stack.getItem().isCorrectToolForDrops(blockState)
++            () -> stack.isCorrectToolForDrops(blockState)
 +        );
 +    }
 +
@@ -757,16 +815,11 @@ index 0000000000000000000000000000000000000000..35abb85b42d088fafddf1179b0254fde
 +            () -> stack.getItem().onDestroyed(entity));
 +    }
 +
-+    public static boolean isEdible(ItemStack stack) {
-+        return evaluateBoolean(getBehaviour(stack),
-+            itemBehaviour -> itemBehaviour.isEdible(stack.asBukkitMirror()),
-+            () -> stack.getItem().isEdible());
-+    }
 +
 +    public static FoodProperties getFoodProperties(ItemStack stack) {
 +        return evaluate(getBehaviour(stack),
 +            itemBehaviour -> itemBehaviour.getFoodProperties(stack.asBukkitMirror()),
-+            () -> stack.getItem().getFoodProperties(),
++            () -> stack.get(DataComponents.FOOD),
 +            Converter.FoodProperties.INSTANCE
 +        );
 +    }
@@ -787,7 +840,7 @@ index 0000000000000000000000000000000000000000..35abb85b42d088fafddf1179b0254fde
 +    public static boolean isFireResistant(ItemStack stack) {
 +        return evaluateBoolean(getBehaviour(stack),
 +            itemBehaviour -> itemBehaviour.isFireResistant(stack.asBukkitMirror()),
-+            () -> stack.getItem().isFireResistant());
++            () -> stack.has(DataComponents.FIRE_RESISTANT));
 +    }
 +
 +    public static boolean canFitInsideContainerItems(ItemStack stack) {
@@ -1677,10 +1730,24 @@ index eade15820dd9db38b6af2a5c4314acfb14ca03e9..7bf889ab937d8a2f782721b133394e4d
                      return ItemStack.EMPTY;
                  }
 diff --git a/src/main/java/net/minecraft/world/item/BlockItem.java b/src/main/java/net/minecraft/world/item/BlockItem.java
-index 96fb69ec6db2e7c8c728435f0c537b076259b2fb..1f6a276ea8105271fc92ae91eea3e49cf703df62 100644
+index 96fb69ec6db2e7c8c728435f0c537b076259b2fb..f41da0a94007aca4a50f88afffc827b4585109d3 100644
 --- a/src/main/java/net/minecraft/world/item/BlockItem.java
 +++ b/src/main/java/net/minecraft/world/item/BlockItem.java
-@@ -92,7 +92,7 @@ public class BlockItem extends Item {
+@@ -72,6 +72,13 @@ public class BlockItem extends Item {
+                 return InteractionResult.FAIL;
+             } else {
+                 BlockState iblockdata = this.getPlacementState(blockactioncontext1);
++
++                BlockState finalState = de.verdox.mccreativelab.behaviour.ItemBehaviourUtil.placeBlockAction(context.getPlayer(), context.getClickedPos(), context.getLevel(), context.getItemInHand(), context.getLevel().getBlockState(context.getClickedPos()), () -> {
++                    return this.getPlacementState(blockactioncontext1);
++                });
++
++                iblockdata = finalState;
++
+                 // CraftBukkit start - special case for handling block placement with water lilies and snow buckets
+                 org.bukkit.block.BlockState blockstate = null;
+                 if (this instanceof PlaceOnWaterBlockItem || this instanceof SolidBucketItem) {
+@@ -92,7 +99,7 @@ public class BlockItem extends Item {
                      BlockState iblockdata1 = world.getBlockState(blockposition);
  
                      if (iblockdata1.is(iblockdata.getBlock())) {
@@ -1689,15 +1756,7 @@ index 96fb69ec6db2e7c8c728435f0c537b076259b2fb..1f6a276ea8105271fc92ae91eea3e49c
                          // Paper start - Reset placed block on exception
                          try {
                          this.updateCustomBlockEntityTag(blockposition, world, entityhuman, itemstack, iblockdata1);
-@@ -131,6 +131,7 @@ public class BlockItem extends Item {
-                     if (entityhuman == null) world.playSound(entityhuman, blockposition, this.getPlaceSound(iblockdata1), net.minecraft.sounds.SoundSource.BLOCKS, (soundeffecttype.getVolume() + 1.0F) / 2.0F, soundeffecttype.getPitch() * 0.8F); // Paper - Fix block place logic; reintroduce this for the dispenser (i.e the shulker)
-                     world.gameEvent((Holder) GameEvent.BLOCK_PLACE, blockposition, GameEvent.Context.of(entityhuman, iblockdata1));
-                     itemstack.consume(1, entityhuman);
-+                    if(entityhuman != null) de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.getInstance().onPlayerPlaceCallback(entityhuman, iblockdata, world, blockposition); // MCCLab - Add BlockBehaviour
-                     return InteractionResult.sidedSuccess(world.isClientSide);
-                 }
-             }
-@@ -167,7 +168,7 @@ public class BlockItem extends Item {
+@@ -167,7 +174,7 @@ public class BlockItem extends Item {
          return iblockdata != null && this.canPlace(context, iblockdata) ? iblockdata : null;
      }
  
@@ -1706,20 +1765,6 @@ index 96fb69ec6db2e7c8c728435f0c537b076259b2fb..1f6a276ea8105271fc92ae91eea3e49c
          BlockItemStateProperties blockitemstateproperties = (BlockItemStateProperties) stack.getOrDefault(DataComponents.BLOCK_STATE, BlockItemStateProperties.EMPTY);
  
          if (blockitemstateproperties.isEmpty()) {
-@@ -179,7 +180,12 @@ public class BlockItem extends Item {
-                 world.setBlock(pos, iblockdata1, 2);
-             }
- 
--            return iblockdata1;
-+            final BlockState finalState = iblockdata1;
-+            return de.verdox.mccreativelab.behaviour.ItemBehaviourUtil.placeBlockAction(player, pos, world, stack, state, () -> {
-+                if (finalState != state)
-+                    world.setBlock(pos, finalState, 2);
-+                return finalState;
-+            });
-         }
-     }
- 
 diff --git a/src/main/java/net/minecraft/world/item/BoneMealItem.java b/src/main/java/net/minecraft/world/item/BoneMealItem.java
 index 83e34ed4287d3434d1d702a6377cc114248a417b..b29a48f5aa46e519f832a321575c3af8a2fbde8f 100644
 --- a/src/main/java/net/minecraft/world/item/BoneMealItem.java
@@ -1741,7 +1786,7 @@ index 83e34ed4287d3434d1d702a6377cc114248a417b..b29a48f5aa46e519f832a321575c3af8
  
      public static boolean growWaterPlant(ItemStack stack, Level world, BlockPos blockPos, @Nullable Direction facing) {
 diff --git a/src/main/java/net/minecraft/world/item/ItemStack.java b/src/main/java/net/minecraft/world/item/ItemStack.java
-index 82ca17b8bdbee786a02206c7c045983ffc933ef8..318fdb9502c565a434df1ce094eccdb6f40f1a71 100644
+index 82ca17b8bdbee786a02206c7c045983ffc933ef8..3f72b29259f4688a6fe74d56b48e348058c8960c 100644
 --- a/src/main/java/net/minecraft/world/item/ItemStack.java
 +++ b/src/main/java/net/minecraft/world/item/ItemStack.java
 @@ -267,6 +267,7 @@ public final class ItemStack implements DataComponentHolder {
@@ -1842,7 +1887,7 @@ index 82ca17b8bdbee786a02206c7c045983ffc933ef8..318fdb9502c565a434df1ce094eccdb6
      }
  
      public SoundEvent getDrinkingSound() {
-@@ -1354,4 +1355,36 @@ public final class ItemStack implements DataComponentHolder {
+@@ -1354,4 +1355,33 @@ public final class ItemStack implements DataComponentHolder {
      public boolean canBeHurtBy(DamageSource source) {
          return !this.has(DataComponents.FIRE_RESISTANT) || !source.is(DamageTypeTags.IS_FIRE);
      }
@@ -1870,9 +1915,6 @@ index 82ca17b8bdbee786a02206c7c045983ffc933ef8..318fdb9502c565a434df1ce094eccdb6
 +        return getCraftingRemainingItem() != null;
 +    }
 +
-+    public boolean canBeHurtBy(net.minecraft.world.damagesource.DamageSource source) {
-+        return !this.isFireResistant() || !source.is(net.minecraft.tags.DamageTypeTags.IS_FIRE);
-+    }
 +
 +    public boolean canFitInsideContainerItems() {
 +        return de.verdox.mccreativelab.behaviour.ItemBehaviourUtil.canFitInsideContainerItems(this);
@@ -2043,7 +2085,7 @@ index 887957ce1ddc2f32569405642f35df468c08271f..0aa82803238fb519f2af9c7cf883f647
              if (itemstack.isEmpty()) {
                  itemstack = itemstack1;
 diff --git a/src/main/java/net/minecraft/world/level/block/state/BlockBehaviour.java b/src/main/java/net/minecraft/world/level/block/state/BlockBehaviour.java
-index 2034ca2edd3aff61d94416266e75402babd3e741..bd101345ce682923d658655d1d0b8f3725c53dee 100644
+index 2034ca2edd3aff61d94416266e75402babd3e741..6d24bf837e28a1468f6033dd811d2c7e3dba44c4 100644
 --- a/src/main/java/net/minecraft/world/level/block/state/BlockBehaviour.java
 +++ b/src/main/java/net/minecraft/world/level/block/state/BlockBehaviour.java
 @@ -398,6 +398,11 @@ public abstract class BlockBehaviour implements FeatureElement {
@@ -2075,16 +2117,12 @@ index 2034ca2edd3aff61d94416266e75402babd3e741..bd101345ce682923d658655d1d0b8f37
          }
  
          public final void updateNeighbourShapes(LevelAccessor world, BlockPos pos, int flags) {
-@@ -1197,10 +1203,12 @@ public abstract class BlockBehaviour implements FeatureElement {
- 
-         public void onPlace(Level world, BlockPos pos, BlockState state, boolean notify) {
-             this.getBlock().onPlace(this.asState(), world, pos, state, notify);
-+            blockBehaviour().onPlaceCallback(this.asState(), world, pos, state, notify); // MCCLab - Add Block behaviour
-         }
+@@ -1201,6 +1207,8 @@ public abstract class BlockBehaviour implements FeatureElement {
  
          public void onRemove(Level world, BlockPos pos, BlockState state, boolean moved) {
              this.getBlock().onRemove(this.asState(), world, pos, state, moved);
-+            blockBehaviour().onRemoveCallback(state, world, pos, state, moved); // MCCLab - Add Block behaviour
++            if(!this.asState().equals(state))
++               blockBehaviour().onRemoveCallback(state, world, pos, state, moved); // MCCLab - Add Block behaviour
          }
  
          public void onExplosionHit(Level world, BlockPos pos, Explosion explosion, BiConsumer<ItemStack, BlockPos> stackMerger) {
@@ -2106,7 +2144,7 @@ index 2034ca2edd3aff61d94416266e75402babd3e741..bd101345ce682923d658655d1d0b8f37
  
          public ItemInteractionResult useItemOn(ItemStack stack, Level world, Player player, InteractionHand hand, BlockHitResult hit) {
 -            return this.getBlock().useItemOn(stack, this.asState(), world, hit.getBlockPos(), player, hand, hit);
-+            return blockBehaviour().use(asState(), world, hit.getBlockPos(), player, hand, hit, () -> { // MCCLab - Add BlockBehaviour
++            return blockBehaviour().useItemOn(asState(), world, hit.getBlockPos(), player, hand, hit, () -> { // MCCLab - Add BlockBehaviour
 +                return this.getBlock().useItemOn(stack, this.asState(), world, hit.getBlockPos(), player, hand, hit);
 +            }); // MCCLab - Add BlockBehaviour
          }
@@ -2355,10 +2393,10 @@ index 64c22e5fb5ebc609667507ea8a6b1b8d0da768a1..f3e6a1a3e1f36764d4b0c21bc086ec5b
          if (bl && (!set2.isEmpty() || !set3.isEmpty())) {
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftFoodProperties.java b/src/main/java/org/bukkit/craftbukkit/CraftFoodProperties.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..1f204e8b4890d74f800ce4dfc10af5a22d073ec9
+index 0000000000000000000000000000000000000000..a5c05aebf98fbbe53538303b7d1a7596646ddc1c
 --- /dev/null
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftFoodProperties.java
-@@ -0,0 +1,58 @@
+@@ -0,0 +1,53 @@
 +package org.bukkit.craftbukkit;
 +
 +import it.unimi.dsi.fastutil.Pair;
@@ -2385,17 +2423,17 @@ index 0000000000000000000000000000000000000000..1f204e8b4890d74f800ce4dfc10af5a2
 +    }
 +    @Override
 +    public int getNutrition() {
-+        return handle.getNutrition();
++        return handle.nutrition();
 +    }
 +
 +    @Override
 +    public float getSaturationModifier() {
-+        return handle.getSaturationModifier();
++        return handle.saturation();
 +    }
 +
 +    @Override
-+    public boolean isMeat() {
-+        return handle.isMeat();
++    public float getEatSeconds() {
++        return handle.eatSeconds();
 +    }
 +
 +    @Override
@@ -2404,15 +2442,10 @@ index 0000000000000000000000000000000000000000..1f204e8b4890d74f800ce4dfc10af5a2
 +    }
 +
 +    @Override
-+    public boolean isFastFood() {
-+        return handle.isFastFood();
-+    }
-+
-+    @Override
 +    public List<Pair<PotionEffect, Float>> getEffects() {
-+        return handle.getEffects().stream().map(potionEffectFloatPair -> {
-+            MobEffectInstance mobEffectInstance = potionEffectFloatPair.getFirst();
-+            float value = potionEffectFloatPair.getSecond();
++        return handle.effects().stream().map(potionEffectFloatPair -> {
++            MobEffectInstance mobEffectInstance = potionEffectFloatPair.effect();
++            float value = potionEffectFloatPair.probability();
 +            return Pair.of(CraftPotionUtil.toBukkit(mobEffectInstance), value);
 +        }).collect(Collectors.toList());
 +    }
@@ -2476,10 +2509,10 @@ index a2d336ceb52b63db5c03432ee7bc94dc6a742b82..16b61d7f9408b96f8e28be33f41ddbcf
      public int getEntityId() {
          return this.entity.getId();
 diff --git a/src/main/java/org/bukkit/craftbukkit/inventory/CraftItemStack.java b/src/main/java/org/bukkit/craftbukkit/inventory/CraftItemStack.java
-index 5596f1b3733d19c614c85b18f94713b465e0e7f9..a49f1b9ea92ebd857576d82ee03b2727b203343c 100644
+index c7b53331ae67fe4a5a46302c37d748e970ba96c4..da5a66cc2cb2d464add89d3d2cdecf62b792000d 100644
 --- a/src/main/java/org/bukkit/craftbukkit/inventory/CraftItemStack.java
 +++ b/src/main/java/org/bukkit/craftbukkit/inventory/CraftItemStack.java
-@@ -75,6 +75,7 @@ public final class CraftItemStack extends ItemStack {
+@@ -71,6 +71,7 @@ public final class CraftItemStack extends ItemStack {
          if (original.hasItemMeta()) {
              CraftItemStack.setItemMeta(stack, original.getItemMeta());
          }
@@ -2487,7 +2520,7 @@ index 5596f1b3733d19c614c85b18f94713b465e0e7f9..a49f1b9ea92ebd857576d82ee03b2727
          return stack;
      }
  
-@@ -105,6 +106,7 @@ public final class CraftItemStack extends ItemStack {
+@@ -101,6 +102,7 @@ public final class CraftItemStack extends ItemStack {
          if (CraftItemStack.hasItemMeta(original)) {
              stack.setItemMeta(CraftItemStack.getItemMeta(original));
          }
@@ -2495,7 +2528,7 @@ index 5596f1b3733d19c614c85b18f94713b465e0e7f9..a49f1b9ea92ebd857576d82ee03b2727
          return stack;
      }
  
-@@ -115,7 +117,9 @@ public final class CraftItemStack extends ItemStack {
+@@ -111,7 +113,9 @@ public final class CraftItemStack extends ItemStack {
      public static CraftItemStack asCraftCopy(ItemStack original) {
          if (original instanceof CraftItemStack) {
              CraftItemStack stack = (CraftItemStack) original;
@@ -2506,7 +2539,7 @@ index 5596f1b3733d19c614c85b18f94713b465e0e7f9..a49f1b9ea92ebd857576d82ee03b2727
          }
          return new CraftItemStack(original);
      }
-@@ -139,6 +143,7 @@ public final class CraftItemStack extends ItemStack {
+@@ -135,6 +139,7 @@ public final class CraftItemStack extends ItemStack {
  
      private CraftItemStack(ItemStack item) {
          this(item.getType(), item.getAmount(), item.getDurability(), item.hasItemMeta() ? item.getItemMeta() : null);
@@ -2514,7 +2547,7 @@ index 5596f1b3733d19c614c85b18f94713b465e0e7f9..a49f1b9ea92ebd857576d82ee03b2727
      }
  
      private CraftItemStack(Material type, int amount, short durability, ItemMeta itemMeta) {
-@@ -782,4 +787,22 @@ public final class CraftItemStack extends ItemStack {
+@@ -778,4 +783,22 @@ public final class CraftItemStack extends ItemStack {
          return mirrored;
      }
      // Paper end
@@ -2537,3 +2570,16 @@ index 5596f1b3733d19c614c85b18f94713b465e0e7f9..a49f1b9ea92ebd857576d82ee03b2727
 +    // MCCLab end - Add ItemBehaviour as instance to this specific Item Stack
 +
  }
+
+diff --git a/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java b/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
+index 14ee7b5b9b804bebd4e2a846b238547a28a36035..18f8dc2ca10f7556355731b3376bad7c45072665 100644
+--- a/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
++++ b/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
+@@ -464,6 +464,7 @@ public class LevelChunk extends ChunkAccess {
+                     // CraftBukkit - Don't place while processing the BlockPlaceEvent, unless it's a BlockContainer. Prevents blocks such as TNT from activating when cancelled.
+                     if (!this.level.isClientSide && doPlace && (!this.level.captureBlockStates || block instanceof net.minecraft.world.level.block.BaseEntityBlock)) {
+                         iblockdata.onPlace(this.level, blockposition, iblockdata1, flag);
++                        de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.getInstance().onPlaceCallback(iblockdata, this.level, blockposition, iblockdata1, flag, this.level.captureBlockStates); // MCCLab - Add Block behaviour
+                     }
+ 
+                     if (iblockdata.hasBlockEntity()) {

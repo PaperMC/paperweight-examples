@@ -311,7 +311,7 @@ index 0000000000000000000000000000000000000000..acab66d53990da2a4ddbf89ed9ce993c
 +}
 diff --git a/src/main/java/de/verdox/mccreativelab/ai/builder/BehaviorFactory.java b/src/main/java/de/verdox/mccreativelab/ai/builder/BehaviorFactory.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..953e3637e84e83319b9f85c3f72fa9a37ab6b578
+index 0000000000000000000000000000000000000000..ffca0ad259cf04a2f1c287e0931190462941e65d
 --- /dev/null
 +++ b/src/main/java/de/verdox/mccreativelab/ai/builder/BehaviorFactory.java
 @@ -0,0 +1,235 @@
@@ -337,7 +337,7 @@ index 0000000000000000000000000000000000000000..953e3637e84e83319b9f85c3f72fa9a3
 +        return acquirePOI(poiTypePredicate, poiPosModule, poiPosModule, onlyRunIfChild, entityEvent);
 +    }
 +
-+    AIBehavior<Animals> animalMakeLove(EntityType targetType, float speed);
++    AIBehavior<Animals> animalMakeLove(EntityType targetType, float speed, int approachDistance);
 +
 +    AIBehavior<Mob> animalPanic(float speed, Predicate<Mob> panicPredicate);
 +

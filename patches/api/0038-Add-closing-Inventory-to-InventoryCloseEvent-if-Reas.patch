@@ -1,0 +1,46 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: verdox <mail.ysp@web.de>
+Date: Wed, 29 May 2024 15:10:56 +0000
+Subject: [PATCH] Add closing Inventory to InventoryCloseEvent if Reason =
+ OPEN_NEW
+
+
+diff --git a/src/main/java/org/bukkit/event/inventory/InventoryCloseEvent.java b/src/main/java/org/bukkit/event/inventory/InventoryCloseEvent.java
+index 4db0a07db156c61867644f50c185e63b695e2462..5b578aefb7c813dce1ec4a5e87a4812d495ee16a 100644
+--- a/src/main/java/org/bukkit/event/inventory/InventoryCloseEvent.java
++++ b/src/main/java/org/bukkit/event/inventory/InventoryCloseEvent.java
+@@ -32,6 +32,10 @@ public class InventoryCloseEvent extends InventoryEvent {
+     private static final HandlerList handlers = new HandlerList();
+     // Paper start
+     private final Reason reason;
++    // MCCreativeLab start - Add closing Inventory if reason = NEW_OPEN
++    @org.jetbrains.annotations.Nullable
++    private InventoryView newInventory;
++    // MCCreativeLab end - Add closing Inventory if reason = NEW_OPEN
+     @NotNull
+     public Reason getReason() {
+         return reason;
+@@ -86,6 +90,23 @@ public class InventoryCloseEvent extends InventoryEvent {
+         // Paper end
+     }
+ 
++    // MCCreativeLab start - Add closing Inventory if reason = NEW_OPEN
++    public InventoryCloseEvent(@NotNull InventoryView transaction, @NotNull Reason reason, @Nullable InventoryView newInventory) {
++        super(transaction);
++        this.reason = reason;
++        this.newInventory = newInventory;
++    }
++
++    /**
++     * If the {@link Reason} is OPEN_NEW this function will return the new inventory that is opened instead
++     * Else this function will always return null
++     * @return The new inventory if available
++     */
++    public @org.jetbrains.annotations.Nullable InventoryView getNewInventory() {
++        return newInventory;
++    }
++    // MCCreativeLab end - Add closing Inventory if reason = NEW_OPEN
++
+     /**
+      * Returns the player involved in this event
+      *

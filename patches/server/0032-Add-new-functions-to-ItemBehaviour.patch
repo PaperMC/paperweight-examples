@@ -5,10 +5,10 @@ Subject: [PATCH] Add new functions to ItemBehaviour
 
 
 diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/ItemBehaviourUtil.java b/src/main/java/de/verdox/mccreativelab/behaviour/ItemBehaviourUtil.java
-index 35abb85b42d088fafddf1179b0254fdece69b78f..29b745da7bde2fc4199ae04b3bbdae92fe7d293a 100644
+index ea435866961ac82ef90acf20eee48909bc8f433b..9897d33af34dcf62bb3aba255b90d3d490ec62ab 100644
 --- a/src/main/java/de/verdox/mccreativelab/behaviour/ItemBehaviourUtil.java
 +++ b/src/main/java/de/verdox/mccreativelab/behaviour/ItemBehaviourUtil.java
-@@ -164,12 +164,24 @@ public class ItemBehaviourUtil extends BehaviourUtil {
+@@ -160,12 +160,24 @@ public class ItemBehaviourUtil extends BehaviourUtil {
              () -> stack.getItem().canFitInsideContainerItems());
      }
  

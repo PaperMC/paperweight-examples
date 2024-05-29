@@ -5,7 +5,7 @@ Subject: [PATCH] Adding growTreeIfSapling helper method to Bukkit World class
 
 
 diff --git a/src/main/java/org/bukkit/World.java b/src/main/java/org/bukkit/World.java
-index c5fe36050eeaff80cfb989fe2f38370215af6fe5..1f9feca21306e21c506c7cbc190735db651f1289 100644
+index 97f97ea5c6aa513c439f86a9c82821e0f7d9cd1e..3052aed3f0739f8dfa8e78f691ef942245562e81 100644
 --- a/src/main/java/org/bukkit/World.java
 +++ b/src/main/java/org/bukkit/World.java
 @@ -52,6 +52,17 @@ import org.jetbrains.annotations.Nullable;

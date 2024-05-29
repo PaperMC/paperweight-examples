@@ -1,0 +1,405 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: verdox <mail.ysp@web.de>
+Date: Wed, 29 May 2024 15:23:38 +0000
+Subject: [PATCH] Temp Patch
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/CraftDataPackInterceptor.java b/src/main/java/de/verdox/mccreativelab/CraftDataPackInterceptor.java
+index c3b98096686c23a913c83b8459eeab2166ff48d3..8b0561d555a8ebf49c89ccaa75575b2c0bf2f546 100644
+--- a/src/main/java/de/verdox/mccreativelab/CraftDataPackInterceptor.java
++++ b/src/main/java/de/verdox/mccreativelab/CraftDataPackInterceptor.java
+@@ -21,7 +21,8 @@ public class CraftDataPackInterceptor implements DataPackInterceptor {
+     private final Set<PackAssetType> excludedTypes = new HashSet<>();
+     private final Set<String> stringPatternExcludes = new HashSet<>();
+     private final Map<PackAssetType, Set<Key>> exclusions = new HashMap<>();
+-    private final Map<PackAssetType, Map<Key, List<Consumer<DataPackAsset>>>> modifies = new HashMap<>();
++    private final Map<PackAssetType, Map<Key, List<Function<DataPackAsset, Boolean>>>> modifies = new HashMap<>();
++    private final Set<Function<DataPackAsset, Boolean>> globalModifiers = new HashSet<>();
+     private Consumer<DataPackAsset> installCallback;
+ 
+     @Override
+@@ -37,11 +38,17 @@ public class CraftDataPackInterceptor implements DataPackInterceptor {
+     }
+ 
+     @Override
+-    public DataPackInterceptor modify(PackAssetType packAssetType, Key key, Consumer<DataPackAsset> consumer) {
++    public DataPackInterceptor modify(PackAssetType packAssetType, Key key, Function<DataPackAsset, Boolean> consumer) {
+         modifies.computeIfAbsent(packAssetType, packAssetType1 -> new HashMap<>()).computeIfAbsent(key, key1 -> new LinkedList<>()).add(consumer);
+         return this;
+     }
+ 
++    @Override
++    public DataPackInterceptor modify(Function<DataPackAsset, Boolean> modifier) {
++        globalModifiers.add(modifier);
++        return this;
++    }
++
+ 
+     @Override
+     public DataPackInterceptor exclude(PackAssetType packAssetType, Key key) {
+@@ -62,14 +69,14 @@ public class CraftDataPackInterceptor implements DataPackInterceptor {
+         int indexOfStartKey = assetTypeName.indexOf(":");
+         assetTypeName = assetTypeName.substring(indexOfStartKey + 1);
+         PackAssetType packAssetType = PackAssetType.getByParentFolder(assetTypeName);
+-        Key key = Key.key(resourceLocation.getNamespace(), FilenameUtils.removeExtension(resourceLocation.getPath().replace(assetTypeName+"/","")));
+-        if(packAssetType == null) {
+-            LOGGER.error("Could not determine PackAssetType "+assetTypeName+" from "+resourceLocation);
++        Key key = Key.key(resourceLocation.getNamespace(), FilenameUtils.removeExtension(resourceLocation.getPath().replace(assetTypeName + "/", "")));
++        if (packAssetType == null) {
++            LOGGER.error("Could not determine PackAssetType " + assetTypeName + " from " + resourceLocation);
+             return ioSupplier;
+         }
+ 
+-        if(excludedTypes.contains(packAssetType) || stringPatternExcludes.stream().anyMatch(s -> resourceLocation.toString().contains(s)) || (exclusions.containsKey(packAssetType) && exclusions.get(packAssetType).contains(key))) {
+-            LOGGER.info("Removing "+packAssetType.name()+": "+key);
++        if (excludedTypes.contains(packAssetType) || stringPatternExcludes.stream().anyMatch(s -> resourceLocation.toString().contains(s)) || (exclusions.containsKey(packAssetType) && exclusions.get(packAssetType).contains(key))) {
++            LOGGER.info("Removing " + packAssetType.name() + ": " + key);
+             return null;
+         }
+ 
+@@ -89,7 +96,7 @@ public class CraftDataPackInterceptor implements DataPackInterceptor {
+             // Verwende GSON, um den JSON-String in ein JsonObject zu konvertieren
+             JsonObject jsonObject;
+             try {
+-                jsonObject  = JsonParser.parseString(jsonString).getAsJsonObject();
++                jsonObject = JsonParser.parseString(jsonString).getAsJsonObject();
+             } catch (Throwable e) {
+                 return ioSupplier;
+             }
+@@ -97,16 +104,27 @@ public class CraftDataPackInterceptor implements DataPackInterceptor {
+ 
+             DataPackAsset dataPackAsset = new DataPackAsset(packAssetType, key, jsonObject);
+ 
+-            if(modifies.containsKey(packAssetType)){
+-                Map<Key, List<Consumer<DataPackAsset>>> map = modifies.get(packAssetType);
+-                if(map.containsKey(key)){
+-                    List<Consumer<DataPackAsset>> modifiers = map.get(key);
+-                    LOGGER.info("Patching "+packAssetType.name()+": "+key);
+-                    modifiers.forEach(dataPackAssetConsumer -> dataPackAssetConsumer.accept(dataPackAsset));
++            boolean shouldLoad = true;
++            for (Function<DataPackAsset, Boolean> globalModifier : globalModifiers) {
++                if (!globalModifier.apply(dataPackAsset)) shouldLoad = false;
++            }
++
++            if (modifies.containsKey(packAssetType)) {
++                Map<Key, List<Function<DataPackAsset, Boolean>>> map = modifies.get(packAssetType);
++                if (map.containsKey(key)) {
++                    List<Function<DataPackAsset, Boolean>> modifiers = map.get(key);
++                    LOGGER.info("Patching " + packAssetType.name() + ": " + key);
++
++                    for (Function<DataPackAsset, Boolean> modifier : modifiers) {
++                        if (!modifier.apply(dataPackAsset)) shouldLoad = false;
++                    }
++
+                 }
+             }
++            if (!shouldLoad)
++                return null;
+ 
+-            if(this.installCallback != null)
++            if (this.installCallback != null)
+                 this.installCallback.accept(dataPackAsset);
+ 
+             // Hier kannst du das JsonObject nach Belieben manipulieren
+diff --git a/src/main/java/de/verdox/mccreativelab/CreativeLabImpl.java b/src/main/java/de/verdox/mccreativelab/CreativeLabImpl.java
+index a66931497100b559bb62964c1a272cb00ba8dc55..63374a66c399139256f7cc75979978b27574bf72 100644
+--- a/src/main/java/de/verdox/mccreativelab/CreativeLabImpl.java
++++ b/src/main/java/de/verdox/mccreativelab/CreativeLabImpl.java
+@@ -1,5 +1,7 @@
+ package de.verdox.mccreativelab;
+ 
++import org.jetbrains.annotations.NotNull;
++
+ public final class CreativeLabImpl implements CreativeLab {
+ 
+     private final de.verdox.mccreativelab.data.DataPackInterceptor dataPackInterceptor = new CraftDataPackInterceptor();
+@@ -18,4 +20,39 @@ public final class CreativeLabImpl implements CreativeLab {
+     public de.verdox.mccreativelab.advancement.AdvancementBuilder createAdvancement() {
+         return new de.verdox.mccreativelab.advancement.CraftAdvancementBuilder();
+     }
++
++    @Override
++    public org.bukkit.inventory.Inventory openCustomContainerMenu(@NotNull de.verdox.mccreativelab.container.CustomInventory customInventory, @NotNull org.bukkit.entity.Player player, @NotNull net.kyori.adventure.text.Component title) {
++        return de.verdox.mccreativelab.container.CustomContainerMenu.openToPlayer(customInventory, player, title);
++    }
++
++    @Override
++    public java.util.stream.Stream<org.bukkit.block.data.BlockData> streamAllBlockDataVariants(org.bukkit.Material blockMaterial) {
++        if(!blockMaterial.isBlock())
++            throw new IllegalArgumentException("Please provide a valid block. "+blockMaterial.getKey().asString()+" is not a valid block type.");
++        net.minecraft.world.level.block.Block vanillaBlockType = org.bukkit.craftbukkit.block.data.CraftBlockData.newData(org.bukkit.craftbukkit.block.CraftBlockType.minecraftToBukkitNew(org.bukkit.craftbukkit.block.CraftBlockType.bukkitToMinecraft(blockMaterial)), null).getState().getBlock();
++        return vanillaBlockType.getStateDefinition().getPossibleStates().stream().map(org.bukkit.craftbukkit.block.data.CraftBlockData::createData);
++    }
++
++    @Override
++    public java.util.Iterator<org.bukkit.block.data.BlockData> iterateThroughAllBlockDataVariants(org.bukkit.Material blockMaterial) {
++        if(!blockMaterial.isBlock())
++            throw new IllegalArgumentException("Please provide a valid block. "+blockMaterial.getKey().asString()+" is not a valid block type.");
++
++        net.minecraft.world.level.block.Block vanillaBlockType = org.bukkit.craftbukkit.block.data.CraftBlockData.newData(org.bukkit.craftbukkit.block.CraftBlockType.minecraftToBukkitNew(org.bukkit.craftbukkit.block.CraftBlockType.bukkitToMinecraft(blockMaterial)), null).getState().getBlock();
++        java.util.Iterator<net.minecraft.world.level.block.state.BlockState> iter = vanillaBlockType.getStateDefinition().getPossibleStates().iterator();
++
++        return new java.util.Iterator<>() {
++
++            @Override
++            public boolean hasNext() {
++                return iter.hasNext();
++            }
++
++            @Override
++            public org.bukkit.block.data.BlockData next() {
++                return org.bukkit.craftbukkit.block.data.CraftBlockData.createData(iter.next());
++            }
++        };
++    }
+ }
+diff --git a/src/main/java/de/verdox/mccreativelab/container/CustomContainerMenu.java b/src/main/java/de/verdox/mccreativelab/container/CustomContainerMenu.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..e723abdde093a582bac403692f77893130718590
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/container/CustomContainerMenu.java
+@@ -0,0 +1,175 @@
++package de.verdox.mccreativelab.container;
++
++import io.papermc.paper.adventure.PaperAdventure;
++import net.minecraft.network.chat.Component;
++import net.minecraft.world.CompoundContainer;
++import net.minecraft.world.Container;
++import net.minecraft.world.MenuProvider;
++import net.minecraft.world.SimpleContainer;
++import net.minecraft.world.entity.player.Inventory;
++import net.minecraft.world.entity.player.Player;
++import net.minecraft.world.inventory.AbstractContainerMenu;
++import net.minecraft.world.inventory.MenuType;
++import net.minecraft.world.inventory.Slot;
++import net.minecraft.world.item.ItemStack;
++import org.bukkit.craftbukkit.entity.CraftPlayer;
++import org.bukkit.craftbukkit.inventory.CraftInventory;
++import org.bukkit.craftbukkit.inventory.CraftInventoryView;
++import org.bukkit.craftbukkit.inventory.CraftItemStack;
++import org.jetbrains.annotations.NotNull;
++
++import java.util.Objects;
++
++public class CustomContainerMenu extends AbstractContainerMenu {
++
++    public static org.bukkit.inventory.Inventory openToPlayer(@NotNull CustomInventory customInventory, @NotNull org.bukkit.entity.Player player, @NotNull net.kyori.adventure.text.Component title) {
++        Objects.requireNonNull(customInventory, "customInventory cannot be null");
++        Objects.requireNonNull(player, "player cannot be null");
++        Objects.requireNonNull(title, "title cannot be null");
++
++        Container container = new SimpleContainer(9 * 6);
++
++        ((CraftPlayer) player).getHandle().openMenu(new MenuProvider() {
++            @Override
++            public @NotNull Component getDisplayName() {
++                return PaperAdventure.asVanilla(title);
++            }
++
++            @Override
++            public @NotNull AbstractContainerMenu createMenu(int syncId, @NotNull Inventory playerInventory, @NotNull Player player) {
++                return new CustomContainerMenu(customInventory, syncId, playerInventory, container);
++            }
++        });
++        return new CraftInventory(container);
++    }
++
++
++    private CraftInventoryView bukkitEntity = null;
++
++    public CraftInventoryView getBukkitView() {
++        if (this.bukkitEntity != null) {
++            return this.bukkitEntity;
++        }
++
++
++        CraftInventory inventory;
++        if (this.container instanceof Inventory) {
++            inventory = new org.bukkit.craftbukkit.inventory.CraftInventoryPlayer((Inventory) this.container);
++        } else if (this.container instanceof CompoundContainer) {
++            inventory = new org.bukkit.craftbukkit.inventory.CraftInventoryDoubleChest((CompoundContainer) this.container);
++        } else {
++            inventory = new CraftInventory(this.container);
++        }
++
++        this.bukkitEntity = new CraftInventoryView(this.playerInventory.player.getBukkitEntity(), inventory, this);
++        return this.bukkitEntity;
++    }
++
++
++    private final CustomInventory customInventory;
++    private final Inventory playerInventory;
++    private final Container container;
++
++    protected CustomContainerMenu(CustomInventory customInventory, int syncId, Inventory playerInventory, Container inventory) {
++        super(MenuType.GENERIC_9x6, syncId);
++        this.customInventory = customInventory;
++        this.playerInventory = playerInventory;
++        this.container = inventory;
++        inventory.startOpen(playerInventory.player);
++
++        CustomInventory.Slot[] slots = customInventory.getSlots();
++
++        for (int rowCount = 0; rowCount < 6; ++rowCount) {
++            for (int slotCount = 0; slotCount < 9; ++slotCount) {
++                int index = slotCount + rowCount * 9;
++                Slot slot;
++                if (index < slots.length)
++                    slot = new WrappedSlot(inventory, index, slots[index]);
++                else
++                    slot = new Slot(inventory, index, 8 + slotCount * 18, 18 + rowCount * 18);
++                this.addSlot(slot);
++            }
++        }
++
++        for (int l = 0; l < 3; ++l) {
++            for (int i1 = 0; i1 < 9; ++i1) {
++                this.addSlot(new Slot(playerInventory, i1 + l * 9 + 9, 0, 0));
++            }
++        }
++
++        for (int index = 0; index < 9; ++index) {
++            this.addSlot(new Slot(playerInventory, index, 0, 0));
++        }
++    }
++
++    @Override
++    public ItemStack quickMoveStack(Player player, int slot) {
++        return CraftItemStack.asNMSCopy(customInventory.quickMoveStack((org.bukkit.entity.Player) player.getBukkitEntity(), slot));
++    }
++
++    @Override
++    public boolean stillValid(Player player) {
++        if (!this.checkReachable) return true;
++        return this.container.stillValid(player);
++    }
++
++    @Override
++    public void removed(Player player) {
++        super.removed(player);
++        this.container.stopOpen(player);
++    }
++
++    public Container getContainer() {
++        return container;
++    }
++
++    public static class WrappedSlot extends Slot {
++        private final CustomInventory.Slot apiSlot;
++
++        public WrappedSlot(Container inventory, int index, CustomInventory.Slot apiSlot) {
++            // Indices are only used client side
++            super(inventory, index, 0, 0);
++            this.apiSlot = apiSlot;
++        }
++
++        @Override
++        protected void onQuickCraft(ItemStack stack, int amount) {
++            apiSlot.onQuickCraft(stack.asBukkitMirror(), amount);
++        }
++
++        @Override
++        protected void onSwapCraft(int amount) {
++            apiSlot.onSwapCraft(amount);
++        }
++
++        @Override
++        public void onTake(Player player, ItemStack stack) {
++            apiSlot.onTake((org.bukkit.entity.Player) player.getBukkitEntity(), stack.asBukkitMirror());
++        }
++
++        @Override
++        public boolean mayPlace(ItemStack stack) {
++            return apiSlot.mayPlace(stack.getBukkitStack());
++        }
++
++        @Override
++        public int getMaxStackSize() {
++            return apiSlot.getMaxStackSize();
++        }
++
++        @Override
++        public int getMaxStackSize(ItemStack stack) {
++            return apiSlot.getMaxStackSize(stack.asBukkitMirror());
++        }
++
++        @Override
++        public boolean isActive() {
++            return apiSlot.isActive();
++        }
++
++        @Override
++        public boolean mayPickup(Player player) {
++            return apiSlot.mayPickUp((org.bukkit.entity.Player) player.getBukkitEntity());
++        }
++    }
++}
+diff --git a/src/main/java/net/minecraft/world/item/ItemStack.java b/src/main/java/net/minecraft/world/item/ItemStack.java
+index 3f72b29259f4688a6fe74d56b48e348058c8960c..08bd7b81c2f581d222b7dd3c6779e5438acf53ca 100644
+--- a/src/main/java/net/minecraft/world/item/ItemStack.java
++++ b/src/main/java/net/minecraft/world/item/ItemStack.java
+@@ -395,6 +395,8 @@ public final class ItemStack implements DataComponentHolder {
+         net.minecraft.world.entity.player.Player entityhuman = context.getPlayer();
+         BlockPos blockposition = context.getClickedPos();
+ 
++        ItemStack blockUsedToPlaceBlock = copy();
++
+         if (entityhuman != null && !entityhuman.getAbilities().mayBuild && !this.canPlaceOnBlockInAdventureMode(new BlockInWorld(context.getLevel(), blockposition, false))) {
+             return InteractionResult.PASS;
+         } else {
+@@ -491,7 +493,6 @@ public final class ItemStack implements DataComponentHolder {
+                     // }
+                     // Paper end - Don't resync blocks
+                     SignItem.openSign = null; // SPIGOT-6758 - Reset on early return
+-                    de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.getInstance().onPlayerPlaceCallback(entityhuman, world.getBlockState(blockposition), world, blockposition);
+                 } else {
+                     // Change the stack to its new contents if it hasn't been tampered with.
+                     if (this.getCount() == oldCount && Objects.equals(this.components.asPatch(), oldData)) {
+@@ -584,6 +585,14 @@ public final class ItemStack implements DataComponentHolder {
+                     }
+ 
+                     entityhuman.awardStat(Stats.ITEM_USED.get(item));
++
++                    if(placeEvent != null && !placeEvent.isCancelled() && placeEvent.canBuild()){
++                        for (BlockState block : blocks) {
++                            BlockPos blockPos = CraftLocation.toBlockPosition(block.getLocation());
++                            de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.getInstance().onPlayerPlaceCallback(entityhuman, blockUsedToPlaceBlock, world.getBlockState(blockPos), world, blockPos);
++                        }
++
++                    }
+                 }
+             }
+             world.capturedTileEntities.clear();
+diff --git a/src/main/java/net/minecraft/world/level/block/ComposterBlock.java b/src/main/java/net/minecraft/world/level/block/ComposterBlock.java
+index d3d12f9114173f4971f95d7ef895a4374705bd3f..df25dbd097e0badd80a424de5bd3ca74b8f08fb4 100644
+--- a/src/main/java/net/minecraft/world/level/block/ComposterBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/ComposterBlock.java
+@@ -78,6 +78,7 @@ public class ComposterBlock extends Block implements WorldlyContainerHolder {
+         float f3 = 0.85F;
+         float f4 = 1.0F;
+ 
++        //TODO: [MCCLab] - Make this changeable via API
+         ComposterBlock.add(0.3F, Items.JUNGLE_LEAVES);
+         ComposterBlock.add(0.3F, Items.OAK_LEAVES);
+         ComposterBlock.add(0.3F, Items.SPRUCE_LEAVES);
+diff --git a/src/main/java/net/minecraft/world/level/block/piston/PistonBaseBlock.java b/src/main/java/net/minecraft/world/level/block/piston/PistonBaseBlock.java
+index e0c62227b279a5fe0f3868fbf9ce8c78c515a09c..0976ae83bf36dd652639545901d2bec5e935edb1 100644
+--- a/src/main/java/net/minecraft/world/level/block/piston/PistonBaseBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/piston/PistonBaseBlock.java
+@@ -450,6 +450,8 @@ public class PistonBaseBlock extends DirectionalBlock {
+                 map.remove(blockposition3);
+                 BlockState iblockdata2 = (BlockState) Blocks.MOVING_PISTON.defaultBlockState().setValue(PistonBaseBlock.FACING, dir);
+ 
++                BlockState beforeUpdate = world.getBlockState(oldPos);
++
+                 world.setBlock(blockposition3, iblockdata2, 68);
+                 // Paper start - fix a variety of piston desync dupes
+                 if (!allowDesync) {
+@@ -462,6 +464,7 @@ public class PistonBaseBlock extends DirectionalBlock {
+                 }
+                 // Paper end - fix a variety of piston desync dupes
+                 aiblockdata[i++] = iblockdata1;
++                de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.getInstance().onPistonMove(beforeUpdate, world, oldPos, blockposition3, pos, enumdirection1);
+             }
+ 
+             if (retract) {

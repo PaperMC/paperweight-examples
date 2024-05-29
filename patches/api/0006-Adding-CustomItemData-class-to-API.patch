@@ -6,7 +6,7 @@ Subject: [PATCH] Adding CustomItemData class to API
 
 diff --git a/src/main/java/de/verdox/mccreativelab/recipe/CustomItemData.java b/src/main/java/de/verdox/mccreativelab/recipe/CustomItemData.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..988dd359a588cab2d06e39d3b915bc3d3d83b585
+index 0000000000000000000000000000000000000000..92f0f2d1918cc8eb2eff4e2bf345d0b00d17d136
 --- /dev/null
 +++ b/src/main/java/de/verdox/mccreativelab/recipe/CustomItemData.java
 @@ -0,0 +1,30 @@

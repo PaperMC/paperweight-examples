@@ -6,23 +6,19 @@ Subject: [PATCH] Adding helper methods for getting and setting customModelData
 
 
 diff --git a/src/main/java/org/bukkit/craftbukkit/inventory/CraftItemStack.java b/src/main/java/org/bukkit/craftbukkit/inventory/CraftItemStack.java
-index f1e1953f2dc65dc615b7b7b648c37b195d3b4c25..9f74a685e0ec51e66f2900d4782849438eb56320 100644
+index f1e1953f2dc65dc615b7b7b648c37b195d3b4c25..dc1562e413ccce42573d032dcb42af195c004da1 100644
 --- a/src/main/java/org/bukkit/craftbukkit/inventory/CraftItemStack.java
 +++ b/src/main/java/org/bukkit/craftbukkit/inventory/CraftItemStack.java
-@@ -22,6 +22,19 @@ import org.bukkit.material.MaterialData;
+@@ -22,6 +22,15 @@ import org.bukkit.material.MaterialData;
  @DelegateDeserialization(ItemStack.class)
  public final class CraftItemStack extends ItemStack {
  
 +    // MCCLab - start
 +    public static void setCustomModelData(net.minecraft.world.item.ItemStack stack, int customModelData){
-+        stack.getOrCreateTag().putInt("CustomModelData", customModelData);
++        stack.set(DataComponents.CUSTOM_MODEL_DATA, new net.minecraft.world.item.component.CustomModelData(customModelData));
 +    }
 +    public static int getCustomModelData(net.minecraft.world.item.ItemStack stack){
-+        if(!stack.hasTag())
-+            return 0;
-+        if(!stack.getTag().contains("CustomModelData"))
-+            return 0;
-+        return stack.getTag().getInt("CustomModelData");
++        return stack.get(DataComponents.CUSTOM_MODEL_DATA).value();
 +    }
 +    // MCCLab - end
 +

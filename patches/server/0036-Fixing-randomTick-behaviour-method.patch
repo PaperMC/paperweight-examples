@@ -5,7 +5,7 @@ Subject: [PATCH] Fixing randomTick behaviour method
 
 
 diff --git a/src/main/java/net/minecraft/world/level/block/state/BlockBehaviour.java b/src/main/java/net/minecraft/world/level/block/state/BlockBehaviour.java
-index bd101345ce682923d658655d1d0b8f3725c53dee..ce5b3f7077c85b4e39b27b94b7d31501a5994a00 100644
+index 6d24bf837e28a1468f6033dd811d2c7e3dba44c4..38b9ed336c44b04cd7b191647b89038cdd370193 100644
 --- a/src/main/java/net/minecraft/world/level/block/state/BlockBehaviour.java
 +++ b/src/main/java/net/minecraft/world/level/block/state/BlockBehaviour.java
 @@ -1346,9 +1346,7 @@ public abstract class BlockBehaviour implements FeatureElement {
