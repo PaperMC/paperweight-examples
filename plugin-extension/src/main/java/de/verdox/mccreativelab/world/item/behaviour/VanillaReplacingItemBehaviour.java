@@ -11,7 +11,6 @@ import org.bukkit.entity.Item;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.EquipmentSlot;
-import org.bukkit.inventory.FoodProperties;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.RayTraceResult;
 
@@ -19,16 +18,6 @@ public interface VanillaReplacingItemBehaviour extends ItemBehaviour {
     @Override
     default BehaviourResult.Object<ItemStack> finishUsingItem(LivingEntity livingEntity, ItemStack usedItem) {
         return new BehaviourResult.Object<>(usedItem, BehaviourResult.Object.Type.REPLACE_VANILLA);
-    }
-
-    @Override
-    default BehaviourResult.Object<Integer> getMaxStackSize(ItemStack stack) {
-        return new BehaviourResult.Object<>(stack.getType().getMaxStackSize(), BehaviourResult.Object.Type.REPLACE_VANILLA);
-    }
-
-    @Override
-    default BehaviourResult.Object<Integer> getMaxDamage(ItemStack stack) {
-        return new BehaviourResult.Object<>(0, BehaviourResult.Object.Type.USE_VANILLA);
     }
 
     @Override
@@ -52,11 +41,6 @@ public interface VanillaReplacingItemBehaviour extends ItemBehaviour {
     }
 
     @Override
-    default BehaviourResult.Bool isEdible(ItemStack stack) {
-        return new BehaviourResult.Bool(false, BehaviourResult.Bool.Type.REPLACE_VANILLA);
-    }
-
-    @Override
     default BehaviourResult.Object<ItemStackInteraction> use(ItemStack stack, Player player, EquipmentSlot equipmentSlot) {
         return new BehaviourResult.Object<>(new ItemStackInteraction(InteractionResult.PASS, new ItemStack(Material.AIR)), BehaviourResult.Object.Type.REPLACE_VANILLA);
     }
@@ -67,18 +51,8 @@ public interface VanillaReplacingItemBehaviour extends ItemBehaviour {
     }
 
     @Override
-    default BehaviourResult.Object<FoodProperties> getFoodProperties(ItemStack stack) {
-        return new BehaviourResult.Object<>(null, BehaviourResult.Object.Type.REPLACE_VANILLA);
-    }
-
-    @Override
     default BehaviourResult.Object<ItemStack> getCraftRemainingItem(ItemStack stack) {
         return new BehaviourResult.Object<>(new ItemStack(Material.AIR), BehaviourResult.Object.Type.REPLACE_VANILLA);
-    }
-
-    @Override
-    default BehaviourResult.Bool isFireResistant(ItemStack stack) {
-        return new BehaviourResult.Bool(false, BehaviourResult.Bool.Type.REPLACE_VANILLA);
     }
 
     @Override

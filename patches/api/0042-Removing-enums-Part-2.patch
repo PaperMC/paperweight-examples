@@ -1,0 +1,259 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: verdox <mail.ysp@web.de>
+Date: Thu, 30 May 2024 11:13:28 +0000
+Subject: [PATCH] Removing enums Part 2
+
+
+diff --git a/src/main/java/io/papermc/paper/registry/RegistryKey.java b/src/main/java/io/papermc/paper/registry/RegistryKey.java
+index 7b79bf33074355020e0b3b5ef40c7f2e6ba644b4..27089745ec4200a2fbc7fd54af1e6db61c028a18 100644
+--- a/src/main/java/io/papermc/paper/registry/RegistryKey.java
++++ b/src/main/java/io/papermc/paper/registry/RegistryKey.java
+@@ -1,12 +1,7 @@
+ package io.papermc.paper.registry;
+ 
+ import net.kyori.adventure.key.Keyed;
+-import org.bukkit.Art;
+-import org.bukkit.Fluid;
+-import org.bukkit.GameEvent;
+-import org.bukkit.MusicInstrument;
+-import org.bukkit.Particle;
+-import org.bukkit.Sound;
++import org.bukkit.*;
+ import org.bukkit.attribute.Attribute;
+ import org.bukkit.block.Biome;
+ import org.bukkit.block.BlockType;
+@@ -125,10 +120,13 @@ public sealed interface RegistryKey<T> extends Keyed permits RegistryKeyImpl {
+      * API-only Registries *
+      * ******************* */
+     RegistryKey<Art> PAINTING_VARIANT = create("painting_variant");
++    RegistryKey<PoiType> POI_TYPE = create("point_of_interest_type");
+     RegistryKey<Attribute> ATTRIBUTE = create("attribute");
+     RegistryKey<PatternType> BANNER_PATTERN = create("banner_pattern");
+     RegistryKey<Cat.Type> CAT_VARIANT = create("cat_variant");
+     RegistryKey<EntityType> ENTITY_TYPE = create("entity_type");
++    RegistryKey<EntitySchedule> ENTITY_SCHEDULE = create("schedule");
++    RegistryKey<EntityActivity> ENTITY_ACTIVITY = create("activity");
+     RegistryKey<Particle> PARTICLE_TYPE = create("particle_type");
+     RegistryKey<PotionType> POTION = create("potion");
+     RegistryKey<Sound> SOUND_EVENT = create("sound_event");
+diff --git a/src/main/java/org/bukkit/Registry.java b/src/main/java/org/bukkit/Registry.java
+index 48185c28b1a709cb0b5d3353460560e6a1bb5753..9b8f707fc7b8268d610958daa9f0a68eb01ff33e 100644
+--- a/src/main/java/org/bukkit/Registry.java
++++ b/src/main/java/org/bukkit/Registry.java
+@@ -9,6 +9,8 @@ import java.util.Objects;
+ import java.util.function.Predicate;
+ import java.util.stream.Stream;
+ import java.util.stream.StreamSupport;
++
++import io.papermc.paper.registry.RegistryKey;
+ import org.bukkit.advancement.Advancement;
+ import org.bukkit.attribute.Attribute;
+ import org.bukkit.block.Biome;
+@@ -81,7 +83,7 @@ public interface Registry<T extends Keyed> extends Iterable<T> {
+      *
+      * @see Attribute
+      */
+-    Registry<Attribute> ATTRIBUTE = Objects.requireNonNull(Bukkit.getRegistry(Attribute.class), "No registry present for Attribute. This is a bug.");
++    Registry<Attribute> ATTRIBUTE = io.papermc.paper.registry.RegistryAccess.registryAccess().getRegistry(RegistryKey.ATTRIBUTE); // Paper
+     /**
+      * Server banner patterns.
+      *
+@@ -93,7 +95,7 @@ public interface Registry<T extends Keyed> extends Iterable<T> {
+      *
+      * @see Biome
+      */
+-    Registry<Biome> BIOME = Objects.requireNonNull(Bukkit.getRegistry(Biome.class), "No registry present for Biome. This is a bug.");
++    Registry<Biome> BIOME = io.papermc.paper.registry.RegistryAccess.registryAccess().getRegistry(RegistryKey.BIOME); // Paper
+     /**
+      * Server block types.
+      *
+@@ -177,21 +179,21 @@ public interface Registry<T extends Keyed> extends Iterable<T> {
+      *
+      * @see PoiType
+      */
+-    Registry<PoiType> POI_TYPE = Objects.requireNonNull(Bukkit.getRegistry(PoiType.class), "No registry present for PoiType. This is a bug.");
++    Registry<PoiType> POI_TYPE = io.papermc.paper.registry.RegistryAccess.registryAccess().getRegistry(RegistryKey.POI_TYPE); // Paper
+ 
+     /**
+      * Entity Schedules.
+      *
+      * @see EntitySchedule
+      */
+-    Registry<EntitySchedule> ENTITY_SCHEDULE = Objects.requireNonNull(Bukkit.getRegistry(EntitySchedule.class), "No registry present for EntitySchedule. This is a bug.");
++    Registry<EntitySchedule> ENTITY_SCHEDULE = io.papermc.paper.registry.RegistryAccess.registryAccess().getRegistry(RegistryKey.ENTITY_SCHEDULE); // Paper
+ 
+     /**
+      * Entity Activities.
+      *
+      * @see EntityActivity
+      */
+-    Registry<EntityActivity> ENTITY_ACTIVITY = Objects.requireNonNull(Bukkit.getRegistry(EntityActivity.class), "No registry present for EntityActivity. This is a bug.");
++    Registry<EntityActivity> ENTITY_ACTIVITY = io.papermc.paper.registry.RegistryAccess.registryAccess().getRegistry(RegistryKey.ENTITY_ACTIVITY); // Paper
+     /**
+      * Server mob effects.
+      *
+@@ -266,7 +268,7 @@ public interface Registry<T extends Keyed> extends Iterable<T> {
+      *
+      * @see Villager.Profession
+      */
+-    Registry<Villager.Profession> VILLAGER_PROFESSION = Objects.requireNonNull(Bukkit.getRegistry(Villager.Profession.class), "No registry present for Profession. This is a bug.");
++    Registry<Villager.Profession> VILLAGER_PROFESSION = io.papermc.paper.registry.RegistryAccess.registryAccess().getRegistry(RegistryKey.VILLAGER_PROFESSION); // Paper
+     /**
+      * Villager type.
+      *
+diff --git a/src/main/java/org/bukkit/attribute/Attribute.java b/src/main/java/org/bukkit/attribute/Attribute.java
+index c928af69c447b12151f19776555560fd850cd351..85f25cc90b41449b9ca421ac024da14acbe1586f 100644
+--- a/src/main/java/org/bukkit/attribute/Attribute.java
++++ b/src/main/java/org/bukkit/attribute/Attribute.java
+@@ -8,117 +8,123 @@ import org.jetbrains.annotations.NotNull;
+ /**
+  * Types of attributes which may be present on an {@link Attributable}.
+  */
+-public interface Attribute extends Keyed, net.kyori.adventure.translation.Translatable { // Paper - Adventure translations
++public abstract class Attribute implements Keyed, net.kyori.adventure.translation.Translatable { // Paper - Adventure translations
+     /**
+      * Maximum health of an Entity.
+      */
+ 
+-    Attribute GENERIC_MAX_HEALTH = getAttribute("generic.max_health");
++    public static final Attribute GENERIC_MAX_HEALTH = getAttribute("generic.max_health");
+     /**
+      * Range at which an Entity will follow others.
+      */
+-    Attribute GENERIC_FOLLOW_RANGE = getAttribute("generic.follow_range");
++    public static final Attribute GENERIC_FOLLOW_RANGE = getAttribute("generic.follow_range");
+     /**
+      * Resistance of an Entity to knockback.
+      */
+-    Attribute GENERIC_KNOCKBACK_RESISTANCE = getAttribute("generic.knockback_resistance");
++    public static final Attribute GENERIC_KNOCKBACK_RESISTANCE = getAttribute("generic.knockback_resistance");
+     /**
+      * Movement speed of an Entity.
+      */
+-    Attribute GENERIC_MOVEMENT_SPEED = getAttribute("generic.movement_speed");
++    public static final Attribute GENERIC_MOVEMENT_SPEED = getAttribute("generic.movement_speed");
+     /**
+      * Flying speed of an Entity.
+      */
+-    Attribute GENERIC_FLYING_SPEED = getAttribute("generic.flying_speed");
++    public static final Attribute GENERIC_FLYING_SPEED = getAttribute("generic.flying_speed");
+     /**
+      * Attack damage of an Entity.
+      */
+-    Attribute GENERIC_ATTACK_DAMAGE = getAttribute("generic.attack_damage");
++    public static final Attribute GENERIC_ATTACK_DAMAGE = getAttribute("generic.attack_damage");
+     /**
+      * Attack knockback of an Entity.
+      */
+-    Attribute GENERIC_ATTACK_KNOCKBACK = getAttribute("generic.attack_knockback");
++    public static final Attribute GENERIC_ATTACK_KNOCKBACK = getAttribute("generic.attack_knockback");
+     /**
+      * Attack speed of an Entity.
+      */
+-    Attribute GENERIC_ATTACK_SPEED = getAttribute("generic.attack_speed");
++    public static final Attribute GENERIC_ATTACK_SPEED = getAttribute("generic.attack_speed");
+     /**
+      * Armor bonus of an Entity.
+      */
+-    Attribute GENERIC_ARMOR = getAttribute("generic.armor");
++    public static final Attribute GENERIC_ARMOR = getAttribute("generic.armor");
+     /**
+      * Armor durability bonus of an Entity.
+      */
+-    Attribute GENERIC_ARMOR_TOUGHNESS = getAttribute("generic.armor_toughness");
++    public static final Attribute GENERIC_ARMOR_TOUGHNESS = getAttribute("generic.armor_toughness");
+     /**
+      * The fall damage multiplier of an Entity.
+      */
+-    Attribute GENERIC_FALL_DAMAGE_MULTIPLIER = getAttribute("generic.fall_damage_multiplier");
++    public static final Attribute GENERIC_FALL_DAMAGE_MULTIPLIER = getAttribute("generic.fall_damage_multiplier");
+     /**
+      * Luck bonus of an Entity.
+      */
+-    Attribute GENERIC_LUCK = getAttribute("generic.luck");
++    public static final Attribute GENERIC_LUCK = getAttribute("generic.luck");
+     /**
+      * Maximum absorption of an Entity.
+      */
+-    Attribute GENERIC_MAX_ABSORPTION = getAttribute("generic.max_absorption");
++    public static final Attribute GENERIC_MAX_ABSORPTION = getAttribute("generic.max_absorption");
+     /**
+      * The distance which an Entity can fall without damage.
+      */
+-    Attribute GENERIC_SAFE_FALL_DISTANCE = getAttribute("generic.safe_fall_distance");
++    public static final Attribute GENERIC_SAFE_FALL_DISTANCE = getAttribute("generic.safe_fall_distance");
+     /**
+      * The relative scale of an Entity.
+      */
+-    Attribute GENERIC_SCALE = getAttribute("generic.scale");
++    public static final Attribute GENERIC_SCALE = getAttribute("generic.scale");
+     /**
+      * The height which an Entity can walk over.
+      */
+-    Attribute GENERIC_STEP_HEIGHT = getAttribute("generic.step_height");
++    public static final Attribute GENERIC_STEP_HEIGHT = getAttribute("generic.step_height");
+     /**
+      * The gravity applied to an Entity.
+      */
+-    Attribute GENERIC_GRAVITY = getAttribute("generic.gravity");
++    public static final Attribute GENERIC_GRAVITY = getAttribute("generic.gravity");
+     /**
+      * Strength with which an Entity will jump.
+      */
+-    Attribute GENERIC_JUMP_STRENGTH = getAttribute("generic.jump_strength");
++    public static final Attribute GENERIC_JUMP_STRENGTH = getAttribute("generic.jump_strength");
+     /**
+      * The block reach distance of a Player.
+      */
+-    Attribute PLAYER_BLOCK_INTERACTION_RANGE = getAttribute("player.block_interaction_range");
++    public static final Attribute PLAYER_BLOCK_INTERACTION_RANGE = getAttribute("player.block_interaction_range");
+     /**
+      * The entity reach distance of a Player.
+      */
+-    Attribute PLAYER_ENTITY_INTERACTION_RANGE = getAttribute("player.entity_interaction_range");
++    public static final Attribute PLAYER_ENTITY_INTERACTION_RANGE = getAttribute("player.entity_interaction_range");
+     /**
+      * Block break speed of a Player.
+      */
+-    Attribute PLAYER_BLOCK_BREAK_SPEED = getAttribute("player.block_break_speed");
++    public static final Attribute PLAYER_BLOCK_BREAK_SPEED = getAttribute("player.block_break_speed");
+     /**
+      * Chance of a zombie to spawn reinforcements.
+      */
+-    Attribute ZOMBIE_SPAWN_REINFORCEMENTS = getAttribute("zombie.spawn_reinforcements");
++    public static final Attribute ZOMBIE_SPAWN_REINFORCEMENTS = getAttribute("zombie.spawn_reinforcements");
+ 
+-    default String name(){
++    public String name(){
+         return de.verdox.mccreativelab.data.FakeEnum.restoreEnumNameSchemeFromKey(getKey());
+     }
+-    static Attribute valueOf(String name){
++
++    public static Attribute valueOf(String name){
+         return de.verdox.mccreativelab.data.FakeEnum.valueOf(name, org.bukkit.Registry.ATTRIBUTE);
+     }
+-    static Attribute[] values(){
++    public static Attribute[] values(){
+         return de.verdox.mccreativelab.data.FakeEnum.values(org.bukkit.Registry.ATTRIBUTE).toArray(Attribute[]::new);
+     }
+ 
+     @NotNull
+-    static Attribute getAttribute(@NotNull NamespacedKey namespacedKey) {
++    public static Attribute getAttribute(@NotNull NamespacedKey namespacedKey) {
+         Attribute attribute = org.bukkit.Registry.ATTRIBUTE.get(namespacedKey);
+         com.google.common.base.Preconditions.checkNotNull(attribute, "No Attribute found for %s", namespacedKey);
+         return attribute;
+     }
+     // Paper start
+     @NotNull
+-    static Attribute getAttribute(@NotNull String key) {
++    public static Attribute getAttribute(@NotNull String key) {
+         return getAttribute(NamespacedKey.minecraft(key));
+     }
++
++    @Override
++    public @org.jetbrains.annotations.NotNull String translationKey() {
++        return "attribute.name." + this.getKey().getKey();
++    }
+     // Paper end
+ }

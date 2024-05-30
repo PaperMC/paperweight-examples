@@ -13,8 +13,11 @@ import de.verdox.mccreativelab.world.block.util.FakeBlockUtil;
 import de.verdox.mccreativelab.util.BlockUtil;
 import de.verdox.mccreativelab.util.EntityMetadataPredicate;
 import de.verdox.mccreativelab.world.item.FakeItem;
+import io.papermc.paper.event.block.BlockBreakProgressUpdateEvent;
 import io.papermc.paper.event.player.PlayerArmSwingEvent;
 import org.bukkit.*;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.enchantments.Enchantment;
@@ -39,10 +42,7 @@ import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 
 import javax.annotation.Nullable;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Predicate;
 
@@ -52,6 +52,7 @@ public class BlockBreakSpeedModifier implements Listener {
     private static final EntityMetadataPredicate.TickDelay DELAY_ARM_SWING_DETECTION = new EntityMetadataPredicate.TickDelay("ArmSwingDetection", 1);
     private static final Map<Player, BlockBreakProgress> map = new HashMap<>();
     private static final Map<Block, Set<Player>> blockBrokenToPlayerMapping = new HashMap<>();
+    private static final AttributeModifier NO_BLOCK_BREAK_MODIFIER = new AttributeModifier("fake_block_break_effect", -1, AttributeModifier.Operation.ADD_NUMBER);
 
     @EventHandler
     public void onInteract(PlayerInteractEvent e) {
@@ -123,6 +124,11 @@ public class BlockBreakSpeedModifier implements Listener {
     }
 
     @EventHandler
+    public void blockDamageProgress(BlockBreakProgressUpdateEvent e) {
+
+    }
+
+    @EventHandler
     public void tickPlayers(ServerTickEndEvent e) {
         Bukkit.getOnlinePlayers().forEach(BlockBreakSpeedModifier::tick);
     }
@@ -158,8 +164,21 @@ public class BlockBreakSpeedModifier implements Listener {
         cancellable.setCancelled(true);
         map.put(player, new BlockBreakProgress(player, block, customBlockHardness, blockFace, fakeBlockState));
         blockBrokenToPlayerMapping.computeIfAbsent(block, block1 -> new HashSet<>()).add(player);
-        player.addPotionEffect(new PotionEffect(PotionEffectType.MINING_FATIGUE, 1, -1, false, false, false));
+
+        applyBlockBreakModifier(player);
         FakeBlockRegistry.fakeBlockDamage.sendBlockDamage(block, 0);
+    }
+
+    private static void applyBlockBreakModifier(Player player) {
+        if (player.getAttribute(Attribute.PLAYER_BLOCK_BREAK_SPEED).getModifier(NO_BLOCK_BREAK_MODIFIER.getUniqueId()) == null) {
+            player.getAttribute(Attribute.PLAYER_BLOCK_BREAK_SPEED).addTransientModifier(NO_BLOCK_BREAK_MODIFIER);
+        }
+    }
+
+    private static void removeBlockModifier(Player player) {
+        if (player.getAttribute(Attribute.PLAYER_BLOCK_BREAK_SPEED).getModifier(NO_BLOCK_BREAK_MODIFIER.getUniqueId()) != null) {
+            player.getAttribute(Attribute.PLAYER_BLOCK_BREAK_SPEED).removeModifier(NO_BLOCK_BREAK_MODIFIER);
+        }
     }
 
     public static void stopBlockBreakAtBlock(Block block) {
@@ -173,6 +192,7 @@ public class BlockBreakSpeedModifier implements Listener {
     public static void stopBlockBreakAction(Player player) {
         if (player.hasMetadata("isBreakingNormalBlock"))
             player.removeMetadata("isBreakingNormalBlock", MCCreativeLabExtension.getInstance());
+        removeBlockModifier(player);
         if (!map.containsKey(player))
             return;
         BlockBreakProgress blockBreakProgress = map.remove(player);
@@ -193,10 +213,13 @@ public class BlockBreakSpeedModifier implements Listener {
 
     public static void tick(Player player) {
         if (IS_TOOL.test(player.getInventory().getItemInMainHand()) && !player.hasMetadata("isBreakingNormalBlock"))
-            player.addPotionEffect(new PotionEffect(PotionEffectType.MINING_FATIGUE, 1, -1, false, false, false));
+            applyBlockBreakModifier(player);
+        else if (!map.containsKey(player))
+            removeBlockModifier(player);
 
         if (!map.containsKey(player))
             return;
+
         var data = map.get(player);
         data.incrementTicks();
     }
@@ -220,10 +243,11 @@ public class BlockBreakSpeedModifier implements Listener {
             this.blockFace = blockFace;
             this.fakeBlockState = fakeBlockState;
             this.usesVanillaHardness = this.hardness == block.getType().getHardness();
+            sendBlockDamage(0, getDestructionID(0));
         }
 
         public void incrementTicks() {
-            player.addPotionEffect(new PotionEffect(PotionEffectType.MINING_FATIGUE, 1, -1, false, false, false));
+            //applyBlockBreakModifier(player);
             if (!DELAY_BETWEEN_BLOCK_BREAKS.isAllowed(player))
                 return;
 
@@ -289,6 +313,11 @@ public class BlockBreakSpeedModifier implements Listener {
             else
                 progress = stage * (1f / 9);
 
+            if (progress > 0) {
+                BlockBreakProgressUpdateEvent blockBreakProgressUpdateEvent = new BlockBreakProgressUpdateEvent(block, progress, player);
+                blockBreakProgressUpdateEvent.callEvent();
+            }
+
             for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
 
                 if (onlinePlayer.getEntityId() == entityId)
@@ -300,63 +329,6 @@ public class BlockBreakSpeedModifier implements Listener {
             if (fakeBlockState != null)
                 FakeBlockRegistry.fakeBlockDamage.sendBlockDamage(block, stage);
         }
-
-        // This formula is taken from
-        // https://minecraft.fandom.com/wiki/Breaking
-/*        public float calculateBreakTime() {
-            double multiplier = 1.0D;
-            float breakTime = hardness;
-            ItemStack hand = player.getInventory().getItem(EquipmentSlot.HAND);
-            BlockState blockState = block.getState();
-            BlockData blockData = blockState.getBlockData();
-
-            boolean isPreferredTool = block.isPreferredTool(hand);
-
-            double blockDamage;
-            if (usesVanillaHardness) {
-                return blockState.getBlock().getBreakSpeed(player);
-            } else {
-                boolean requiresCorrectToolsForDrops = blockData.requiresCorrectToolForDrops();
-
-                multiplier = block.getDestroySpeed(hand, false);
-                if (fakeBlockState != null) {
-                    requiresCorrectToolsForDrops = fakeBlockState.getProperties().isRequiresCorrectToolForDrops();
-                    isPreferredTool = fakeBlockState.getFakeBlock()
-                                                    .isPreferredTool(fakeBlockState, block, player, hand);
-                    multiplier = fakeBlockState.getFakeBlock().getDestroySpeed(fakeBlockState, block, hand);
-                }
-
-
-                if (isPreferredTool) {
-                    // canHarvest
-                    if (requiresCorrectToolsForDrops) {
-                        int efficiencyLevel = getEnchantmentLevel(player, Enchantment.DIG_SPEED);
-                        if (efficiencyLevel > 0)
-                            multiplier += (efficiencyLevel ^ 2) + 1;
-                    } else
-                        multiplier = 1.0;
-                }
-
-                // Haste effect
-                if (player.hasPotionEffect(PotionEffectType.FAST_DIGGING))
-                    multiplier *= 0.2D * player.getPotionEffect(PotionEffectType.FAST_DIGGING).getAmplifier() + 1.0D;
-                // water check
-                if (player.isInWater() && hasEnchantmentLevel(player, Enchantment.WATER_WORKER))
-                    multiplier /= 5.0D;
-                // in air check
-                if (!player.isOnGround())
-                    multiplier /= 5.0D;
-
-                blockDamage = multiplier / breakTime;
-
-                if (isPreferredTool)
-                    blockDamage /= 30.0;
-                else
-                    blockDamage /= 100.0;
-            }
-            breakTime = blockDamage >= 1 ? 0 : (int) Math.ceil(1.0D / blockDamage);
-            return (1 / breakTime);
-        }*/
     }
 
     private static boolean hasEnchantmentLevel(Player player, Enchantment enchantment) {

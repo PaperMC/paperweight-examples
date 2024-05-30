@@ -1,6 +1,7 @@
 package de.verdox.mccreativelab.world.block.behaviour;
 
 import de.verdox.mccreativelab.InteractionResult;
+import de.verdox.mccreativelab.ItemInteractionResult;
 import de.verdox.mccreativelab.behaviour.BehaviourResult;
 import de.verdox.mccreativelab.behaviour.BlockBehaviour;
 import de.verdox.mccreativelab.random.VanillaRandomSource;
@@ -80,8 +81,8 @@ public interface VanillaReplacingBlockBehaviour extends BlockBehaviour {
     }
 
     @Override
-    default BehaviourResult.Object<InteractionResult> use(Block block, Player player, EquipmentSlot hand, RayTraceResult rayTraceResult) {
-        return new BehaviourResult.Object<>(InteractionResult.SUCCESS, BehaviourResult.Object.Type.REPLACE_VANILLA);
+    default BehaviourResult.Object<ItemInteractionResult> use(Block block, Player player, EquipmentSlot hand, RayTraceResult rayTraceResult) {
+        return new BehaviourResult.Object<>(ItemInteractionResult.SUCCESS, BehaviourResult.Object.Type.REPLACE_VANILLA);
     }
 
     @Override

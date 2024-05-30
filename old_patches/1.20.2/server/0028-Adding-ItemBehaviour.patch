@@ -763,7 +763,7 @@ index 0000000000000000000000000000000000000000..1f204e8b4890d74f800ce4dfc10af5a2
 +import it.unimi.dsi.fastutil.Pair;
 +import net.minecraft.world.effect.MobEffectInstance;
 +import org.bukkit.craftbukkit.potion.CraftPotionUtil;
-+import org.bukkit.inventory.FoodProperties;
++import de.verdox.itemformat.component.FoodProperties;
 +import org.bukkit.potion.PotionEffect;
 +
 +import java.util.List;

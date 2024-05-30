@@ -1,0 +1,73 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: verdox <mail.ysp@web.de>
+Date: Sat, 18 May 2024 23:18:52 +0000
+Subject: [PATCH] Adding the ability to change the server resourcepack
+
+
+diff --git a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
+index 2eb9c584cc77237f1c82d880a51a3f8b51008d73..436800e089054003f3b31309f53e9afeb0e4bcc8 100644
+--- a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
++++ b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
+@@ -875,6 +875,12 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
+         return this.settings.getProperties().forceGameMode ? this.worldData.getGameType() : null;
+     }
+ 
++    // Paper start - Make server resourcepack changeable
++    public void setServerResourcePack(@Nullable MinecraftServer.ServerResourcePackInfo resourcePackInfo){
++        this.settings.getProperties().serverResourcePackInfo = Optional.ofNullable(resourcePackInfo);
++    }
++    // Paper end - Make server resourcepack changeable
++
+     @Override
+     public Optional<MinecraftServer.ServerResourcePackInfo> getServerResourcePack() {
+         return this.settings.getProperties().serverResourcePackInfo;
+diff --git a/src/main/java/net/minecraft/server/dedicated/DedicatedServerProperties.java b/src/main/java/net/minecraft/server/dedicated/DedicatedServerProperties.java
+index 9d10cdacb3aed2c00dc60aeb6f2cbeb48905e21f..05aaaf9a922f3825cd09730a87735a4e43d55104 100644
+--- a/src/main/java/net/minecraft/server/dedicated/DedicatedServerProperties.java
++++ b/src/main/java/net/minecraft/server/dedicated/DedicatedServerProperties.java
+@@ -99,7 +99,7 @@ public class DedicatedServerProperties extends Settings<DedicatedServerPropertie
+     public final boolean hideOnlinePlayers;
+     public final int entityBroadcastRangePercentage;
+     public final String textFilteringConfig;
+-    public final Optional<MinecraftServer.ServerResourcePackInfo> serverResourcePackInfo;
++    public Optional<MinecraftServer.ServerResourcePackInfo> serverResourcePackInfo; // Paper - Make server resourcepack changeable -> remove final
+     public final DataPackConfig initialDataPackConfiguration;
+     public final Settings<DedicatedServerProperties>.MutableValue<Integer> playerIdleTimeout;
+     public final Settings<DedicatedServerProperties>.MutableValue<Boolean> whiteList;
+diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
+index f5c835cfb523fa5d13b71f93fb1cfd03e3108705..00582c842e303c991dbdc16abe521808115a4ce6 100644
+--- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
++++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
+@@ -822,6 +822,13 @@ public final class CraftServer implements Server {
+         return this.getServer().getServerResourcePack().map(CraftResourcePack::new).orElse(null);
+     }
+ 
++    // Paper start - Make server resourcepack changeable
++    @Override
++    public void setServerResourcePack(@org.jetbrains.annotations.Nullable ResourcePack resourcePack) {
++        this.getServer().setServerResourcePack(resourcePack == null ? null : new MinecraftServer.ServerResourcePackInfo(resourcePack.getId(), resourcePack.getUrl(), resourcePack.getHash(), resourcePack.isRequired(), io.papermc.paper.adventure.PaperAdventure.asVanilla(resourcePack.getPrompt())));
++    }
++    // Paper end - Make server resourcepack changeable
++
+     @Override
+     public String getResourcePack() {
+         return this.getServer().getServerResourcePack().map(MinecraftServer.ServerResourcePackInfo::url).orElse("");
+diff --git a/src/main/java/org/bukkit/craftbukkit/packs/CraftResourcePack.java b/src/main/java/org/bukkit/craftbukkit/packs/CraftResourcePack.java
+index 9313d17f01198f190e885579f8f6103187499d44..52ca717e2a44cd830bc7db90122faa0a7c29e952 100644
+--- a/src/main/java/org/bukkit/craftbukkit/packs/CraftResourcePack.java
++++ b/src/main/java/org/bukkit/craftbukkit/packs/CraftResourcePack.java
+@@ -28,10 +28,12 @@ public class CraftResourcePack implements ResourcePack {
+         return this.handle.hash();
+     }
+ 
++    // Paper start - Make server resourcepack changeable
+     @Override
+-    public String getPrompt() {
+-        return (this.handle.prompt() == null) ? "" : CraftChatMessage.fromComponent(this.handle.prompt());
++    public net.kyori.adventure.text.Component getPrompt() {
++        return (this.handle.prompt() == null) ? net.kyori.adventure.text.Component.empty() : io.papermc.paper.adventure.PaperAdventure.asAdventure(this.handle.prompt());
+     }
++    // Paper end - Make server resourcepack changeable
+ 
+     @Override
+     public boolean isRequired() {

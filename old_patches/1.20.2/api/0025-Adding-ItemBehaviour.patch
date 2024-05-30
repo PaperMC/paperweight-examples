@@ -21,7 +21,7 @@ index 0000000000000000000000000000000000000000..7309db3192d3cacafdacef1262150371
 +import org.bukkit.entity.LivingEntity;
 +import org.bukkit.entity.Player;
 +import org.bukkit.inventory.EquipmentSlot;
-+import org.bukkit.inventory.FoodProperties;
++import de.verdox.itemformat.component.FoodProperties;
 +import org.bukkit.inventory.ItemStack;
 +
 +public interface ItemBehaviour {

@@ -1,4 +1,4 @@
-#version 110
+#version 150
 
 #moj_import <fog.glsl>
 #moj_import <light.glsl>
@@ -12,7 +12,6 @@ uniform sampler2D Sampler0;
 
 uniform mat4 ModelViewMat;
 uniform mat4 ProjMat;
-uniform mat3 IViewRotMat;
 uniform int FogShape;
 uniform vec2 ScreenSize;
 
@@ -35,9 +34,9 @@ void main() {
 
     // TODO: IMPORTANT FOR 1.20.6 Shader compat !!!
     // On 1.20.6 change to ->
-    // vertexDistance = fog_distance(ModelViewMat, Position, FogShape);
+    vertexDistance = fog_distance(Position, FogShape);
     // because IViewRotMat was removed
-    vertexDistance = fog_distance(ModelViewMat, IViewRotMat * Position, FogShape);
+    //vertexDistance = fog_distance(ModelViewMat, IViewRotMat * Position, FogShape);
 
     //vec4 lightColor = minecraft_sample_lightmap(Sampler0, UV2);
     //if (vertexDistance > 800) lightColor = texelFetch(Sampler0, UV2 / 16, 0);
@@ -53,8 +52,8 @@ void main() {
 
 
     if (id > 99 && Color.a != 0.0) {
-        float yOffset = 0;
-        float xOffset = 0;
+        float yOffset = 0.0;
+        float xOffset = 0.0;
         int layer = 0;
         int type = 0;
 
@@ -75,5 +74,5 @@ void main() {
         //}
     }
 
-    gl_Position = ProjMat * ModelViewMat * vec4(pos, 1);
+    gl_Position = ProjMat * ModelViewMat * vec4(pos, 1.0);
 }

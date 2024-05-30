@@ -181,16 +181,16 @@ index 0000000000000000000000000000000000000000..e4688e585f1649b4a0fa580066bf89b1
 +                return nmsValue.createCraftBlockData();
 +            }
 +        }
-+        class FoodProperties implements Converter<org.bukkit.inventory.FoodProperties, net.minecraft.world.food.FoodProperties>{
++        class FoodProperties implements Converter<de.verdox.itemformat.component.FoodProperties, net.minecraft.world.food.FoodProperties>{
 +            public static final FoodProperties INSTANCE = new FoodProperties();
 +
 +            @Override
-+            public net.minecraft.world.food.FoodProperties bukkitToNMS(org.bukkit.inventory.FoodProperties bukkitValue) {
++            public net.minecraft.world.food.FoodProperties bukkitToNMS(de.verdox.itemformat.component.FoodProperties bukkitValue) {
 +                return CraftFoodProperties.toNMS(bukkitValue);
 +            }
 +
 +            @Override
-+            public org.bukkit.inventory.FoodProperties nmsToBukkitValue(net.minecraft.world.food.FoodProperties nmsValue) {
++            public de.verdox.itemformat.component.FoodProperties nmsToBukkitValue(net.minecraft.world.food.FoodProperties nmsValue) {
 +                return CraftFoodProperties.toBukkit(nmsValue);
 +            }
 +        }

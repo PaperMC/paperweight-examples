@@ -1,0 +1,485 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: verdox <mail.ysp@web.de>
+Date: Thu, 30 May 2024 11:13:28 +0000
+Subject: [PATCH] Removing enums Part 2
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/CraftDataPackInterceptor.java b/src/main/java/de/verdox/mccreativelab/CraftDataPackInterceptor.java
+index 8b0561d555a8ebf49c89ccaa75575b2c0bf2f546..7c013cf076255902668fbe2e3a3426d11e29ff67 100644
+--- a/src/main/java/de/verdox/mccreativelab/CraftDataPackInterceptor.java
++++ b/src/main/java/de/verdox/mccreativelab/CraftDataPackInterceptor.java
+@@ -15,6 +15,7 @@ import java.util.function.Consumer;
+ import org.apache.commons.io.FilenameUtils;
+ import org.slf4j.Logger;
+ import java.nio.charset.StandardCharsets;
++import java.util.function.Function;
+ 
+ public class CraftDataPackInterceptor implements DataPackInterceptor {
+     private static final Logger LOGGER = LogUtils.getLogger();
+diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/BehaviourUtil.java b/src/main/java/de/verdox/mccreativelab/behaviour/BehaviourUtil.java
+index 3d32cf0cbd3769ba7404cc9f6aca049763ee9f14..46a81c9c3ccee338ec012b1144e320d9dce74cc9 100644
+--- a/src/main/java/de/verdox/mccreativelab/behaviour/BehaviourUtil.java
++++ b/src/main/java/de/verdox/mccreativelab/behaviour/BehaviourUtil.java
+@@ -5,7 +5,6 @@ import net.minecraft.world.InteractionResultHolder;
+ import net.minecraft.world.level.block.state.BlockState;
+ import org.bukkit.Bukkit;
+ import org.bukkit.Material;
+-import org.bukkit.craftbukkit.CraftFoodProperties;
+ import org.bukkit.craftbukkit.block.data.CraftBlockData;
+ import org.bukkit.craftbukkit.inventory.CraftItemStack;
+ import org.jetbrains.annotations.NotNull;
+@@ -263,20 +262,6 @@ public class BehaviourUtil {
+             }
+         }
+ 
+-        class FoodProperties implements Converter<de.verdox.itemformat.component.FoodProperties, net.minecraft.world.food.FoodProperties> {
+-            public static final FoodProperties INSTANCE = new FoodProperties();
+-
+-            @Override
+-            public net.minecraft.world.food.FoodProperties bukkitToNMS(de.verdox.itemformat.component.FoodProperties bukkitValue) {
+-                return CraftFoodProperties.toNMS(bukkitValue);
+-            }
+-
+-            @Override
+-            public de.verdox.itemformat.component.FoodProperties nmsToBukkitValue(net.minecraft.world.food.FoodProperties nmsValue) {
+-                return CraftFoodProperties.toBukkit(nmsValue);
+-            }
+-        }
+-
+         R bukkitToNMS(I bukkitValue);
+ 
+         I nmsToBukkitValue(R nmsValue);
+diff --git a/src/main/java/de/verdox/mccreativelab/data/CraftVanillaRegistryManipulator.java b/src/main/java/de/verdox/mccreativelab/data/CraftVanillaRegistryManipulator.java
+index 818a9eb7e5d65f10bc42908070f2634eaabe9cda..ad71091fef682e786ca3a3f833aebbfee80ee2e2 100644
+--- a/src/main/java/de/verdox/mccreativelab/data/CraftVanillaRegistryManipulator.java
++++ b/src/main/java/de/verdox/mccreativelab/data/CraftVanillaRegistryManipulator.java
+@@ -39,7 +39,7 @@ public class CraftVanillaRegistryManipulator implements VanillaRegistryManipulat
+     public RegistryEntryReference<Attribute> createAttribute(NamespacedKey namespacedKey, double defaultValue, double min, double max) {
+         ResourceLocation resourceLocation = CraftNamespacedKey.toMinecraft(namespacedKey);
+         var key = "attribute.name." + resourceLocation.getPath();
+-        Registry.register(BuiltInRegistries.ATTRIBUTE, resourceLocation, new RangedAttribute(key, defaultValue, min, max));
++        Registry.register(BuiltInRegistries.ATTRIBUTE, resourceLocation, new RangedAttribute(key, defaultValue, min, max).setSyncable(false));
+         return new RegistryEntryReference<>(namespacedKey, () -> Attribute.getAttribute(namespacedKey));
+     }
+ 
+diff --git a/src/main/java/de/verdox/mccreativelab/worldgen/structure/PathProcessor.java b/src/main/java/de/verdox/mccreativelab/worldgen/structure/PathProcessor.java
+index 9d0796acd149273d2490a1e5ed9d10617968e752..a61afffe6ef79b51514b3ee4251687e3b30ddb0f 100644
+--- a/src/main/java/de/verdox/mccreativelab/worldgen/structure/PathProcessor.java
++++ b/src/main/java/de/verdox/mccreativelab/worldgen/structure/PathProcessor.java
+@@ -48,7 +48,7 @@ public class PathProcessor extends StructureProcessor {
+ 
+     @Override
+     protected StructureProcessorType<?> getType() {
+-        return StructureProcessorType.PATH;
++        return /*StructureProcessorType.PATH;*/ null;
+     }
+ 
+     @Nullable
+diff --git a/src/main/java/io/papermc/paper/registry/PaperRegistries.java b/src/main/java/io/papermc/paper/registry/PaperRegistries.java
+index 3aa5aec0b17cbdff922009b940d49bb06945c2c6..6e27ddd4d38d43e8124506229ade57ab988c291d 100644
+--- a/src/main/java/io/papermc/paper/registry/PaperRegistries.java
++++ b/src/main/java/io/papermc/paper/registry/PaperRegistries.java
+@@ -8,14 +8,17 @@ import java.util.Map;
+ import net.minecraft.core.Registry;
+ import net.minecraft.core.registries.Registries;
+ import net.minecraft.resources.ResourceKey;
++import net.minecraft.world.entity.schedule.Activity;
++import net.minecraft.world.entity.schedule.Schedule;
+ import net.minecraft.world.item.enchantment.Enchantment;
+ import net.minecraft.world.level.levelgen.structure.Structure;
+-import org.bukkit.GameEvent;
+-import org.bukkit.Keyed;
+-import org.bukkit.MusicInstrument;
++import org.bukkit.*;
++import org.bukkit.attribute.Attribute;
++import org.bukkit.block.Biome;
+ import org.bukkit.block.BlockType;
+-import org.bukkit.craftbukkit.CraftGameEvent;
+-import org.bukkit.craftbukkit.CraftMusicInstrument;
++import org.bukkit.craftbukkit.*;
++import org.bukkit.craftbukkit.attribute.CraftAttribute;
++import org.bukkit.craftbukkit.block.CraftBiome;
+ import org.bukkit.craftbukkit.block.CraftBlockType;
+ import org.bukkit.craftbukkit.damage.CraftDamageType;
+ import org.bukkit.craftbukkit.enchantments.CraftEnchantment;
+@@ -65,7 +68,13 @@ public final class PaperRegistries {
+             entry(Registries.BLOCK, RegistryKey.BLOCK, BlockType.class, CraftBlockType::new),
+             entry(Registries.ITEM, RegistryKey.ITEM, ItemType.class, CraftItemType::new),
+ 
++            entry(Registries.ATTRIBUTE, RegistryKey.ATTRIBUTE, Attribute.class, CraftAttribute::new),
++            entry(Registries.POINT_OF_INTEREST_TYPE, RegistryKey.POI_TYPE, PoiType.class, CraftPoiType::new),
++            entry(Registries.SCHEDULE, RegistryKey.ENTITY_SCHEDULE, EntitySchedule.class, CraftEntitySchedule::new),
++            entry(Registries.ACTIVITY, RegistryKey.ENTITY_ACTIVITY, EntityActivity.class, CraftEntityActivity::new),
++
+             // data-drivens
++            entry(Registries.BIOME, RegistryKey.BIOME, Biome.class, CraftBiome::new).delayed(),
+             entry(Registries.STRUCTURE, RegistryKey.STRUCTURE, Structure.class, CraftStructure::new).delayed(),
+             entry(Registries.TRIM_MATERIAL, RegistryKey.TRIM_MATERIAL, TrimMaterial.class, CraftTrimMaterial::new).delayed(),
+             entry(Registries.TRIM_PATTERN, RegistryKey.TRIM_PATTERN, TrimPattern.class, CraftTrimPattern::new).delayed(),
+@@ -73,9 +82,8 @@ public final class PaperRegistries {
+             entry(Registries.WOLF_VARIANT, RegistryKey.WOLF_VARIANT, Wolf.Variant.class, CraftWolf.CraftVariant::new).delayed(),
+ 
+             // api-only
+-            apiOnly(Registries.BIOME, RegistryKey.BIOME, () -> org.bukkit.Registry.BIOME),
+             apiOnly(Registries.PAINTING_VARIANT, RegistryKey.PAINTING_VARIANT, () -> org.bukkit.Registry.ART),
+-            apiOnly(Registries.ATTRIBUTE, RegistryKey.ATTRIBUTE, () -> org.bukkit.Registry.ATTRIBUTE),
++            //apiOnly(Registries.ATTRIBUTE, RegistryKey.ATTRIBUTE, () -> org.bukkit.Registry.ATTRIBUTE),
+             apiOnly(Registries.BANNER_PATTERN, RegistryKey.BANNER_PATTERN, () -> org.bukkit.Registry.BANNER_PATTERN),
+             apiOnly(Registries.CAT_VARIANT, RegistryKey.CAT_VARIANT, () -> org.bukkit.Registry.CAT_VARIANT),
+             apiOnly(Registries.ENTITY_TYPE, RegistryKey.ENTITY_TYPE, () -> org.bukkit.Registry.ENTITY_TYPE),
+diff --git a/src/main/java/io/papermc/paper/registry/entry/CraftRegistryEntry.java b/src/main/java/io/papermc/paper/registry/entry/CraftRegistryEntry.java
+index 46b2560de884ef381cb7fc8669cad8f5a1fa3645..34f4a970eb1f613a9ce0d5dab91aa9c9355c92ea 100644
+--- a/src/main/java/io/papermc/paper/registry/entry/CraftRegistryEntry.java
++++ b/src/main/java/io/papermc/paper/registry/entry/CraftRegistryEntry.java
+@@ -44,6 +44,7 @@ public class CraftRegistryEntry<M, B extends Keyed> extends BaseRegistryEntry<M,
+     }
+ 
+     private CraftRegistry<B, M> createApiRegistry(final Registry<M> nmsRegistry) {
++        System.out.println("Create API Registry: "+this.classToPreload +" "+ nmsRegistry +" "+ this.minecraftToBukkit +" "+ this.updater);
+         return new CraftRegistry<>(this.classToPreload, nmsRegistry, this.minecraftToBukkit, this.updater);
+     }
+ }
+diff --git a/src/main/java/net/minecraft/world/entity/LivingEntity.java b/src/main/java/net/minecraft/world/entity/LivingEntity.java
+index da043c4532f10286b8506b8b173a581694a62286..ed28ccb7dc23179c0071ceda271858fa5f4da408 100644
+--- a/src/main/java/net/minecraft/world/entity/LivingEntity.java
++++ b/src/main/java/net/minecraft/world/entity/LivingEntity.java
+@@ -830,13 +830,15 @@ public abstract class LivingEntity extends Entity implements Attackable {
+             nbt.putInt("SleepingY", blockposition.getY());
+             nbt.putInt("SleepingZ", blockposition.getZ());
+         });
+-        DataResult<Tag> dataresult = this.brain.serializeStart(NbtOps.INSTANCE);
+-        Logger logger = LivingEntity.LOGGER;
++        if(!(this instanceof net.minecraft.world.entity.player.Player)) {
++            DataResult<Tag> dataresult = this.brain.serializeStart(NbtOps.INSTANCE);
++            Logger logger = LivingEntity.LOGGER;
+ 
+-        java.util.Objects.requireNonNull(logger);
+-        dataresult.resultOrPartial(logger::error).ifPresent((nbtbase) -> {
+-            nbt.put("Brain", nbtbase);
+-        });
++            java.util.Objects.requireNonNull(logger);
++            dataresult.resultOrPartial(logger::error).ifPresent((nbtbase) -> {
++                nbt.put("Brain", nbtbase);
++            });
++        }
+     }
+ 
+     @Override
+diff --git a/src/main/java/net/minecraft/world/entity/ai/Brain.java b/src/main/java/net/minecraft/world/entity/ai/Brain.java
+index 69abf01ae5a3b64868fa36367967cb679b3a9506..5d96da6627c58e7d5ebeec1952fd547c319eb274 100644
+--- a/src/main/java/net/minecraft/world/entity/ai/Brain.java
++++ b/src/main/java/net/minecraft/world/entity/ai/Brain.java
+@@ -65,8 +65,8 @@ public class Brain<E extends LivingEntity> {
+     public static <E extends LivingEntity> Codec<Brain<E>> codec(
+         Collection<? extends MemoryModuleType<?>> memoryModules, Collection<? extends SensorType<? extends Sensor<? super E>>> sensors
+     ) {
+-        final MutableObject<Codec<Brain<E>>> mutableObject = new MutableObject<>();
+-        mutableObject.setValue(
++        final MutableObject<Codec<Brain<E>>> mutableObject2 = new MutableObject<>();
++        mutableObject2.setValue(
+             (new MapCodec<Brain<E>>() {
+                     public <T> Stream<T> keys(DynamicOps<T> dynamicOps) {
+                         return memoryModules.stream()
+@@ -98,7 +98,7 @@ public class Brain<E extends LivingEntity> {
+                             .resultOrPartial(Brain.LOGGER::error)
+                             .map(Builder::build)
+                             .orElseGet(ImmutableList::of);
+-                        return DataResult.success(new Brain(memoryModules, sensors, immutableList, mutableObject::getValue));
++                        return DataResult.success(new Brain<>(memoryModules, sensors, immutableList, mutableObject2::getValue));
+                     }
+ 
+                     private <T, U> DataResult<Brain.MemoryValue<U>> captureRead(MemoryModuleType<U> memoryType, DynamicOps<T> ops, T value) {
+@@ -117,7 +117,7 @@ public class Brain<E extends LivingEntity> {
+                 .fieldOf("memories")
+                 .codec()
+         );
+-        return mutableObject.getValue();
++        return mutableObject2.getValue();
+     }
+ 
+     public Brain(
+diff --git a/src/main/java/net/minecraft/world/level/chunk/LevelChunkSection.java b/src/main/java/net/minecraft/world/level/chunk/LevelChunkSection.java
+index bd7e8a8bd0a49eedd874c0115bbf6e1ee44d709b..428c40f1c6dcca936a3f44bc002e29f77251ff50 100644
+--- a/src/main/java/net/minecraft/world/level/chunk/LevelChunkSection.java
++++ b/src/main/java/net/minecraft/world/level/chunk/LevelChunkSection.java
+@@ -29,8 +29,8 @@ public class LevelChunkSection {
+     // Paper start - optimise collisions
+     private int specialCollidingBlocks;
+     // MCCLab start - Add BlockBehaviour
+-    org.jetbrains.annotations.NotNull private net.minecraft.world.level.Level level;
+-    org.jetbrains.annotations.NotNull private net.minecraft.world.level.ChunkPos chunkPos;
++    @org.jetbrains.annotations.NotNull private net.minecraft.world.level.Level level;
++    @org.jetbrains.annotations.NotNull private net.minecraft.world.level.ChunkPos chunkPos;
+     private int chunkSectionY;
+     // MCCLab end - Add BlockBehaviour
+ 
+diff --git a/src/main/java/net/minecraft/world/level/levelgen/structure/templatesystem/StructureProcessorType.java b/src/main/java/net/minecraft/world/level/levelgen/structure/templatesystem/StructureProcessorType.java
+index 95f731fe22d9c3e1894f9d1951bd72351f883b76..f5735d24d59c93376c5f7e491c3f0e9e9a21811b 100644
+--- a/src/main/java/net/minecraft/world/level/levelgen/structure/templatesystem/StructureProcessorType.java
++++ b/src/main/java/net/minecraft/world/level/levelgen/structure/templatesystem/StructureProcessorType.java
+@@ -26,7 +26,7 @@ public interface StructureProcessorType<P extends StructureProcessor> {
+     StructureProcessorType<LavaSubmergedBlockProcessor> LAVA_SUBMERGED_BLOCK = register("lava_submerged_block", LavaSubmergedBlockProcessor.CODEC);
+     StructureProcessorType<ProtectedBlockProcessor> PROTECTED_BLOCKS = register("protected_blocks", ProtectedBlockProcessor.CODEC);
+     StructureProcessorType<CappedProcessor> CAPPED = register("capped", CappedProcessor.CODEC);
+-    StructureProcessorType<de.verdox.mccreativelab.worldgen.structure.PathProcessor> PATH = register("path", de.verdox.mccreativelab.worldgen.structure.PathProcessor.CODEC);
++    //StructureProcessorType<de.verdox.mccreativelab.worldgen.structure.PathProcessor> PATH = register("path", de.verdox.mccreativelab.worldgen.structure.PathProcessor.CODEC);
+ 
+     MapCodec<P> codec();
+ 
+diff --git a/src/main/java/org/bukkit/craftbukkit/CraftFoodProperties.java b/src/main/java/org/bukkit/craftbukkit/CraftFoodProperties.java
+deleted file mode 100644
+index a3307b0d9d5fc863e7117fa762212afcbcfa3067..0000000000000000000000000000000000000000
+--- a/src/main/java/org/bukkit/craftbukkit/CraftFoodProperties.java
++++ /dev/null
+@@ -1,52 +0,0 @@
+-package org.bukkit.craftbukkit;
+-
+-import it.unimi.dsi.fastutil.Pair;
+-import net.minecraft.world.effect.MobEffectInstance;
+-import org.bukkit.craftbukkit.potion.CraftPotionUtil;
+-import org.bukkit.potion.PotionEffect;
+-
+-import java.util.List;
+-import java.util.stream.Collectors;
+-
+-public class CraftFoodProperties implements FoodProperties {
+-    public static net.minecraft.world.food.FoodProperties toNMS(FoodProperties foodProperties){
+-        return ((CraftFoodProperties) foodProperties).handle;
+-    }
+-
+-    public static FoodProperties toBukkit(net.minecraft.world.food.FoodProperties foodProperties){
+-        return new CraftFoodProperties(foodProperties);
+-    }
+-
+-    private final net.minecraft.world.food.FoodProperties handle;
+-    public CraftFoodProperties(net.minecraft.world.food.FoodProperties handle){
+-        this.handle = handle;
+-    }
+-    @Override
+-    public int getNutrition() {
+-        return handle.nutrition();
+-    }
+-
+-    @Override
+-    public float getSaturationModifier() {
+-        return handle.saturation();
+-    }
+-
+-    @Override
+-    public float getEatSeconds() {
+-        return handle.eatSeconds();
+-    }
+-
+-    @Override
+-    public boolean canAlwaysEat() {
+-        return handle.canAlwaysEat();
+-    }
+-
+-    @Override
+-    public List<Pair<PotionEffect, Float>> getEffects() {
+-        return handle.effects().stream().map(potionEffectFloatPair -> {
+-            MobEffectInstance mobEffectInstance = potionEffectFloatPair.effect();
+-            float value = potionEffectFloatPair.probability();
+-            return Pair.of(CraftPotionUtil.toBukkit(mobEffectInstance), value);
+-        }).collect(Collectors.toList());
+-    }
+-}
+diff --git a/src/main/java/org/bukkit/craftbukkit/CraftRegistry.java b/src/main/java/org/bukkit/craftbukkit/CraftRegistry.java
+index d41b502eb451ec11dade2b987aee621511312ac6..3d311c74db26b6b1443e4e1c191e0ac1f5783b81 100644
+--- a/src/main/java/org/bukkit/craftbukkit/CraftRegistry.java
++++ b/src/main/java/org/bukkit/craftbukkit/CraftRegistry.java
+@@ -20,6 +20,7 @@ import org.bukkit.Registry;
+ import org.bukkit.attribute.Attribute;
+ import org.bukkit.block.Biome;
+ import org.bukkit.block.BlockType;
++import org.bukkit.craftbukkit.attribute.CraftAttribute;
+ import org.bukkit.craftbukkit.block.CraftBlockType;
+ import org.bukkit.craftbukkit.damage.CraftDamageType;
+ import org.bukkit.craftbukkit.enchantments.CraftEnchantment;
+@@ -144,9 +145,10 @@ public class CraftRegistry<B extends Keyed, M> implements Registry<B> {
+                 return bukkit.get(FieldRename.PARTICLE_TYPE_RENAME.apply(namespacedKey, apiVersion));
+             }
+ 
+-            if (bClass == Attribute.class) {
+-                return bukkit.get(FieldRename.ATTRIBUTE_RENAME.apply(namespacedKey, apiVersion));
+-            }
++/*            if (bClass == Attribute.class) {
++                return (B) CraftAttribute.CRAFT_ATTRIBUTE_REGISTRY.get(FieldRename.ATTRIBUTE_RENAME.apply(namespacedKey, apiVersion));
++                //return bukkit.get(FieldRename.ATTRIBUTE_RENAME.apply(namespacedKey, apiVersion));
++            }*/
+         }
+ 
+         return bukkit.get(namespacedKey);
+diff --git a/src/main/java/org/bukkit/craftbukkit/attribute/CraftAttribute.java b/src/main/java/org/bukkit/craftbukkit/attribute/CraftAttribute.java
+index 4886ef920f6e627bbe6ff492651c9b806621102a..18811daa8f81707603aeccb9ab604130a524b9ca 100644
+--- a/src/main/java/org/bukkit/craftbukkit/attribute/CraftAttribute.java
++++ b/src/main/java/org/bukkit/craftbukkit/attribute/CraftAttribute.java
+@@ -1,60 +1,27 @@
+ package org.bukkit.craftbukkit.attribute;
+ 
+ import com.google.common.base.Preconditions;
+-import java.util.Locale;
++
+ import net.minecraft.core.Holder;
+ import net.minecraft.core.registries.Registries;
+ import org.bukkit.NamespacedKey;
+ import org.bukkit.Registry;
+ import org.bukkit.attribute.Attribute;
+ import org.bukkit.craftbukkit.CraftRegistry;
+-import org.bukkit.craftbukkit.legacy.FieldRename;
+-import org.bukkit.craftbukkit.util.ApiVersion;
+-import org.bukkit.craftbukkit.util.CraftNamespacedKey;
+-
+-public class CraftAttribute extends org.bukkit.craftbukkit.BukkitToNMSMapping<net.minecraft.world.entity.ai.attributes.Attribute> implements Attribute{
+-    public CraftAttribute(NamespacedKey key, net.minecraft.world.entity.ai.attributes.Attribute handle) {
+-        super(key, handle);
+-    }
+-    @Override
+-    public @org.jetbrains.annotations.NotNull String translationKey() {
+-        return "attribute.name." + this.getKey().getKey();
+-    }
++import org.bukkit.craftbukkit.util.Handleable;
++import org.jetbrains.annotations.NotNull;
+ 
++public class CraftAttribute extends Attribute implements Handleable<net.minecraft.world.entity.ai.attributes.Attribute> {
+     public static Attribute minecraftToBukkit(net.minecraft.world.entity.ai.attributes.Attribute minecraft) {
+-        Preconditions.checkArgument(minecraft != null);
+-
+-        net.minecraft.core.Registry<net.minecraft.world.entity.ai.attributes.Attribute> registry = CraftRegistry.getMinecraftRegistry(Registries.ATTRIBUTE);
+-        Attribute bukkit = Registry.ATTRIBUTE.get(CraftNamespacedKey.fromMinecraft(registry.getResourceKey(minecraft).orElseThrow().location()));
+-
+-        Preconditions.checkArgument(bukkit != null);
+-
+-        return bukkit;
++        return CraftRegistry.minecraftToBukkit(minecraft, Registries.ATTRIBUTE, Registry.ATTRIBUTE);
+     }
+ 
+     public static Attribute minecraftHolderToBukkit(Holder<net.minecraft.world.entity.ai.attributes.Attribute> minecraft) {
+         return CraftAttribute.minecraftToBukkit(minecraft.value());
+     }
+ 
+-    public static Attribute stringToBukkit(String string) {
+-        Preconditions.checkArgument(string != null);
+-
+-        // We currently do not have any version-dependent remapping, so we can use current version
+-        // First convert from when only the names where saved
+-        string = FieldRename.convertAttributeName(ApiVersion.CURRENT, string);
+-        string = string.toLowerCase(Locale.ROOT);
+-        NamespacedKey key = NamespacedKey.fromString(string);
+-        if (key == null) return null; // Paper - Fixup NamespacedKey handling
+-
+-        // Now also convert from when keys where saved
+-        return CraftRegistry.get(Registry.ATTRIBUTE, key, ApiVersion.CURRENT);
+-    }
+-
+     public static net.minecraft.world.entity.ai.attributes.Attribute bukkitToMinecraft(Attribute bukkit) {
+-        Preconditions.checkArgument(bukkit != null);
+-
+-        return CraftRegistry.getMinecraftRegistry(Registries.ATTRIBUTE)
+-                .getOptional(CraftNamespacedKey.toMinecraft(bukkit.getKey())).orElseThrow();
++        return CraftRegistry.bukkitToMinecraft(bukkit);
+     }
+ 
+     public static Holder<net.minecraft.world.entity.ai.attributes.Attribute> bukkitToMinecraftHolder(Attribute bukkit) {
+@@ -75,4 +42,28 @@ public class CraftAttribute extends org.bukkit.craftbukkit.BukkitToNMSMapping<ne
+ 
+         return bukkit.getKey().toString();
+     }
++
++    public static Attribute stringToBukkit(String string) {
++        Preconditions.checkArgument(string != null);
++
++        return Registry.ATTRIBUTE.get(NamespacedKey.fromString(string));
++    }
++
++    private final NamespacedKey key;
++    private final net.minecraft.world.entity.ai.attributes.Attribute handle;
++
++    public CraftAttribute(NamespacedKey key, net.minecraft.world.entity.ai.attributes.Attribute handle) {
++        this.key = key;
++        this.handle = handle;
++    }
++
++    @Override
++    public @NotNull NamespacedKey getKey() {
++        return key;
++    }
++
++    @Override
++    public net.minecraft.world.entity.ai.attributes.Attribute getHandle() {
++        return handle;
++    }
+ }
+diff --git a/src/main/java/org/bukkit/craftbukkit/block/CraftBiome.java b/src/main/java/org/bukkit/craftbukkit/block/CraftBiome.java
+index 54e9c0eeeee8a657bdb33eef6b101dc2bd395636..0f2efdaf356f170ab937d8b77c59d230bb4f74cf 100644
+--- a/src/main/java/org/bukkit/craftbukkit/block/CraftBiome.java
++++ b/src/main/java/org/bukkit/craftbukkit/block/CraftBiome.java
+@@ -20,16 +20,7 @@ public class CraftBiome extends org.bukkit.craftbukkit.BukkitToNMSMapping<net.mi
+     }
+ 
+     public static Biome minecraftToBukkit(net.minecraft.world.level.biome.Biome minecraft) {
+-        Preconditions.checkArgument(minecraft != null);
+-
+-        net.minecraft.core.Registry<net.minecraft.world.level.biome.Biome> registry = CraftRegistry.getMinecraftRegistry(Registries.BIOME);
+-        Biome bukkit = Registry.BIOME.get(CraftNamespacedKey.fromMinecraft(registry.getResourceKey(minecraft).orElseThrow().location()));
+-
+-        if (bukkit == null) {
+-            return Biome.CUSTOM;
+-        }
+-
+-        return bukkit;
++        return CraftRegistry.minecraftToBukkit(minecraft, Registries.BIOME, Registry.BIOME);
+     }
+ 
+     public static Biome minecraftHolderToBukkit(Holder<net.minecraft.world.level.biome.Biome> minecraft) {
+@@ -38,12 +29,7 @@ public class CraftBiome extends org.bukkit.craftbukkit.BukkitToNMSMapping<net.mi
+ 
+     private static final java.util.Map<org.bukkit.block.Biome, ResourceKey<net.minecraft.world.level.biome.Biome>> BIOME_KEY_CACHE = java.util.Collections.synchronizedMap(new java.util.HashMap<>()); // Paper
+     public static net.minecraft.world.level.biome.Biome bukkitToMinecraft(Biome bukkit) {
+-        if (bukkit == null || bukkit == Biome.CUSTOM) {
+-            return null;
+-        }
+-
+-        return CraftRegistry.getMinecraftRegistry(Registries.BIOME)
+-                .getOptional(BIOME_KEY_CACHE.computeIfAbsent(bukkit, b -> ResourceKey.create(Registries.BIOME, CraftNamespacedKey.toMinecraft(b.getKey())))).orElseThrow();
++        return CraftRegistry.bukkitToMinecraft(bukkit);
+     }
+ 
+     public static Holder<net.minecraft.world.level.biome.Biome> bukkitToMinecraftHolder(Biome bukkit) {
+diff --git a/src/test/java/org/bukkit/support/provider/RegistriesArgumentProvider.java b/src/test/java/org/bukkit/support/provider/RegistriesArgumentProvider.java
+index 24f01242513d6c815f60599d7118fe12bc577804..98a1173bc6f8bb7ac72504f23ff953ae2ecdf615 100644
+--- a/src/test/java/org/bukkit/support/provider/RegistriesArgumentProvider.java
++++ b/src/test/java/org/bukkit/support/provider/RegistriesArgumentProvider.java
+@@ -8,12 +8,16 @@ import net.minecraft.core.registries.Registries;
+ import net.minecraft.resources.ResourceKey;
+ import net.minecraft.world.effect.MobEffect;
+ import net.minecraft.world.entity.animal.WolfVariant;
++import net.minecraft.world.entity.schedule.Activity;
++import net.minecraft.world.entity.schedule.Schedule;
+ import net.minecraft.world.item.Instrument;
+-import org.bukkit.GameEvent;
+-import org.bukkit.MusicInstrument;
++import org.bukkit.*;
++import org.bukkit.attribute.Attribute;
++import org.bukkit.block.Biome;
+ import org.bukkit.block.BlockType;
+-import org.bukkit.craftbukkit.CraftGameEvent;
+-import org.bukkit.craftbukkit.CraftMusicInstrument;
++import org.bukkit.craftbukkit.*;
++import org.bukkit.craftbukkit.attribute.CraftAttribute;
++import org.bukkit.craftbukkit.block.CraftBiome;
+ import org.bukkit.craftbukkit.block.CraftBlockType;
+ import org.bukkit.craftbukkit.damage.CraftDamageType;
+ import org.bukkit.craftbukkit.enchantments.CraftEnchantment;
+@@ -56,6 +60,11 @@ public class RegistriesArgumentProvider implements ArgumentsProvider {
+         register(RegistryKey.ITEM, ItemType.class, Registries.ITEM, CraftItemType.class, net.minecraft.world.item.Item.class, true);
+         register(RegistryKey.BLOCK, BlockType.class, Registries.BLOCK, CraftBlockType.class, net.minecraft.world.level.block.Block.class, true);
+ 
++        register(RegistryKey.ATTRIBUTE, Attribute.class, Registries.ATTRIBUTE, CraftAttribute.class, net.minecraft.world.entity.ai.attributes.Attribute.class);
++        register(RegistryKey.BIOME, Biome.class, Registries.BIOME, CraftBiome.class, net.minecraft.world.level.biome.Biome.class);
++        register(RegistryKey.POI_TYPE, PoiType.class, Registries.POINT_OF_INTEREST_TYPE, CraftPoiType.class, net.minecraft.world.entity.ai.village.poi.PoiType.class);
++        register(RegistryKey.ENTITY_ACTIVITY, EntityActivity.class, Registries.ACTIVITY, CraftEntityActivity.class, Activity.class);
++        register(RegistryKey.ENTITY_SCHEDULE, EntitySchedule.class, Registries.SCHEDULE, CraftEntitySchedule.class, Schedule.class);
+     }
+ 
+     private static void register(RegistryKey registryKey, Class bukkit, ResourceKey registry, Class craft, Class minecraft) { // Paper

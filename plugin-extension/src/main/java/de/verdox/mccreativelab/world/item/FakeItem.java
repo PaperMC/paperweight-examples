@@ -6,23 +6,21 @@ import de.verdox.mccreativelab.behaviour.ItemBehaviour;
 import de.verdox.mccreativelab.generator.Asset;
 import de.verdox.mccreativelab.generator.resourcepack.CustomResourcePack;
 import de.verdox.mccreativelab.generator.resourcepack.types.ItemTextureData;
-import de.verdox.mccreativelab.generator.resourcepack.types.lang.LanguageInfo;
 import de.verdox.mccreativelab.generator.resourcepack.types.lang.Translatable;
-import de.verdox.mccreativelab.generator.resourcepack.types.lang.Translation;
 import de.verdox.mccreativelab.world.block.FakeBlock;
 import de.verdox.mccreativelab.recipe.CustomItemData;
 import de.verdox.mccreativelab.world.item.data.ItemDataContainer;
 import it.unimi.dsi.fastutil.Pair;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.TextColor;
-import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Keyed;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.block.Block;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.components.FoodComponent;
 import org.bukkit.potion.PotionEffect;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -39,8 +37,7 @@ public class FakeItem implements Keyed, ItemBehaviour {
     private FakeItemProperties fakeItemProperties;
     private Consumer<ItemMeta> metaConsumer;
     private Translatable nameTranslation;
-    @Nullable
-    private Component customNameFormat;
+    private Function<Translatable, Component> nameFormat;
 
     public CustomItemData asCustomItemData() {
         return new CustomItemData(material, customModelData);
@@ -74,10 +71,6 @@ public class FakeItem implements Keyed, ItemBehaviour {
         this.nameTranslation = nameTranslation;
     }
 
-    void setCustomNameComponent(Component component) {
-        this.customNameFormat = component;
-    }
-
     void setMaterial(Material material) {
         this.material = material;
     }
@@ -88,6 +81,10 @@ public class FakeItem implements Keyed, ItemBehaviour {
 
     void setMetaConsumer(Consumer<ItemMeta> metaConsumer) {
         this.metaConsumer = metaConsumer;
+    }
+
+    void setNameFormat(Function<Translatable, Component> nameFormat) {
+        this.nameFormat = nameFormat;
     }
 
     void setKey(NamespacedKey key) {
@@ -101,13 +98,21 @@ public class FakeItem implements Keyed, ItemBehaviour {
     public final ItemStack createItemStack() {
         ItemStack stack = new ItemStack(material);
         stack.editMeta((meta) -> {
-            if (this.customNameFormat != null) {
-                meta.displayName(customNameFormat);
-            } else if (nameTranslation != null)
-                meta.displayName(Component.translatable(nameTranslation.key()).color(TextColor.color(255, 255, 255)).decoration(TextDecoration.ITALIC, false));
             if (metaConsumer != null)
                 metaConsumer.accept(meta);
+
+            meta.setMaxStackSize(getMaxStackSize());
+            if(meta instanceof Damageable damageable && getMaxDamage() > 0)
+                damageable.setMaxDamage(getMaxDamage());
+            meta.setFireResistant(isFireResistant());
             meta.setCustomModelData(customModelData);
+
+            if(nameFormat != null)
+                meta.itemName(nameFormat.apply(this.nameTranslation));
+            else
+                meta.itemName(nameTranslation.asTranslatableComponent());
+            if(this.fakeItemProperties.foodProperties != null)
+                this.fakeItemProperties.foodProperties.apply(meta.getFood());
         });
         ItemDataContainer.from(stack);
         //stack.setItemBehaviour(this);
@@ -124,66 +129,21 @@ public class FakeItem implements Keyed, ItemBehaviour {
 
     }
 
-    @Override
-    public final BehaviourResult.Object<org.bukkit.inventory.FoodProperties> getFoodProperties(ItemStack stack) {
-        if (fakeItemProperties.foodProperties == null)
-            return new BehaviourResult.Object<>(null, BehaviourResult.Object.Type.REPLACE_VANILLA);
-        return new BehaviourResult.Object<>(new org.bukkit.inventory.FoodProperties() {
-            @Override
-            public int getNutrition() {
-                return fakeItemProperties.foodProperties.getNutrition();
-            }
-
-            @Override
-            public float getSaturationModifier() {
-                return fakeItemProperties.foodProperties.getSaturationModifier();
-            }
-
-            @Override
-            public boolean isMeat() {
-                return fakeItemProperties.foodProperties.isMeat;
-            }
-
-            @Override
-            public boolean canAlwaysEat() {
-                return fakeItemProperties.foodProperties.canAlwaysEat;
-            }
-
-            @Override
-            public boolean isFastFood() {
-                return fakeItemProperties.foodProperties.fastFood;
-            }
-
-            @Override
-            public List<Pair<PotionEffect, Float>> getEffects() {
-                return fakeItemProperties.foodProperties.getEffects();
-            }
-        }, BehaviourResult.Object.Type.REPLACE_VANILLA);
+    public int getMaxStackSize(){
+        return fakeItemProperties.maxStackSize;
     }
 
-    @Override
-    public final BehaviourResult.Object<Integer> getMaxStackSize(ItemStack stack) {
-        return new BehaviourResult.Object<>(fakeItemProperties.maxStackSize, BehaviourResult.Object.Type.REPLACE_VANILLA);
+    public int getMaxDamage(){
+        return fakeItemProperties.maxDamage;
     }
 
-    @Override
-    public final BehaviourResult.Object<Integer> getMaxDamage(ItemStack stack) {
-        return new BehaviourResult.Object<>(fakeItemProperties.maxDamage, BehaviourResult.Object.Type.REPLACE_VANILLA);
-    }
-
-    @Override
-    public final BehaviourResult.Bool isFireResistant(ItemStack stack) {
-        return new BehaviourResult.Bool(fakeItemProperties.isFireResistant, BehaviourResult.Bool.Type.REPLACE_VANILLA);
+    public boolean isFireResistant(){
+        return fakeItemProperties.isFireResistant;
     }
 
     @Override
     public final BehaviourResult.Object<ItemStack> getCraftRemainingItem(ItemStack stack) {
         return new BehaviourResult.Object<>(fakeItemProperties.craftingRemainingItem, BehaviourResult.Object.Type.REPLACE_VANILLA);
-    }
-
-    @Override
-    public BehaviourResult.Bool isEdible(ItemStack stack) {
-        return new BehaviourResult.Bool(fakeItemProperties.foodProperties != null, BehaviourResult.Bool.Type.REPLACE_VANILLA);
     }
 
     @Override
@@ -219,14 +179,14 @@ public class FakeItem implements Keyed, ItemBehaviour {
         };
         private FakeItemProperties fakeItemProperties = new FakeItemProperties();
         private Asset<CustomResourcePack> texture;
-        private Translatable translation;
+        private final Translatable standardNameTranslation;
 
         private ItemTextureData itemTextureData;
         private ItemTextureData.ModelType modelType;
         private final String translationKey;
 
         @Nullable
-        private Component customNameFormat;
+        private Function<Translatable, Component> nameFormat;
 
         public Builder(NamespacedKey namespacedKey, Material vanillaMaterial, Supplier<T> itemBuilder) {
             this.itemBuilder = itemBuilder;
@@ -235,7 +195,7 @@ public class FakeItem implements Keyed, ItemBehaviour {
             this.vanillaMaterial = vanillaMaterial;
             this.namespacedKey = namespacedKey;
             this.translationKey = "custom_item.description_id." + new NamespacedKey(namespacedKey.namespace(), namespacedKey.getKey()).asString();
-            this.translation = new Translatable(translationKey);
+            this.standardNameTranslation = new Translatable(translationKey);
         }
 
         public Builder<T> withItemMeta(Consumer<ItemMeta> itemMetaBuilder) {
@@ -248,23 +208,13 @@ public class FakeItem implements Keyed, ItemBehaviour {
             return this;
         }
 
-        public Builder<T> withStandardName(Consumer<Translatable> setup) {
-            setup.accept(this.translation);
+        public Builder<T> withTranslatedName(Consumer<Translatable> setup) {
+            setup.accept(this.standardNameTranslation);
             return this;
         }
 
-        public Builder<T> withNameFormat(Function<String, Component> nameFormat) {
-            this.customNameFormat = nameFormat.apply(translationKey);
-            return this;
-        }
-
-        /**
-         * Same as withNameFormat but sets color and TextDecoration to a standard value.
-         * @param nameFormat
-         * @return
-         */
-        public Builder<T> withNameFormatAndStandardStyle(Function<String, Component> nameFormat) {
-            this.customNameFormat = nameFormat.apply(translationKey).color(TextColor.color(255, 255, 255)).decoration(TextDecoration.ITALIC, false);
+        public Builder<T> withNameFormat(Function<Translatable, Component> nameFormat){
+            this.nameFormat = nameFormat;
             return this;
         }
 
@@ -298,18 +248,18 @@ public class FakeItem implements Keyed, ItemBehaviour {
             value.setCustomModelData(customModelData);
             value.setKey(namespacedKey);
 
-            if (this.translation != null && value.getNameTranslatable() == null)
-                value.setNameTranslatable(translation);
+            if (this.standardNameTranslation != null && value.getNameTranslatable() == null)
+                value.setNameTranslatable(standardNameTranslation);
             if (this.fakeItemProperties != null && value.getFakeItemProperties() == null)
                 value.setFakeItemProperties(fakeItemProperties);
             if (this.itemMetaBuilder != null && value.getMetaConsumer() == null) value.setMetaConsumer(itemMetaBuilder);
-            if (this.customNameFormat != null) value.setCustomNameComponent(this.customNameFormat);
+            if(this.nameFormat != null) value.setNameFormat(this.nameFormat);
 
             Objects.requireNonNull(namespacedKey);
             Objects.requireNonNull(vanillaMaterial);
 
             MCCreativeLabExtension.getCustomResourcePack().registerIfNotAlready(itemTextureData);
-            if (translation != null) MCCreativeLabExtension.getCustomResourcePack().addTranslation(translation);
+            if (standardNameTranslation != null) MCCreativeLabExtension.getCustomResourcePack().addTranslation(standardNameTranslation);
 
             ItemBehaviour.ITEM_BEHAVIOUR.setBehaviour(new CustomItemData(vanillaMaterial, customModelData), value);
             return value;
@@ -417,17 +367,15 @@ public class FakeItem implements Keyed, ItemBehaviour {
     public static class FoodProperties {
         private final int nutrition;
         private final float saturationModifier;
-        private final boolean isMeat;
         private final boolean canAlwaysEat;
-        private final boolean fastFood;
+        private final float seconds;
         private final List<Pair<PotionEffect, Float>> effects;
 
-        FoodProperties(int nutrition, float saturationModifier, boolean isMeat, boolean canAlwaysEat, boolean fastFood, List<Pair<PotionEffect, Float>> effects) {
+        FoodProperties(int nutrition, float saturationModifier, boolean canAlwaysEat, float seconds, List<Pair<PotionEffect, Float>> effects) {
             this.nutrition = nutrition;
             this.saturationModifier = saturationModifier;
-            this.isMeat = isMeat;
             this.canAlwaysEat = canAlwaysEat;
-            this.fastFood = fastFood;
+            this.seconds = seconds;
             this.effects = effects;
         }
 
@@ -439,29 +387,28 @@ public class FakeItem implements Keyed, ItemBehaviour {
             return saturationModifier;
         }
 
-        public boolean isMeat() {
-            return isMeat;
-        }
-
         public boolean isCanAlwaysEat() {
             return canAlwaysEat;
-        }
-
-        public boolean isFastFood() {
-            return fastFood;
         }
 
         public List<Pair<PotionEffect, Float>> getEffects() {
             return effects;
         }
 
+        public void apply(FoodComponent foodComponent){
+            foodComponent.setCanAlwaysEat(canAlwaysEat);
+            foodComponent.setEatSeconds(seconds);
+            foodComponent.setNutrition(nutrition);
+            foodComponent.setSaturation(saturationModifier);
+            effects.forEach(potionEffectFloatPair -> foodComponent.addEffect(potionEffectFloatPair.key(), potionEffectFloatPair.right()));
+        }
+
         public static class Builder {
             private int nutrition;
             private float saturationModifier;
-            private boolean isMeat;
             private boolean canAlwaysEat;
-            private boolean fastFood;
             private final List<Pair<PotionEffect, Float>> effects = new LinkedList<>();
+            private float seconds;
 
             public Builder nutrition(int hunger) {
                 this.nutrition = hunger;
@@ -473,18 +420,8 @@ public class FakeItem implements Keyed, ItemBehaviour {
                 return this;
             }
 
-            public Builder meat() {
-                this.isMeat = true;
-                return this;
-            }
-
             public Builder alwaysEat() {
                 this.canAlwaysEat = true;
-                return this;
-            }
-
-            public Builder fast() {
-                this.fastFood = true;
                 return this;
             }
 
@@ -493,8 +430,13 @@ public class FakeItem implements Keyed, ItemBehaviour {
                 return this;
             }
 
+            public Builder withEatSeconds(float seconds){
+                this.seconds = seconds;
+                return this;
+            }
+
             public FoodProperties build() {
-                return new FoodProperties(this.nutrition, this.saturationModifier, this.isMeat, this.canAlwaysEat, this.fastFood, this.effects);
+                return new FoodProperties(this.nutrition, this.saturationModifier, this.canAlwaysEat, seconds, this.effects);
             }
         }
     }

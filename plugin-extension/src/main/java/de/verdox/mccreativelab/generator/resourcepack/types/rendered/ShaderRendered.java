@@ -59,11 +59,11 @@ public abstract class ShaderRendered extends ResourcePackResource {
     public static void installShaderFileToPack(CustomResourcePack customResourcePack) throws IOException {
         NamespacedKey shaderKey = new NamespacedKey("minecraft","core/rendertype_text");
         Asset<CustomResourcePack> shaderInitFileAsset = new Asset<>(() -> StandardFontAssets.class.getResourceAsStream("/resourcepack/shader/rendertype_text.json"));
-        Asset<CustomResourcePack> pixelShaderAsset = new Asset<>(() -> StandardFontAssets.class.getResourceAsStream("/resourcepack/shader/rendertype_text.fsh"));
+        //Asset<CustomResourcePack> pixelShaderAsset = new Asset<>(() -> StandardFontAssets.class.getResourceAsStream("/resourcepack/shader/rendertype_text.fsh"));
         Asset<CustomResourcePack> vertexShaderAsset = new Asset<>(() -> StandardFontAssets.class.getResourceAsStream("/resourcepack/shader/rendertype_text.vsh"));
 
         shaderInitFileAsset.installAsset(customResourcePack, shaderKey, ResourcePackAssetTypes.SHADERS, "json");
-        pixelShaderAsset.installAsset(customResourcePack, shaderKey, ResourcePackAssetTypes.SHADERS, "fsh");
+        //pixelShaderAsset.installAsset(customResourcePack, shaderKey, ResourcePackAssetTypes.SHADERS, "fsh");
         File vertexShaderFile = vertexShaderAsset.installAsset(customResourcePack, shaderKey, ResourcePackAssetTypes.SHADERS, "vsh");
 
         var vertexShaderFileLines = new LinkedList<>(Files.readAllLines(vertexShaderFile.toPath()));

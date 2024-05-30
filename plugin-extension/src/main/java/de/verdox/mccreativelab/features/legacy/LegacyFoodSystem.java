@@ -47,18 +47,9 @@ public class LegacyFoodSystem extends LegacyFeature {
         customResourcePack.register(new AssetBasedResourcePackResource(new NamespacedKey("minecraft", "gui/sprites/hud/food_full_hunger"), empty, ResourcePackAssetTypes.TEXTURES, "png"));
         customResourcePack.register(new AssetBasedResourcePackResource(new NamespacedKey("minecraft", "gui/sprites/hud/food_half"), empty, ResourcePackAssetTypes.TEXTURES, "png"));
         customResourcePack.register(new AssetBasedResourcePackResource(new NamespacedKey("minecraft", "gui/sprites/hud/food_half_hunger"), empty, ResourcePackAssetTypes.TEXTURES, "png"));
-
-        ItemBehaviour legacyFoodItemBehaviour = new ItemBehaviour() {
-            @Override
-            public BehaviourResult.Object<Integer> getMaxStackSize(ItemStack stack) {
-                return new BehaviourResult.Object<>(1, BehaviourResult.Object.Type.REPLACE_VANILLA);
-            }
-        };
-
-        for (Material value : Material.values()) {
-            if (value.isEdible())
-                ItemBehaviour.ITEM_BEHAVIOUR.setBehaviour(new CustomItemData(value, 0), legacyFoodItemBehaviour);
-        }
+        Bukkit.getLogger().warning("#########");
+        Bukkit.getLogger().warning("LegacyFoodSystem has changed with 1.20.6. We need a new way to give all food items max stack size 1.");
+        Bukkit.getLogger().warning("#########");
     }
 
     public void setAllowSprinting(Player player, boolean value) {

@@ -1,6 +1,7 @@
 package de.verdox.mccreativelab.world.block.behaviour;
 
 import de.verdox.mccreativelab.InteractionResult;
+import de.verdox.mccreativelab.ItemInteractionResult;
 import de.verdox.mccreativelab.MCCreativeLabExtension;
 import de.verdox.mccreativelab.behaviour.BehaviourResult;
 import de.verdox.mccreativelab.behaviour.BlockBehaviour;
@@ -134,7 +135,7 @@ public class ReusedStateBehaviour extends FakeBlockBehaviour {
     }
 
     @Override
-    public BehaviourResult.Object<InteractionResult> use(Block block, Player player, EquipmentSlot hand, RayTraceResult rayTraceResult) {
+    public BehaviourResult.Object<ItemInteractionResult> use(Block block, Player player, EquipmentSlot hand, RayTraceResult rayTraceResult) {
         if (isReplacedVanillaBlock(block))
             return getReplacedVanillaBehaviour().use(block, player, hand, rayTraceResult);
         replaceVanillaWithFakeBlock(block);
