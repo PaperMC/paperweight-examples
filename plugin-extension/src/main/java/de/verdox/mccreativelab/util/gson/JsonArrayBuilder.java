@@ -85,4 +85,57 @@ public class JsonArrayBuilder extends JsonElementBuilder<JsonArray> {
     public static JsonArrayBuilder create(JsonArray jsonArray) {
         return new JsonArrayBuilder(jsonArray);
     }
+
+    public static JsonArrayBuilder of(byte[] array){
+        JsonArrayBuilder jsonArrayBuilder = JsonArrayBuilder.create();
+        for (byte j : array)
+            jsonArrayBuilder.add(j);
+        return jsonArrayBuilder;
+    }
+    public static JsonArrayBuilder of(short[] array){
+        JsonArrayBuilder jsonArrayBuilder = JsonArrayBuilder.create();
+        for (short j : array)
+            jsonArrayBuilder.add(j);
+        return jsonArrayBuilder;
+    }
+    public static JsonArrayBuilder of(int[] array){
+        JsonArrayBuilder jsonArrayBuilder = JsonArrayBuilder.create();
+        for (int j : array)
+            jsonArrayBuilder.add(j);
+        return jsonArrayBuilder;
+    }
+    public static JsonArrayBuilder of(long[] array){
+        JsonArrayBuilder jsonArrayBuilder = JsonArrayBuilder.create();
+        for (long j : array)
+            jsonArrayBuilder.add(j);
+        return jsonArrayBuilder;
+    }
+
+    public static JsonArrayBuilder of(float[] array){
+        JsonArrayBuilder jsonArrayBuilder = JsonArrayBuilder.create();
+        for (float j : array)
+            jsonArrayBuilder.add(j);
+        return jsonArrayBuilder;
+    }
+
+    public static JsonArrayBuilder of(double[] array){
+        JsonArrayBuilder jsonArrayBuilder = JsonArrayBuilder.create();
+        for (double j : array)
+            jsonArrayBuilder.add(j);
+        return jsonArrayBuilder;
+    }
+
+    public static JsonArrayBuilder of(char[] array){
+        JsonArrayBuilder jsonArrayBuilder = JsonArrayBuilder.create();
+        for (char j : array)
+            jsonArrayBuilder.add(j);
+        return jsonArrayBuilder;
+    }
+
+    public static JsonArrayBuilder of(String[] array){
+        JsonArrayBuilder jsonArrayBuilder = JsonArrayBuilder.create();
+        for (String j : array)
+            jsonArrayBuilder.add(j);
+        return jsonArrayBuilder;
+    }
 }

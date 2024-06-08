@@ -22,8 +22,7 @@ public class FakeBlockListener implements Listener {
             e.setCancelled(true);
     }
 
-
-    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
     public void blockDestroy(BlockDestroyEvent e) {
         FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockState(e.getBlock().getLocation(), false);
         if (fakeBlockState == null)
@@ -34,7 +33,7 @@ public class FakeBlockListener implements Listener {
         e.setExpToDrop(0);
     }
 
-    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
     public void preventBukkitFertilizationLogic(BlockFertilizeEvent e) {
         FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockState(e.getBlock().getLocation(), false);
         if (fakeBlockState == null)
@@ -44,20 +43,18 @@ public class FakeBlockListener implements Listener {
     }
 
 
-    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
     public void doNotDropVanillaLootForFakeBlocks(BlockBreakEvent e) {
         FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockState(e.getBlock()
             .getLocation(), false);
         if (fakeBlockState == null)
             return;
-        if (e.isDropItems() && !e.getPlayer().getGameMode().equals(GameMode.CREATIVE)) {
-            fakeBlockState.getFakeBlock().dropBlockLoot(e.getBlock().getLocation(), fakeBlockState, e.getPlayer(), e.getPlayer().getInventory().getItemInMainHand(), false);
-            fakeBlockState.getFakeBlock().dropBlockExperience(e.getBlock().getLocation(), fakeBlockState, e.getPlayer(), e.getPlayer().getInventory().getItemInMainHand(), false);
-            e.setDropItems(false);
-        }
+        fakeBlockState.getFakeBlock().dropBlockLoot(e.getBlock().getLocation(), fakeBlockState, e.getPlayer(), e.getPlayer().getInventory().getItemInMainHand(), false);
+        fakeBlockState.getFakeBlock().dropBlockExperience(e.getBlock().getLocation(), fakeBlockState, e.getPlayer(), e.getPlayer().getInventory().getItemInMainHand(), false);
+        e.setDropItems(false);
     }
 
-    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
     public void exposeFakeBlockEntityContainersToHoppers(HopperInventorySearchEvent e) {
         FakeBlockEntity fakeBlockEntity = FakeBlockEntityStorage.getFakeBlockEntityAt(e.getSearchBlock());
         if (fakeBlockEntity == null || fakeBlockEntity.getContainerOfEntity() == null)

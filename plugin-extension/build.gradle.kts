@@ -4,7 +4,7 @@ plugins {
 
 description = "plugin-extension"
 group = "de.verdox.mccreativelab"
-version = "1.20.4-R0.1-SNAPSHOT"
+version = "1.0"
 
 allprojects {
     apply(plugin = "java")

@@ -39,6 +39,8 @@ public interface MCCBlockData extends MCCWrapped {
         return new FakeBlockState(fakeBlockState);
     }
 
+    MCCBlockType getBlockType();
+
     default void setBlock(Location location){
         setBlock(location, true);
     }
@@ -74,6 +76,11 @@ public interface MCCBlockData extends MCCWrapped {
             if(mccWrapped instanceof Vanilla vanilla)
                 return vanilla.getHandle().equals(getHandle());
             return false;
+        }
+
+        @Override
+        public MCCBlockType getBlockType() {
+            return MCCBlockType.wrap(getHandle().getMaterial());
         }
 
         @Override
@@ -117,6 +124,11 @@ public interface MCCBlockData extends MCCWrapped {
             if(mccWrapped instanceof FakeBlockState fakeBlockState)
                 return fakeBlockState.getHandle().equals(getHandle());
             return false;
+        }
+
+        @Override
+        public MCCBlockType getBlockType() {
+            return MCCBlockType.wrap(getHandle().getFakeBlock());
         }
 
         @Override

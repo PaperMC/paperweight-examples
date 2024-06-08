@@ -111,7 +111,6 @@ public class MCCreativeLabExtension extends JavaPlugin {
             Bukkit.getPluginManager().registerEvents(new FakeBlockSoundManager(), this);
             Bukkit.getPluginManager().registerEvents(new CustomBlockSounds(), this);
             Bukkit.getPluginManager().registerEvents(new FakeItemListener(), this);
-            Bukkit.getPluginManager().registerEvents(FakeBlockRegistry.fakeBlockDamage, this);
             Bukkit.getPluginManager().registerEvents(fuelSettings, this);
             Bukkit.getPluginManager().registerEvents(new FakeInventory(), this);
             Bukkit.getPluginManager().registerEvents(new BlockBreakSpeedModifier(), this);
@@ -140,6 +139,8 @@ public class MCCreativeLabExtension extends JavaPlugin {
             MCCreativeLabExtension.getInstance().getResourcePackFileHoster().sendDefaultResourcePackToPlayers(Bukkit.getOnlinePlayers());
             Bukkit.getLogger().info("MCCreativeLabExtension reloaded");
         }
+
+        FakeBlockRegistry.getReusedBlockStates().forEach((blockData, fakeBlockState) -> Bukkit.getLogger().info(fakeBlockState.toString()+" mapped to "+fakeBlockState));
     }
 
     boolean createResourcePack() {

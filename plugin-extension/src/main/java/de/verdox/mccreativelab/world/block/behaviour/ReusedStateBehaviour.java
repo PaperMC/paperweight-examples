@@ -6,6 +6,7 @@ import de.verdox.mccreativelab.MCCreativeLabExtension;
 import de.verdox.mccreativelab.behaviour.BehaviourResult;
 import de.verdox.mccreativelab.behaviour.BlockBehaviour;
 import de.verdox.mccreativelab.world.block.FakeBlock;
+import de.verdox.mccreativelab.world.block.FakeBlockRegistry;
 import de.verdox.mccreativelab.world.block.FakeBlockStorage;
 import de.verdox.mccreativelab.random.VanillaRandomSource;
 import org.bukkit.Location;
@@ -167,15 +168,10 @@ public class ReusedStateBehaviour extends FakeBlockBehaviour {
     }
 
     private void replaceVanillaWithFakeBlock(Block block) {
-        if (fakeBlockKey == null)
-            return;
-        FakeBlock fakeBlock = MCCreativeLabExtension.getFakeBlockRegistry().get(fakeBlockKey);
-        if (fakeBlock == null)
-            return;
         FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockState(block.getLocation(), false);
         if (fakeBlockState != null)
             return;
-        FakeBlockStorage.setFakeBlock(block.getLocation(), fakeBlock, false, false);
+        FakeBlockStorage.setFakeBlockState(block.getLocation(), FakeBlockRegistry.getReusedBlockStates().getOrDefault(block.getBlockData(), null), false, false);
     }
 
     private boolean isReplacedVanillaBlock(Block block) {

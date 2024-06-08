@@ -85,9 +85,18 @@ public abstract class FakeBlockEntity implements NBTPersistent, Keyed {
         return namespacedKey;
     }
 
+    boolean serializeInventory = false;
 
     @Override
     public final void saveNBTData(NBTContainer storage) {
+        storage.set("id", fakeBlockEntityType.getKey().asString());
+        if (getContainerOfEntity() != null) {
+            ItemStack[] items = getContainerOfEntity().getStorageContents();
+            storage.set("inventory", items);
+        }
+    }
+
+    public void saveNBTDataWithInventory(NBTContainer storage){
         saveNBT(storage);
         storage.set("id", fakeBlockEntityType.getKey().asString());
         if (getContainerOfEntity() != null) {

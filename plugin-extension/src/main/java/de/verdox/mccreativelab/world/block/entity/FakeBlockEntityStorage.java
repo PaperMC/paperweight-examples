@@ -1,5 +1,6 @@
 package de.verdox.mccreativelab.world.block.entity;
 
+import de.verdox.mccreativelab.MCCreativeLabExtension;
 import de.verdox.mccreativelab.registry.OpenRegistry;
 import de.verdox.mccreativelab.registry.Reference;
 import de.verdox.mccreativelab.util.nbt.NBTContainer;
@@ -18,10 +19,12 @@ import org.bukkit.inventory.meta.BlockStateMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.jetbrains.annotations.NotNull;
+import org.yaml.snakeyaml.error.Mark;
 
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 
 public class FakeBlockEntityStorage {
@@ -29,13 +32,20 @@ public class FakeBlockEntityStorage {
     private static final NamespacedKey FAKE_BLOCK_ENTITY_KEY = new NamespacedKey("mccreativelab", "fake_block_entity");
 
     public static ItemStack storeFakeBlockEntityInItemStack(@NotNull ItemStack stack, @NotNull FakeBlockEntity fakeBlockEntity) {
+        return storeFakeBlockEntityInItemStack(stack, false, fakeBlockEntity);
+    }
+
+    public static ItemStack storeFakeBlockEntityInItemStack(@NotNull ItemStack stack, boolean storeInventoryContents, @NotNull FakeBlockEntity fakeBlockEntity) {
         Objects.requireNonNull(stack);
         Objects.requireNonNull(fakeBlockEntity);
 
         stack.editMeta(itemMeta -> {
             NBTContainer nbtContainer = NBTContainer.of("mccreativelab", itemMeta.getPersistentDataContainer());
             NBTContainer storedFakeBlockEntity = nbtContainer.createNBTContainer();
-            fakeBlockEntity.saveNBTData(storedFakeBlockEntity);
+            if (storeInventoryContents)
+                fakeBlockEntity.saveNBTDataWithInventory(storedFakeBlockEntity);
+            else
+                fakeBlockEntity.saveNBTData(storedFakeBlockEntity);
             nbtContainer.set("fakeBlockEntity", storedFakeBlockEntity);
         });
         return stack;
@@ -91,7 +101,14 @@ public class FakeBlockEntityStorage {
     }
 
     public static FakeBlockEntity getFakeBlockEntityAt(Block blockLocation) {
-        Marker marker = blockLocation.getWorld().getNearbyEntitiesByType(Marker.class, blockLocation.getLocation(), 1).stream().findAny().orElse(null);
+        Marker marker;
+        if (Bukkit.isPrimaryThread())
+            marker = blockLocation.getWorld().getNearbyEntitiesByType(Marker.class, blockLocation.getLocation(), 1).stream().findAny().orElse(null);
+        else {
+            CompletableFuture<Marker> future = new CompletableFuture<>();
+            Bukkit.getScheduler().runTask(MCCreativeLabExtension.getInstance(), () -> future.complete(blockLocation.getWorld().getNearbyEntitiesByType(Marker.class, blockLocation.getLocation(), 1).stream().findAny().orElse(null)));
+            marker = future.join();
+        }
         if (marker == null)
             return null;
         return getAsFakeBlockEntity(marker);

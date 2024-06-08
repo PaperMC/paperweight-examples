@@ -230,7 +230,7 @@ public class FakeBlockBehaviour implements BlockBehaviour {
     }
 
     @Nullable
-    private FakeBlock.FakeBlockState setFakeBlockStateIfReusesVanillaBlockState(Block block, BlockData blockData) {
+    public static FakeBlock.FakeBlockState setFakeBlockStateIfReusesVanillaBlockState(Block block, BlockData blockData) {
         FakeBlock.FakeBlockState fakeBlockState = FakeBlockRegistry.getFakeBlockStateFromBlockData(blockData);
         if (fakeBlockState == null)
             return null;

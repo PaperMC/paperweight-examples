@@ -37,6 +37,7 @@ import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -179,13 +180,31 @@ public abstract class FakeBlock implements Keyed, BlockBehaviour {
     }
 
     public static class Builder<T extends FakeBlock> {
-        private final Class<? extends T> fakeBlockClass;
         final NamespacedKey namespacedKey;
+        private final BiFunction<NamespacedKey, List<FakeBlockState>, T> fakeBlockConstructor;
         final List<FakeBlockState> blockStates = new LinkedList<>();
 
+        @Deprecated
         public Builder(NamespacedKey namespacedKey, Class<? extends T> fakeBlockClass) {
             this.namespacedKey = namespacedKey;
-            this.fakeBlockClass = fakeBlockClass;
+            this.fakeBlockConstructor = (namespacedKey1, fakeBlockStates) -> {
+                try {
+                    var constructor = fakeBlockClass.getDeclaredConstructor(NamespacedKey.class, List.class);
+                    constructor.setAccessible(true);
+                    return constructor.newInstance(namespacedKey1, blockStates);
+                } catch (NoSuchMethodException e) {
+                    Bukkit.getLogger()
+                        .warning("FakeBlock class " + fakeBlockClass.getSimpleName() + " does not implement base constructor(FakeBlockState[])");
+                    throw new RuntimeException(e);
+                } catch (InvocationTargetException | InstantiationException | IllegalAccessException e) {
+                    throw new RuntimeException(e);
+                }
+            };
+        }
+
+        public Builder(NamespacedKey namespacedKey, BiFunction<NamespacedKey, List<FakeBlockState>, T> fakeBlockConstructor) {
+            this.namespacedKey = namespacedKey;
+            this.fakeBlockConstructor = fakeBlockConstructor;
         }
 
         public Builder<T> withBlockState(Consumer<FakeBlockState.Builder> builderConsumer) {
@@ -198,18 +217,8 @@ public abstract class FakeBlock implements Keyed, BlockBehaviour {
         T buildBlock() {
             if (blockStates.isEmpty())
                 throw new IllegalStateException(namespacedKey.asString() + " must provide at least one fake block state");
-            try {
-                var constructor = fakeBlockClass.getDeclaredConstructor(NamespacedKey.class, List.class);
-                constructor.setAccessible(true);
-                return constructor.newInstance(namespacedKey, blockStates);
-            } catch (NoSuchMethodException e) {
-                Bukkit.getLogger()
-                      .warning("FakeBlock class " + fakeBlockClass.getSimpleName() + " does not implement base constructor(FakeBlockState[])");
-                throw new RuntimeException(e);
-            } catch (InvocationTargetException | InstantiationException | IllegalAccessException e) {
-                throw new RuntimeException(e);
-            }
 
+            return this.fakeBlockConstructor.apply(namespacedKey, blockStates);
         }
     }
 

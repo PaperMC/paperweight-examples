@@ -35,8 +35,6 @@ public class FakeBlockRegistry extends CustomRegistry<FakeBlock> {
     };
     private static final Map<BlockData, FakeBlock.FakeBlockState> reusedBlockStates = new HashMap<>();
 
-    public static final FakeBlockDamage fakeBlockDamage = new FakeBlockDamage();
-
     public static void setupFakeBlocks() {
         BlockBehaviour.BLOCK_BEHAVIOUR.setBehaviour(Material.NOTE_BLOCK, new ReusedStateBehaviour(Material.NOTE_BLOCK));
         /*if(USE_ALTERNATE_FAKE_BLOCK_ENGINE){
@@ -85,7 +83,7 @@ public class FakeBlockRegistry extends CustomRegistry<FakeBlock> {
             MCCreativeLabExtension.getReplacedSoundGroups().replaceSoundGroup("block.ancient_debris", Material.ANCIENT_DEBRIS.createBlockData()
                                                                                                  .getSoundGroup(), newAncientDebrisSoundGroup);
         }*/
-        BlockBehaviour.BLOCK_BEHAVIOUR.setBehaviour(Material.NOTE_BLOCK, new ReusedStateBehaviour(Material.NOTE_BLOCK));
+        //BlockBehaviour.BLOCK_BEHAVIOUR.setBehaviour(Material.NOTE_BLOCK, new ReusedStateBehaviour(Material.NOTE_BLOCK));
     }
 
     public static boolean hasTransparentTexture(Material material) {
@@ -119,65 +117,7 @@ public class FakeBlockRegistry extends CustomRegistry<FakeBlock> {
         return null;
     }
 
-    @Deprecated
-    public static class FakeBlockDamage implements Listener {
-        private static final AtomicInteger ID_COUNTER = new AtomicInteger(9999);
-        private final Map<Integer, ItemTextureData> texturesPerDamage = new HashMap<>();
-        private final Map<Block, ItemDisplay> damages = new HashMap<>();
-        private final Map<ItemDisplay, Block> itemDisplayToBlockMapping = new HashMap<>();
-
-        FakeBlockDamage() {
-        }
-
-        private void init(CustomResourcePack customResourcePack) {
-
-        }
-
-        @EventHandler
-        public void removeEntityIfUnload(EntityRemoveFromWorldEvent e) {
-            if (!(e.getEntity() instanceof ItemDisplay itemDisplay))
-                return;
-            if (!itemDisplayToBlockMapping.containsKey(itemDisplay))
-                return;
-            Block block = itemDisplayToBlockMapping.get(itemDisplay);
-            itemDisplayToBlockMapping.remove(itemDisplay);
-            damages.remove(block);
-        }
-
-        public void sendBlockDamage(Block block, int damage) {
-            if (true)
-                return;
-            if (!FakeBlockRegistry.hasTransparentTexture(block.getType()))
-                return;
-            if (damage >= 0 && damage <= 9) {
-                ItemDisplay damageDisplay;
-                if (!damages.containsKey(block)) {
-                    Location spawnLoc = block.getLocation().clone().add(0.5, 0.5, 0.5);
-                    damageDisplay = (ItemDisplay) block.getWorld()
-                                                       .spawnEntity(spawnLoc, EntityType.ITEM_DISPLAY);
-                    Transformation transformation = damageDisplay.getTransformation();
-                    transformation.getScale().set(1.05, 1.05, 1.05);
-                    damageDisplay.setTransformation(transformation);
-                    damageDisplay.setPersistent(false);
-                    damages.put(block, damageDisplay);
-                    itemDisplayToBlockMapping.put(damageDisplay, block);
-                } else
-                    damageDisplay = damages.get(block);
-
-                damageDisplay.setItemStack(texturesPerDamage.get(damage).createItem());
-                ;
-            } else {
-                cancelBlockDamage(block);
-            }
-        }
-
-        public void cancelBlockDamage(Block block) {
-            if (true)
-                return;
-            if (!damages.containsKey(block))
-                return;
-            damages.get(block).setItemStack(null);
-            //damages.remove(block).remove();
-        }
+    public static Map<BlockData, FakeBlock.FakeBlockState> getReusedBlockStates() {
+        return Map.copyOf(reusedBlockStates);
     }
 }

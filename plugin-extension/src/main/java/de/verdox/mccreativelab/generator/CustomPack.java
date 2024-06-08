@@ -6,6 +6,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.*;
 
 public abstract class CustomPack<C extends CustomPack<C>> {
@@ -14,6 +15,7 @@ public abstract class CustomPack<C extends CustomPack<C>> {
     protected final String description;
     protected final AssetPath savePath;
     protected final AssetPath pathToSavePackDataTo;
+    protected final AssetPath packFromLastRestart;
     private final List<Resource<C>> addedResources = new LinkedList<>();
     private final Set<Resource<C>> distinctResources = new HashSet<>();
     private boolean wasModified = false;
@@ -27,6 +29,7 @@ public abstract class CustomPack<C extends CustomPack<C>> {
         this.description = description;
         this.savePath = savePath;
         this.pathToSavePackDataTo = AssetPath.buildPath(packName).withNewParentPath(savePath);
+        this.packFromLastRestart = pathToSavePackDataTo.withNewParentPath("old");
     }
 
     public void clearResources() {
@@ -35,11 +38,18 @@ public abstract class CustomPack<C extends CustomPack<C>> {
         this.wasModified = false;
     }
 
-    public void onShutdown() throws IOException {}
+    public void onShutdown() throws IOException {
+    }
 
     public File installPack(boolean reload) throws IOException {
         isReloading = reload;
-        try{
+
+        FileUtils.deleteDirectory(packFromLastRestart.toPath().toFile());
+        Bukkit.getLogger().info("Moving old RP to " + packFromLastRestart.toPath());
+        packFromLastRestart.toPath().toFile().getParentFile().mkdirs();
+
+        org.apache.commons.io.FileUtils.copyDirectory(pathToSavePackDataTo.toPath().toFile(), packFromLastRestart.toPath().toFile());
+        try {
             Bukkit.getLogger().info("Deleting folder " + pathToSavePackDataTo.toPath().toFile());
             FileUtils.deleteDirectory(pathToSavePackDataTo.toPath().toFile());
             createDescriptionFile();
@@ -52,13 +62,14 @@ public abstract class CustomPack<C extends CustomPack<C>> {
             reloadResourcesFromConfigs();
 
             noNewInstallations = true;
-            for (Resource<C> cResource : addedResources)
+            boolean newFilesSinceLastTime = false;
+            for (Resource<C> cResource : addedResources) {
                 cResource.installResourceToPack((C) this);
+            }
 
             for (Resource<C> cResource : addedResources)
                 cResource.afterResourceInstallation((C) this);
-        }
-        finally {
+        } finally {
             noNewInstallations = false;
             isReloading = false;
         }
@@ -81,7 +92,7 @@ public abstract class CustomPack<C extends CustomPack<C>> {
     public final void register(Resource<C> resource) {
         if (noNewInstallations)
             throw new IllegalStateException("Do not use customPack.register in installResourceToPack method!");
-        if(isReloading) // If we only trigger a pack reload we won't register new resources
+        if (isReloading) // If we only trigger a pack reload we won't register new resources
             return;
         Objects.requireNonNull(resource);
         wasModified = true;
@@ -91,8 +102,8 @@ public abstract class CustomPack<C extends CustomPack<C>> {
         onRegister(resource);
     }
 
-    public final void registerIfNotAlready(Resource<C> resource){
-        if(distinctResources.contains(resource))
+    public final void registerIfNotAlready(Resource<C> resource) {
+        if (distinctResources.contains(resource))
             return;
         register(resource);
     }
@@ -131,5 +142,8 @@ public abstract class CustomPack<C extends CustomPack<C>> {
 
     public AssetPath getPathToSavePackDataTo() {
         return pathToSavePackDataTo;
+    }
+    public AssetPath getPathOfOldPack() {
+        return packFromLastRestart;
     }
 }

@@ -10,14 +10,12 @@ import de.verdox.mccreativelab.generator.resourcepack.types.ItemTextureData;
 import de.verdox.mccreativelab.util.gson.JsonObjectBuilder;
 import de.verdox.mccreativelab.world.block.FakeBlockStorage;
 import de.verdox.mccreativelab.world.block.display.TransparentFullBlockEntityDisplay;
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
+import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.Ageable;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
@@ -87,6 +85,8 @@ public class ReplacedCrop extends FakeBlock {
 
     @Override
     public List<ItemStack> drawLoot(Block block, FakeBlockState fakeBlockState, @Nullable Entity causeOfItemDrop, @Nullable ItemStack toolUsed, boolean ignoreTool) {
+        if(causeOfItemDrop instanceof Player player && player.getGameMode().equals(GameMode.CREATIVE))
+            return List.of();
         return List.copyOf(block.getDrops(toolUsed, causeOfItemDrop));
     }
 

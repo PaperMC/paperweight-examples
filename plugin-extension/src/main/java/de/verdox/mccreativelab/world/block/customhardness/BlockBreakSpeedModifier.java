@@ -166,7 +166,6 @@ public class BlockBreakSpeedModifier implements Listener {
         blockBrokenToPlayerMapping.computeIfAbsent(block, block1 -> new HashSet<>()).add(player);
 
         applyBlockBreakModifier(player);
-        FakeBlockRegistry.fakeBlockDamage.sendBlockDamage(block, 0);
     }
 
     private static void applyBlockBreakModifier(Player player) {
@@ -326,8 +325,6 @@ public class BlockBreakSpeedModifier implements Listener {
 
                 player.sendBlockDamage(block.getLocation(), progress, entityId);
             }
-            if (fakeBlockState != null)
-                FakeBlockRegistry.fakeBlockDamage.sendBlockDamage(block, stage);
         }
     }
 

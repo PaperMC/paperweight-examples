@@ -17,14 +17,20 @@ import java.util.function.BiConsumer;
 public class RegistryLookUpCommand<T> extends Command {
     private final CustomRegistry<T> registry;
     private final BiConsumer<Player, T> consumeEntry;
+    private final String subCommand;
 
-    public RegistryLookUpCommand(@NotNull String name, CustomRegistry<T> registry, BiConsumer<Player, T> consumeEntry) {
+    public RegistryLookUpCommand(@NotNull String name, String subCommand, CustomRegistry<T> registry, BiConsumer<Player, T> consumeEntry) {
         super(name);
+        this.subCommand = subCommand;
         Objects.requireNonNull(registry);
         Objects.requireNonNull(consumeEntry);
         this.registry = registry;
         this.consumeEntry = consumeEntry;
         setPermission("mccreativelab.command.registry.lookup." + getName().toLowerCase(Locale.ROOT));
+    }
+
+    public RegistryLookUpCommand(@NotNull String name, CustomRegistry<T> registry, BiConsumer<Player, T> consumeEntry) {
+        this(name, "get", registry, consumeEntry);
     }
 
     @Override
@@ -35,7 +41,7 @@ public class RegistryLookUpCommand<T> extends Command {
             sender.sendMessage("Please provide a valid entry");
             return false;
         }
-        if (args[0].equalsIgnoreCase("get")) {
+        if (args[0].equalsIgnoreCase(subCommand)) {
             if (args.length >= 2) {
                 String keyAsString = args[1];
                 try {
@@ -56,9 +62,8 @@ public class RegistryLookUpCommand<T> extends Command {
                     }
 
                     consumeEntry.accept(playerToShow, entry);
-                    player.sendMessage(Component.text("Showing to " + playerToShow.getName()));
                 } catch (Exception e) {
-                    sender.sendMessage("An internal error occured in the registry");
+                    sender.sendMessage("An internal error occured while doing the registry lookup");
                     e.printStackTrace();
                     return false;
                 }
@@ -70,7 +75,7 @@ public class RegistryLookUpCommand<T> extends Command {
     @Override
     public @NotNull List<String> tabComplete(@NotNull CommandSender sender, @NotNull String alias, @NotNull String[] args) throws IllegalArgumentException {
         if (args.length <= 1)
-            return List.of("get");
+            return List.of(subCommand);
         else if (args.length == 2)
             return registry.streamKeys().map(NamespacedKey::asString).filter(s -> s.contains(args[1])).toList();
         return List.of();
