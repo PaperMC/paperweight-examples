@@ -279,7 +279,9 @@ public class ActiveGUI extends ActiveComponentRendered<ActiveGUI, CustomGUIBuild
             inventoryUpdateWhitelist.add(player);
 
 
-                view = player.openInventory(this.inventory.get());
+            if(MCCreativeLabExtension.isServerSoftware())
+                view = player.openInventory(this.inventory.get(), render());
+            else  view = player.openInventory(this.inventory.get());
                 if (itemAtCursor != null) {
                     if (view != null && !itemAtCursor.getType().isAir() && !getComponentRendered().isUsePlayerSlots()) {
                         player.getInventory().removeItem(itemAtCursor);
