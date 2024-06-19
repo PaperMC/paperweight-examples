@@ -25,6 +25,8 @@ public abstract class FakeBlockEntity implements NBTPersistent, Keyed {
         this.location = location.getBlock().getLocation().clone();
     }
 
+    public void onRemove(){}
+
     void setMarkerEntity(@NotNull Marker markerEntity) {
         Objects.requireNonNull(markerEntity);
         this.markerEntity = markerEntity;
