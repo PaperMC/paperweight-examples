@@ -43,6 +43,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 public class ResourcePackFileHoster implements Listener {
+    public static final boolean WITH_HASHES = false;
     private HttpServer httpServer;
     private final Map<String, ResourcePackInfo> availableResourcePacks = new HashMap<>();
 
@@ -109,7 +110,7 @@ public class ResourcePackFileHoster implements Listener {
     public void sendResourcePackToPlayer(Player player, ResourcePackFileHoster.ResourcePackInfo packInfo) {
         String downloadURL = MCCreativeLabExtension.getResourcePackFileHoster().createDownloadUrl(packInfo.hash());
 
-        player.setResourcePack(packInfo.getUUID(), downloadURL, packInfo.hashBytes(), (Component) null, requireResourcePack.read());
+        player.setResourcePack(packInfo.getUUID(), downloadURL, WITH_HASHES ? packInfo.hashBytes() : null, (Component) null, requireResourcePack.read());
         Bukkit.getLogger().info("Sending resource pack with url " + downloadURL + " to " + player.getUniqueId());
     }
 
@@ -135,16 +136,24 @@ public class ResourcePackFileHoster implements Listener {
                 Bukkit.getLogger().info("Created Zip file " + zipFile + " in " + end + " ms");
                 try {
                     Bukkit.getLogger().info("Calculating sha1 hash of resource pack");
-                    start = System.currentTimeMillis();
-                    byte[] hashBytes = calculateSHA1(zipFile.getPath());
-                    String hash = calculateSHA1String(hashBytes);
-                    end = System.currentTimeMillis() - start;
-                    Bukkit.getLogger().info("Took " + end + " ms");
+                    byte[] hashBytes = null;
+                    String hash = "mcclab";
+                    if(WITH_HASHES){
+                        start = System.currentTimeMillis();
+                        hashBytes = calculateSHA1(zipFile.getPath());
+                        hash = calculateSHA1String(hashBytes);
+                        end = System.currentTimeMillis() - start;
+                        Bukkit.getLogger().info("Took " + end + " ms");
+                    }
 
                     ResourcePackInfo resourcePackInfo = new ResourcePackInfo(resourcePackName, zipFile, createDownloadUrl(hash), hash, hashBytes, true, null);
                     availableResourcePacks.put(hash, resourcePackInfo);
-                    if (mode.read().equals(Mode.INTERNAL_WEBSERVER))
-                        Bukkit.getLogger().info("MCCreativeLab: Hosting ResourcePack " + zipFile.getName() + " with hash: " + hash);
+                    if (mode.read().equals(Mode.INTERNAL_WEBSERVER)) {
+                        if (WITH_HASHES)
+                            Bukkit.getLogger().info("MCCreativeLab: Hosting ResourcePack " + zipFile.getName() + " with hash: " + hash);
+                        else
+                            Bukkit.getLogger().info("MCCreativeLab: Hosting ResourcePack " + zipFile.getName());
+                    }
                     else if (mode.read().equals(Mode.SSH_UPLOAD)) {
                         this.sshResourcePackUpload.upload();
                     }
@@ -276,10 +285,10 @@ public class ResourcePackFileHoster implements Listener {
                     return;
                 }
                 String hash = split[split.length - 1];
-                if (!isValidHex(hash)) {
+/*                if (!isValidHex(hash)) {
                     event.response().end();
                     return;
-                }
+                }*/
                 ResourcePackInfo resourcePackInfo = availableResourcePacks.getOrDefault(hash, null);
                 if (resourcePackInfo == null) {
                     Bukkit.getLogger().warning("Someone requested a resource pack with hash " + hash + " that does not exist");
