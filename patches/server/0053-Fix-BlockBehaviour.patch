@@ -1,0 +1,39 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: verdox <mail.ysp@web.de>
+Date: Wed, 19 Jun 2024 15:23:56 +0000
+Subject: [PATCH] Fix BlockBehaviour
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/CreativeLabImpl.java b/src/main/java/de/verdox/mccreativelab/CreativeLabImpl.java
+index 8d136f5210c59c2dabcb54d68bd59b10096a38d2..187d456730c1bfb5cbaa5e9e8a2f544a0466e1c2 100644
+--- a/src/main/java/de/verdox/mccreativelab/CreativeLabImpl.java
++++ b/src/main/java/de/verdox/mccreativelab/CreativeLabImpl.java
+@@ -71,4 +71,15 @@ public final class CreativeLabImpl implements CreativeLab {
+             }
+         };
+     }
++
++    @Override
++    public InteractionResult placeBlockFromItemWithoutPlayer(ItemStack stack, Location location) {
++        if (!(org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(stack).getItem() instanceof net.minecraft.world.item.BlockItem blockItem))
++            throw new IllegalArgumentException();
++
++        net.minecraft.world.level.Level level = ((org.bukkit.craftbukkit.CraftWorld) location.getWorld()).getHandle();
++        BlockHitResult blockHitResult = new BlockHitResult(new Vec3(location.getBlockX(), location.getBlockY(), location.getBlockZ()), Direction.UP, new BlockPos(location.getBlockX(), location.getBlockY(), location.getBlockZ()), true);
++
++        return BehaviourUtil.Converter.InteractionResult.INSTANCE.nmsToBukkitValue(blockItem.placeItemWithoutPlayer(new BlockPlaceContext(level, null, InteractionHand.MAIN_HAND, org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(stack), blockHitResult)));
++    }
+ }
+diff --git a/src/main/java/org/bukkit/craftbukkit/generator/OldCraftChunkData.java b/src/main/java/org/bukkit/craftbukkit/generator/OldCraftChunkData.java
+index 44a010590e830fd238cf6fdda443e28b72022e66..f5b430aaa0c470941ca992dc691dd737a6493765 100644
+--- a/src/main/java/org/bukkit/craftbukkit/generator/OldCraftChunkData.java
++++ b/src/main/java/org/bukkit/craftbukkit/generator/OldCraftChunkData.java
+@@ -181,7 +181,7 @@ public final class OldCraftChunkData implements ChunkGenerator.ChunkData {
+         int offset = (y - this.minHeight) >> 4;
+         LevelChunkSection section = this.sections[offset];
+         if (create && section == null) {
+-            this.sections[offset] = section = new LevelChunkSection(this.biomes, this.world instanceof org.bukkit.craftbukkit.CraftWorld ? ((org.bukkit.craftbukkit.CraftWorld) this.world).getHandle() : null, null, offset + (this.minHeight >> 4)); // Paper - Anti-Xray - Add parameters
++            this.sections[offset] = section = new LevelChunkSection(this.biomes, this.world instanceof org.bukkit.craftbukkit.CraftWorld ? ((org.bukkit.craftbukkit.CraftWorld) this.world).getHandle() : null, null, offset); // Paper - Anti-Xray - Add parameters
+         }
+         return section;
+     }

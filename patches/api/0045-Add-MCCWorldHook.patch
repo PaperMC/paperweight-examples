@@ -1,0 +1,101 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: verdox <mail.ysp@web.de>
+Date: Wed, 19 Jun 2024 15:20:34 +0000
+Subject: [PATCH] Add MCCWorldHook
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/CreativeLab.java b/src/main/java/de/verdox/mccreativelab/CreativeLab.java
+index 2495a422ec6439c5255285259e6b461816fbe58e..e1b8302df4d3e72fe788d3e0ce7125f67cc1da2b 100644
+--- a/src/main/java/de/verdox/mccreativelab/CreativeLab.java
++++ b/src/main/java/de/verdox/mccreativelab/CreativeLab.java
+@@ -13,6 +13,9 @@ public interface CreativeLab {
+ 
+     Inventory openCustomContainerMenu(@NotNull CustomInventory customInventory, @NotNull org.bukkit.entity.Player player, @NotNull net.kyori.adventure.text.Component title);
+ 
++    void setWorldHook(@NotNull org.bukkit.World world, @NotNull de.verdox.mccreativelab.behaviour.MCCWorldHook mccWorldHook);
++
++    @NotNull de.verdox.mccreativelab.behaviour.MCCWorldHook getWorldHook(@NotNull org.bukkit.World world);
+     /**
+      * Creates a world mostly async. Most of the calculations needed to create a world are done asynchronously. However, some still occur on the main thread.
+      * Those can be manually turned off when they are not needed.
+diff --git a/src/main/java/de/verdox/mccreativelab/MCCreativeLab.java b/src/main/java/de/verdox/mccreativelab/MCCreativeLab.java
+index d546674949fc0c3167d277f8d669397c92639486..62786bab450fe7982e422f2ebbdaa2937e6a7c18 100644
+--- a/src/main/java/de/verdox/mccreativelab/MCCreativeLab.java
++++ b/src/main/java/de/verdox/mccreativelab/MCCreativeLab.java
+@@ -26,6 +26,15 @@ public final class MCCreativeLab {
+         return creativeLab.createAdvancement();
+     }
+ 
++    public static void setWorldHook(org.bukkit.World world, @NotNull de.verdox.mccreativelab.behaviour.MCCWorldHook mccWorldHook){
++        creativeLab.setWorldHook(world, mccWorldHook);
++    }
++
++    @NotNull
++    public static de.verdox.mccreativelab.behaviour.MCCWorldHook getWorldHook(@NotNull org.bukkit.World world){
++        return creativeLab.getWorldHook(world);
++    }
++
+     public static org.bukkit.inventory.Inventory openCustomContainerMenu(@NotNull CustomInventory customInventory, @NotNull org.bukkit.entity.Player player, @NotNull net.kyori.adventure.text.Component title) {
+         return creativeLab.openCustomContainerMenu(customInventory, player, title);
+     }
+diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/MCCWorldHook.java b/src/main/java/de/verdox/mccreativelab/behaviour/MCCWorldHook.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..ab029bf5e99a833d7314abb9a7531a3db06279cc
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/behaviour/MCCWorldHook.java
+@@ -0,0 +1,55 @@
++package de.verdox.mccreativelab.behaviour;
++
++import org.bukkit.block.Block;
++import org.bukkit.block.data.BlockData;
++import org.bukkit.entity.Entity;
++import org.bukkit.inventory.ItemStack;
++import org.jetbrains.annotations.NotNull;
++import org.jetbrains.annotations.Nullable;
++
++import java.util.List;
++import java.util.Map;
++import java.util.concurrent.ConcurrentHashMap;
++
++/**
++ * Used to implement additional logic into a World
++ */
++public abstract class MCCWorldHook {
++    private final Map<Block, BlockContext> contexts = new ConcurrentHashMap<>();
++
++    /**
++     * Used to store additional context for a block action
++     *
++     * @param block the block to store the action in
++     */
++    public void setBlockContext(@NotNull Block block, @Nullable BlockContext blockContext){
++        if(blockContext == null)
++            contexts.remove(block);
++        else
++            contexts.put(block, blockContext);
++    }
++
++    /**
++     * Consumes the block action at a particular block
++     * @param block the block
++     * @return the block action if one is available at the block
++     */
++    public @Nullable BlockContext getBlockContext(@NotNull Block block){return contexts.getOrDefault(block, null);}
++
++    /**
++     * Is called everytime the server changes a block.
++     * @param block The block
++     * @param oldBlockData the block data before the change
++     * @param newBlockData the block data after the change
++     */
++    public void onBlockChange(@NotNull Block block, @NotNull BlockData oldBlockData, @NotNull BlockData newBlockData){
++
++    }
++
++    public void onBlockDrawLoot(@NotNull Block block, @javax.annotation.Nullable Entity entity, ItemStack tool, boolean dropExperience, List<ItemStack> itemsThatWillBeDropped){}
++
++    public interface BlockContext {
++        @NotNull Block block();
++    }
++
++}

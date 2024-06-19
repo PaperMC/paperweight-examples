@@ -1,0 +1,103 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: verdox <mail.ysp@web.de>
+Date: Wed, 19 Jun 2024 15:25:04 +0000
+Subject: [PATCH] Temp patch
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/CreativeLab.java b/src/main/java/de/verdox/mccreativelab/CreativeLab.java
+index e1b8302df4d3e72fe788d3e0ce7125f67cc1da2b..7869c74bea4a027f65f24bd833eac86f38f04074 100644
+--- a/src/main/java/de/verdox/mccreativelab/CreativeLab.java
++++ b/src/main/java/de/verdox/mccreativelab/CreativeLab.java
+@@ -1,7 +1,10 @@
+ package de.verdox.mccreativelab;
+ 
+ import de.verdox.mccreativelab.container.CustomInventory;
++import org.bukkit.NamespacedKey;
++import org.bukkit.WorldCreator;
+ import org.bukkit.inventory.Inventory;
++import org.bukkit.persistence.PersistentDataContainer;
+ import org.jetbrains.annotations.NotNull;
+ 
+ public interface CreativeLab {
+@@ -30,6 +33,23 @@ public interface CreativeLab {
+      */
+     java.util.concurrent.CompletableFuture<org.bukkit.World> createWorldAsync(@NotNull org.bukkit.plugin.Plugin plugin, @NotNull org.bukkit.WorldCreator worldCreator, boolean useVanillaSpawnCalculation);
+ 
++    /**
++     * Creates a world mostly async. Most of the calculations needed to create a world are done asynchronously. However, some still occur on the main thread.
++     * Those can be manually turned off when they are not needed.
++     * @param plugin The plugin to create the map for.
++     * @return the future
++     */
++    java.util.concurrent.CompletableFuture<PersistentDataContainer> readFromWorldPDCWithoutLoadingAsync(@NotNull org.bukkit.plugin.Plugin plugin, @NotNull WorldCreator worldCreator);
++
++    /**
++     * Creates a world mostly async. Most of the calculations needed to create a world are done asynchronously. However, some still occur on the main thread.
++     * Those can be manually turned off when they are not needed.
++     * @param plugin The plugin to create the map for.
++     * @return the pdc
++     */
++    PersistentDataContainer readFromWorldPDCWithoutLoading(@NotNull org.bukkit.plugin.Plugin plugin, @NotNull WorldCreator worldCreator);
++
++
+     /**
+      * Returns a stream of all possible {@link org.bukkit.block.data.BlockData} definitions of a valid block {@link org.bukkit.Material}
+      *
+@@ -45,4 +65,20 @@ public interface CreativeLab {
+      * @return - the iterator
+      */
+     java.util.Iterator<org.bukkit.block.data.BlockData> iterateThroughAllBlockDataVariants(org.bukkit.Material blockMaterial);
++
++    /**
++     * Places a block from a specified {@link org.bukkit.inventory.ItemStack} at {@link org.bukkit.Location}.
++     * This method will NOT call a {@link org.bukkit.event.block.BlockPlaceEvent} but will call a {@link org.bukkit.event.block.BlockCanBuildEvent}.
++     *
++     * @param stack The item
++     * @param location the location
++     * @return the result of the action
++     */
++    InteractionResult placeBlockFromItemWithoutPlayer(org.bukkit.inventory.ItemStack stack, org.bukkit.Location location);
++
++    /**
++     * Sets the world hook of a particular world
++     * @param world the world
++     * @param mccWorldHook the world hook
++     */
+ }
+diff --git a/src/main/java/de/verdox/mccreativelab/MCCreativeLab.java b/src/main/java/de/verdox/mccreativelab/MCCreativeLab.java
+index 62786bab450fe7982e422f2ebbdaa2937e6a7c18..29eb43133db27eb32e048e4101566c22100ebcb0 100644
+--- a/src/main/java/de/verdox/mccreativelab/MCCreativeLab.java
++++ b/src/main/java/de/verdox/mccreativelab/MCCreativeLab.java
+@@ -1,7 +1,9 @@
+ package de.verdox.mccreativelab;
+ 
+ import de.verdox.mccreativelab.container.CustomInventory;
++import org.bukkit.WorldCreator;
+ import org.bukkit.block.data.BlockData;
++import org.bukkit.persistence.PersistentDataContainer;
+ import org.jetbrains.annotations.NotNull;
+ 
+ public final class MCCreativeLab {
+@@ -43,6 +45,14 @@ public final class MCCreativeLab {
+         return creativeLab.createWorldAsync(plugin, worldCreator, useVanillaSpawnCalculation);
+     }
+ 
++    public static java.util.concurrent.CompletableFuture<PersistentDataContainer> readFromWorldPDCWithoutLoadingAsync(@NotNull org.bukkit.plugin.Plugin plugin, @NotNull WorldCreator worldCreator){
++        return creativeLab.readFromWorldPDCWithoutLoadingAsync(plugin, worldCreator);
++    }
++
++    public static PersistentDataContainer readFromWorldPDCWithoutLoading(@NotNull org.bukkit.plugin.Plugin plugin, @NotNull WorldCreator worldCreator){
++        return creativeLab.readFromWorldPDCWithoutLoading(plugin, worldCreator);
++    }
++
+ 
+     /**
+      * Returns a stream of all possible {@link org.bukkit.block.data.BlockData} definitions of a valid block {@link org.bukkit.Material}
+@@ -64,4 +74,7 @@ public final class MCCreativeLab {
+         return creativeLab.iterateThroughAllBlockDataVariants(blockMaterial);
+     }
+ 
++    public static InteractionResult placeBlockFromItemWithoutPlayer(org.bukkit.inventory.ItemStack stack, org.bukkit.Location location){
++        return creativeLab.placeBlockFromItemWithoutPlayer(stack, location);
++    }
+ }

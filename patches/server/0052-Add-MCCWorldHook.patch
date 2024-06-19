@@ -1,0 +1,66 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: verdox <mail.ysp@web.de>
+Date: Wed, 19 Jun 2024 15:20:34 +0000
+Subject: [PATCH] Add MCCWorldHook
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/CreativeLabImpl.java b/src/main/java/de/verdox/mccreativelab/CreativeLabImpl.java
+index f3ede58efd53d2622ccf0c244d75674ebeaaad23..8d136f5210c59c2dabcb54d68bd59b10096a38d2 100644
+--- a/src/main/java/de/verdox/mccreativelab/CreativeLabImpl.java
++++ b/src/main/java/de/verdox/mccreativelab/CreativeLabImpl.java
+@@ -16,6 +16,17 @@ public final class CreativeLabImpl implements CreativeLab {
+         return vanillaRegistryManipulator;
+     }
+ 
++    @Override
++    public void setWorldHook(org.bukkit.World world, @NotNull de.verdox.mccreativelab.behaviour.MCCWorldHook mccWorldHook) {
++        Objects.requireNonNull(mccWorldHook, "mccWorldHook cannot be null");
++        ((CraftWorld) world).getHandle().mccWorldHook = mccWorldHook;
++    }
++
++    @Override
++    public @NotNull de.verdox.mccreativelab.behaviour.MCCWorldHook getWorldHook(@NotNull org.bukkit.World world) {
++        return ((CraftWorld) world).getHandle().mccWorldHook;
++    }
++
+     @Override
+     public de.verdox.mccreativelab.advancement.AdvancementBuilder createAdvancement() {
+         return new de.verdox.mccreativelab.advancement.CraftAdvancementBuilder();
+diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
+index 71d86287033763d6c385f4e746e8e317dd34d7f2..3f7e75dc9e4e65707a10648ccacf165a20833ebc 100644
+--- a/src/main/java/net/minecraft/world/level/Level.java
++++ b/src/main/java/net/minecraft/world/level/Level.java
+@@ -161,6 +161,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+     public int wakeupInactiveRemainingMonsters;
+     public int wakeupInactiveRemainingVillagers;
+     // Paper end
++    public de.verdox.mccreativelab.behaviour.MCCWorldHook mccWorldHook = new de.verdox.mccreativelab.behaviour.MCCWorldHook() {}; // MCCLab - Add MCCWorldHook
+     public boolean populating;
+     public final org.spigotmc.SpigotWorldConfig spigotConfig; // Spigot
+     // Paper start - add paper world config
+@@ -1041,6 +1042,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+                 this.onBlockStateChange(blockposition, iblockdata1, iblockdata2);
+             }
+             // CraftBukkit end
++            mccWorldHook.onBlockChange(org.bukkit.craftbukkit.block.CraftBlock.at(this, blockposition), CraftBlockData.createData(oldBlock), CraftBlockData.createData(newBlock));
+         }
+     }
+     // CraftBukkit end
+diff --git a/src/main/java/net/minecraft/world/level/block/Block.java b/src/main/java/net/minecraft/world/level/block/Block.java
+index 89cf7053e92f7ada18d9a374583fef92c9e5a46b..94a4e214151f00a734e0eec3d5e3ea83ad03e06e 100644
+--- a/src/main/java/net/minecraft/world/level/block/Block.java
++++ b/src/main/java/net/minecraft/world/level/block/Block.java
+@@ -347,7 +347,12 @@ public class Block extends BlockBehaviour implements ItemLike {
+     public static void dropResources(BlockState state, Level world, BlockPos pos, @Nullable BlockEntity blockEntity, @Nullable Entity entity, ItemStack tool, boolean dropExperience) {
+     // Paper end - Properly handle xp dropping
+         if (world instanceof ServerLevel) {
+-            Block.getDrops(state, (ServerLevel) world, pos, blockEntity, entity, tool).forEach((itemstack1) -> {
++            List<org.bukkit.inventory.ItemStack> bukkitLoot = new java.util.LinkedList<>();
++            for (ItemStack drop : Block.getDrops(state, (ServerLevel) world, pos, blockEntity, entity, tool)) {
++                bukkitLoot.add(drop.asBukkitCopy());
++            }
++            world.mccWorldHook.onBlockDrawLoot(org.bukkit.craftbukkit.block.CraftBlock.at(world, pos), entity != null ? entity.getBukkitEntity() : null, tool.asBukkitMirror(), dropExperience,bukkitLoot);
++            bukkitLoot.stream().map(org.bukkit.craftbukkit.inventory.CraftItemStack::asNMSCopy).forEach((itemstack1) -> {
+                 Block.popResource(world, pos, itemstack1);
+             });
+             state.spawnAfterBreak((ServerLevel) world, pos, tool, dropExperience); // Paper - Properly handle xp dropping

@@ -1,0 +1,46 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: verdox <mail.ysp@web.de>
+Date: Tue, 11 Jun 2024 14:59:50 +0000
+Subject: [PATCH] Adding createWorldAsync method
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/CreativeLab.java b/src/main/java/de/verdox/mccreativelab/CreativeLab.java
+index 6ae6fa4dd9ac10c12eeb57310b2fcf434d6229df..2495a422ec6439c5255285259e6b461816fbe58e 100644
+--- a/src/main/java/de/verdox/mccreativelab/CreativeLab.java
++++ b/src/main/java/de/verdox/mccreativelab/CreativeLab.java
+@@ -13,6 +13,20 @@ public interface CreativeLab {
+ 
+     Inventory openCustomContainerMenu(@NotNull CustomInventory customInventory, @NotNull org.bukkit.entity.Player player, @NotNull net.kyori.adventure.text.Component title);
+ 
++    /**
++     * Creates a world mostly async. Most of the calculations needed to create a world are done asynchronously. However, some still occur on the main thread.
++     * Those can be manually turned off when they are not needed.
++     * @param plugin The plugin to create the map for.
++     * @param worldCreator The WorldCreator
++     * @param useVanillaSpawnCalculation
++     * <p>
++     *                                   Whether to use vanilla spawn calculations. This is used to find a safe spawn point for players.
++     * <p>
++     *                                   If you do not need this, the standard spawn point 0,128,0 is chosen. This also skips the generation of the bonus loot chest!
++     * @return the future
++     */
++    java.util.concurrent.CompletableFuture<org.bukkit.World> createWorldAsync(@NotNull org.bukkit.plugin.Plugin plugin, @NotNull org.bukkit.WorldCreator worldCreator, boolean useVanillaSpawnCalculation);
++
+     /**
+      * Returns a stream of all possible {@link org.bukkit.block.data.BlockData} definitions of a valid block {@link org.bukkit.Material}
+      *
+diff --git a/src/main/java/de/verdox/mccreativelab/MCCreativeLab.java b/src/main/java/de/verdox/mccreativelab/MCCreativeLab.java
+index 6c53e6aaf1ff4b09cc7a33128446f55188b0f54e..d546674949fc0c3167d277f8d669397c92639486 100644
+--- a/src/main/java/de/verdox/mccreativelab/MCCreativeLab.java
++++ b/src/main/java/de/verdox/mccreativelab/MCCreativeLab.java
+@@ -30,6 +30,10 @@ public final class MCCreativeLab {
+         return creativeLab.openCustomContainerMenu(customInventory, player, title);
+     }
+ 
++    public static java.util.concurrent.CompletableFuture<org.bukkit.World> createWorldAsync(@NotNull org.bukkit.plugin.Plugin plugin, @NotNull org.bukkit.WorldCreator worldCreator, boolean useVanillaSpawnCalculation){
++        return creativeLab.createWorldAsync(plugin, worldCreator, useVanillaSpawnCalculation);
++    }
++
+ 
+     /**
+      * Returns a stream of all possible {@link org.bukkit.block.data.BlockData} definitions of a valid block {@link org.bukkit.Material}
