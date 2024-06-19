@@ -61,15 +61,4 @@ public class FakeBlockListener implements Listener {
             return;
         e.setInventory(fakeBlockEntity.getContainerOfEntity());
     }
-
-/*    @EventHandler(priority = EventPriority.MONITOR)
-    public void removeItemDisplaysIfBlockPlaceWasCancelled(BlockPlaceEvent e){
-        if(!e.isCancelled())
-            return;
-        // There was no block before
-        if(!e.getBlockReplacedState().getType().isAir())
-            return;
-        //TODO Does not always work. We need an other strategy for this!
-        FakeBlockStorage.setFakeBlockState(e.getBlock().getLocation(), null, false);
-    }*/
 }

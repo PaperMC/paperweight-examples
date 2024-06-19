@@ -32,7 +32,7 @@ public class FakeBlockCacheHandler implements Listener {
         INSTANCE = this;
     }
 
-    @EventHandler
+    /*@EventHandler
     public void worldSave(WorldSaveEvent e) {
         if (FakeBlockStorage.USE_NEW_IMPLEMENTATION)
             return;
@@ -65,7 +65,7 @@ public class FakeBlockCacheHandler implements Listener {
             return;
         MCCreativeLabExtension.getInstance().getFakeBlockStorage()
             .saveChunk(e.getChunk(), e.getPersistentDataContainer(), e.isUnloaded());
-    }
+    }*/
 
     private Map<ChunkDataEvent.ChunkPos, Set<FakeBlockVisualStrategy.PotentialItemDisplay>> potentialLoadedBlockVisuals = new ConcurrentHashMap<>();
     private Map<ChunkDataEvent.ChunkPos, Set<Marker>> potentialLoadedBlockEntities = new ConcurrentHashMap<>();

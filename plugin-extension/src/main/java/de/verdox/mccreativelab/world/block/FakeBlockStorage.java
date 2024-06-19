@@ -43,9 +43,8 @@ public class FakeBlockStorage {
     }
 
     public static boolean setFakeBlockState(Location location, @Nullable FakeBlock.FakeBlockState fakeBlockState, boolean updateBlockData, boolean forceLoad) {
-        if(USE_NEW_IMPLEMENTATION)
-            return FakeBlockContainer.setFakeBlockState(location, fakeBlockState, updateBlockData, forceLoad);
-        FakeBlockStorage fakeBlockStorage = MCCreativeLabExtension.getFakeBlockStorage();
+        return FakeBlockContainer.setFakeBlockState(location, fakeBlockState, updateBlockData, forceLoad);
+/*        FakeBlockStorage fakeBlockStorage = MCCreativeLabExtension.getFakeBlockStorage();
 
         int localX = PaletteUtil.worldXToPaletteXCoordinate(location.getBlockX());
         int localY = PaletteUtil.worldYCoordinateToPaletteCoordinate(location.getWorld(), location.getBlockY());
@@ -86,13 +85,12 @@ public class FakeBlockStorage {
         }
 
         BlockBreakSpeedModifier.stopBlockBreakAtBlock(location.getBlock());
-        return true;
+        return true;*/
     }
 
     public static @Nullable FakeBlock.FakeBlockState getFakeBlockState(Location location, boolean forceLoad) {
-        if(USE_NEW_IMPLEMENTATION)
-            return FakeBlockContainer.getFakeBlockState(location, forceLoad);
-
+        return FakeBlockContainer.getFakeBlockState(location, forceLoad);
+/*
         if (location.getBlockY() > location.getWorld().getMaxHeight()) {
             Bukkit.getLogger().warning("Tried to read a fakeblockstate above world max height");
             return null;
@@ -119,7 +117,7 @@ public class FakeBlockStorage {
         FakeBlockPalettedContainer fakeBlockPaletteContainer = fakeBlockStorage.getFakeBlockPalette(world, chunkKey);
         if (fakeBlockPaletteContainer == null)
             throw new IllegalStateException("FakeBlockPaletteContainer was null - This is a bug");
-        return fakeBlockPaletteContainer.getData(localX, localY, localZ);
+        return fakeBlockPaletteContainer.getData(localX, localY, localZ);*/
     }
 
     private final Map<ChunkEntry, FakeBlockPalettedContainer> fakeBlockPalettes = new ConcurrentHashMap<>();
@@ -127,7 +125,7 @@ public class FakeBlockStorage {
     public FakeBlockStorage() {
     }
 
-    @Deprecated
+/*    @Deprecated
     public void saveAll() {
         if(USE_NEW_IMPLEMENTATION)
             return;
@@ -143,7 +141,7 @@ public class FakeBlockStorage {
             return;
         for (Chunk loadedChunk : world.getLoadedChunks())
             saveChunk(loadedChunk, loadedChunk.getPersistentDataContainer(), false);
-    }
+    }*/
 
     @Deprecated
     FakeBlockPalettedContainer getFakeBlockPalette(World world, long chunkKey) {
@@ -161,7 +159,7 @@ public class FakeBlockStorage {
         return fakeBlockPaletteContainer;
     }
 
-    @Deprecated
+/*    @Deprecated
     void loadChunk(WorldGenChunk chunk, PersistentDataContainer persistentDataContainer) {
         if(USE_NEW_IMPLEMENTATION)
             return;
@@ -192,7 +190,7 @@ public class FakeBlockStorage {
         fakeBlockPaletteContainer.serialize(FAKE_BLOCK_PALETTE_KEY, persistentDataContainer);
         if (unload)
             fakeBlockPalettes.remove(chunkEntry);
-    }
+    }*/
 
     @Deprecated
     public static class FakeBlockPalettedContainer extends NBTPalettedContainer<FakeBlock.FakeBlockState> {
