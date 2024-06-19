@@ -5,6 +5,7 @@ import de.verdox.mccreativelab.event.MCCreativeLabReloadEvent;
 import de.verdox.mccreativelab.features.legacy.LegacyFeatures;
 import de.verdox.mccreativelab.world.block.FakeBlockRegistry;
 import de.verdox.mccreativelab.world.block.FakeBlockStorage;
+import de.verdox.mccreativelab.world.block.FakeBlockWorldHook;
 import de.verdox.mccreativelab.world.block.replaced.ReplacedBlocks;
 import de.verdox.mccreativelab.world.item.FakeItemRegistry;
 import de.verdox.mccreativelab.world.item.data.ItemDataContainer;
@@ -14,6 +15,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.server.ServerLoadEvent;
+import org.bukkit.event.world.WorldLoadEvent;
 import org.bukkit.inventory.ItemStack;
 
 public class ServerSoftwareExclusives implements Listener {
@@ -79,6 +81,11 @@ public class ServerSoftwareExclusives implements Listener {
     @EventHandler(priority = EventPriority.LOWEST)
     public void onPluginReload(MCCreativeLabReloadEvent ignored) {
         onServerLoad(ServerLoadEvent.LoadType.RELOAD);
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void hookIntoWorld(WorldLoadEvent e){
+        MCCreativeLab.setWorldHook(e.getWorld(), new FakeBlockWorldHook());
     }
 
     public ReplacedSoundGroups getReplacedSoundGroups() {
