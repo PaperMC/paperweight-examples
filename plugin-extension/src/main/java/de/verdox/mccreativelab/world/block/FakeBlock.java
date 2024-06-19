@@ -120,17 +120,21 @@ public abstract class FakeBlock implements Keyed, BlockBehaviour {
         remove(location, withEffects, dropLoot, causeOfBreak, null, true);
     }
     public void remove(Location location, boolean withEffects, boolean dropLoot, @Nullable Entity causeOfBreak, @Nullable ItemStack tool, boolean ignoreTool) {
+        remove(location, withEffects, dropLoot, true, causeOfBreak, tool, ignoreTool);
+    }
+
+    public void remove(Location location, boolean withEffects, boolean dropLoot, boolean dropExperience, @Nullable Entity causeOfBreak, @Nullable ItemStack tool, boolean ignoreTool) {
         FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockState(location, false);
         if (fakeBlockState == null)
             return;
         if (withEffects)
             FakeBlockUtil.simulateBlockBreakWithParticlesAndSound(fakeBlockState, location.getBlock());
-        FakeBlockStorage.setFakeBlockState(location, null, false);
-        if(dropLoot) {
+        if(dropLoot)
             dropBlockLoot(location, fakeBlockState, causeOfBreak, tool, ignoreTool);
+        if(dropExperience)
             dropBlockExperience(location, fakeBlockState, causeOfBreak, tool, ignoreTool);
-        }
         removeBlockEntity(location);
+        FakeBlockStorage.setFakeBlockState(location, null, false);
     }
 
     private void removeBlockEntity(Location location) {
