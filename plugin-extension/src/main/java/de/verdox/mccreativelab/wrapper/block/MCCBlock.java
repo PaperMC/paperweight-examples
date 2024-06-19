@@ -4,7 +4,9 @@ import de.verdox.mccreativelab.world.block.FakeBlock;
 import de.verdox.mccreativelab.world.block.FakeBlockStorage;
 import de.verdox.mccreativelab.wrapper.MCCWrapped;
 import de.verdox.mccreativelab.wrapper.entity.MCCEntity;
+import org.bukkit.Effect;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
@@ -16,7 +18,7 @@ import java.util.Collection;
 
 public interface MCCBlock extends MCCWrapped {
 
-    static MCCBlock getFromBlock(Block block){
+    static MCCBlock getFromBlock(Block block) {
         return new Vanilla(block);
     }
 
@@ -27,6 +29,20 @@ public interface MCCBlock extends MCCWrapped {
     MCCBlockType getBlockType();
 
     Collection<ItemStack> getDrops(@Nullable ItemStack tool, @Nullable MCCEntity entity);
+
+    /**
+     * Naturally breaks this block as if a player had broken it.
+     *
+     * @param tool           the tool used
+     * @param triggerEffect  whether to trigger a block break effect
+     * @param dropExperience whether to drop Experience
+     * @param ignoreTool     whether to ignore the tool
+     */
+    void breakBlockNaturally(@Nullable ItemStack tool, boolean triggerEffect, boolean dropLoot, boolean dropExperience, boolean ignoreTool);
+
+    default void breakBlockNaturally(boolean triggerEffect, boolean dropLoot, boolean dropExperience) {
+        breakBlockNaturally(null, triggerEffect, dropLoot, dropExperience, true);
+    }
 
     class Vanilla extends MCCWrapped.Impl<Block> implements MCCBlock {
         protected Vanilla(Block handle) {
@@ -56,6 +72,27 @@ public interface MCCBlock extends MCCWrapped {
                 return fakeBlockState.getFakeBlock().drawLoot(getHandle(), fakeBlockState, bukkitEntity, tool, tool == null);
             else
                 return getHandle().getDrops(tool, bukkitEntity);
+        }
+
+        @Override
+        public void breakBlockNaturally(@Nullable ItemStack tool, boolean triggerEffect, boolean dropLoot, boolean dropExperience, boolean ignoreTool) {
+            FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockState(getLocation(), false);
+            if (fakeBlockState == null) {
+                if(!dropLoot){
+                    if(triggerEffect)
+                        getLocation().getWorld().playEffect(getLocation(), Effect.STEP_SOUND, getBlockData());
+                    getLocation().getBlock().setType(Material.AIR, true);
+                }
+                else {
+                    if (ignoreTool)
+                        getHandle().breakNaturally(triggerEffect, dropExperience);
+                    else
+                        getHandle().breakNaturally(tool, triggerEffect, dropExperience);
+                }
+            } else {
+                fakeBlockState.getFakeBlock().remove(getLocation(), triggerEffect, dropLoot, dropExperience, null, tool, tool == null);
+            }
+
         }
 
         @Override

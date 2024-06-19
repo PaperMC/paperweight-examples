@@ -85,8 +85,8 @@ public interface MCCBlockData extends MCCWrapped {
 
         @Override
         public void setBlock(Location location, boolean applyPhysics) {
+            //FakeBlockStorage.setFakeBlock(location, null, false, false);
             location.getBlock().setBlockData(this.getHandle(), applyPhysics);
-            FakeBlockStorage.setFakeBlock(location, null, false, false);
         }
     }
 
