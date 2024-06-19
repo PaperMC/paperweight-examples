@@ -1,17 +1,13 @@
-# ForkTest - A Paper fork, using paperweight
+# MCCreativeLab - A Paper fork, opening new ways of customization
 
-This is an example project, showcasing how to setup a fork of Paper (or any other fork using paperweight), using paperweight.
 
-The files of most interest are
-- build.gradle.kts
-- settings.gradle.kts
-- gradle.properties
 
+## Updating upstream
 When updating upstream, be sure to keep the dependencies noted in `build.gradle.kts` in sync with upstream.
 It's also a good idea to use the same version of the Gradle wrapper as upstream.
 
 ## Tasks
-
+This project uses paperweight
 ```
 Paperweight tasks
 -----------------
