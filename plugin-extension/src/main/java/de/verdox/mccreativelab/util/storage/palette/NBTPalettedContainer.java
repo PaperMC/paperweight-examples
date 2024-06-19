@@ -49,6 +49,10 @@ public class NBTPalettedContainer<T> implements NBTPersistent {
         NBTThreeDimensionalStorageSerializer.deSerialize(storage, serializedStorage);
     }
 
+    public ThreeDimensionalStorage<Short, T> getStorage() {
+        return storage;
+    }
+
     @Override
     public void saveNBTData(NBTContainer storage) {
         NBTContainer threeDimensionalStorageNBT = storage.createNBTContainer();
