@@ -140,6 +140,7 @@ public class FakeBlockEntityStorage {
         FakeBlockEntity fakeBlockEntity = getFakeBlockEntityAt(location.getBlock());
         if (fakeBlockEntity == null)
             return;
+        fakeBlockEntity.onRemove();
         fakeBlockEntity.getMarkerEntity().remove();
     }
 
