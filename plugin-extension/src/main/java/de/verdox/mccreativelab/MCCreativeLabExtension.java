@@ -14,6 +14,7 @@ import de.verdox.mccreativelab.registry.CustomRegistry;
 import de.verdox.mccreativelab.util.PlayerUtil;
 import de.verdox.mccreativelab.util.nbt.PersistentDataSaver;
 import de.verdox.mccreativelab.util.player.fakeinv.FakeInventory;
+import de.verdox.mccreativelab.world.CustomEventsCaller;
 import de.verdox.mccreativelab.world.block.*;
 import de.verdox.mccreativelab.world.block.customhardness.BlockBreakSpeedModifier;
 import de.verdox.mccreativelab.world.block.customhardness.BlockBreakSpeedSettings;
@@ -52,11 +53,18 @@ public class MCCreativeLabExtension extends JavaPlugin {
 
     public static void needsServerSoftware() {
         if (!isServerSoftware())
-            throw new IllegalStateException("This feature is not available without the MCCreativeLab Paper Fork");
+            throw new IllegalStateException("This feature is not available without the MCCreativeLab Paper Fork. You are running "+Bukkit.getServer().getName());
     }
 
     public static boolean isServerSoftware() {
-        return Bukkit.getServer().getName().equals("MCCreativeLab");
+        try{
+            Class.forName("de.verdox.mccreativelab.MCCreativeLab");
+            return true;
+        }
+        catch (ClassNotFoundException ignored){
+            return false;
+        }
+        //return Bukkit.getServer().getName().equals("MCCreativeLab");
     }
 
     @Override
@@ -91,6 +99,7 @@ public class MCCreativeLabExtension extends JavaPlugin {
     public void onEnable() {
         extensionFeatures.onEnable();
         Bukkit.getPluginManager().registerEvents(extensionFeatures, this);
+        Bukkit.getPluginManager().registerEvents(new CustomEventsCaller(), this);
 
         if(isServerSoftware()) {
             Bukkit.getPluginManager().registerEvents(serverSoftwareExclusives, this);
@@ -211,8 +220,8 @@ public class MCCreativeLabExtension extends JavaPlugin {
         }
         Feature.disable();
         getLogger().info("Saving fake block storage... ");
-        if(isServerSoftware())
-            getFakeBlockStorage().saveAll();
+/*        if(isServerSoftware())
+            getFakeBlockStorage().saveAll();*/
         getLogger().info("Saving worlds... ");
         for (World world : Bukkit.getWorlds())
             world.save();
