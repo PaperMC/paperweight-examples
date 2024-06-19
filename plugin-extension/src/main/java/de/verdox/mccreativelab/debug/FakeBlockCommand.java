@@ -65,44 +65,46 @@ public class FakeBlockCommand extends Command {
 
     @Override
     public boolean execute(@NotNull CommandSender sender, @NotNull String commandLabel, @NotNull String[] args) {
-        if(!sender.hasPermission("mccreativelab.command.fakeblock"))
+        if (!sender.hasPermission("mccreativelab.command.fakeblock"))
             return false;
-        if(!(sender instanceof Player player))
+        if (!(sender instanceof Player player))
             return false;
 
         RayTraceResult rayTraceResult = player.rayTraceBlocks(5);
-        if(rayTraceResult == null)
+        if (rayTraceResult == null)
             return false;
         Block block = rayTraceResult.getHitBlock();
-        if(block == null)
+        if (block == null)
             return false;
 
-        if(args.length == 0) {
+        if (args.length == 0) {
             player.sendMessage("");
             return false;
         }
-        if(args[0].equalsIgnoreCase("get")){
-            if(args.length == 2){
+        if (args[0].equalsIgnoreCase("get")) {
+            if (args.length == 2) {
                 String keyAsString = args[1];
-                try{
+                try {
                     NamespacedKey namespacedKey = NamespacedKey.fromString(keyAsString);
                     FakeBlock fakeBlock = MCCreativeLabExtension.getFakeBlockRegistry().get(namespacedKey);
                     FakeBlockStorage.setFakeBlock(block.getLocation(), fakeBlock, false);
-                }
-                catch (Exception e){
+                } catch (Exception e) {
                     sender.sendMessage("Please provide a valid custom item");
                     return false;
                 }
             }
+        } else if (args[0].equalsIgnoreCase("info")) {
+
+            player.sendMessage(Component.text(FakeBlockStorage.getFakeBlockState(block.getLocation(), false) + " [" + block.getX() + " | " + block.getY() + " | " + block.getZ() + "]"));
         }
         return false;
     }
 
     @Override
     public @NotNull List<String> tabComplete(@NotNull CommandSender sender, @NotNull String alias, @NotNull String[] args) throws IllegalArgumentException {
-        if(args.length <= 1)
-            return List.of("get");
-        if(args.length == 2)
+        if (args.length <= 1)
+            return List.of("get", "info");
+        if (args.length == 2)
             return MCCreativeLabExtension.getFakeBlockRegistry().streamKeys().map(NamespacedKey::asString).filter(s -> s.contains(args[1])).toList();
         return List.of();
     }
