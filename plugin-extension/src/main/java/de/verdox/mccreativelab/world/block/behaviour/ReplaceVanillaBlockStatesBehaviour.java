@@ -8,9 +8,12 @@ import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.jetbrains.annotations.Nullable;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -18,18 +21,19 @@ import java.util.Map;
  * Methods in this behaviour are called to replace vanilla block states entirely with a fake block state.
  */
 public class ReplaceVanillaBlockStatesBehaviour extends FakeBlockBehaviour {
-    private final Map<BlockData, FakeBlock.FakeBlockState> replacedVisualStates;
+    private static final Map<BlockData, FakeBlock.FakeBlockState> REPLACED_VISUAL_STATES = new HashMap<>();
 
     public ReplaceVanillaBlockStatesBehaviour(Map<BlockData, FakeBlock.FakeBlockState> replacedVisualStates) {
-        this.replacedVisualStates = replacedVisualStates;
+        REPLACED_VISUAL_STATES.putAll(replacedVisualStates);
     }
 
-    @Override
+/*    @Override
     public BehaviourResult.Callback onPlace(Location location, BlockData newBlockData, BlockData oldBlockData, boolean notify, boolean isProcessingBlockPlaceEvent) {
         FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockState(location, false);
-        if (fakeBlockState == null && !isProcessingBlockPlaceEvent)
-            if (replacedVisualStates.containsKey(newBlockData))
-                FakeBlockStorage.setFakeBlockState(location, this.replacedVisualStates.get(newBlockData),false, false);
+        if (fakeBlockState == null)
+            if (replacedVisualStates.containsKey(newBlockData)) {
+                FakeBlockStorage.setFakeBlockState(location, this.replacedVisualStates.get(newBlockData), false, false);
+            }
         return super.onPlace(location, newBlockData, oldBlockData, notify, isProcessingBlockPlaceEvent);
     }
 
@@ -40,14 +44,14 @@ public class ReplaceVanillaBlockStatesBehaviour extends FakeBlockBehaviour {
             if (replacedVisualStates.containsKey(thePlacedState))
                 FakeBlockStorage.setFakeBlockState(location, this.replacedVisualStates.get(thePlacedState), false,false);
         return super.onPlayerPlace(player, stackUsedToPlaceBlock, location, thePlacedState);
-    }
+    }*/
 
     @Override
     public BehaviourResult.Void tick(Block block, VanillaRandomSource vanillaRandomSource) {
         FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockState(block.getLocation(), false);
         if (fakeBlockState == null)
-            if (replacedVisualStates.containsKey(block.getBlockData()))
-                FakeBlockStorage.setFakeBlockState(block.getLocation(), this.replacedVisualStates.get(block.getBlockData()), false, false);
+            if (REPLACED_VISUAL_STATES.containsKey(block.getBlockData()))
+                FakeBlockStorage.setFakeBlockState(block.getLocation(), REPLACED_VISUAL_STATES.get(block.getBlockData()), false, false);
         return super.tick(block, vanillaRandomSource);
     }
 
@@ -55,9 +59,13 @@ public class ReplaceVanillaBlockStatesBehaviour extends FakeBlockBehaviour {
     public BehaviourResult.Object<BlockData> blockUpdate(Location location, BlockData blockData, BlockFace direction, BlockData neighbourBlockData, Location neighbourLocation) {
         FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockState(location, false);
         if (fakeBlockState == null)
-            if (replacedVisualStates.containsKey(blockData))
-                FakeBlockStorage.setFakeBlockState(location, this.replacedVisualStates.get(blockData), false, false);
+            if (REPLACED_VISUAL_STATES.containsKey(blockData))
+                FakeBlockStorage.setFakeBlockState(location, REPLACED_VISUAL_STATES.get(blockData), false, false);
 
         return super.blockUpdate(location, blockData, direction, neighbourBlockData, neighbourLocation);
+    }
+
+    public static Map<BlockData, FakeBlock.FakeBlockState> getReplacedVisualStates() {
+        return REPLACED_VISUAL_STATES;
     }
 }

@@ -42,8 +42,8 @@ public class FakeBlockBehaviour implements BlockBehaviour {
     @Override
     public BehaviourResult.Callback onPlayerBreak(Player player, Location location, BlockData brokenState) {
 
-        FakeBlockUtil.removeFakeBlockIfPossible(location.getBlock());
-        FakeBlockEntityStorage.removeFakeBlockEntityAt(location);
+/*        FakeBlockUtil.removeFakeBlockIfPossible(location.getBlock());
+        FakeBlockEntityStorage.removeFakeBlockEntityAt(location);*/
 
         return BlockBehaviour.super.onPlayerBreak(player, location, brokenState);
     }
@@ -81,7 +81,8 @@ public class FakeBlockBehaviour implements BlockBehaviour {
 
     @Override
     public BehaviourResult.Callback onDestroy(Location location, boolean drop, @Nullable Entity destroyingEntity, int maxUpdateDepth) {
-        FakeBlockEntityStorage.removeFakeBlockEntityAt(location);
+/*        FakeBlockUtil.removeFakeBlockIfPossible(location.getBlock());
+        FakeBlockEntityStorage.removeFakeBlockEntityAt(location);*/
         return BlockBehaviour.super.onDestroy(location, drop, destroyingEntity, maxUpdateDepth);
     }
 
@@ -182,8 +183,8 @@ public class FakeBlockBehaviour implements BlockBehaviour {
 
         if (fakeBlockState != null) {
             BehaviourResult.Object<BlockData> result = fakeBlockState.getFakeBlock().blockUpdate(location, blockData, direction, neighbourBlockData, neighbourLocation);
-            fakeBlockState.getFakeBlockDisplay().getFakeBlockVisualStrategy()
-                .blockUpdate(location.getBlock(), fakeBlockState, direction, neighbourBlockData);
+/*            fakeBlockState.getFakeBlockDisplay().getFakeBlockVisualStrategy()
+                .blockUpdate(location.getBlock(), fakeBlockState, direction, neighbourBlockData);*/
             return result;
         }
         return BlockBehaviour.super.blockUpdate(location, blockData, direction, neighbourBlockData, neighbourLocation);
