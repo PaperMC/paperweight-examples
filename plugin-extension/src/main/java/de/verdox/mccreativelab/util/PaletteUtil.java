@@ -5,11 +5,11 @@ import org.bukkit.World;
 public class PaletteUtil {
 
     public static int worldXToPaletteXCoordinate(int x){
-        return Math.abs(x % 16);
+        return Math.floorMod(x, 16);
     }
 
     public static int worldZToPaletteXCoordinate(int z){
-        return Math.abs(z % 16);
+        return Math.floorMod(z, 16);
     }
 
     public static int worldYCoordinateToPaletteCoordinate(int worldMinHeight, int worldMaxHeight, int y){
@@ -20,6 +20,11 @@ public class PaletteUtil {
         if(worldMinHeight > worldMaxHeight)
             throw new IllegalArgumentException("worldMinHeight is greater than worldMaxHeight");
         return y + Math.abs(worldMinHeight);
+    }
+
+    public static int yPaletteToWorldCoordinate(int localY, int worldMinHeight){
+        return localY - Math.abs(worldMinHeight);
+
     }
     public static int worldYCoordinateToPaletteCoordinate(World world, int y){
         return worldYCoordinateToPaletteCoordinate(world.getMinHeight(), world.getMaxHeight(), y);
