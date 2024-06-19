@@ -11,12 +11,18 @@ import de.verdox.mccreativelab.world.item.FakeItemRegistry;
 import de.verdox.mccreativelab.world.item.data.ItemDataContainer;
 import de.verdox.mccreativelab.world.sound.ReplacedSoundGroups;
 import org.bukkit.Bukkit;
+import org.bukkit.NamespacedKey;
+import org.bukkit.WorldCreator;
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.server.ServerLoadEvent;
 import org.bukkit.event.world.WorldLoadEvent;
 import org.bukkit.inventory.ItemStack;
+import org.jetbrains.annotations.NotNull;
 
 public class ServerSoftwareExclusives implements Listener {
     private static FakeBlockRegistry FAKE_BLOCK_REGISTRY;
@@ -38,7 +44,24 @@ public class ServerSoftwareExclusives implements Listener {
     }
 
     public void onEnable(){
+        Bukkit.getCommandMap().register("asyncWorldCreate", new Command("asyncWorldCreate") {
+            @Override
+            public boolean execute(@NotNull CommandSender sender, @NotNull String commandLabel, @NotNull String[] args) {
 
+                if(args.length == 1){
+                    String worldName = args[0];
+                    sender.sendMessage("Creating world "+worldName+" async");
+                    MCCreativeLab.createWorldAsync(MCCreativeLabExtension.getInstance(), new WorldCreator(new NamespacedKey("mccreativelab", worldName)), false)
+                        .whenComplete((world, throwable) -> {
+                            sender.sendMessage("World "+worldName+" was created ["+world+"]");
+                            if(world != null && sender instanceof Player player){
+                                player.teleportAsync(world.getSpawnLocation());
+                            }
+                        });
+                }
+                return false;
+            }
+        });
     }
 
     public void onDisable(){
