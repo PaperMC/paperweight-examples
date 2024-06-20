@@ -1,0 +1,19 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: verdox <mail.ysp@web.de>
+Date: Thu, 20 Jun 2024 12:41:15 +0000
+Subject: [PATCH] Commenting PathProcessor
+
+
+diff --git a/src/main/java/net/minecraft/world/level/levelgen/structure/templatesystem/StructureProcessorType.java b/src/main/java/net/minecraft/world/level/levelgen/structure/templatesystem/StructureProcessorType.java
+index 95f731fe22d9c3e1894f9d1951bd72351f883b76..f5735d24d59c93376c5f7e491c3f0e9e9a21811b 100644
+--- a/src/main/java/net/minecraft/world/level/levelgen/structure/templatesystem/StructureProcessorType.java
++++ b/src/main/java/net/minecraft/world/level/levelgen/structure/templatesystem/StructureProcessorType.java
+@@ -26,7 +26,7 @@ public interface StructureProcessorType<P extends StructureProcessor> {
+     StructureProcessorType<LavaSubmergedBlockProcessor> LAVA_SUBMERGED_BLOCK = register("lava_submerged_block", LavaSubmergedBlockProcessor.CODEC);
+     StructureProcessorType<ProtectedBlockProcessor> PROTECTED_BLOCKS = register("protected_blocks", ProtectedBlockProcessor.CODEC);
+     StructureProcessorType<CappedProcessor> CAPPED = register("capped", CappedProcessor.CODEC);
+-    StructureProcessorType<de.verdox.mccreativelab.worldgen.structure.PathProcessor> PATH = register("path", de.verdox.mccreativelab.worldgen.structure.PathProcessor.CODEC);
++    //StructureProcessorType<de.verdox.mccreativelab.worldgen.structure.PathProcessor> PATH = register("path", de.verdox.mccreativelab.worldgen.structure.PathProcessor.CODEC);
+ 
+     MapCodec<P> codec();
+ 

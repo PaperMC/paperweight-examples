@@ -1,0 +1,19 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: verdox <mail.ysp@web.de>
+Date: Thu, 20 Jun 2024 12:40:44 +0000
+Subject: [PATCH] Commenting getType in PathProcessor
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/worldgen/structure/PathProcessor.java b/src/main/java/de/verdox/mccreativelab/worldgen/structure/PathProcessor.java
+index 9d0796acd149273d2490a1e5ed9d10617968e752..a61afffe6ef79b51514b3ee4251687e3b30ddb0f 100644
+--- a/src/main/java/de/verdox/mccreativelab/worldgen/structure/PathProcessor.java
++++ b/src/main/java/de/verdox/mccreativelab/worldgen/structure/PathProcessor.java
+@@ -48,7 +48,7 @@ public class PathProcessor extends StructureProcessor {
+ 
+     @Override
+     protected StructureProcessorType<?> getType() {
+-        return StructureProcessorType.PATH;
++        return /*StructureProcessorType.PATH;*/ null;
+     }
+ 
+     @Nullable

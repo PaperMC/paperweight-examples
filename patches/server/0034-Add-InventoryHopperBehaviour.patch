@@ -1,0 +1,829 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: verdox <mail.ysp@web.de>
+Date: Wed, 29 May 2024 13:54:15 +0000
+Subject: [PATCH] Add InventoryHopperBehaviour
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/InventoryHopperBehaviourUtil.java b/src/main/java/de/verdox/mccreativelab/behaviour/InventoryHopperBehaviourUtil.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..c47e4bdd16d163bf21357be0c67c809a9e90ffbe
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/behaviour/InventoryHopperBehaviourUtil.java
+@@ -0,0 +1,54 @@
++package de.verdox.mccreativelab.behaviour;
++
++import net.minecraft.core.Direction;
++import net.minecraft.world.Container;
++import net.minecraft.world.item.ItemStack;
++import net.minecraft.world.level.block.entity.HopperBlockEntity;
++import org.bukkit.block.BlockFace;
++import org.bukkit.block.Hopper;
++import org.bukkit.craftbukkit.inventory.CraftInventory;
++
++import javax.annotation.Nullable;
++import java.util.function.Supplier;
++
++public class InventoryHopperBehaviourUtil extends BehaviourUtil {
++    public static boolean canPlaceItem(Container container, int slot, ItemStack stack, Supplier<Boolean> vanillaLogic) {
++        return evaluateBoolean(getBehaviour(container),
++            inventoryHopperBehaviour -> inventoryHopperBehaviour.canPlaceItem(new CraftInventory(container), slot, stack.asBukkitMirror()),
++            vanillaLogic);
++    }
++
++    public static boolean canTakeItem(Container container, HopperBlockEntity hopperBlockEntity, int slot, ItemStack stack, Supplier<Boolean> vanillaLogic) {
++        Hopper hopper = (Hopper) hopperBlockEntity.getOwner(false);
++        return evaluateBoolean(getBehaviour(container),
++            inventoryHopperBehaviour -> inventoryHopperBehaviour.canTakeItem(new CraftInventory(container), hopper, slot, stack.asBukkitMirror()),
++            vanillaLogic);
++    }
++
++    public static int[] getSlotsForFace(Container container, Direction side, Supplier<int[]> vanillaLogic){
++        return evaluate(getBehaviour(container),
++            inventoryHopperBehaviour -> inventoryHopperBehaviour.getSlotsForFace(new CraftInventory(container), BlockFace.valueOf(side.getName().toUpperCase())),
++            vanillaLogic,
++            Converter.DummyConverter.getInstance(int[].class)
++        );
++    }
++
++    public static boolean canPlaceItemThroughFace(Container container, int slot, ItemStack stack, @Nullable Direction dir, Supplier<Boolean> vanillaLogic){
++        return evaluateBoolean(getBehaviour(container),
++            inventoryHopperBehaviour -> inventoryHopperBehaviour.canPlaceItemThroughFace(new CraftInventory(container), slot, stack.asBukkitMirror(), dir == null ? null : BlockFace.valueOf(dir.getName().toUpperCase())),
++            vanillaLogic);
++    }
++
++    public static boolean canTakeItemThroughFace(Container container, HopperBlockEntity hopperBlockEntity, int slot, ItemStack stack, Direction dir, Supplier<Boolean> vanillaLogic){
++        Hopper hopper = (Hopper) hopperBlockEntity.getOwner(false);
++        return evaluateBoolean(getBehaviour(container),
++            inventoryHopperBehaviour -> inventoryHopperBehaviour.canTakeItemThroughFace(new CraftInventory(container), hopper, slot, stack.asBukkitMirror(), dir == null ? null : BlockFace.valueOf(dir.getName().toUpperCase())),
++            vanillaLogic);
++    }
++
++    public static InventoryHopperBehaviour getBehaviour(Container container) {
++        if (container.hasInventoryHopperBehaviour())
++            return container.getInventoryHopperBehaviour();
++        return null;
++    }
++}
+diff --git a/src/main/java/io/papermc/paper/inventory/PaperInventoryCustomHolderContainer.java b/src/main/java/io/papermc/paper/inventory/PaperInventoryCustomHolderContainer.java
+index 224d4b2cc45b0d02230a76caee9c88573a448b4c..0ba467dc0a329d06838056e2215e7b7050365da7 100644
+--- a/src/main/java/io/papermc/paper/inventory/PaperInventoryCustomHolderContainer.java
++++ b/src/main/java/io/papermc/paper/inventory/PaperInventoryCustomHolderContainer.java
+@@ -134,6 +134,22 @@ public final class PaperInventoryCustomHolderContainer implements Container {
+         return this.delegate.getLocation();
+     }
+ 
++    @Override
++    public void setInventoryHopperBehaviour(@org.jetbrains.annotations.Nullable de.verdox.mccreativelab.behaviour.InventoryHopperBehaviour behaviour) {
++        this.delegate.setInventoryHopperBehaviour(behaviour);
++    }
++
++    @org.jetbrains.annotations.Nullable
++    @Override
++    public de.verdox.mccreativelab.behaviour.InventoryHopperBehaviour getInventoryHopperBehaviour() {
++        return this.delegate.getInventoryHopperBehaviour();
++    }
++
++    @Override
++    public boolean hasInventoryHopperBehaviour() {
++        return this.delegate.hasInventoryHopperBehaviour();
++    }
++
+     @Override
+     public void clearContent() {
+         this.delegate.clearContent();
+diff --git a/src/main/java/net/minecraft/world/CompoundContainer.java b/src/main/java/net/minecraft/world/CompoundContainer.java
+index 241fec02e6869c638d3a160819b32173a081467b..d1e250f40758da5eb2caf075e9131ee583eee26e 100644
+--- a/src/main/java/net/minecraft/world/CompoundContainer.java
++++ b/src/main/java/net/minecraft/world/CompoundContainer.java
+@@ -57,6 +57,23 @@ public class CompoundContainer implements Container {
+     public Location getLocation() {
+         return this.container1.getLocation(); // TODO: right?
+     }
++
++    @Override
++    public void setInventoryHopperBehaviour(@org.jetbrains.annotations.Nullable de.verdox.mccreativelab.behaviour.InventoryHopperBehaviour behaviour) {
++        this.container1.setInventoryHopperBehaviour(behaviour);
++        this.container2.setInventoryHopperBehaviour(behaviour);
++    }
++
++    @org.jetbrains.annotations.Nullable
++    @Override
++    public de.verdox.mccreativelab.behaviour.InventoryHopperBehaviour getInventoryHopperBehaviour() {
++        return this.container1.getInventoryHopperBehaviour();
++    }
++
++    @Override
++    public boolean hasInventoryHopperBehaviour() {
++        return this.container1.hasInventoryHopperBehaviour() && this.container2.hasInventoryHopperBehaviour();
++    }
+     // CraftBukkit end
+ 
+     public CompoundContainer(Container first, Container second) {
+diff --git a/src/main/java/net/minecraft/world/Container.java b/src/main/java/net/minecraft/world/Container.java
+index f402dbbfe3a443e6bc51f88b85abe937852b52f0..b4c3ac0bcd91b7107ee0578129c545fda7a2ba2a 100644
+--- a/src/main/java/net/minecraft/world/Container.java
++++ b/src/main/java/net/minecraft/world/Container.java
+@@ -44,11 +44,11 @@ public interface Container extends Clearable {
+     default void stopOpen(Player player) {}
+ 
+     default boolean canPlaceItem(int slot, ItemStack stack) {
+-        return true;
++        return de.verdox.mccreativelab.behaviour.InventoryHopperBehaviourUtil.canPlaceItem(this, slot, stack, () -> true); // MCCreativeLab - Add InventoryHopperBehaviour
+     }
+ 
+     default boolean canTakeItem(Container hopperInventory, int slot, ItemStack stack) {
+-        return true;
++        return de.verdox.mccreativelab.behaviour.InventoryHopperBehaviourUtil.canTakeItem(this, (net.minecraft.world.level.block.entity.HopperBlockEntity) hopperInventory, slot, stack, () -> true); // MCCreativeLab - Add InventoryHopperBehaviour
+     }
+ 
+     default int countItem(Item item) {
+@@ -118,4 +118,10 @@ public interface Container extends Clearable {
+ 
+     int MAX_STACK = 99;
+     // CraftBukkit end
++
++    // MCCreativeLab start - Add InventoryHopperBehaviour
++    default void setInventoryHopperBehaviour(@org.jetbrains.annotations.Nullable de.verdox.mccreativelab.behaviour.InventoryHopperBehaviour behaviour){}
++    default @org.jetbrains.annotations.Nullable de.verdox.mccreativelab.behaviour.InventoryHopperBehaviour getInventoryHopperBehaviour(){return null;}
++    default boolean hasInventoryHopperBehaviour(){return getInventoryHopperBehaviour() != null;}
++    // MCCreativeLab end - Add InventoryHopperBehaviour
+ }
+diff --git a/src/main/java/net/minecraft/world/SimpleContainer.java b/src/main/java/net/minecraft/world/SimpleContainer.java
+index d04bf7d06855022c973073fb84c5d3d65f2553e1..d165af32d782e7920e2d4fceb4d77b8e7871d599 100644
+--- a/src/main/java/net/minecraft/world/SimpleContainer.java
++++ b/src/main/java/net/minecraft/world/SimpleContainer.java
+@@ -355,4 +355,26 @@ public class SimpleContainer implements Container, StackedContentsCompatible {
+     public NonNullList<ItemStack> getItems() {
+         return this.items;
+     }
++
++    // MCCreativeLab start - Add InventoryHopperBehaviour
++    public de.verdox.mccreativelab.behaviour.InventoryHopperBehaviour inventoryHopperBehaviour;
++    private boolean hasInvHopperBehaviour; //
++
++    @Override
++    public void setInventoryHopperBehaviour(@org.jetbrains.annotations.Nullable de.verdox.mccreativelab.behaviour.InventoryHopperBehaviour behaviour) {
++        this.inventoryHopperBehaviour = behaviour;
++        hasInvHopperBehaviour = behaviour != null;
++    }
++
++    @org.jetbrains.annotations.Nullable
++    @Override
++    public de.verdox.mccreativelab.behaviour.InventoryHopperBehaviour getInventoryHopperBehaviour() {
++        return inventoryHopperBehaviour;
++    }
++
++    @Override
++    public boolean hasInventoryHopperBehaviour() {
++        return hasInvHopperBehaviour;
++    }
++    // MCCreativeLab end - Add InventoryHopperBehaviour
+ }
+diff --git a/src/main/java/net/minecraft/world/entity/player/Inventory.java b/src/main/java/net/minecraft/world/entity/player/Inventory.java
+index ca7fbe4f8c1e1d2fb90095aa35be4dda3029c23e..da524a9ee333389e87129ff28a9ff949e72d275f 100644
+--- a/src/main/java/net/minecraft/world/entity/player/Inventory.java
++++ b/src/main/java/net/minecraft/world/entity/player/Inventory.java
+@@ -735,4 +735,26 @@ public class Inventory implements Container, Nameable {
+ 
+         return itemstack.isEmpty() ? ItemStack.EMPTY : this.removeItem(this.selected, entireStack ? itemstack.getCount() : 1);
+     }
++
++    // MCCreativeLab start - Add InventoryHopperBehaviour
++    public de.verdox.mccreativelab.behaviour.InventoryHopperBehaviour inventoryHopperBehaviour;
++    private boolean hasInvHopperBehaviour; //
++
++    @Override
++    public void setInventoryHopperBehaviour(@org.jetbrains.annotations.Nullable de.verdox.mccreativelab.behaviour.InventoryHopperBehaviour behaviour) {
++        this.inventoryHopperBehaviour = behaviour;
++        hasInvHopperBehaviour = behaviour != null;
++    }
++
++    @org.jetbrains.annotations.Nullable
++    @Override
++    public de.verdox.mccreativelab.behaviour.InventoryHopperBehaviour getInventoryHopperBehaviour() {
++        return inventoryHopperBehaviour;
++    }
++
++    @Override
++    public boolean hasInventoryHopperBehaviour() {
++        return hasInvHopperBehaviour;
++    }
++    // MCCreativeLab end - Add InventoryHopperBehaviour
+ }
+diff --git a/src/main/java/net/minecraft/world/entity/vehicle/AbstractMinecartContainer.java b/src/main/java/net/minecraft/world/entity/vehicle/AbstractMinecartContainer.java
+index 9549eee0d92f322bd5232abd7e695213660c2e22..9a1c4f05dda8b6d88fe2c24bd80464b888f8dae6 100644
+--- a/src/main/java/net/minecraft/world/entity/vehicle/AbstractMinecartContainer.java
++++ b/src/main/java/net/minecraft/world/entity/vehicle/AbstractMinecartContainer.java
+@@ -236,4 +236,26 @@ public abstract class AbstractMinecartContainer extends AbstractMinecart impleme
+     public void clearItemStacks() {
+         this.itemStacks = NonNullList.withSize(this.getContainerSize(), ItemStack.EMPTY);
+     }
++
++    // MCCreativeLab start - Add InventoryHopperBehaviour
++    public de.verdox.mccreativelab.behaviour.InventoryHopperBehaviour inventoryHopperBehaviour;
++    private boolean hasInvHopperBehaviour; //
++
++    @Override
++    public void setInventoryHopperBehaviour(@org.jetbrains.annotations.Nullable de.verdox.mccreativelab.behaviour.InventoryHopperBehaviour behaviour) {
++        this.inventoryHopperBehaviour = behaviour;
++        hasInvHopperBehaviour = behaviour != null;
++    }
++
++    @org.jetbrains.annotations.Nullable
++    @Override
++    public de.verdox.mccreativelab.behaviour.InventoryHopperBehaviour getInventoryHopperBehaviour() {
++        return inventoryHopperBehaviour;
++    }
++
++    @Override
++    public boolean hasInventoryHopperBehaviour() {
++        return hasInvHopperBehaviour;
++    }
++    // MCCreativeLab end - Add InventoryHopperBehaviour
+ }
+diff --git a/src/main/java/net/minecraft/world/entity/vehicle/ChestBoat.java b/src/main/java/net/minecraft/world/entity/vehicle/ChestBoat.java
+index e0aec3b3e04d603dc208029554f981c6b9e6b43e..f98dd0d80c4ffe7f63d72fd0fe44f4ef6b9e9e8b 100644
+--- a/src/main/java/net/minecraft/world/entity/vehicle/ChestBoat.java
++++ b/src/main/java/net/minecraft/world/entity/vehicle/ChestBoat.java
+@@ -311,4 +311,26 @@ public class ChestBoat extends Boat implements HasCustomInventoryScreen, Contain
+         return this.getBukkitEntity().getLocation();
+     }
+     // CraftBukkit end
++
++    // MCCreativeLab start - Add InventoryHopperBehaviour
++    public de.verdox.mccreativelab.behaviour.InventoryHopperBehaviour inventoryHopperBehaviour;
++    private boolean hasInvHopperBehaviour; //
++
++    @Override
++    public void setInventoryHopperBehaviour(@org.jetbrains.annotations.Nullable de.verdox.mccreativelab.behaviour.InventoryHopperBehaviour behaviour) {
++        this.inventoryHopperBehaviour = behaviour;
++        hasInvHopperBehaviour = behaviour != null;
++    }
++
++    @org.jetbrains.annotations.Nullable
++    @Override
++    public de.verdox.mccreativelab.behaviour.InventoryHopperBehaviour getInventoryHopperBehaviour() {
++        return inventoryHopperBehaviour;
++    }
++
++    @Override
++    public boolean hasInventoryHopperBehaviour() {
++        return hasInvHopperBehaviour;
++    }
++    // MCCreativeLab end - Add InventoryHopperBehaviour
+ }
+diff --git a/src/main/java/net/minecraft/world/inventory/MerchantContainer.java b/src/main/java/net/minecraft/world/inventory/MerchantContainer.java
+index 9140fab07aab32065f7a3b5d13dd17d61dc6d646..daf7b465248aaef5b48dc4f514a56428bbb286dc 100644
+--- a/src/main/java/net/minecraft/world/inventory/MerchantContainer.java
++++ b/src/main/java/net/minecraft/world/inventory/MerchantContainer.java
+@@ -206,4 +206,26 @@ public class MerchantContainer implements Container {
+     public int getFutureXp() {
+         return this.futureXp;
+     }
++
++    // MCCreativeLab start - Add InventoryHopperBehaviour
++    public de.verdox.mccreativelab.behaviour.InventoryHopperBehaviour inventoryHopperBehaviour;
++    private boolean hasInvHopperBehaviour; //
++
++    @Override
++    public void setInventoryHopperBehaviour(@org.jetbrains.annotations.Nullable de.verdox.mccreativelab.behaviour.InventoryHopperBehaviour behaviour) {
++        this.inventoryHopperBehaviour = behaviour;
++        hasInvHopperBehaviour = behaviour != null;
++    }
++
++    @org.jetbrains.annotations.Nullable
++    @Override
++    public de.verdox.mccreativelab.behaviour.InventoryHopperBehaviour getInventoryHopperBehaviour() {
++        return inventoryHopperBehaviour;
++    }
++
++    @Override
++    public boolean hasInventoryHopperBehaviour() {
++        return hasInvHopperBehaviour;
++    }
++    // MCCreativeLab end - Add InventoryHopperBehaviour
+ }
+diff --git a/src/main/java/net/minecraft/world/inventory/ResultContainer.java b/src/main/java/net/minecraft/world/inventory/ResultContainer.java
+index 4c4266a85c38e41e6c7e6144a68624f4daa50c54..cb1f3c3f9b7180039312b70eda001d28b2282b3d 100644
+--- a/src/main/java/net/minecraft/world/inventory/ResultContainer.java
++++ b/src/main/java/net/minecraft/world/inventory/ResultContainer.java
+@@ -136,4 +136,26 @@ public class ResultContainer implements Container, RecipeCraftingHolder {
+     public RecipeHolder<?> getRecipeUsed() {
+         return this.recipeUsed;
+     }
++
++    // MCCreativeLab start - Add InventoryHopperBehaviour
++    public de.verdox.mccreativelab.behaviour.InventoryHopperBehaviour inventoryHopperBehaviour;
++    private boolean hasInvHopperBehaviour; //
++
++    @Override
++    public void setInventoryHopperBehaviour(@org.jetbrains.annotations.Nullable de.verdox.mccreativelab.behaviour.InventoryHopperBehaviour behaviour) {
++        this.inventoryHopperBehaviour = behaviour;
++        hasInvHopperBehaviour = behaviour != null;
++    }
++
++    @org.jetbrains.annotations.Nullable
++    @Override
++    public de.verdox.mccreativelab.behaviour.InventoryHopperBehaviour getInventoryHopperBehaviour() {
++        return inventoryHopperBehaviour;
++    }
++
++    @Override
++    public boolean hasInventoryHopperBehaviour() {
++        return hasInvHopperBehaviour;
++    }
++    // MCCreativeLab end - Add InventoryHopperBehaviour
+ }
+diff --git a/src/main/java/net/minecraft/world/inventory/TransientCraftingContainer.java b/src/main/java/net/minecraft/world/inventory/TransientCraftingContainer.java
+index 341e1f70602ecdb4782c9cd74fa19135ac230d90..75bcd25b41dc4f3a54b7249be1823ccf4389a607 100644
+--- a/src/main/java/net/minecraft/world/inventory/TransientCraftingContainer.java
++++ b/src/main/java/net/minecraft/world/inventory/TransientCraftingContainer.java
+@@ -186,4 +186,26 @@ public class TransientCraftingContainer implements CraftingContainer {
+         }
+ 
+     }
++
++    // MCCreativeLab start - Add InventoryHopperBehaviour
++    public de.verdox.mccreativelab.behaviour.InventoryHopperBehaviour inventoryHopperBehaviour;
++    private boolean hasInvHopperBehaviour; //
++
++    @Override
++    public void setInventoryHopperBehaviour(@org.jetbrains.annotations.Nullable de.verdox.mccreativelab.behaviour.InventoryHopperBehaviour behaviour) {
++        this.inventoryHopperBehaviour = behaviour;
++        hasInvHopperBehaviour = behaviour != null;
++    }
++
++    @org.jetbrains.annotations.Nullable
++    @Override
++    public de.verdox.mccreativelab.behaviour.InventoryHopperBehaviour getInventoryHopperBehaviour() {
++        return inventoryHopperBehaviour;
++    }
++
++    @Override
++    public boolean hasInventoryHopperBehaviour() {
++        return hasInvHopperBehaviour;
++    }
++    // MCCreativeLab end - Add InventoryHopperBehaviour
+ }
+diff --git a/src/main/java/net/minecraft/world/level/block/entity/BaseContainerBlockEntity.java b/src/main/java/net/minecraft/world/level/block/entity/BaseContainerBlockEntity.java
+index 15fd1fe1b55b6421d2c09e8385c9f69fa0152e56..e1c7e7b7e7117a5cce30c3d1adc079ee804514b2 100644
+--- a/src/main/java/net/minecraft/world/level/block/entity/BaseContainerBlockEntity.java
++++ b/src/main/java/net/minecraft/world/level/block/entity/BaseContainerBlockEntity.java
+@@ -213,4 +213,26 @@ public abstract class BaseContainerBlockEntity extends BlockEntity implements Co
+         return new org.bukkit.Location(this.level.getWorld(), this.worldPosition.getX(), this.worldPosition.getY(), this.worldPosition.getZ());
+     }
+     // CraftBukkit end
++
++    // MCCreativeLab start - Add InventoryHopperBehaviour
++    public de.verdox.mccreativelab.behaviour.InventoryHopperBehaviour inventoryHopperBehaviour;
++    private boolean hasInvHopperBehaviour; //
++
++    @Override
++    public void setInventoryHopperBehaviour(@org.jetbrains.annotations.Nullable de.verdox.mccreativelab.behaviour.InventoryHopperBehaviour behaviour) {
++        this.inventoryHopperBehaviour = behaviour;
++        hasInvHopperBehaviour = behaviour != null;
++    }
++
++    @org.jetbrains.annotations.Nullable
++    @Override
++    public de.verdox.mccreativelab.behaviour.InventoryHopperBehaviour getInventoryHopperBehaviour() {
++        return inventoryHopperBehaviour;
++    }
++
++    @Override
++    public boolean hasInventoryHopperBehaviour() {
++        return hasInvHopperBehaviour;
++    }
++    // MCCreativeLab end - Add InventoryHopperBehaviour
+ }
+diff --git a/src/main/java/net/minecraft/world/level/block/entity/BrewingStandBlockEntity.java b/src/main/java/net/minecraft/world/level/block/entity/BrewingStandBlockEntity.java
+index 0aa82803238fb519f2af9c7cf883f6470e593edc..e068cd65a2251c1ed1d06b14e9e29048adcaa808 100644
+--- a/src/main/java/net/minecraft/world/level/block/entity/BrewingStandBlockEntity.java
++++ b/src/main/java/net/minecraft/world/level/block/entity/BrewingStandBlockEntity.java
+@@ -341,4 +341,27 @@ public class BrewingStandBlockEntity extends BaseContainerBlockEntity implements
+     protected AbstractContainerMenu createMenu(int syncId, Inventory playerInventory) {
+         return new BrewingStandMenu(syncId, playerInventory, this, this.dataAccess);
+     }
++
++
++    // MCCreativeLab start - Add InventoryHopperBehaviour
++    public de.verdox.mccreativelab.behaviour.InventoryHopperBehaviour inventoryHopperBehaviour;
++    private boolean hasInvHopperBehaviour; //
++
++    @Override
++    public void setInventoryHopperBehaviour(@org.jetbrains.annotations.Nullable de.verdox.mccreativelab.behaviour.InventoryHopperBehaviour behaviour) {
++        this.inventoryHopperBehaviour = behaviour;
++        hasInvHopperBehaviour = behaviour != null;
++    }
++
++    @org.jetbrains.annotations.Nullable
++    @Override
++    public de.verdox.mccreativelab.behaviour.InventoryHopperBehaviour getInventoryHopperBehaviour() {
++        return inventoryHopperBehaviour;
++    }
++
++    @Override
++    public boolean hasInventoryHopperBehaviour() {
++        return hasInvHopperBehaviour;
++    }
++    // MCCreativeLab end - Add InventoryHopperBehaviour
+ }
+diff --git a/src/main/java/net/minecraft/world/level/block/entity/ChiseledBookShelfBlockEntity.java b/src/main/java/net/minecraft/world/level/block/entity/ChiseledBookShelfBlockEntity.java
+index eb843bc100a9776bb2eb5cbc3c1d4a995c6625ea..4544056a73d0335f0231a468c8967eec5392c852 100644
+--- a/src/main/java/net/minecraft/world/level/block/entity/ChiseledBookShelfBlockEntity.java
++++ b/src/main/java/net/minecraft/world/level/block/entity/ChiseledBookShelfBlockEntity.java
+@@ -206,4 +206,26 @@ public class ChiseledBookShelfBlockEntity extends BlockEntity implements Contain
+     public void removeComponentsFromTag(CompoundTag nbt) {
+         nbt.remove("Items");
+     }
++
++    // MCCreativeLab start - Add InventoryHopperBehaviour
++    public de.verdox.mccreativelab.behaviour.InventoryHopperBehaviour inventoryHopperBehaviour;
++    private boolean hasInvHopperBehaviour; //
++
++    @Override
++    public void setInventoryHopperBehaviour(@org.jetbrains.annotations.Nullable de.verdox.mccreativelab.behaviour.InventoryHopperBehaviour behaviour) {
++        this.inventoryHopperBehaviour = behaviour;
++        hasInvHopperBehaviour = behaviour != null;
++    }
++
++    @org.jetbrains.annotations.Nullable
++    @Override
++    public de.verdox.mccreativelab.behaviour.InventoryHopperBehaviour getInventoryHopperBehaviour() {
++        return inventoryHopperBehaviour;
++    }
++
++    @Override
++    public boolean hasInventoryHopperBehaviour() {
++        return hasInvHopperBehaviour;
++    }
++    // MCCreativeLab end - Add InventoryHopperBehaviour
+ }
+diff --git a/src/main/java/net/minecraft/world/level/block/entity/DecoratedPotBlockEntity.java b/src/main/java/net/minecraft/world/level/block/entity/DecoratedPotBlockEntity.java
+index 629795f2d4278902ba7375465b41f551d15697a8..c513931b9ba35768837cc71ed0dbeafca5755ddd 100644
+--- a/src/main/java/net/minecraft/world/level/block/entity/DecoratedPotBlockEntity.java
++++ b/src/main/java/net/minecraft/world/level/block/entity/DecoratedPotBlockEntity.java
+@@ -249,4 +249,26 @@ public class DecoratedPotBlockEntity extends BlockEntity implements Randomizable
+             this.duration = i;
+         }
+     }
++
++    // MCCreativeLab start - Add InventoryHopperBehaviour
++    public de.verdox.mccreativelab.behaviour.InventoryHopperBehaviour inventoryHopperBehaviour;
++    private boolean hasInvHopperBehaviour; //
++
++    @Override
++    public void setInventoryHopperBehaviour(@org.jetbrains.annotations.Nullable de.verdox.mccreativelab.behaviour.InventoryHopperBehaviour behaviour) {
++        this.inventoryHopperBehaviour = behaviour;
++        hasInvHopperBehaviour = behaviour != null;
++    }
++
++    @org.jetbrains.annotations.Nullable
++    @Override
++    public de.verdox.mccreativelab.behaviour.InventoryHopperBehaviour getInventoryHopperBehaviour() {
++        return inventoryHopperBehaviour;
++    }
++
++    @Override
++    public boolean hasInventoryHopperBehaviour() {
++        return hasInvHopperBehaviour;
++    }
++    // MCCreativeLab end - Add InventoryHopperBehaviour
+ }
+diff --git a/src/main/java/net/minecraft/world/level/block/entity/HopperBlockEntity.java b/src/main/java/net/minecraft/world/level/block/entity/HopperBlockEntity.java
+index 8310d132006043e93c612890514c4c7f3eb1c74d..35c49b42cf900b0ee81e1af8cda6504aa5790877 100644
+--- a/src/main/java/net/minecraft/world/level/block/entity/HopperBlockEntity.java
++++ b/src/main/java/net/minecraft/world/level/block/entity/HopperBlockEntity.java
+@@ -394,6 +394,18 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+     }
+ 
+     private static boolean allMatch(Container iinventory, Direction enumdirection, java.util.function.BiPredicate<ItemStack, Integer> test) {
++        // MCCreativeLab start - Add InventoryHopperBehaviour
++        if(iinventory.hasInventoryHopperBehaviour()){
++            int[] slotsForFace = getSlotsForFace(iinventory, enumdirection);
++
++            for (int slot : slotsForFace) {
++                if (!test.test(iinventory.getItem(slot), slot)) {
++                    return false;
++                }
++            }
++            return true;
++        }
++        // MCCreativeLab end - Add InventoryHopperBehaviour
+         if (iinventory instanceof WorldlyContainer) {
+             for (int i : ((WorldlyContainer) iinventory).getSlotsForFace(enumdirection)) {
+                 if (!test.test(iinventory.getItem(i), i)) {
+@@ -412,6 +424,18 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+     }
+ 
+     private static boolean anyMatch(Container iinventory, Direction enumdirection, java.util.function.BiPredicate<ItemStack, Integer> test) {
++        // MCCreativeLab start - Add InventoryHopperBehaviour
++        if(iinventory.hasInventoryHopperBehaviour()){
++            int[] slotsForFace = getSlotsForFace(iinventory, enumdirection);
++
++            for (int slot : slotsForFace) {
++                if (test.test(iinventory.getItem(slot), slot)) {
++                    return true;
++                }
++            }
++            return true;
++        }
++        // MCCreativeLab end - Add InventoryHopperBehaviour
+         if (iinventory instanceof WorldlyContainer) {
+             for (int i : ((WorldlyContainer) iinventory).getSlotsForFace(enumdirection)) {
+                 if (test.test(iinventory.getItem(i), i)) {
+@@ -525,6 +549,17 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+     }
+ 
+     private static boolean isFullContainer(Container inventory, Direction direction) {
++        // MCCreativeLab start - Add InventoryHopperBehaviour
++        if(inventory.hasInventoryHopperBehaviour()){
++            for (int slot : getSlotsForFace(inventory, direction)) {
++                final ItemStack stack = inventory.getItem(slot);
++                if (stack.getCount() < stack.getMaxStackSize()) {
++                    return false;
++                }
++            }
++            return true;
++        }
++        // MCCreativeLab end - Add InventoryHopperBehaviour
+         int[] aint = HopperBlockEntity.getSlots(inventory, direction);
+         int[] aint1 = aint;
+         int i = aint.length;
+@@ -548,6 +583,20 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+         if (iinventory != null) {
+             Direction enumdirection = Direction.DOWN;
+             skipPullModeEventFire = skipHopperEvents; // Paper - Perf: Optimize Hoppers
++            // MCCreativeLab start - Add InventoryHopperBehaviour
++            if(iinventory.hasInventoryHopperBehaviour()){
++                for (int slot : getSlotsForFace(iinventory, enumdirection)) {
++                    final ItemStack item = iinventory.getItem(slot);
++                    if (item.isEmpty() || !canTakeItemFromContainerCustom(hopper, iinventory, item, slot, enumdirection)) {
++                        continue;
++                    }
++                    if (hopperPull(world, hopper, iinventory, item, slot)) {
++                        return true;
++                    }
++                }
++                return false;
++            }
++            // MCCreativeLab end - Add InventoryHopperBehaviour
+             int[] aint = HopperBlockEntity.getSlots(iinventory, enumdirection);
+             int i = aint.length;
+ 
+@@ -582,7 +631,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+     private static boolean tryTakeInItemFromSlot(Hopper ihopper, Container iinventory, int i, Direction enumdirection, Level world) { // Spigot
+         ItemStack itemstack = iinventory.getItem(i);
+ 
+-        if (!itemstack.isEmpty() && HopperBlockEntity.canTakeItemFromContainer(ihopper, iinventory, itemstack, i, enumdirection)) {
++        if (!itemstack.isEmpty() && HopperBlockEntity.canTakeItemFromContainerCustom(ihopper, iinventory, itemstack, i, enumdirection)) {
+             // Paper start - Perf: Optimize Hoppers
+             return hopperPull(world, ihopper, iinventory, itemstack, i);
+         //    int j = itemstack.getCount();
+@@ -657,6 +706,15 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+     public static ItemStack addItem(@Nullable Container from, Container to, ItemStack stack, @Nullable Direction side) {
+         int i;
+ 
++        // MCCreativeLab start - Add InventoryHopperBehaviour
++        if(to.hasInventoryHopperBehaviour()){
++            int[] slotsForFace = getSlotsForFace(to, side);
++            for (i = 0; i < slotsForFace.length && !stack.isEmpty(); ++i) {
++                stack = HopperBlockEntity.tryMoveInItem(from, to, stack, slotsForFace[i], side);
++            }
++            return stack;
++        }
++        // MCCreativeLab end - Add InventoryHopperBehaviour
+         if (to instanceof WorldlyContainer iworldinventory) {
+             if (side != null) {
+                 int[] aint = iworldinventory.getSlotsForFace(side);
+@@ -721,7 +779,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+     private static ItemStack tryMoveInItem(@Nullable Container from, Container to, ItemStack stack, int slot, @Nullable Direction side) {
+         ItemStack itemstack1 = to.getItem(slot);
+ 
+-        if (HopperBlockEntity.canPlaceItemInContainer(to, stack, slot, side)) {
++        if (HopperBlockEntity.canPlaceItemInContainerCustom(to, stack, slot, side)) {
+             boolean flag = false;
+             boolean flag1 = to.isEmpty();
+ 
+@@ -929,4 +987,73 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+     protected AbstractContainerMenu createMenu(int syncId, net.minecraft.world.entity.player.Inventory playerInventory) {
+         return new HopperMenu(syncId, playerInventory, this);
+     }
++    // MCCreativeLab start - Add InventoryHopperBehaviour
++
++    private static final java.util.Map<Integer, int[]> cachedSlotsForIteration = new org.codehaus.plexus.util.FastMap<>(40);
++
++    private static int[] getSlotsForFace(WorldlyContainer worldlyContainer, Direction direction) {
++        if(!worldlyContainer.hasInventoryHopperBehaviour())
++            return worldlyContainer.getSlotsForFace(direction);
++        return de.verdox.mccreativelab.behaviour.InventoryHopperBehaviourUtil.getSlotsForFace(worldlyContainer, direction, () -> worldlyContainer.getSlotsForFace(direction));
++    }
++
++    private static int[] getSlotsForFace(Container inventory, Direction direction){
++        if(inventory instanceof WorldlyContainer worldlyContainer)
++            return getSlotsForFace(worldlyContainer, direction);
++        else {
++            return de.verdox.mccreativelab.behaviour.InventoryHopperBehaviourUtil.getSlotsForFace(inventory, direction, () -> cachedSlotsForIteration.computeIfAbsent(inventory.getContainerSize(), integer -> {
++                int[] cachedSlots = new int[inventory.getContainerSize()];
++                for (int i = 0; i < cachedSlots.length; i++)
++                    cachedSlots[i] = i;
++                return cachedSlots;
++            }));
++        }
++    }
++
++    private static boolean canPlaceItemInContainerCustom(Container inventory, ItemStack stack, int slot, @Nullable Direction side) {
++        //TODO: [MCCLab] - Hopper attempt place Item in Inventory Event
++        if (de.verdox.mccreativelab.behaviour.InventoryHopperBehaviourUtil.canPlaceItem(inventory, slot, stack, () -> inventory.canPlaceItem(slot, stack))) {
++            return false;
++        } else {
++            return de.verdox.mccreativelab.behaviour.InventoryHopperBehaviourUtil.canPlaceItemThroughFace(inventory, slot, stack, side , () -> {
++                boolean flag;
++                if (inventory instanceof WorldlyContainer) {
++                    WorldlyContainer iworldinventory = (WorldlyContainer) inventory;
++
++                    if (!iworldinventory.canPlaceItemThroughFace(slot, stack, side)) {
++                        flag = false;
++                        return flag;
++                    }
++                }
++
++                flag = true;
++                return flag;
++            });
++        }
++    }
++
++    private static boolean canTakeItemFromContainerCustom(Container hopperInventory, Container fromInventory, ItemStack stack, int slot, Direction facing) {
++        //TODO: [MCCLab] - Hopper attempt take Item from Inventory Event
++        if (de.verdox.mccreativelab.behaviour.InventoryHopperBehaviourUtil.canTakeItem(fromInventory, (HopperBlockEntity) hopperInventory, slot, stack, () -> fromInventory.canTakeItem(hopperInventory, slot, stack))) {
++            return false;
++        } else {
++            return de.verdox.mccreativelab.behaviour.InventoryHopperBehaviourUtil.canTakeItemThroughFace(fromInventory, (HopperBlockEntity) hopperInventory, slot, stack, facing, () -> {
++                boolean flag;
++
++                if (fromInventory instanceof WorldlyContainer) {
++                    WorldlyContainer iworldinventory = (WorldlyContainer) fromInventory;
++
++                    if (!iworldinventory.canTakeItemThroughFace(slot, stack, facing)) {
++                        flag = false;
++                        return flag;
++                    }
++                }
++
++                flag = true;
++                return flag;
++            });
++
++        }
++    }
++    // MCCreativeLab end - Add InventoryHopperBehaviour
+ }
+diff --git a/src/main/java/net/minecraft/world/level/block/entity/JukeboxBlockEntity.java b/src/main/java/net/minecraft/world/level/block/entity/JukeboxBlockEntity.java
+index 60c134d60e4a9f7452244346dc716a2ed41c867b..7407f59413eeaab8761aeefe4123b472fea1f2de 100644
+--- a/src/main/java/net/minecraft/world/level/block/entity/JukeboxBlockEntity.java
++++ b/src/main/java/net/minecraft/world/level/block/entity/JukeboxBlockEntity.java
+@@ -257,4 +257,26 @@ public class JukeboxBlockEntity extends BlockEntity implements Clearable, Contai
+         // CraftBukkit end
+         this.setChanged();
+     }
++
++    // MCCreativeLab start - Add InventoryHopperBehaviour
++    public de.verdox.mccreativelab.behaviour.InventoryHopperBehaviour inventoryHopperBehaviour;
++    private boolean hasInvHopperBehaviour; //
++
++    @Override
++    public void setInventoryHopperBehaviour(@org.jetbrains.annotations.Nullable de.verdox.mccreativelab.behaviour.InventoryHopperBehaviour behaviour) {
++        this.inventoryHopperBehaviour = behaviour;
++        hasInvHopperBehaviour = behaviour != null;
++    }
++
++    @org.jetbrains.annotations.Nullable
++    @Override
++    public de.verdox.mccreativelab.behaviour.InventoryHopperBehaviour getInventoryHopperBehaviour() {
++        return inventoryHopperBehaviour;
++    }
++
++    @Override
++    public boolean hasInventoryHopperBehaviour() {
++        return hasInvHopperBehaviour;
++    }
++    // MCCreativeLab end - Add InventoryHopperBehaviour
+ }
+diff --git a/src/main/java/net/minecraft/world/level/block/entity/LecternBlockEntity.java b/src/main/java/net/minecraft/world/level/block/entity/LecternBlockEntity.java
+index a42a23585e5c4808bc1d2354888121cc2aa0f7a8..bfdd3582897a3d8f8f425da2e813ab596fcfd398 100644
+--- a/src/main/java/net/minecraft/world/level/block/entity/LecternBlockEntity.java
++++ b/src/main/java/net/minecraft/world/level/block/entity/LecternBlockEntity.java
+@@ -166,11 +166,35 @@ public class LecternBlockEntity extends BlockEntity implements Clearable, MenuPr
+ 
+         @Override
+         public boolean canPlaceItem(int slot, ItemStack stack) {
+-            return false;
++            return de.verdox.mccreativelab.behaviour.InventoryHopperBehaviourUtil.canPlaceItem(this, slot, stack, () -> {
++                return false;
++            });
+         }
+ 
+         @Override
+         public void clearContent() {}
++
++        // MCCreativeLab start - Add InventoryHopperBehaviour
++        public de.verdox.mccreativelab.behaviour.InventoryHopperBehaviour inventoryHopperBehaviour;
++        private boolean hasInvHopperBehaviour; //
++
++        @Override
++        public void setInventoryHopperBehaviour(@org.jetbrains.annotations.Nullable de.verdox.mccreativelab.behaviour.InventoryHopperBehaviour behaviour) {
++            this.inventoryHopperBehaviour = behaviour;
++            hasInvHopperBehaviour = behaviour != null;
++        }
++
++        @org.jetbrains.annotations.Nullable
++        @Override
++        public de.verdox.mccreativelab.behaviour.InventoryHopperBehaviour getInventoryHopperBehaviour() {
++            return inventoryHopperBehaviour;
++        }
++
++        @Override
++        public boolean hasInventoryHopperBehaviour() {
++            return hasInvHopperBehaviour;
++        }
++        // MCCreativeLab end - Add InventoryHopperBehaviour
+     };
+     private final ContainerData dataAccess = new ContainerData() {
+         @Override
+diff --git a/src/main/java/org/bukkit/craftbukkit/inventory/CraftInventory.java b/src/main/java/org/bukkit/craftbukkit/inventory/CraftInventory.java
+index af1ae3dacb628da23f7d2988c6e76d3fb2d64103..0fb89277eb58bdc187c3bc139c05f1b7704815b2 100644
+--- a/src/main/java/org/bukkit/craftbukkit/inventory/CraftInventory.java
++++ b/src/main/java/org/bukkit/craftbukkit/inventory/CraftInventory.java
+@@ -586,4 +586,22 @@ public class CraftInventory implements Inventory {
+     public Location getLocation() {
+         return this.inventory.getLocation();
+     }
++
++    // MCCLab start - Add InventoryHopperBehaviour
++    @Override
++    public void setInventoryHopperBehaviour(@org.jetbrains.annotations.Nullable de.verdox.mccreativelab.behaviour.InventoryHopperBehaviour behaviour) {
++        this.inventory.setInventoryHopperBehaviour(behaviour);
++    }
++
++    @org.jetbrains.annotations.Nullable
++    @Override
++    public de.verdox.mccreativelab.behaviour.InventoryHopperBehaviour getInventoryHopperBehaviour() {
++        return this.inventory.getInventoryHopperBehaviour();
++    }
++
++    @Override
++    public boolean hasInventoryHopperBehaviour() {
++        return this.inventory.hasInventoryHopperBehaviour();
++    }
++    // MCCLab end - Add InventoryHopperBehaviour
+ }
+diff --git a/src/main/java/org/bukkit/craftbukkit/inventory/CraftInventoryCustom.java b/src/main/java/org/bukkit/craftbukkit/inventory/CraftInventoryCustom.java
+index da1c1fe0faf6819b15a81d6ad53370948e5f984f..0d0090d75ec4498f41111a5a869fa7e376a2cef8 100644
+--- a/src/main/java/org/bukkit/craftbukkit/inventory/CraftInventoryCustom.java
++++ b/src/main/java/org/bukkit/craftbukkit/inventory/CraftInventoryCustom.java
+@@ -217,11 +217,6 @@ public class CraftInventoryCustom extends CraftInventory {
+             return this.owner;
+         }
+ 
+-        @Override
+-        public boolean canPlaceItem(int slot, ItemStack stack) {
+-            return true;
+-        }
+-
+         @Override
+         public void startOpen(Player player) {
+ 
+@@ -268,5 +263,32 @@ public class CraftInventoryCustom extends CraftInventory {
+ 
+             return false;
+         }
++
++        // MCCreativeLab start - Add InventoryHopperBehaviour
++        public de.verdox.mccreativelab.behaviour.InventoryHopperBehaviour inventoryHopperBehaviour;
++        private boolean hasInvHopperBehaviour; //
++
++        @Override
++        public void setInventoryHopperBehaviour(@org.jetbrains.annotations.Nullable de.verdox.mccreativelab.behaviour.InventoryHopperBehaviour behaviour) {
++            this.inventoryHopperBehaviour = behaviour;
++            hasInvHopperBehaviour = behaviour != null;
++        }
++
++        @org.jetbrains.annotations.Nullable
++        @Override
++        public de.verdox.mccreativelab.behaviour.InventoryHopperBehaviour getInventoryHopperBehaviour() {
++            return inventoryHopperBehaviour;
++        }
++
++        @Override
++        public boolean hasInventoryHopperBehaviour() {
++            return hasInvHopperBehaviour;
++        }
++        // MCCreativeLab end - Add InventoryHopperBehaviour
++
++        @Override
++        public boolean canTakeItem(Container hopperInventory, int slot, ItemStack stack) {
++            return Container.super.canTakeItem(hopperInventory, slot, stack);
++        }
+     }
+ }

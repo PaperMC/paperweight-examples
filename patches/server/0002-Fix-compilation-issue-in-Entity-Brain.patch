@@ -1,0 +1,39 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: verdox <mail.ysp@web.de>
+Date: Thu, 20 Jun 2024 12:47:09 +0000
+Subject: [PATCH] Fix compilation issue in Entity Brain
+
+
+diff --git a/src/main/java/net/minecraft/world/entity/ai/Brain.java b/src/main/java/net/minecraft/world/entity/ai/Brain.java
+index c44a88cc8143850a918a2b56dd8341f6f4eeba03..5d96da6627c58e7d5ebeec1952fd547c319eb274 100644
+--- a/src/main/java/net/minecraft/world/entity/ai/Brain.java
++++ b/src/main/java/net/minecraft/world/entity/ai/Brain.java
+@@ -65,8 +65,8 @@ public class Brain<E extends LivingEntity> {
+     public static <E extends LivingEntity> Codec<Brain<E>> codec(
+         Collection<? extends MemoryModuleType<?>> memoryModules, Collection<? extends SensorType<? extends Sensor<? super E>>> sensors
+     ) {
+-        final MutableObject<Codec<Brain<E>>> mutableObject = new MutableObject<>();
+-        mutableObject.setValue(
++        final MutableObject<Codec<Brain<E>>> mutableObject2 = new MutableObject<>();
++        mutableObject2.setValue(
+             (new MapCodec<Brain<E>>() {
+                     public <T> Stream<T> keys(DynamicOps<T> dynamicOps) {
+                         return memoryModules.stream()
+@@ -98,7 +98,7 @@ public class Brain<E extends LivingEntity> {
+                             .resultOrPartial(Brain.LOGGER::error)
+                             .map(Builder::build)
+                             .orElseGet(ImmutableList::of);
+-                        return DataResult.success(new Brain<>(memoryModules, sensors, immutableList, mutableObject::getValue));
++                        return DataResult.success(new Brain<>(memoryModules, sensors, immutableList, mutableObject2::getValue));
+                     }
+ 
+                     private <T, U> DataResult<Brain.MemoryValue<U>> captureRead(MemoryModuleType<U> memoryType, DynamicOps<T> ops, T value) {
+@@ -117,7 +117,7 @@ public class Brain<E extends LivingEntity> {
+                 .fieldOf("memories")
+                 .codec()
+         );
+-        return mutableObject.getValue();
++        return mutableObject2.getValue();
+     }
+ 
+     public Brain(

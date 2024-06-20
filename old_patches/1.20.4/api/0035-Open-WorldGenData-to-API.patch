@@ -60,7 +60,7 @@ index 6247a6453f32af47e43e3230375bcf4841996487..d036b7c3cbcfd42df041d1f71e1d9cf0
      int getSimulationDistance();
  
 +    /**
-+     * Returns the {@link WorldGenData} of this world
++     * Returns the {@link io.papermc.paper.world.worldgen.WorldGenData} of this world
 +     * @return the world gen data
 +     */
 +    public io.papermc.paper.world.worldgen.WorldGenData getWorldGenData();

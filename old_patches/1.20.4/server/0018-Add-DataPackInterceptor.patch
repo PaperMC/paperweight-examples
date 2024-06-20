@@ -9,7 +9,7 @@ new file mode 100644
 index 0000000000000000000000000000000000000000..1134449a2442b2d25639eed487002eb7597937b3
 --- /dev/null
 +++ b/src/main/java/de/verdox/mccreativelab/CraftDataPackInterceptor.java
-@@ -0,0 +1,127 @@
+@@ -0,0 +1,128 @@
 +package de.verdox.mccreativelab;
 +
 +import com.google.gson.JsonObject;
@@ -27,6 +27,7 @@ index 0000000000000000000000000000000000000000..1134449a2442b2d25639eed487002eb7
 +import org.apache.commons.io.FilenameUtils;
 +import org.slf4j.Logger;
 +import java.nio.charset.StandardCharsets;
++import java.util.function.Function;
 +
 +public class CraftDataPackInterceptor implements DataPackInterceptor {
 +    private static final Logger LOGGER = LogUtils.getLogger();

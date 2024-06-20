@@ -1,0 +1,271 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: verdox <mail.ysp@web.de>
+Date: Thu, 20 Jun 2024 11:19:16 +0000
+Subject: [PATCH] Adding new utility methods to MCCreativeLab utility class
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/CreativeLab.java b/src/main/java/de/verdox/mccreativelab/CreativeLab.java
+index a7992255aaed5beb35736447d56b7b2735ed02cb..ff923d3329b5807a767c902b6ebf8891ec7c61a1 100644
+--- a/src/main/java/de/verdox/mccreativelab/CreativeLab.java
++++ b/src/main/java/de/verdox/mccreativelab/CreativeLab.java
+@@ -1,7 +1,81 @@
+ package de.verdox.mccreativelab;
+ 
++import de.verdox.mccreativelab.container.CustomInventory;
++import org.bukkit.WorldCreator;
++import org.bukkit.inventory.Inventory;
++import org.bukkit.persistence.PersistentDataContainer;
++import org.jetbrains.annotations.NotNull;
++
+ public interface CreativeLab {
+     de.verdox.mccreativelab.data.DataPackInterceptor getDataPackInterceptor();
+     de.verdox.mccreativelab.data.VanillaRegistryManipulator getRegistryManipulator();
+     de.verdox.mccreativelab.advancement.AdvancementBuilder createAdvancement();
++
++    Inventory openCustomContainerMenu(@NotNull CustomInventory customInventory, @NotNull org.bukkit.entity.Player player, @NotNull net.kyori.adventure.text.Component title);
++
++    void setWorldHook(@NotNull org.bukkit.World world, @NotNull de.verdox.mccreativelab.behaviour.MCCWorldHook mccWorldHook);
++
++    @NotNull de.verdox.mccreativelab.behaviour.MCCWorldHook getWorldHook(@NotNull org.bukkit.World world);
++    /**
++     * Creates a world mostly async. Most of the calculations needed to create a world are done asynchronously. However, some still occur on the main thread.
++     * Those can be manually turned off when they are not needed.
++     * @param plugin The plugin to create the map for.
++     * @param worldCreator The WorldCreator
++     * @param useVanillaSpawnCalculation
++     * <p>
++     *                                   Whether to use vanilla spawn calculations. This is used to find a safe spawn point for players.
++     * <p>
++     *                                   If you do not need this, the standard spawn point 0,128,0 is chosen. This also skips the generation of the bonus loot chest!
++     * @return the future
++     */
++    java.util.concurrent.CompletableFuture<org.bukkit.World> createWorldAsync(@NotNull org.bukkit.plugin.Plugin plugin, @NotNull org.bukkit.WorldCreator worldCreator, boolean useVanillaSpawnCalculation);
++
++    /**
++     * Creates a world mostly async. Most of the calculations needed to create a world are done asynchronously. However, some still occur on the main thread.
++     * Those can be manually turned off when they are not needed.
++     * @param plugin The plugin to create the map for.
++     * @return the future
++     */
++    java.util.concurrent.CompletableFuture<PersistentDataContainer> readFromWorldPDCWithoutLoadingAsync(@NotNull org.bukkit.plugin.Plugin plugin, @NotNull WorldCreator worldCreator);
++
++    /**
++     * Creates a world mostly async. Most of the calculations needed to create a world are done asynchronously. However, some still occur on the main thread.
++     * Those can be manually turned off when they are not needed.
++     * @param plugin The plugin to create the map for.
++     * @return the pdc
++     */
++    PersistentDataContainer readFromWorldPDCWithoutLoading(@NotNull org.bukkit.plugin.Plugin plugin, @NotNull WorldCreator worldCreator);
++
++
++    /**
++     * Returns a stream of all possible {@link org.bukkit.block.data.BlockData} definitions of a valid block {@link org.bukkit.Material}
++     *
++     * @param blockMaterial - The material of the block
++     * @return - the stream
++     */
++    java.util.stream.Stream<org.bukkit.block.data.BlockData> streamAllBlockDataVariants(org.bukkit.Material blockMaterial);
++
++    /**
++     * Returns an iterator that iterates through all possible {@link org.bukkit.block.data.BlockData} definitions of a valid block {@link org.bukkit.Material}
++     *
++     * @param blockMaterial - The material of the block
++     * @return - the iterator
++     */
++    java.util.Iterator<org.bukkit.block.data.BlockData> iterateThroughAllBlockDataVariants(org.bukkit.Material blockMaterial);
++
++    /**
++     * Places a block from a specified {@link org.bukkit.inventory.ItemStack} at {@link org.bukkit.Location}.
++     * This method will NOT call a {@link org.bukkit.event.block.BlockPlaceEvent} but will call a {@link org.bukkit.event.block.BlockCanBuildEvent}.
++     *
++     * @param stack The item
++     * @param location the location
++     * @return the result of the action
++     */
++    InteractionResult placeBlockFromItemWithoutPlayer(org.bukkit.inventory.ItemStack stack, org.bukkit.Location location);
++
++    /**
++     * Sets the world hook of a particular world
++     * @param world the world
++     * @param mccWorldHook the world hook
++     */
+ }
+diff --git a/src/main/java/de/verdox/mccreativelab/MCCreativeLab.java b/src/main/java/de/verdox/mccreativelab/MCCreativeLab.java
+index 1e301142a2e6341cef550cfd1e4ed1c5e5cd7e40..a67f18dc308ab465761d2f762e6ecf7f85afb514 100644
+--- a/src/main/java/de/verdox/mccreativelab/MCCreativeLab.java
++++ b/src/main/java/de/verdox/mccreativelab/MCCreativeLab.java
+@@ -1,5 +1,11 @@
+ package de.verdox.mccreativelab;
+ 
++import de.verdox.mccreativelab.container.CustomInventory;
++import org.bukkit.WorldCreator;
++import org.bukkit.block.data.BlockData;
++import org.bukkit.persistence.PersistentDataContainer;
++import org.jetbrains.annotations.NotNull;
++
+ public final class MCCreativeLab{
+     private static CreativeLab creativeLab;
+     public static void setCreativeLab(CreativeLab creativeLab) {
+@@ -19,4 +25,54 @@ public final class MCCreativeLab{
+     public static de.verdox.mccreativelab.advancement.AdvancementBuilder createAdvancement(){
+         return creativeLab.createAdvancement();
+     }
++
++    public static void setWorldHook(org.bukkit.World world, @NotNull de.verdox.mccreativelab.behaviour.MCCWorldHook mccWorldHook){
++        creativeLab.setWorldHook(world, mccWorldHook);
++    }
++
++    @NotNull
++    public static de.verdox.mccreativelab.behaviour.MCCWorldHook getWorldHook(@NotNull org.bukkit.World world){
++        return creativeLab.getWorldHook(world);
++    }
++
++    public static org.bukkit.inventory.Inventory openCustomContainerMenu(@NotNull CustomInventory customInventory, @NotNull org.bukkit.entity.Player player, @NotNull net.kyori.adventure.text.Component title) {
++        return creativeLab.openCustomContainerMenu(customInventory, player, title);
++    }
++
++    public static java.util.concurrent.CompletableFuture<org.bukkit.World> createWorldAsync(@NotNull org.bukkit.plugin.Plugin plugin, @NotNull org.bukkit.WorldCreator worldCreator, boolean useVanillaSpawnCalculation){
++        return creativeLab.createWorldAsync(plugin, worldCreator, useVanillaSpawnCalculation);
++    }
++
++    public static java.util.concurrent.CompletableFuture<PersistentDataContainer> readFromWorldPDCWithoutLoadingAsync(@NotNull org.bukkit.plugin.Plugin plugin, @NotNull WorldCreator worldCreator){
++        return creativeLab.readFromWorldPDCWithoutLoadingAsync(plugin, worldCreator);
++    }
++
++    public static PersistentDataContainer readFromWorldPDCWithoutLoading(@NotNull org.bukkit.plugin.Plugin plugin, @NotNull WorldCreator worldCreator){
++        return creativeLab.readFromWorldPDCWithoutLoading(plugin, worldCreator);
++    }
++
++
++    /**
++     * Returns a stream of all possible {@link org.bukkit.block.data.BlockData} definitions of a valid block {@link org.bukkit.Material}
++     *
++     * @param blockMaterial - The material of the block
++     * @return - the stream
++     */
++    public static java.util.stream.Stream<BlockData> streamAllBlockDataVariants(org.bukkit.Material blockMaterial) {
++        return creativeLab.streamAllBlockDataVariants(blockMaterial);
++    }
++
++    /**
++     * Returns an iterator that iterates through all possible {@link org.bukkit.block.data.BlockData} definitions of a valid block {@link org.bukkit.Material}
++     *
++     * @param blockMaterial - The material of the block
++     * @return - the iterator
++     */
++    public static java.util.Iterator<BlockData> iterateThroughAllBlockDataVariants(org.bukkit.Material blockMaterial) {
++        return creativeLab.iterateThroughAllBlockDataVariants(blockMaterial);
++    }
++
++    public static InteractionResult placeBlockFromItemWithoutPlayer(org.bukkit.inventory.ItemStack stack, org.bukkit.Location location){
++        return creativeLab.placeBlockFromItemWithoutPlayer(stack, location);
++    }
+ }
+diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/MCCWorldHook.java b/src/main/java/de/verdox/mccreativelab/behaviour/MCCWorldHook.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..ab029bf5e99a833d7314abb9a7531a3db06279cc
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/behaviour/MCCWorldHook.java
+@@ -0,0 +1,55 @@
++package de.verdox.mccreativelab.behaviour;
++
++import org.bukkit.block.Block;
++import org.bukkit.block.data.BlockData;
++import org.bukkit.entity.Entity;
++import org.bukkit.inventory.ItemStack;
++import org.jetbrains.annotations.NotNull;
++import org.jetbrains.annotations.Nullable;
++
++import java.util.List;
++import java.util.Map;
++import java.util.concurrent.ConcurrentHashMap;
++
++/**
++ * Used to implement additional logic into a World
++ */
++public abstract class MCCWorldHook {
++    private final Map<Block, BlockContext> contexts = new ConcurrentHashMap<>();
++
++    /**
++     * Used to store additional context for a block action
++     *
++     * @param block the block to store the action in
++     */
++    public void setBlockContext(@NotNull Block block, @Nullable BlockContext blockContext){
++        if(blockContext == null)
++            contexts.remove(block);
++        else
++            contexts.put(block, blockContext);
++    }
++
++    /**
++     * Consumes the block action at a particular block
++     * @param block the block
++     * @return the block action if one is available at the block
++     */
++    public @Nullable BlockContext getBlockContext(@NotNull Block block){return contexts.getOrDefault(block, null);}
++
++    /**
++     * Is called everytime the server changes a block.
++     * @param block The block
++     * @param oldBlockData the block data before the change
++     * @param newBlockData the block data after the change
++     */
++    public void onBlockChange(@NotNull Block block, @NotNull BlockData oldBlockData, @NotNull BlockData newBlockData){
++
++    }
++
++    public void onBlockDrawLoot(@NotNull Block block, @javax.annotation.Nullable Entity entity, ItemStack tool, boolean dropExperience, List<ItemStack> itemsThatWillBeDropped){}
++
++    public interface BlockContext {
++        @NotNull Block block();
++    }
++
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/container/CustomInventory.java b/src/main/java/de/verdox/mccreativelab/container/CustomInventory.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..7ea085bfa2de6f6396316a4d01fa52499c0644c3
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/container/CustomInventory.java
+@@ -0,0 +1,41 @@
++package de.verdox.mccreativelab.container;
++
++import org.bukkit.entity.Player;
++import org.bukkit.inventory.ItemStack;
++
++public interface CustomInventory {
++
++    Slot[] getSlots();
++    ItemStack quickMoveStack(Player player, int slot);
++
++    interface Slot {
++        default void onQuickCraft(ItemStack stack, int amount) {
++        }
++
++        default void onSwapCraft(int amount) {
++        }
++
++        default void onTake(Player player, ItemStack stack) {
++        }
++
++        default boolean mayPlace(ItemStack stack) {
++            return true;
++        }
++
++        default int getMaxStackSize() {
++            return 64;
++        }
++
++        default int getMaxStackSize(ItemStack stack) {
++            return Math.min(getMaxStackSize(), stack.getMaxStackSize());
++        }
++
++        default boolean isActive() {
++            return true;
++        }
++
++        default boolean mayPickUp(Player player){
++            return true;
++        }
++    }
++}

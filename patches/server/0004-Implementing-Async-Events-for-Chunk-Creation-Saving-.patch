@@ -1,0 +1,149 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <lukasjonsson@outlook.de>
+Date: Sun, 12 Nov 2023 13:49:21 +0100
+Subject: [PATCH] Implementing Async Events for Chunk Creation, Saving,
+ Loading. These Events occur on the respective async chunk thread.
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/worldgen/ChunkDataUtil.java b/src/main/java/de/verdox/mccreativelab/worldgen/ChunkDataUtil.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..d133885c10963eb756463d8b5a4ff67d32a2e56d
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/worldgen/ChunkDataUtil.java
+@@ -0,0 +1,41 @@
++package de.verdox.mccreativelab.worldgen;
++
++import de.verdox.mccreativelab.events.ChunkDataCreateEvent;
++import de.verdox.mccreativelab.events.ChunkDataEvent;
++import de.verdox.mccreativelab.events.ChunkDataLoadEvent;
++import de.verdox.mccreativelab.events.ChunkDataSaveEvent;
++import net.minecraft.server.level.ServerLevel;
++import net.minecraft.world.level.chunk.ChunkAccess;
++import net.minecraft.world.level.chunk.LevelChunk;
++import org.bukkit.Bukkit;
++import org.bukkit.craftbukkit.CraftChunk;
++import org.bukkit.persistence.PersistentDataContainer;
++
++public class ChunkDataUtil {
++
++    public static void callChunkDataCreateEvent(ServerLevel serverLevel, ChunkAccess chunkAccess, PersistentDataContainer persistentDataContainer) {
++        Bukkit.getPluginManager()
++              .callEvent(new ChunkDataCreateEvent(serverLevel.getWorld(), getCraftChunk(chunkAccess), createEventChunkPos(chunkAccess), persistentDataContainer));
++        chunkAccess.persistentDataContainer.dirty(true);
++    }
++
++    public static void callChunkDataLoadEvent(ServerLevel serverLevel, ChunkAccess chunkAccess, PersistentDataContainer persistentDataContainer) {
++        Bukkit.getPluginManager().
++              callEvent(new ChunkDataLoadEvent(serverLevel.getWorld(), getCraftChunk(chunkAccess), createEventChunkPos(chunkAccess), persistentDataContainer));
++    }
++
++    public static void callChunkDataSaveEvent(ServerLevel serverLevel, ChunkAccess chunkAccess, PersistentDataContainer persistentDataContainer, boolean unloadingChunk) {
++        Bukkit.getPluginManager()
++              .callEvent(new ChunkDataSaveEvent(serverLevel.getWorld(), getCraftChunk(chunkAccess), createEventChunkPos(chunkAccess), persistentDataContainer, unloadingChunk));
++        chunkAccess.persistentDataContainer.dirty(true);
++    }
++
++    public static ChunkDataEvent.ChunkPos createEventChunkPos(ChunkAccess chunkAccess) {
++        return new ChunkDataEvent.ChunkPos(chunkAccess.locX, chunkAccess.locZ);
++    }
++
++    private static CraftChunk getCraftChunk(ChunkAccess chunkAccess) {
++        return chunkAccess instanceof LevelChunk chunk ? new CraftChunk(chunk) : null;
++    }
++
++}
+diff --git a/src/main/java/io/papermc/paper/chunk/system/scheduling/NewChunkHolder.java b/src/main/java/io/papermc/paper/chunk/system/scheduling/NewChunkHolder.java
+index 56b07a3306e5735816c8d89601b519cb0db6379a..37f791827e928f18f36594cb1836c2336dc57259 100644
+--- a/src/main/java/io/papermc/paper/chunk/system/scheduling/NewChunkHolder.java
++++ b/src/main/java/io/papermc/paper/chunk/system/scheduling/NewChunkHolder.java
+@@ -1817,7 +1817,7 @@ public final class NewChunkHolder {
+         public void run() {
+             final CompoundTag toSerialize;
+             try {
+-                toSerialize = ChunkSerializer.saveChunk(this.world, this.chunk, this.asyncSaveData);
++                toSerialize = ChunkSerializer.saveChunk(this.world, this.chunk, this.asyncSaveData, false); // MCCLab - Add Async Chunk Event
+             } catch (final ThreadDeath death) {
+                 throw death;
+             } catch (final Throwable throwable) {
+@@ -1825,7 +1825,7 @@ public final class NewChunkHolder {
+                 this.world.chunkTaskScheduler.scheduleChunkTask(this.chunk.locX, this.chunk.locZ, () -> {
+                     final CompoundTag synchronousSave;
+                     try {
+-                        synchronousSave = ChunkSerializer.saveChunk(AsyncChunkSerializeTask.this.world, AsyncChunkSerializeTask.this.chunk, AsyncChunkSerializeTask.this.asyncSaveData);
++                        synchronousSave = ChunkSerializer.saveChunk(AsyncChunkSerializeTask.this.world, AsyncChunkSerializeTask.this.chunk, AsyncChunkSerializeTask.this.asyncSaveData, false); // MCCLab - Add Async Chunk Event
+                     } catch (final ThreadDeath death) {
+                         throw death;
+                     } catch (final Throwable throwable2) {
+@@ -1881,7 +1881,7 @@ public final class NewChunkHolder {
+                 }
+             }
+ 
+-            final CompoundTag save = ChunkSerializer.saveChunk(this.world, chunk, null);
++            final CompoundTag save = ChunkSerializer.saveChunk(this.world, chunk, null, unloading); // MCCLab - Add Async Chunk Event
+ 
+             if (unloading) {
+                 completing = true;
+diff --git a/src/main/java/net/minecraft/world/level/chunk/status/ChunkStatus.java b/src/main/java/net/minecraft/world/level/chunk/status/ChunkStatus.java
+index b81c548c0e1ac53784e9c94b34b65db5f123309c..959e89327dcff0db7f02382ef872e7ea7e6ab083 100644
+--- a/src/main/java/net/minecraft/world/level/chunk/status/ChunkStatus.java
++++ b/src/main/java/net/minecraft/world/level/chunk/status/ChunkStatus.java
+@@ -19,6 +19,7 @@ import net.minecraft.util.profiling.jfr.callback.ProfiledDuration;
+ import net.minecraft.world.level.chunk.ChunkAccess;
+ import net.minecraft.world.level.chunk.ProtoChunk;
+ import net.minecraft.world.level.levelgen.Heightmap;
++import net.minecraft.world.level.levelgen.WorldGenerationContext;
+ 
+ public class ChunkStatus {
+     static final ChunkStatus.LoadingTask PASSTHROUGH_LOAD_TASK = (WorldGenContext context, ChunkStatus status, ToFullChunk fullChunkConverter, ChunkAccess chunk) -> CompletableFuture.completedFuture(chunk); // Paper - rewrite chunk system
+@@ -38,7 +39,10 @@ public class ChunkStatus {
+         false,
+         PRE_FEATURES,
+         ChunkType.PROTOCHUNK,
+-        ChunkStatusTasks::generateStructureStarts,
++        (context, status, executor, fullChunkConverter, chunks, chunk) -> {
++            de.verdox.mccreativelab.worldgen.ChunkDataUtil.callChunkDataCreateEvent(context.level(), chunk, chunk.persistentDataContainer); // MCCLab - Add Async Chunk Event
++            return ChunkStatusTasks.generateStructureStarts(context, status ,executor, fullChunkConverter, chunks, chunk);
++        },
+         ChunkStatusTasks::loadStructureStarts
+     );
+     public static final ChunkStatus STRUCTURE_REFERENCES = register(
+diff --git a/src/main/java/net/minecraft/world/level/chunk/storage/ChunkSerializer.java b/src/main/java/net/minecraft/world/level/chunk/storage/ChunkSerializer.java
+index 1f4542e14b3068788964e88e18e079bbdc14e458..3c984ca76e7f3b0e21be5e7ee350323155d58628 100644
+--- a/src/main/java/net/minecraft/world/level/chunk/storage/ChunkSerializer.java
++++ b/src/main/java/net/minecraft/world/level/chunk/storage/ChunkSerializer.java
+@@ -359,6 +359,7 @@ public class ChunkSerializer {
+         }
+ 
+         if (chunktype == ChunkType.LEVELCHUNK) {
++            de.verdox.mccreativelab.worldgen.ChunkDataUtil.callChunkDataLoadEvent(world, (ChunkAccess) object1, ((ChunkAccess) object1).persistentDataContainer); // MCCLab - Add Async Chunk Event
+             return new InProgressChunkHolder(new ImposterProtoChunk((LevelChunk) object1, false)); // Paper - Async chunk loading
+         } else {
+             ProtoChunk protochunk1 = (ProtoChunk) object1;
+@@ -394,6 +395,7 @@ public class ChunkSerializer {
+                 protochunk1.setCarvingMask(worldgenstage_features, new CarvingMask(nbttagcompound5.getLongArray(s1), ((ChunkAccess) object1).getMinBuildHeight()));
+             }
+ 
++            de.verdox.mccreativelab.worldgen.ChunkDataUtil.callChunkDataLoadEvent(world, (ChunkAccess) object1, ((ChunkAccess) object1).persistentDataContainer); // MCCLab - Add Async Chunk Event
+             return new InProgressChunkHolder(protochunk1); // Paper - Async chunk loading
+         }
+     }
+@@ -446,9 +448,9 @@ public class ChunkSerializer {
+ 
+     public static CompoundTag write(ServerLevel world, ChunkAccess chunk) {
+         // Paper start
+-        return saveChunk(world, chunk, null);
++        return saveChunk(world, chunk, null, false); // MCCLab - Add Async Chunk Event
+     }
+-    public static CompoundTag saveChunk(ServerLevel world, ChunkAccess chunk, @org.checkerframework.checker.nullness.qual.Nullable AsyncSaveData asyncsavedata) {
++    public static CompoundTag saveChunk(ServerLevel world, ChunkAccess chunk, @org.checkerframework.checker.nullness.qual.Nullable AsyncSaveData asyncsavedata, boolean unloadingChunk) {
+         // Paper end
+         // Paper start - rewrite light impl
+         final int minSection = io.papermc.paper.util.WorldUtil.getMinLightSection(world);
+@@ -624,6 +626,7 @@ public class ChunkSerializer {
+ 
+         nbttagcompound.put("Heightmaps", nbttagcompound3);
+         nbttagcompound.put("structures", ChunkSerializer.packStructureData(StructurePieceSerializationContext.fromLevel(world), chunkcoordintpair, chunk.getAllStarts(), chunk.getAllReferences()));
++        de.verdox.mccreativelab.worldgen.ChunkDataUtil.callChunkDataSaveEvent(world, chunk, chunk.persistentDataContainer, unloadingChunk); // MCCLab - Add Async Chunk Event
+         // CraftBukkit start - store chunk persistent data in nbt
+         if (!chunk.persistentDataContainer.isEmpty()) { // SPIGOT-6814: Always save PDC to account for 1.17 to 1.18 chunk upgrading.
+             nbttagcompound.put("ChunkBukkitValues", chunk.persistentDataContainer.toTagCompound());

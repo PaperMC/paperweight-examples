@@ -1,0 +1,27 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <lukasjonsson@outlook.de>
+Date: Wed, 15 Nov 2023 17:31:15 +0100
+Subject: [PATCH] Adding helper methods for getting and setting customModelData
+ on ItemStacks
+
+
+diff --git a/src/main/java/org/bukkit/craftbukkit/inventory/CraftItemStack.java b/src/main/java/org/bukkit/craftbukkit/inventory/CraftItemStack.java
+index a92a60a7bf90957fec9feca61799575d896d8e29..546c3cddc5feafccdaf552776744655186b62bce 100644
+--- a/src/main/java/org/bukkit/craftbukkit/inventory/CraftItemStack.java
++++ b/src/main/java/org/bukkit/craftbukkit/inventory/CraftItemStack.java
+@@ -22,6 +22,15 @@ import org.bukkit.material.MaterialData;
+ @DelegateDeserialization(ItemStack.class)
+ public final class CraftItemStack extends ItemStack {
+ 
++    // MCCLab - start
++    public static void setCustomModelData(net.minecraft.world.item.ItemStack stack, int customModelData){
++        stack.set(DataComponents.CUSTOM_MODEL_DATA, new net.minecraft.world.item.component.CustomModelData(customModelData));
++    }
++    public static int getCustomModelData(net.minecraft.world.item.ItemStack stack){
++        return stack.get(DataComponents.CUSTOM_MODEL_DATA).value();
++    }
++    // MCCLab - end
++
+     // Paper start - MC Utils
+     public static net.minecraft.world.item.ItemStack unwrap(ItemStack bukkit) {
+         if (bukkit instanceof CraftItemStack craftItemStack) {

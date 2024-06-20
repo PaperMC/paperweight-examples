@@ -1,0 +1,104 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <mail.ysp@web.de>
+Date: Wed, 17 Jan 2024 02:26:53 +0100
+Subject: [PATCH] Add DataPackInterceptor
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/CreativeLab.java b/src/main/java/de/verdox/mccreativelab/CreativeLab.java
+index 23b191be5376ad1dc3cf8ab4f2e82aa471bf98a3..62be6439d32bbe65697cb5137b3e968ede48d531 100644
+--- a/src/main/java/de/verdox/mccreativelab/CreativeLab.java
++++ b/src/main/java/de/verdox/mccreativelab/CreativeLab.java
+@@ -1,4 +1,5 @@
+ package de.verdox.mccreativelab;
+ 
+ public interface CreativeLab {
++    de.verdox.mccreativelab.data.DataPackInterceptor getDataPackInterceptor();
+ }
+diff --git a/src/main/java/de/verdox/mccreativelab/MCCreativeLab.java b/src/main/java/de/verdox/mccreativelab/MCCreativeLab.java
+index 67b250ac2ae34d11c634d9ea0d9044308826b472..c05dcd3dd219d2ab33f7e38f267ad0316083119e 100644
+--- a/src/main/java/de/verdox/mccreativelab/MCCreativeLab.java
++++ b/src/main/java/de/verdox/mccreativelab/MCCreativeLab.java
+@@ -8,4 +8,7 @@ public final class MCCreativeLab{
+ 
+         MCCreativeLab.creativeLab = creativeLab;
+     }
++    public static de.verdox.mccreativelab.data.DataPackInterceptor getDataPackInterceptor(){
++        return creativeLab.getDataPackInterceptor();
++    }
+ }
+diff --git a/src/main/java/de/verdox/mccreativelab/data/DataPackInterceptor.java b/src/main/java/de/verdox/mccreativelab/data/DataPackInterceptor.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..8c55a63718110d465675190cad6c749767ce6b6c
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/data/DataPackInterceptor.java
+@@ -0,0 +1,70 @@
++package de.verdox.mccreativelab.data;
++
++import com.google.gson.JsonObject;
++import net.kyori.adventure.key.Key;
++
++import javax.annotation.Nullable;
++import java.util.function.Consumer;
++import java.util.function.Function;
++
++public interface DataPackInterceptor {
++    DataPackInterceptor exclude(String pathContains);
++
++    DataPackInterceptor exclude(PackAssetType packAssetType);
++
++    DataPackInterceptor exclude(PackAssetType packAssetType, Key key);
++
++    DataPackInterceptor onInstall(Consumer<DataPackAsset> installCallback);
++
++    /**
++     * Modifies a data pack element loaded into the server. The provided function modifies the asset and returns true if the asset should be loaded.
++     * @param packAssetType - The Pack Asset Type
++     * @param key - The Key
++     * @param modifier - The modification function
++     * @return - The interceptor
++     */
++    DataPackInterceptor modify(PackAssetType packAssetType, Key key, Function<DataPackAsset, Boolean> modifier);
++
++    /**
++     * Modifies a data pack element loaded into the server. The provided function modifies the asset and returns true if the asset should be loaded.
++     * @param modifier - The modification function
++     * @return - The interceptor
++     */
++    DataPackInterceptor modify(Function<DataPackAsset, Boolean> modifier);
++
++    record DataPackAsset(PackAssetType packAssetType, Key key, JsonObject jsonObject) {}
++
++    enum PackAssetType {
++        ADVANCEMENT("advancements"),
++        CHAT_TYPE("chat_type"),
++        DAMAGE_TYPE("damage_type"),
++        DIMENSION_TYPE("dimension_type"),
++        LOOT_TABLES("loot_tables"),
++        RECIPES("recipes"),
++        STRUCTURES("structures"),
++        TAGS("tags"),
++        TRIM_MATERIAL("trim_material"),
++        TRIM_PATTERN("trim_pattern"),
++        WORLDGEN("worldgen"),
++        ;
++        private final String parentFolder;
++
++        PackAssetType(String parentFolder) {
++
++            this.parentFolder = parentFolder;
++        }
++
++        public String getParentFolder() {
++            return parentFolder;
++        }
++
++        @Nullable
++        public static PackAssetType getByParentFolder(String parentFolder) {
++            for (PackAssetType value : PackAssetType.values()) {
++                if (value.getParentFolder().equals(parentFolder))
++                    return value;
++            }
++            return null;
++        }
++    }
++}

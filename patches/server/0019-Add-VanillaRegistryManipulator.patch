@@ -21,10 +21,10 @@ index c458c6d2b01ad827fb02aeff87a568cd41f77283..a5102aa4584692ab01ca0c2e90ee27ce
  }
 diff --git a/src/main/java/de/verdox/mccreativelab/data/CraftVanillaRegistryManipulator.java b/src/main/java/de/verdox/mccreativelab/data/CraftVanillaRegistryManipulator.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..818a9eb7e5d65f10bc42908070f2634eaabe9cda
+index 0000000000000000000000000000000000000000..70b04d5ec9e5052b02df4e508886aed0ddcfc488
 --- /dev/null
 +++ b/src/main/java/de/verdox/mccreativelab/data/CraftVanillaRegistryManipulator.java
-@@ -0,0 +1,80 @@
+@@ -0,0 +1,96 @@
 +package de.verdox.mccreativelab.data;
 +
 +import com.google.common.collect.ImmutableSet;
@@ -56,55 +56,83 @@ index 0000000000000000000000000000000000000000..818a9eb7e5d65f10bc42908070f2634e
 +import org.bukkit.entity.memory.MemoryKey;
 +
 +import javax.annotation.Nullable;
++import java.util.LinkedList;
++import java.util.List;
 +import java.util.Optional;
 +import java.util.Set;
 +import java.util.function.Predicate;
 +import java.util.stream.Collectors;
 +
 +public class CraftVanillaRegistryManipulator implements VanillaRegistryManipulator {
++    public static List<Runnable> CUSTOM_BOOTSTRAPPERS = new LinkedList<>();
++
 +    @Override
 +    public RegistryEntryReference<Attribute> createAttribute(NamespacedKey namespacedKey, double defaultValue, double min, double max) {
-+        ResourceLocation resourceLocation = CraftNamespacedKey.toMinecraft(namespacedKey);
-+        var key = "attribute.name." + resourceLocation.getPath();
-+        Registry.register(BuiltInRegistries.ATTRIBUTE, resourceLocation, new RangedAttribute(key, defaultValue, min, max));
++        if (namespacedKey.namespace().equals(NamespacedKey.MINECRAFT_NAMESPACE))
++            throw new IllegalStateException("Cannot create attributes in minecraft namespace");
++        CUSTOM_BOOTSTRAPPERS.add(() -> {
++            ResourceLocation resourceLocation = CraftNamespacedKey.toMinecraft(namespacedKey);
++            var key = "attribute.name." + resourceLocation.getPath();
++            Registry.registerForHolder(BuiltInRegistries.ATTRIBUTE, resourceLocation, new RangedAttribute(key, defaultValue, min, max).setSyncable(false));
++
++        });
 +        return new RegistryEntryReference<>(namespacedKey, () -> Attribute.getAttribute(namespacedKey));
 +    }
 +
 +    @Override
 +    public <T> RegistryEntryReference<MemoryKey<T>> createMemoryKey(NamespacedKey namespacedKey, Class<? extends T> storedType) {
-+        ResourceLocation resourceLocation = CraftNamespacedKey.toMinecraft(namespacedKey);
-+        Registry.register(BuiltInRegistries.MEMORY_MODULE_TYPE, resourceLocation, new MemoryModuleType(Optional.empty()));
++        if (namespacedKey.namespace().equals(NamespacedKey.MINECRAFT_NAMESPACE))
++            throw new IllegalStateException("Cannot create MemoryKeys in minecraft namespace");
++        CUSTOM_BOOTSTRAPPERS.add(() -> {
++            ResourceLocation resourceLocation = CraftNamespacedKey.toMinecraft(namespacedKey);
++            Registry.register(BuiltInRegistries.MEMORY_MODULE_TYPE, resourceLocation, new MemoryModuleType(Optional.empty()));
++        });
 +        return (RegistryEntryReference<MemoryKey<T>>) new RegistryEntryReference<>(namespacedKey, () -> (T) MemoryKey.getByKey(namespacedKey));
 +    }
 +
 +    @Override
 +    public RegistryEntryReference<PoiType> createPoiType(NamespacedKey namespacedKey, Set<BlockData> states, int ticketCount, int searchDistance) {
++        if (namespacedKey.namespace().equals(NamespacedKey.MINECRAFT_NAMESPACE))
++            throw new IllegalStateException("Cannot create PoiTypes in minecraft namespace");
++        CUSTOM_BOOTSTRAPPERS.add(() -> {
++            ResourceKey<net.minecraft.world.entity.ai.village.poi.PoiType> resourceKey = ResourceKey.create(Registries.POINT_OF_INTEREST_TYPE, CraftNamespacedKey.toMinecraft(namespacedKey));
 +
-+        ResourceKey<net.minecraft.world.entity.ai.village.poi.PoiType> resourceKey = ResourceKey.create(Registries.POINT_OF_INTEREST_TYPE, CraftNamespacedKey.toMinecraft(namespacedKey));
++            PoiTypes.register(BuiltInRegistries.POINT_OF_INTEREST_TYPE, resourceKey, states.stream()
++                .map(blockData -> ((CraftBlockData) blockData).getState())
++                .collect(Collectors.toSet()), ticketCount, searchDistance);
 +
-+        PoiTypes.register(BuiltInRegistries.POINT_OF_INTEREST_TYPE, resourceKey, states.stream()
-+                                                                                       .map(blockData -> ((CraftBlockData) blockData).getState())
-+                                                                                       .collect(Collectors.toSet()), ticketCount, searchDistance);
-+
++        });
 +        return new RegistryEntryReference<>(namespacedKey, () -> PoiType.getPoiType(namespacedKey));
 +    }
 +
 +    @Override
 +    public RegistryEntryReference<Villager.Profession> createProfession(NamespacedKey namespacedKey, Predicate<PoiType> heldWorkStation, Predicate<PoiType> acquirableWorkstation, Set<Material> gatherableItems, Set<Material> secondaryJobSites, Sound.Type workSound) {
-+
-+        Predicate<Holder<net.minecraft.world.entity.ai.village.poi.PoiType>> heldWorkstationNms = poiTypeHolder -> heldWorkStation.test(CraftPoiType.minecraftToBukkit(poiTypeHolder.value()));
-+        Predicate<Holder<net.minecraft.world.entity.ai.village.poi.PoiType>> acquirableWorkstationNms = poiTypeHolder -> acquirableWorkstation.test(CraftPoiType.minecraftToBukkit(poiTypeHolder.value()));
-+        ImmutableSet<Item> items = ImmutableSet.copyOf(gatherableItems.stream().map(CraftMagicNumbers::getItem)
-+                                                                      .collect(Collectors.toSet()));
-+        ImmutableSet<Block> jobBlocks = ImmutableSet.copyOf(secondaryJobSites.stream().map(CraftMagicNumbers::getBlock)
-+                                                                             .collect(Collectors.toSet()));
-+        @Nullable SoundEvent soundEvent = workSound == null ? null : BuiltInRegistries.SOUND_EVENT.get(PaperAdventure.asVanilla(workSound.key()));
-+
-+        VillagerProfession villagerProfession = new VillagerProfession(namespacedKey.getKey(), heldWorkstationNms, acquirableWorkstationNms, items, jobBlocks, soundEvent);
-+        Registry.register(BuiltInRegistries.VILLAGER_PROFESSION, CraftNamespacedKey.toMinecraft(namespacedKey), villagerProfession);
++        if (namespacedKey.namespace().equals(NamespacedKey.MINECRAFT_NAMESPACE))
++            throw new IllegalStateException("Cannot create VillagerProfessions in minecraft namespace");
++        CUSTOM_BOOTSTRAPPERS.add(() -> {
++            Predicate<Holder<net.minecraft.world.entity.ai.village.poi.PoiType>> heldWorkstationNms = poiTypeHolder -> heldWorkStation.test(CraftPoiType.minecraftToBukkit(poiTypeHolder.value()));
++            Predicate<Holder<net.minecraft.world.entity.ai.village.poi.PoiType>> acquirableWorkstationNms = poiTypeHolder -> acquirableWorkstation.test(CraftPoiType.minecraftToBukkit(poiTypeHolder.value()));
++            ImmutableSet<Item> items = ImmutableSet.copyOf(gatherableItems.stream().map(CraftMagicNumbers::getItem).collect(Collectors.toSet()));
++            ImmutableSet<Block> jobBlocks = ImmutableSet.copyOf(secondaryJobSites.stream().map(CraftMagicNumbers::getBlock).collect(Collectors.toSet()));
++            @Nullable SoundEvent soundEvent = workSound == null ? null : BuiltInRegistries.SOUND_EVENT.get(PaperAdventure.asVanilla(workSound.key()));
++            VillagerProfession villagerProfession = new VillagerProfession(namespacedKey.getKey(), heldWorkstationNms, acquirableWorkstationNms, items, jobBlocks, soundEvent);
++            Registry.register(BuiltInRegistries.VILLAGER_PROFESSION, CraftNamespacedKey.toMinecraft(namespacedKey), villagerProfession);
++        });
 +        return new RegistryEntryReference<>(namespacedKey, () -> Villager.Profession.getProfession(namespacedKey));
 +    }
 +}
+diff --git a/src/main/java/net/minecraft/core/registries/BuiltInRegistries.java b/src/main/java/net/minecraft/core/registries/BuiltInRegistries.java
+index 8daee5a7935e3253834c4cbe81d5e8886f776dad..d82b9bae941d67a58311b15da17c1a2747e8266c 100644
+--- a/src/main/java/net/minecraft/core/registries/BuiltInRegistries.java
++++ b/src/main/java/net/minecraft/core/registries/BuiltInRegistries.java
+@@ -312,6 +312,7 @@ public class BuiltInRegistries {
+         // Paper end
+         createContents();
+         runnable.run(); // Paper
++        de.verdox.mccreativelab.data.CraftVanillaRegistryManipulator.CUSTOM_BOOTSTRAPPERS.forEach(Runnable::run);
+         freeze();
+         validate(REGISTRY);
+     }
 diff --git a/src/main/java/net/minecraft/world/entity/ai/village/poi/PoiTypes.java b/src/main/java/net/minecraft/world/entity/ai/village/poi/PoiTypes.java
 index 0538eff10e5906236fc4d8a098d2f680f5ad3cf2..e3dd9659fcf513683d8bf5bd197c9284c3fabd12 100644
 --- a/src/main/java/net/minecraft/world/entity/ai/village/poi/PoiTypes.java
