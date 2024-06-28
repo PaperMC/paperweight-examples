@@ -135,10 +135,10 @@ public class ResourcePackFileHoster implements Listener {
                 long end = System.currentTimeMillis() - start;
                 Bukkit.getLogger().info("Created Zip file " + zipFile + " in " + end + " ms");
                 try {
-                    Bukkit.getLogger().info("Calculating sha1 hash of resource pack");
                     byte[] hashBytes = null;
                     String hash = "mcclab";
                     if(WITH_HASHES){
+                        Bukkit.getLogger().info("Calculating sha1 hash of resource pack");
                         start = System.currentTimeMillis();
                         hashBytes = calculateSHA1(zipFile.getPath());
                         hash = calculateSHA1String(hashBytes);
