@@ -41,10 +41,7 @@ public class FakeBlockBehaviour implements BlockBehaviour {
 
     @Override
     public BehaviourResult.Callback onPlayerBreak(Player player, Location location, BlockData brokenState) {
-
-/*        FakeBlockUtil.removeFakeBlockIfPossible(location.getBlock());
-        FakeBlockEntityStorage.removeFakeBlockEntityAt(location);*/
-
+        FakeBlockEntityStorage.removeFakeBlockEntityAt(location);
         return BlockBehaviour.super.onPlayerBreak(player, location, brokenState);
     }
 
@@ -81,8 +78,7 @@ public class FakeBlockBehaviour implements BlockBehaviour {
 
     @Override
     public BehaviourResult.Callback onDestroy(Location location, boolean drop, @Nullable Entity destroyingEntity, int maxUpdateDepth) {
-/*        FakeBlockUtil.removeFakeBlockIfPossible(location.getBlock());
-        FakeBlockEntityStorage.removeFakeBlockEntityAt(location);*/
+        FakeBlockEntityStorage.removeFakeBlockEntityAt(location);
         return BlockBehaviour.super.onDestroy(location, drop, destroyingEntity, maxUpdateDepth);
     }
 
