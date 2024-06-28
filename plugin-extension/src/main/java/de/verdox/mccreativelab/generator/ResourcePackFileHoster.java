@@ -270,7 +270,7 @@ public class ResourcePackFileHoster implements Listener {
             this.remoteFingerPrintEd25519 = new ConfigValue.String(fileConfiguration, "sshUpload.remoteFingerprint.ed25519", "");
             this.user = new ConfigValue.String(fileConfiguration, "sshUpload.user", "root");
             this.keyFilePath = new ConfigValue.String(fileConfiguration, "sshUpload.keyFilePath", "privateKey");
-            this.remotePath = new ConfigValue.String(fileConfiguration, "sshUpload.remotePath", "/resourcePacks/");
+            this.remotePath = new ConfigValue.String(fileConfiguration, "sshUpload.remotePath", "/resourcePacks/MCCreativeLab.zip");
         }
     }
 
@@ -323,6 +323,7 @@ public class ResourcePackFileHoster implements Listener {
 
         public SshResourcePackUpload() throws IOException {
             //ssh.loadKnownHosts();
+            Bukkit.getLogger().info("Loading SSH Keys ");
             keyProvider = ssh.loadKeys(sshUploadSettings.keyFilePath.read());
             String fingerprint = sshUploadSettings.remoteFingerPrintEd25519.read();
             if (fingerprint.isEmpty())
@@ -337,11 +338,12 @@ public class ResourcePackFileHoster implements Listener {
         public void upload() throws IOException {
             ssh.connect(sshUploadSettings.address.read());
             try {
-                ssh.authPublickey("root", keyProvider);
+                Bukkit.getLogger().info("Authenticating public key...");
+                ssh.authPublickey(sshUploadSettings.user.read(), keyProvider);
                 for (Map.Entry<String, ResourcePackInfo> stringResourcePackInfoEntry : availableResourcePacks.entrySet()) {
                     ResourcePackInfo resourcePackInfo = stringResourcePackInfoEntry.getValue();
                     Bukkit.getLogger().info("Uploading ResourcePack " + resourcePackInfo.file.getAbsolutePath() + " to " + sshUploadSettings.remotePath.read() + resourcePackInfo.file.getName());
-                    ssh.newSCPFileTransfer().upload(resourcePackInfo.file.getAbsolutePath(), sshUploadSettings.remotePath.read() + resourcePackInfo.file.getName());
+                    ssh.newSCPFileTransfer().upload(resourcePackInfo.file.getAbsolutePath(), sshUploadSettings.remotePath.read());
                     Bukkit.getLogger().info("Done...");
 
                 }
