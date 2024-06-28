@@ -39,12 +39,18 @@ public class FakeBlockContainer implements NBTPersistent {
 
     public static @Nullable FakeBlock.FakeBlockState getFakeBlockState(Location location, boolean forceLoad) {
         if (location.getBlockY() > location.getWorld().getMaxHeight()) {
-            Bukkit.getLogger().warning("Tried to read a fakeblockstate above world max height");
+            Bukkit.getLogger().warning("Tried to read a fakeblockstate at ("+location.getBlockX()+", "+location.getBlockY()+", "+location.getBlockZ()+") above world max height"+location.getWorld().getMaxHeight());
+            for (StackTraceElement stackTraceElement : Thread.currentThread().getStackTrace()) {
+                Bukkit.getLogger().warning(stackTraceElement+"");
+            }
             return null;
         }
 
         if (location.getBlockY() < location.getWorld().getMinHeight()) {
-            Bukkit.getLogger().warning("Tried to read a fakeblockstate below world min height");
+            Bukkit.getLogger().warning("Tried to read a fakeblockstate at ("+location.getBlockX()+", "+location.getBlockY()+", "+location.getBlockZ()+") below world min height"+location.getWorld().getMinHeight());
+            for (StackTraceElement stackTraceElement : Thread.currentThread().getStackTrace()) {
+                Bukkit.getLogger().warning(stackTraceElement+"");
+            }
             return null;
         }
 
