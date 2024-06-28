@@ -1,19 +1,12 @@
 package de.verdox.mccreativelab.debug;
 
-import com.destroystokyo.paper.event.entity.EntityAddToWorldEvent;
 import de.verdox.mccreativelab.MCCreativeLabExtension;
+import de.verdox.mccreativelab.debug.block.CustomOreBlock;
+import de.verdox.mccreativelab.generator.Asset;
 import de.verdox.mccreativelab.world.block.FakeBlock;
 import de.verdox.mccreativelab.world.block.display.ReusedBlockStateDisplay;
-import de.verdox.mccreativelab.debug.block.CustomOreBlock;
-import de.verdox.mccreativelab.entity.UnleashableSugarCow;
-import de.verdox.mccreativelab.generator.Asset;
-import de.verdox.mccreativelab.generator.resourcepack.types.rendered.element.single.SingleHudText;
-import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
-import org.bukkit.entity.Cow;
-import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.player.PlayerJoinEvent;
 
 public class Debug implements Listener {
 
@@ -40,9 +33,9 @@ public class Debug implements Listener {
         MCCreativeLabExtension.getCustomResourcePack().register(DEBUG_MENU);
     }
 
-    @EventHandler
+/*    @EventHandler
     public void onCreatureAddToWorld(EntityAddToWorldEvent e) {
         if (e.getEntity() instanceof Cow cow)
             cow.setCustomEntityBehaviour(Cow.class, new UnleashableSugarCow());
-    }
+    }*/
 }
