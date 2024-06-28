@@ -1,6 +1,7 @@
 package de.verdox.mccreativelab.generator.resourcepack.types.gui;
 
 import de.verdox.mccreativelab.MCCreativeLabExtension;
+import de.verdox.mccreativelab.OnlyServerSoftware;
 import de.verdox.mccreativelab.event.GUICloseEvent;
 import de.verdox.mccreativelab.event.GUIOpenEvent;
 import de.verdox.mccreativelab.generator.resourcepack.types.gui.element.active.ActiveGUIElement;
@@ -69,6 +70,42 @@ public class ActiveGUI extends ActiveComponentRendered<ActiveGUI, CustomGUIBuild
 
 
         this.inventory.set(createInventory(render()));
+
+        if (initialSetup != null) {
+            initialSetup.accept(this);
+            forEachElementBehavior((activeGUIRenderedRenderedElementBehavior, rendered) -> activeGUIRenderedRenderedElementBehavior.onOpen(this, rendered));
+            forEachGUIElementBehavior((guiElementBehavior, activeGUIElement) -> guiElementBehavior.onOpen(this, activeGUIElement));
+        }
+
+        if (customGUIBuilder.onOpen != null) {
+            customGUIBuilder.onOpen.accept(this);
+        }
+    }
+
+    /**
+     * This constructor is only available for the ServerSoftware since with MCCreativeLab we are able to reopen an existing inventory with a new title without creating a new inventory object.
+     *
+     * @param customGUIBuilder The customGUIBuilder this belongs to
+     * @param inventory        The inventory that is linked to this CustomGUI
+     * @param initialSetup     The initial setup
+     */
+    @OnlyServerSoftware
+    public ActiveGUI(CustomGUIBuilder customGUIBuilder, Inventory inventory, @Nullable Consumer<ActiveGUI> initialSetup) {
+        super(customGUIBuilder);
+        MCCreativeLabExtension.needsServerSoftware();
+        if ((customGUIBuilder.getType() != null && !inventory.getType().equals(customGUIBuilder.getType()) || customGUIBuilder.getChestSize() != inventory.getSize()))
+            throw new IllegalArgumentException("Trying to link an existing inventory with type " + customGUIBuilder.getType() + " and size " + customGUIBuilder.getChestSize() + " to existing inventory with type " + inventory.getType() + " and size " + inventory.getSize());
+        if (!customGUIBuilder.isInstalled())
+            throw new IllegalArgumentException("The custom gui " + customGUIBuilder.getKey().asString() + " was not registered to the MCCreativeLab custom resource pack.");
+        this.initialSetup = initialSetup;
+
+        customGUIBuilder.guiElements.forEach((s, guiElement) -> {
+            var activeElement = guiElement.toActiveElement(this);
+            activeGUIElements.put(s, activeElement);
+        });
+
+
+        this.inventory.set(inventory);
 
         if (initialSetup != null) {
             initialSetup.accept(this);

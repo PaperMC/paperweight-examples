@@ -1,5 +1,6 @@
 package de.verdox.mccreativelab.generator.resourcepack.types.gui;
 
+import de.verdox.mccreativelab.OnlyServerSoftware;
 import de.verdox.mccreativelab.generator.Asset;
 import de.verdox.mccreativelab.generator.resourcepack.CustomResourcePack;
 import de.verdox.mccreativelab.generator.resourcepack.types.gui.element.GUIButton;
@@ -14,6 +15,7 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryType;
+import org.bukkit.inventory.Inventory;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -259,6 +261,36 @@ public class CustomGUIBuilder extends ComponentRendered<CustomGUIBuilder, Active
         activeGUI.openToPlayer(player);
 
         return activeGUI;
+    }
+
+    /**
+     * Creates a new active gui but pushes the predecessor gui to the gui stack, so it can be reopened when this new gui closes.
+     *
+     * @param predecessor  the predecessor gui
+     * @param initialSetup the initial setup for the new gui
+     */
+    @OnlyServerSoftware
+    public ActiveGUI asNestedGUI(Player player, ActiveGUI predecessor, @NotNull Inventory inventory, @Nullable Consumer<ActiveGUI> initialSetup) {
+        return linkToExistingInventory(player, inventory, activeGUI -> {
+            predecessor.trackGUIInStack(player);
+            if (initialSetup != null)
+                initialSetup.accept(activeGUI);
+        });
+    }
+
+    @OnlyServerSoftware
+    public ActiveGUI linkToExistingInventory(Player player, @NotNull Inventory inventory, @Nullable Consumer<ActiveGUI> initialSetup){
+        ActiveGUI activeGUI = new ActiveGUI(this, inventory, gui -> {
+            if (initialSetup != null)
+                initialSetup.accept(gui);
+        });
+        activeGUI.openToPlayer(player);
+        return activeGUI;
+    }
+
+    @OnlyServerSoftware
+    public ActiveGUI linkToExistingInventory(Player player, @NotNull Inventory inventory){
+        return linkToExistingInventory(player, inventory, null);
     }
 
 }
