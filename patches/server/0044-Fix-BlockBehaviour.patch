@@ -1,0 +1,26 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: verdox <mail.ysp@web.de>
+Date: Wed, 19 Jun 2024 15:23:56 +0000
+Subject: [PATCH] Fix BlockBehaviour
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/CreativeLabImpl.java b/src/main/java/de/verdox/mccreativelab/CreativeLabImpl.java
+index 942922d9fc899d8222612efda0dc2a78e49d0db0..d03ad6f59f503556037fcd55111a06f44c6779df 100644
+--- a/src/main/java/de/verdox/mccreativelab/CreativeLabImpl.java
++++ b/src/main/java/de/verdox/mccreativelab/CreativeLabImpl.java
+@@ -71,4 +71,15 @@ public final class CreativeLabImpl implements CreativeLab {
+             }
+         };
+     }
++
++    @Override
++    public InteractionResult placeBlockFromItemWithoutPlayer(ItemStack stack, Location location) {
++        if (!(org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(stack).getItem() instanceof net.minecraft.world.item.BlockItem blockItem))
++            throw new IllegalArgumentException();
++
++        net.minecraft.world.level.Level level = ((org.bukkit.craftbukkit.CraftWorld) location.getWorld()).getHandle();
++        BlockHitResult blockHitResult = new BlockHitResult(new Vec3(location.getBlockX(), location.getBlockY(), location.getBlockZ()), Direction.UP, new BlockPos(location.getBlockX(), location.getBlockY(), location.getBlockZ()), true);
++
++        return BehaviourUtil.Converter.InteractionResult.INSTANCE.nmsToBukkitValue(blockItem.placeItemWithoutPlayer(new BlockPlaceContext(level, null, InteractionHand.MAIN_HAND, org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(stack), blockHitResult)));
++    }
+ }

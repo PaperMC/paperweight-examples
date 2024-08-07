@@ -1,0 +1,87 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: verdox <mail.ysp@web.de>
+Date: Wed, 29 May 2024 15:13:14 +0000
+Subject: [PATCH] Add InventoryHopperBehaviour
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/InventoryHopperBehaviour.java b/src/main/java/de/verdox/mccreativelab/behaviour/InventoryHopperBehaviour.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..0fcfc817c2619232c4e70c7a0fb4a52f479f8a53
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/behaviour/InventoryHopperBehaviour.java
+@@ -0,0 +1,75 @@
++package de.verdox.mccreativelab.behaviour;
++
++import org.bukkit.block.BlockFace;
++import org.bukkit.block.Hopper;
++import org.bukkit.inventory.Inventory;
++import org.bukkit.inventory.ItemStack;
++import org.jetbrains.annotations.NotNull;
++import org.jetbrains.annotations.Nullable;
++
++public interface InventoryHopperBehaviour extends Behaviour {
++
++    /**
++     * This method is called when a {@link org.bukkit.block.Hopper} attempts to place an {@link ItemStack}.
++     *
++     * @param inventory The inventory
++     * @param slot      The slot
++     * @param stack     The item being placed
++     * @return True if the hopper can place it
++     */
++    default BehaviourResult.Bool canPlaceItem(@NotNull Inventory inventory, int slot, @NotNull ItemStack stack) {
++        return BehaviourResult.Bool.DEFAULT_INSTANCE;
++    }
++
++    /**
++     * This method is called when a {@link org.bukkit.block.Hopper} attempts to take an {@link ItemStack}.
++     *
++     * @param inventory The inventory
++     * @param hopper    The hopper involved in this action. (Not a snapshot)
++     * @param slot      The slot
++     * @param stack     The item being placed
++     * @return True if the hopper can place it
++     */
++    default BehaviourResult.Bool canTakeItem(@NotNull Inventory inventory, @NotNull Hopper hopper, int slot, @NotNull ItemStack stack) {
++        return BehaviourResult.Bool.DEFAULT_INSTANCE;
++    }
++
++    /**
++     * This method is called when a {@link org.bukkit.block.Hopper} checks which slot to use from a particular {@link BlockFace}.
++     *
++     * @param inventory The inventory
++     * @param direction The direction
++     * @return The respective slots
++     */
++    default BehaviourResult.Object<int[]> getSlotsForFace(@NotNull Inventory inventory, @NotNull BlockFace direction) {
++        return BehaviourResult.Object.DEFAULT_INSTANCE;
++    }
++
++    /**
++     * This method is called when a {@link org.bukkit.block.Hopper} checks if it can place an {@link ItemStack} through a particular {@link BlockFace}.
++     *
++     * @param inventory The inventory
++     * @param slot      The slot
++     * @param stack     The item being placed
++     * @param blockFace The blockFace
++     * @return True if the hopper can place it
++     */
++    default BehaviourResult.Bool canPlaceItemThroughFace(@NotNull Inventory inventory, int slot, @NotNull ItemStack stack, @Nullable BlockFace blockFace) {
++        return BehaviourResult.Bool.DEFAULT_INSTANCE;
++    }
++
++    /**
++     * This method is called when a {@link org.bukkit.block.Hopper} checks if it can take an {@link ItemStack} through a particular {@link BlockFace}.
++     *
++     * @param inventory The inventory
++     * @param hopper    The hopper involved in this action. (Not a snapshot)
++     * @param slot      The slot
++     * @param stack     The item being placed
++     * @param blockFace The blockFace
++     * @return True if the hopper can place it
++     */
++    default BehaviourResult.Bool canTakeItemThroughFace(@NotNull Inventory inventory, @NotNull Hopper hopper, int slot, @NotNull ItemStack stack, BlockFace blockFace) {
++        return BehaviourResult.Bool.DEFAULT_INSTANCE;
++    }
++
++}

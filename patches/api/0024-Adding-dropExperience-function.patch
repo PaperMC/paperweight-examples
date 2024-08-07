@@ -1,0 +1,27 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <mail.ysp@web.de>
+Date: Thu, 21 Mar 2024 17:57:49 +0100
+Subject: [PATCH] Adding dropExperience function
+
+
+diff --git a/src/main/java/org/bukkit/World.java b/src/main/java/org/bukkit/World.java
+index 3795fd2eff436b149df7a8520af6d07cff7b4740..08fc48cdf8c3b96352d1b911752e0dae34c88b4d 100644
+--- a/src/main/java/org/bukkit/World.java
++++ b/src/main/java/org/bukkit/World.java
+@@ -703,6 +703,16 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
+      */
+     public boolean generateTree(@NotNull Location location, @NotNull TreeType type);
+ 
++    /**
++     * Drops experience with vanilla logic at a specified location
++     * @param spawnPosition - The SpawnPosition
++     * @param amount - The amount of experience
++     * @param reason - The spawn reason
++     * @param trigger - The trigger
++     * @param source - The source
++     */
++    public void dropExperience(Location spawnPosition, int amount, org.bukkit.entity.ExperienceOrb.SpawnReason reason, Entity trigger, @Nullable Entity source);
++
+     /**
+      * Creates a tree at the given {@link Location}
+      *

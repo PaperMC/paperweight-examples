@@ -1,0 +1,19 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: verdox <mail.ysp@web.de>
+Date: Wed, 29 May 2024 15:11:34 +0000
+Subject: [PATCH] Add FurnaceRunOutOfFuelEvent
+
+
+diff --git a/src/main/java/net/minecraft/world/level/block/entity/AbstractFurnaceBlockEntity.java b/src/main/java/net/minecraft/world/level/block/entity/AbstractFurnaceBlockEntity.java
+index b748b8d045284775d438fc6739d44e354c148e4c..b0cfecaadf035ccb4ded2be738c9717d808842b2 100644
+--- a/src/main/java/net/minecraft/world/level/block/entity/AbstractFurnaceBlockEntity.java
++++ b/src/main/java/net/minecraft/world/level/block/entity/AbstractFurnaceBlockEntity.java
+@@ -419,6 +419,8 @@ public abstract class AbstractFurnaceBlockEntity extends BaseContainerBlockEntit
+ 
+         if (flag1) {
+             setChanged(world, pos, state);
++            if(!flag)
++                new org.bukkit.event.inventory.FurnaceRunOutOfFuelEvent(CraftBlock.at(world, pos)).callEvent();
+         }
+ 
+     }

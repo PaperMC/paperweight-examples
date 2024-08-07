@@ -1,0 +1,66 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: verdox <mail.ysp@web.de>
+Date: Sat, 8 Jun 2024 17:47:24 +0000
+Subject: [PATCH] Enhance HopperBehaviourPatch
+
+
+diff --git a/src/main/java/net/minecraft/world/Container.java b/src/main/java/net/minecraft/world/Container.java
+index 7e0aa0ed3d2028e672dbeaad7727ae17eaca5f05..4ea54bf464530efdab56ffde30e536d0b9a1983d 100644
+--- a/src/main/java/net/minecraft/world/Container.java
++++ b/src/main/java/net/minecraft/world/Container.java
+@@ -44,11 +44,13 @@ public interface Container extends Clearable {
+     default void stopOpen(Player player) {}
+ 
+     default boolean canPlaceItem(int slot, ItemStack stack) {
+-        return de.verdox.mccreativelab.behaviour.InventoryHopperBehaviourUtil.canPlaceItem(this, slot, stack, () -> true); // MCCreativeLab - Add InventoryHopperBehaviour
+-    }
++        return true;
++        /*return de.verdox.mccreativelab.behaviour.InventoryHopperBehaviourUtil.canPlaceItem(this, slot, stack, () -> true); // MCCreativeLab - Add InventoryHopperBehaviour
++    */}
+ 
+     default boolean canTakeItem(Container hopperInventory, int slot, ItemStack stack) {
+-        return de.verdox.mccreativelab.behaviour.InventoryHopperBehaviourUtil.canTakeItem(this, (net.minecraft.world.level.block.entity.HopperBlockEntity) hopperInventory, slot, stack, () -> true); // MCCreativeLab - Add InventoryHopperBehaviour
++        return true;
++/*        return de.verdox.mccreativelab.behaviour.InventoryHopperBehaviourUtil.canTakeItem(this, (net.minecraft.world.level.block.entity.HopperBlockEntity) hopperInventory, slot, stack, () -> true); // MCCreativeLab - Add InventoryHopperBehaviour*/
+     }
+ 
+     default int countItem(Item item) {
+diff --git a/src/main/java/net/minecraft/world/level/block/entity/HopperBlockEntity.java b/src/main/java/net/minecraft/world/level/block/entity/HopperBlockEntity.java
+index 9228996911390416573b3b81783da923429c4ba8..e8399b3891a82aaa2d6c62ff6cd7ec6421454b69 100644
+--- a/src/main/java/net/minecraft/world/level/block/entity/HopperBlockEntity.java
++++ b/src/main/java/net/minecraft/world/level/block/entity/HopperBlockEntity.java
+@@ -1014,7 +1014,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+ 
+     private static boolean canPlaceItemInContainerCustom(Container inventory, ItemStack stack, int slot, @Nullable Direction side) {
+         //TODO: [MCCLab] - Hopper attempt place Item in Inventory Event
+-        if (de.verdox.mccreativelab.behaviour.InventoryHopperBehaviourUtil.canPlaceItem(inventory, slot, stack, () -> inventory.canPlaceItem(slot, stack))) {
++        if (!de.verdox.mccreativelab.behaviour.InventoryHopperBehaviourUtil.canPlaceItem(inventory, slot, stack, () -> inventory.canPlaceItem(slot, stack))) {
+             return false;
+         } else {
+             return de.verdox.mccreativelab.behaviour.InventoryHopperBehaviourUtil.canPlaceItemThroughFace(inventory, slot, stack, side , () -> {
+@@ -1036,7 +1036,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+ 
+     private static boolean canTakeItemFromContainerCustom(Container hopperInventory, Container fromInventory, ItemStack stack, int slot, Direction facing) {
+         //TODO: [MCCLab] - Hopper attempt take Item from Inventory Event
+-        if (de.verdox.mccreativelab.behaviour.InventoryHopperBehaviourUtil.canTakeItem(fromInventory, (HopperBlockEntity) hopperInventory, slot, stack, () -> fromInventory.canTakeItem(hopperInventory, slot, stack))) {
++        if (!de.verdox.mccreativelab.behaviour.InventoryHopperBehaviourUtil.canTakeItem(fromInventory, (HopperBlockEntity) hopperInventory, slot, stack, () -> fromInventory.canTakeItem(hopperInventory, slot, stack))) {
+             return false;
+         } else {
+             return de.verdox.mccreativelab.behaviour.InventoryHopperBehaviourUtil.canTakeItemThroughFace(fromInventory, (HopperBlockEntity) hopperInventory, slot, stack, facing, () -> {
+diff --git a/src/main/java/net/minecraft/world/level/block/entity/LecternBlockEntity.java b/src/main/java/net/minecraft/world/level/block/entity/LecternBlockEntity.java
+index bfdd3582897a3d8f8f425da2e813ab596fcfd398..96eb28d58b480af8f5f014992afebcbc5de085c9 100644
+--- a/src/main/java/net/minecraft/world/level/block/entity/LecternBlockEntity.java
++++ b/src/main/java/net/minecraft/world/level/block/entity/LecternBlockEntity.java
+@@ -166,9 +166,10 @@ public class LecternBlockEntity extends BlockEntity implements Clearable, MenuPr
+ 
+         @Override
+         public boolean canPlaceItem(int slot, ItemStack stack) {
+-            return de.verdox.mccreativelab.behaviour.InventoryHopperBehaviourUtil.canPlaceItem(this, slot, stack, () -> {
++            return false;
++            /*return de.verdox.mccreativelab.behaviour.InventoryHopperBehaviourUtil.canPlaceItem(this, slot, stack, () -> {
+                 return false;
+-            });
++            });*/
+         }
+ 
+         @Override

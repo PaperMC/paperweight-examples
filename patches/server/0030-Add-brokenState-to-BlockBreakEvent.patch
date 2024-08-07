@@ -5,10 +5,10 @@ Subject: [PATCH] Add brokenState to BlockBreakEvent
 
 
 diff --git a/src/main/java/net/minecraft/server/level/ServerPlayerGameMode.java b/src/main/java/net/minecraft/server/level/ServerPlayerGameMode.java
-index e0995fdd72602e1a23a2dba2a583415421bffa3f..1e80513ba5c0069c3f4ccc9c8050679453f72749 100644
+index c9d040e736d0fa7eb19c053a9f42c21b62187d9a..b0f23370d09b57e43870b1ae0fc806d93995caae 100644
 --- a/src/main/java/net/minecraft/server/level/ServerPlayerGameMode.java
 +++ b/src/main/java/net/minecraft/server/level/ServerPlayerGameMode.java
-@@ -360,7 +360,7 @@ public class ServerPlayerGameMode {
+@@ -365,7 +365,7 @@ public class ServerPlayerGameMode {
                  this.player.connection.send(packet);
              }
  

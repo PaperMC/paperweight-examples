@@ -5,12 +5,12 @@ Subject: [PATCH] - Adding PredicateChoice
 
 
 diff --git a/src/main/java/io/papermc/paper/inventory/recipe/RecipeBookExactChoiceRecipe.java b/src/main/java/io/papermc/paper/inventory/recipe/RecipeBookExactChoiceRecipe.java
-index 2a2f8327a5bd3983a3a13fd663beb98906f27312..684cbfa8d93dc9af8c3442c0ba4ac81f27899af1 100644
+index ef68600f6b59674ddea6c77f7e412902888e39b7..66bbf2471eaf475b982c4fead693df0a138481dc 100644
 --- a/src/main/java/io/papermc/paper/inventory/recipe/RecipeBookExactChoiceRecipe.java
 +++ b/src/main/java/io/papermc/paper/inventory/recipe/RecipeBookExactChoiceRecipe.java
 @@ -6,25 +6,28 @@ import net.minecraft.world.item.crafting.Recipe;
  
- public abstract class RecipeBookExactChoiceRecipe<C extends Container> implements Recipe<C> {
+ public abstract class RecipeBookExactChoiceRecipe<C extends net.minecraft.world.item.crafting.RecipeInput> implements Recipe<C> {
  
 -    private boolean hasExactIngredients;
 +    private boolean hasSpecialIngredients; // Paper - Adding PredicateChoice
@@ -46,10 +46,10 @@ index 2a2f8327a5bd3983a3a13fd663beb98906f27312..684cbfa8d93dc9af8c3442c0ba4ac81f
 +    } // Paper end - Adding PredicateChoice
  }
 diff --git a/src/main/java/io/papermc/paper/inventory/recipe/StackedContentsExtraMap.java b/src/main/java/io/papermc/paper/inventory/recipe/StackedContentsExtraMap.java
-index 2258d4556a1c608e2b0ece38471350646718eb19..b231f62542fc649c7f272390a50530b03035c442 100644
+index 568ba6aed2e74b8d84f4e82c1e785ef1587e2617..70a6b47f7cd5909209c763034c2fb48f2e0c17ab 100644
 --- a/src/main/java/io/papermc/paper/inventory/recipe/StackedContentsExtraMap.java
 +++ b/src/main/java/io/papermc/paper/inventory/recipe/StackedContentsExtraMap.java
-@@ -24,6 +24,7 @@ public final class StackedContentsExtraMap {
+@@ -28,6 +28,7 @@ public final class StackedContentsExtraMap {
      private final Int2ObjectMap<ItemStack> idToExactChoice = new Int2ObjectOpenHashMap<>();
      private final StackedContents contents;
      public final Map<Ingredient, IntList> extraStackingIds = new IdentityHashMap<>();
@@ -57,7 +57,7 @@ index 2258d4556a1c608e2b0ece38471350646718eb19..b231f62542fc649c7f272390a50530b0
  
      public StackedContentsExtraMap(final StackedContents contents, final Recipe<?> recipe) {
          this.exactChoiceIds.defaultReturnValue(-1);
-@@ -32,7 +33,7 @@ public final class StackedContentsExtraMap {
+@@ -36,7 +37,7 @@ public final class StackedContentsExtraMap {
      }
  
      private void initialize(final Recipe<?> recipe) {
@@ -66,7 +66,7 @@ index 2258d4556a1c608e2b0ece38471350646718eb19..b231f62542fc649c7f272390a50530b0
              for (final Ingredient ingredient : recipe.getIngredients()) {
                  if (!ingredient.isEmpty() && ingredient.exact) {
                      final net.minecraft.world.item.ItemStack[] items = ingredient.getItems();
-@@ -47,6 +48,12 @@ public final class StackedContentsExtraMap {
+@@ -51,6 +52,12 @@ public final class StackedContentsExtraMap {
                      idList.sort(IntComparators.NATURAL_COMPARATOR);
                      this.extraStackingIds.put(ingredient, idList);
                  }
@@ -79,7 +79,7 @@ index 2258d4556a1c608e2b0ece38471350646718eb19..b231f62542fc649c7f272390a50530b0
              }
          }
      }
-@@ -67,6 +74,18 @@ public final class StackedContentsExtraMap {
+@@ -97,6 +104,18 @@ public final class StackedContentsExtraMap {
      }
  
      public boolean accountStack(final ItemStack stack, final int count) {
@@ -126,10 +126,10 @@ index e314f36951e9ac15c57137e24fce8c410373130a..9fdb0a5373d21c63be414d1b49623015
              int i = aitemstack.length;
  
 diff --git a/src/main/java/net/minecraft/world/item/crafting/Recipe.java b/src/main/java/net/minecraft/world/item/crafting/Recipe.java
-index 4b84355f6dba8cc4d0aed8d330772447c93145b2..a5a6eb0b6b8b1dac2bb18f5fd7698ffe838ed8d8 100644
+index bf75ecb1045f75139182ba6574b4d81bc1a819df..2de30d6bab8443a21988a5935ce07518317d261b 100644
 --- a/src/main/java/net/minecraft/world/item/crafting/Recipe.java
 +++ b/src/main/java/net/minecraft/world/item/crafting/Recipe.java
-@@ -76,7 +76,7 @@ public interface Recipe<C extends Container> {
+@@ -75,7 +75,7 @@ public interface Recipe<T extends RecipeInput> {
      org.bukkit.inventory.Recipe toBukkitRecipe(org.bukkit.NamespacedKey id); // CraftBukkit
  
      // Paper start - improved exact choice recipes

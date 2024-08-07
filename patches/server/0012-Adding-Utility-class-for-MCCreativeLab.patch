@@ -16,10 +16,10 @@ index 0000000000000000000000000000000000000000..863d73d799e9838534faea0254d5b37e
 +
 +}
 diff --git a/src/main/java/net/minecraft/server/Bootstrap.java b/src/main/java/net/minecraft/server/Bootstrap.java
-index 6885a653bfe629c46bface19ff1eb666d74d4f1b..9588283cd5f08b1557f6f62e7c61b7efa1b43a28 100644
+index 8c2f9f549b5155b8d8fecbc22164b334805381e2..642fe67528b647fd6881820f69d7760ec88d4091 100644
 --- a/src/main/java/net/minecraft/server/Bootstrap.java
 +++ b/src/main/java/net/minecraft/server/Bootstrap.java
-@@ -63,6 +63,11 @@ public class Bootstrap {
+@@ -62,6 +62,11 @@ public class Bootstrap {
              Bootstrap.isBootstrapped = true;
              Instant instant = Instant.now();
  

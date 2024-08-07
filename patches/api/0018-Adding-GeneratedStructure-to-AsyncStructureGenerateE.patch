@@ -1,0 +1,39 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <mail.ysp@web.de>
+Date: Wed, 21 Feb 2024 17:56:40 +0100
+Subject: [PATCH] Adding GeneratedStructure to AsyncStructureGenerateEvent
+
+
+diff --git a/src/main/java/org/bukkit/event/world/AsyncStructureGenerateEvent.java b/src/main/java/org/bukkit/event/world/AsyncStructureGenerateEvent.java
+index 91a137379fca184d164f130b981b7364b2a4a280..bff596278758e5f901114167a295ee79ab555bef 100644
+--- a/src/main/java/org/bukkit/event/world/AsyncStructureGenerateEvent.java
++++ b/src/main/java/org/bukkit/event/world/AsyncStructureGenerateEvent.java
+@@ -55,14 +55,27 @@ public class AsyncStructureGenerateEvent extends WorldEvent {
+     private final Map<NamespacedKey, BlockTransformer> blockTransformers = new LinkedHashMap<>();
+     private final Map<NamespacedKey, EntityTransformer> entityTransformers = new LinkedHashMap<>();
+ 
+-    public AsyncStructureGenerateEvent(@NotNull World world, boolean async, @NotNull Cause cause, @NotNull Structure structure, @NotNull BoundingBox boundingBox, int chunkX, int chunkZ) {
++    public final org.bukkit.generator.structure.GeneratedStructure generatedStructure; // Paper - Adding GeneratedStructure to AsyncStructureGenerateEvent
++
++    public AsyncStructureGenerateEvent(@NotNull World world, boolean async, @NotNull org.bukkit.generator.structure.GeneratedStructure generatedStructure, @NotNull Cause cause, @NotNull Structure structure, @NotNull BoundingBox boundingBox, int chunkX, int chunkZ) { // Paper - Adding GeneratedStructure to AsyncStructureGenerateEvent
+         super(world, async);
+         this.structure = structure;
+         this.boundingBox = boundingBox;
+         this.chunkX = chunkX;
+         this.chunkZ = chunkZ;
+         this.cause = cause;
++        this.generatedStructure = generatedStructure; // Paper - Adding GeneratedStructure to AsyncStructureGenerateEvent
++    }
++
++    // Paper start - Adding GeneratedStructure to AsyncStructureGenerateEvent
++    /**
++     * Gets the structure as generated structure in the world
++     * @return - The Generated structure
++     */
++    public org.bukkit.generator.structure.GeneratedStructure getGeneratedStructure() {
++        return generatedStructure;
+     }
++    // Paper end - Adding GeneratedStructure to AsyncStructureGenerateEvent
+ 
+     /**
+      * Gets the event cause.

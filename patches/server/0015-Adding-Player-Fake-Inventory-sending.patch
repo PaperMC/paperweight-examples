@@ -5,18 +5,18 @@ Subject: [PATCH] Adding Player Fake Inventory sending
 
 
 diff --git a/src/main/java/net/minecraft/server/level/ServerPlayer.java b/src/main/java/net/minecraft/server/level/ServerPlayer.java
-index 62820b98573b4cebdc78c814f15cd48500601fba..05331d6ca4e26a6f4c92d17b127f32567e51556a 100644
+index ce84b7ae3db78999454cca757a22542938fa2f17..c458fb393316fb11e3f28a375190d335012b2c03 100644
 --- a/src/main/java/net/minecraft/server/level/ServerPlayer.java
 +++ b/src/main/java/net/minecraft/server/level/ServerPlayer.java
-@@ -346,6 +346,7 @@ public class ServerPlayer extends Player {
-     public double lastEntitySpawnRadiusSquared = -1.0;
-     // Paper end - optimise chunk tick iteration
+@@ -333,6 +333,7 @@ public class ServerPlayer extends net.minecraft.world.entity.player.Player imple
+     }
+     // Paper end - rewrite chunk system
  
 +    public boolean pauseInventorySynchronization; // MCCLab - Pause Inventory Synchronization
      public ServerPlayer(MinecraftServer server, ServerLevel world, GameProfile profile, ClientInformation clientOptions) {
          super(world, world.getSharedSpawnPos(), world.getSharedSpawnAngle(), profile);
          this.chatVisibility = ChatVisiblity.FULL;
-@@ -361,7 +362,9 @@ public class ServerPlayer extends Player {
+@@ -349,7 +350,9 @@ public class ServerPlayer extends net.minecraft.world.entity.player.Player imple
          this.containerSynchronizer = new ContainerSynchronizer() {
              @Override
              public void sendInitialData(AbstractContainerMenu handler, NonNullList<ItemStack> stacks, ItemStack cursorStack, int[] properties) {
@@ -27,7 +27,7 @@ index 62820b98573b4cebdc78c814f15cd48500601fba..05331d6ca4e26a6f4c92d17b127f3256
  
                  for (int i = 0; i < properties.length; ++i) {
                      this.broadcastDataValue(handler, i, properties[i]);
-@@ -372,26 +375,34 @@ public class ServerPlayer extends Player {
+@@ -360,26 +363,34 @@ public class ServerPlayer extends net.minecraft.world.entity.player.Player imple
              // Paper start - Sync offhand slot in menus
              @Override
              public void sendOffHandSlotChange() {
@@ -66,10 +66,10 @@ index 62820b98573b4cebdc78c814f15cd48500601fba..05331d6ca4e26a6f4c92d17b127f3256
              }
          };
 diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
-index 7e6116963d835d4606ef3d93b69d3e44b61288e1..309f557914790fc53767a96521a4c532748f9a99 100644
+index 992437a6e838f653f32d33b5b3f702c484640a97..ea53058123938d96ad66a7595724c80d5cf7f43d 100644
 --- a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
 +++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
-@@ -927,6 +927,31 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
+@@ -929,6 +929,31 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
          this.getHandle().connection.send(packet);
      }
  
@@ -101,7 +101,7 @@ index 7e6116963d835d4606ef3d93b69d3e44b61288e1..309f557914790fc53767a96521a4c532
      @Override
      public <T> void playEffect(Location loc, Effect effect, T data) {
          Preconditions.checkArgument(effect != null, "Effect cannot be null");
-@@ -1524,6 +1549,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
+@@ -1539,6 +1564,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
      @Deprecated
      @Override
      public void updateInventory() {

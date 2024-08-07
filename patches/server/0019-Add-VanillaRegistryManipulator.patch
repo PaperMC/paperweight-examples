@@ -122,11 +122,11 @@ index 0000000000000000000000000000000000000000..70b04d5ec9e5052b02df4e508886aed0
 +    }
 +}
 diff --git a/src/main/java/net/minecraft/core/registries/BuiltInRegistries.java b/src/main/java/net/minecraft/core/registries/BuiltInRegistries.java
-index 8daee5a7935e3253834c4cbe81d5e8886f776dad..d82b9bae941d67a58311b15da17c1a2747e8266c 100644
+index 0497318e8f647453f38f3a16a8be6bd9aa19253f..a3961739fccc01c31c319559c182860bfa794edf 100644
 --- a/src/main/java/net/minecraft/core/registries/BuiltInRegistries.java
 +++ b/src/main/java/net/minecraft/core/registries/BuiltInRegistries.java
-@@ -312,6 +312,7 @@ public class BuiltInRegistries {
-         // Paper end
+@@ -342,6 +342,7 @@ public class BuiltInRegistries {
+         REGISTRY.freeze(); // Paper - freeze main registry early
          createContents();
          runnable.run(); // Paper
 +        de.verdox.mccreativelab.data.CraftVanillaRegistryManipulator.CUSTOM_BOOTSTRAPPERS.forEach(Runnable::run);
@@ -134,11 +134,11 @@ index 8daee5a7935e3253834c4cbe81d5e8886f776dad..d82b9bae941d67a58311b15da17c1a27
          validate(REGISTRY);
      }
 diff --git a/src/main/java/net/minecraft/world/entity/ai/village/poi/PoiTypes.java b/src/main/java/net/minecraft/world/entity/ai/village/poi/PoiTypes.java
-index 0538eff10e5906236fc4d8a098d2f680f5ad3cf2..e3dd9659fcf513683d8bf5bd197c9284c3fabd12 100644
+index faf3e38d00695e2b9189753e36608410a8825b35..7c011ef95cdd5d2e2df0a926e261d7e05913a439 100644
 --- a/src/main/java/net/minecraft/world/entity/ai/village/poi/PoiTypes.java
 +++ b/src/main/java/net/minecraft/world/entity/ai/village/poi/PoiTypes.java
 @@ -76,7 +76,7 @@ public class PoiTypes {
-         return ResourceKey.create(Registries.POINT_OF_INTEREST_TYPE, new ResourceLocation(id));
+         return ResourceKey.create(Registries.POINT_OF_INTEREST_TYPE, ResourceLocation.withDefaultNamespace(id));
      }
  
 -    private static PoiType register(Registry<PoiType> registry, ResourceKey<PoiType> key, Set<BlockState> states, int ticketCount, int searchDistance) {
@@ -147,7 +147,7 @@ index 0538eff10e5906236fc4d8a098d2f680f5ad3cf2..e3dd9659fcf513683d8bf5bd197c9284
          Registry.register(registry, key, poiType);
          registerBlockStates(registry.getHolderOrThrow(key), states);
 diff --git a/src/main/java/net/minecraft/world/entity/npc/VillagerProfession.java b/src/main/java/net/minecraft/world/entity/npc/VillagerProfession.java
-index 1316f4475802e17039800cc6128e1b065328beb7..99b770441869ab0130cf1a6552b32cfe682136ad 100644
+index 8734ab1bd8299bbf43906d81a349c2a13e0981a7..affe9daac616894b45338a3d40f058d66812553e 100644
 --- a/src/main/java/net/minecraft/world/entity/npc/VillagerProfession.java
 +++ b/src/main/java/net/minecraft/world/entity/npc/VillagerProfession.java
 @@ -54,17 +54,17 @@ public record VillagerProfession(

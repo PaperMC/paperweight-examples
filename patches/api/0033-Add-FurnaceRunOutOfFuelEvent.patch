@@ -1,0 +1,40 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: verdox <mail.ysp@web.de>
+Date: Wed, 29 May 2024 15:11:34 +0000
+Subject: [PATCH] Add FurnaceRunOutOfFuelEvent
+
+
+diff --git a/src/main/java/org/bukkit/event/inventory/FurnaceRunOutOfFuelEvent.java b/src/main/java/org/bukkit/event/inventory/FurnaceRunOutOfFuelEvent.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..ac40f43e4e3da2744b544c1229052a2c46f2cc7f
+--- /dev/null
++++ b/src/main/java/org/bukkit/event/inventory/FurnaceRunOutOfFuelEvent.java
+@@ -0,0 +1,28 @@
++package org.bukkit.event.inventory;
++
++import org.bukkit.block.Block;
++import org.bukkit.event.HandlerList;
++import org.bukkit.event.block.BlockEvent;
++import org.jetbrains.annotations.NotNull;
++
++/**
++ * This event is called when a furnace runs out of fuel
++ */
++public class FurnaceRunOutOfFuelEvent extends BlockEvent {
++    private static final HandlerList handlers = new HandlerList();
++
++    public FurnaceRunOutOfFuelEvent(@NotNull Block theBlock) {
++        super(theBlock);
++    }
++
++    @NotNull
++    @Override
++    public HandlerList getHandlers() {
++        return handlers;
++    }
++
++    @NotNull
++    public static HandlerList getHandlerList() {
++        return handlers;
++    }
++}
