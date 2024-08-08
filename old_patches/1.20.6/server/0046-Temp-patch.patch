@@ -183,7 +183,7 @@ index 3502ffbdc4bdedb1542876a185f43d053f944f60..7502f2407a309b4e2ad8f24da84f9ace
          boolean isDebugWorld = worlddata.isDebugWorld();
  
 diff --git a/src/main/java/de/verdox/mccreativelab/CreativeLabImpl.java b/src/main/java/de/verdox/mccreativelab/CreativeLabImpl.java
-index 187d456730c1bfb5cbaa5e9e8a2f544a0466e1c2..773497ff81dca1f219705dd7bc6d6ba293c743e4 100644
+index d03ad6f59f503556037fcd55111a06f44c6779df..69d81cf08c4cdd458b85bea1a213c0c36c2ec50e 100644
 --- a/src/main/java/de/verdox/mccreativelab/CreativeLabImpl.java
 +++ b/src/main/java/de/verdox/mccreativelab/CreativeLabImpl.java
 @@ -1,7 +1,26 @@

@@ -5,7 +5,7 @@ Subject: [PATCH] Fix compilation issue in Entity Brain
 
 
 diff --git a/src/main/java/net/minecraft/world/entity/ai/Brain.java b/src/main/java/net/minecraft/world/entity/ai/Brain.java
-index c44a88cc8143850a918a2b56dd8341f6f4eeba03..5d96da6627c58e7d5ebeec1952fd547c319eb274 100644
+index afbb027021acfbe25d534a84f1750e420bbde6e0..40352c1cff78e04e09a6d7845714810321abd53c 100644
 --- a/src/main/java/net/minecraft/world/entity/ai/Brain.java
 +++ b/src/main/java/net/minecraft/world/entity/ai/Brain.java
 @@ -65,8 +65,8 @@ public class Brain<E extends LivingEntity> {

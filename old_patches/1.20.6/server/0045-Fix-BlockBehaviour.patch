@@ -5,7 +5,7 @@ Subject: [PATCH] Fix BlockBehaviour
 
 
 diff --git a/src/main/java/de/verdox/mccreativelab/CreativeLabImpl.java b/src/main/java/de/verdox/mccreativelab/CreativeLabImpl.java
-index 8d136f5210c59c2dabcb54d68bd59b10096a38d2..187d456730c1bfb5cbaa5e9e8a2f544a0466e1c2 100644
+index 942922d9fc899d8222612efda0dc2a78e49d0db0..d03ad6f59f503556037fcd55111a06f44c6779df 100644
 --- a/src/main/java/de/verdox/mccreativelab/CreativeLabImpl.java
 +++ b/src/main/java/de/verdox/mccreativelab/CreativeLabImpl.java
 @@ -71,4 +71,15 @@ public final class CreativeLabImpl implements CreativeLab {

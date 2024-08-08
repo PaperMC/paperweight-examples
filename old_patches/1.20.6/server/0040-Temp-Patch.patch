@@ -5,10 +5,10 @@ Subject: [PATCH] Temp Patch
 
 
 diff --git a/src/main/java/de/verdox/mccreativelab/CraftDataPackInterceptor.java b/src/main/java/de/verdox/mccreativelab/CraftDataPackInterceptor.java
-index c3b98096686c23a913c83b8459eeab2166ff48d3..8b0561d555a8ebf49c89ccaa75575b2c0bf2f546 100644
+index 8bbea500232ee514af971ec9601cd2980d91e9b7..7c013cf076255902668fbe2e3a3426d11e29ff67 100644
 --- a/src/main/java/de/verdox/mccreativelab/CraftDataPackInterceptor.java
 +++ b/src/main/java/de/verdox/mccreativelab/CraftDataPackInterceptor.java
-@@ -21,7 +21,8 @@ public class CraftDataPackInterceptor implements DataPackInterceptor {
+@@ -22,7 +22,8 @@ public class CraftDataPackInterceptor implements DataPackInterceptor {
      private final Set<PackAssetType> excludedTypes = new HashSet<>();
      private final Set<String> stringPatternExcludes = new HashSet<>();
      private final Map<PackAssetType, Set<Key>> exclusions = new HashMap<>();
@@ -18,7 +18,7 @@ index c3b98096686c23a913c83b8459eeab2166ff48d3..8b0561d555a8ebf49c89ccaa75575b2c
      private Consumer<DataPackAsset> installCallback;
  
      @Override
-@@ -37,11 +38,17 @@ public class CraftDataPackInterceptor implements DataPackInterceptor {
+@@ -38,11 +39,17 @@ public class CraftDataPackInterceptor implements DataPackInterceptor {
      }
  
      @Override
@@ -37,7 +37,7 @@ index c3b98096686c23a913c83b8459eeab2166ff48d3..8b0561d555a8ebf49c89ccaa75575b2c
  
      @Override
      public DataPackInterceptor exclude(PackAssetType packAssetType, Key key) {
-@@ -62,14 +69,14 @@ public class CraftDataPackInterceptor implements DataPackInterceptor {
+@@ -63,14 +70,14 @@ public class CraftDataPackInterceptor implements DataPackInterceptor {
          int indexOfStartKey = assetTypeName.indexOf(":");
          assetTypeName = assetTypeName.substring(indexOfStartKey + 1);
          PackAssetType packAssetType = PackAssetType.getByParentFolder(assetTypeName);
@@ -57,7 +57,7 @@ index c3b98096686c23a913c83b8459eeab2166ff48d3..8b0561d555a8ebf49c89ccaa75575b2c
              return null;
          }
  
-@@ -89,7 +96,7 @@ public class CraftDataPackInterceptor implements DataPackInterceptor {
+@@ -90,7 +97,7 @@ public class CraftDataPackInterceptor implements DataPackInterceptor {
              // Verwende GSON, um den JSON-String in ein JsonObject zu konvertieren
              JsonObject jsonObject;
              try {
@@ -66,7 +66,7 @@ index c3b98096686c23a913c83b8459eeab2166ff48d3..8b0561d555a8ebf49c89ccaa75575b2c
              } catch (Throwable e) {
                  return ioSupplier;
              }
-@@ -97,16 +104,27 @@ public class CraftDataPackInterceptor implements DataPackInterceptor {
+@@ -98,16 +105,27 @@ public class CraftDataPackInterceptor implements DataPackInterceptor {
  
              DataPackAsset dataPackAsset = new DataPackAsset(packAssetType, key, jsonObject);
  

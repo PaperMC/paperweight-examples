@@ -1,0 +1,154 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: verdox <mail.ysp@web.de>
+Date: Wed, 1 May 2024 15:10:45 +0000
+Subject: [PATCH] Open WorldGenData to API
+
+
+diff --git a/src/main/java/io/papermc/paper/world/worldgen/CraftDensityFunction.java b/src/main/java/io/papermc/paper/world/worldgen/CraftDensityFunction.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..2cb1aebee45d612f0ddb50d6daba33c992703251
+--- /dev/null
++++ b/src/main/java/io/papermc/paper/world/worldgen/CraftDensityFunction.java
+@@ -0,0 +1,14 @@
++package io.papermc.paper.world.worldgen;
++
++public class CraftDensityFunction implements DensityFunction {
++    private final net.minecraft.world.level.levelgen.DensityFunction handle;
++
++    public CraftDensityFunction(net.minecraft.world.level.levelgen.DensityFunction handle) {
++        this.handle = handle;
++    }
++
++    @Override
++    public double compute(int x, int y, int z) {
++        return handle.compute(new net.minecraft.world.level.levelgen.DensityFunction.SinglePointContext(x,y,z));
++    }
++}
+diff --git a/src/main/java/io/papermc/paper/world/worldgen/CraftNoiseRouter.java b/src/main/java/io/papermc/paper/world/worldgen/CraftNoiseRouter.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..e581caca5e5fda7b07eb1822705d45cd54cb3c8f
+--- /dev/null
++++ b/src/main/java/io/papermc/paper/world/worldgen/CraftNoiseRouter.java
+@@ -0,0 +1,84 @@
++package io.papermc.paper.world.worldgen;
++
++public class CraftNoiseRouter implements NoiseRouter{
++    private final net.minecraft.world.level.levelgen.NoiseRouter handle;
++
++    public CraftNoiseRouter(net.minecraft.world.level.levelgen.NoiseRouter handle){
++        this.handle = handle;
++    }
++
++    @Override
++    public DensityFunction barrierNoise() {
++        return new CraftDensityFunction(handle.barrierNoise());
++    }
++
++    @Override
++    public DensityFunction fluidLevelFloodednessNoise() {
++        return new CraftDensityFunction(handle.fluidLevelFloodednessNoise());
++    }
++
++    @Override
++    public DensityFunction fluidLevelSpreadNoise() {
++        return new CraftDensityFunction(handle.fluidLevelSpreadNoise());
++    }
++
++    @Override
++    public DensityFunction lavaNoise() {
++        return new CraftDensityFunction(handle.lavaNoise());
++    }
++
++    @Override
++    public DensityFunction temperature() {
++        return new CraftDensityFunction(handle.temperature());
++    }
++
++    @Override
++    public DensityFunction vegetation() {
++        return new CraftDensityFunction(handle.vegetation());
++    }
++
++    @Override
++    public DensityFunction continents() {
++        return new CraftDensityFunction(handle.continents());
++    }
++
++    @Override
++    public DensityFunction erosion() {
++        return new CraftDensityFunction(handle.erosion());
++    }
++
++    @Override
++    public DensityFunction depth() {
++        return new CraftDensityFunction(handle.depth());
++    }
++
++    @Override
++    public DensityFunction ridges() {
++        return new CraftDensityFunction(handle.ridges());
++    }
++
++    @Override
++    public DensityFunction initialDensityWithoutJaggedness() {
++        return new CraftDensityFunction(handle.initialDensityWithoutJaggedness());
++    }
++
++    @Override
++    public DensityFunction finalDensity() {
++        return new CraftDensityFunction(handle.finalDensity());
++    }
++
++    @Override
++    public DensityFunction veinToggle() {
++        return new CraftDensityFunction(handle.veinToggle());
++    }
++
++    @Override
++    public DensityFunction veinRidged() {
++        return new CraftDensityFunction(handle.veinRidged());
++    }
++
++    @Override
++    public DensityFunction veinGap() {
++        return new CraftDensityFunction(handle.veinGap());
++    }
++}
+diff --git a/src/main/java/io/papermc/paper/world/worldgen/CraftWorldGenData.java b/src/main/java/io/papermc/paper/world/worldgen/CraftWorldGenData.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..0efa9f3d64eaac6059d39920cb9394a80803a970
+--- /dev/null
++++ b/src/main/java/io/papermc/paper/world/worldgen/CraftWorldGenData.java
+@@ -0,0 +1,16 @@
++package io.papermc.paper.world.worldgen;
++
++import net.minecraft.server.level.ServerLevel;
++
++public class CraftWorldGenData implements WorldGenData{
++    private final ServerLevel serverLevel;
++
++    public CraftWorldGenData(ServerLevel serverLevel){
++        this.serverLevel = serverLevel;
++    }
++
++    @Override
++    public NoiseRouter getNoiseRouter() {
++        return new CraftNoiseRouter(this.serverLevel.chunkSource.randomState().router());
++    }
++}
+diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
+index 3b32b01b5aa3a2a902e36e62f322e9e720fbef44..0a76bbc817245ef36f62e202b2ed2c402db6ade0 100644
+--- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
++++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
+@@ -1465,6 +1465,11 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+         return this.getHandle().playerChunkLoader.getAPITickDistance(); // Paper - replace player chunk loader
+     }
+ 
++    @Override
++    public io.papermc.paper.world.worldgen.WorldGenData getWorldGenData() {
++        return new io.papermc.paper.world.worldgen.CraftWorldGenData(getHandle());
++    }
++
+     public BlockMetadataStore getBlockMetadata() {
+         return this.blockMetadata;
+     }

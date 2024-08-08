@@ -1,0 +1,1870 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: verdox <mail.ysp@web.de>
+Date: Wed, 1 May 2024 16:30:04 +0000
+Subject: [PATCH] Enhanced Entity AI
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/ai/CraftEntityBrain.java b/src/main/java/de/verdox/mccreativelab/ai/CraftEntityBrain.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..c39b86bba2455a2f3c93ec035655694412725171
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/ai/CraftEntityBrain.java
+@@ -0,0 +1,188 @@
++package de.verdox.mccreativelab.ai;
++
++import de.verdox.mccreativelab.ai.builder.ActivityBuilder;
++import de.verdox.mccreativelab.ai.builder.BehaviorFactory;
++import de.verdox.mccreativelab.ai.builder.CraftActivityBuilder;
++import de.verdox.mccreativelab.ai.builder.CraftBehaviorFactory;
++import net.minecraft.core.registries.Registries;
++import net.minecraft.world.entity.ai.Brain;
++import net.minecraft.world.entity.schedule.Activity;
++import org.bukkit.*;
++import org.bukkit.craftbukkit.CraftEntityActivity;
++import org.bukkit.craftbukkit.CraftEntitySchedule;
++import org.bukkit.craftbukkit.CraftWorld;
++import org.bukkit.craftbukkit.entity.CraftEntity;
++import org.bukkit.craftbukkit.entity.CraftLivingEntity;
++import org.bukkit.craftbukkit.entity.memory.CraftMemoryKey;
++import org.bukkit.craftbukkit.entity.memory.CraftMemoryMapper;
++import org.bukkit.entity.LivingEntity;
++import org.bukkit.entity.memory.MemoryKey;
++import org.jetbrains.annotations.Nullable;
++
++import java.util.*;
++import java.util.function.Consumer;
++import java.util.stream.Collectors;
++
++public class CraftEntityBrain<E extends LivingEntity> implements EntityBrain<E> {
++    private static final CraftBehaviorFactory behaviorFactory = new CraftBehaviorFactory();
++    private final Brain<net.minecraft.world.entity.LivingEntity> entityBrain;
++
++    public CraftEntityBrain(Brain<net.minecraft.world.entity.LivingEntity> brain) {
++        this.entityBrain = brain;
++    }
++
++    @Override
++    public BehaviorFactory getBehaviorFactory() {
++        return behaviorFactory;
++    }
++
++    @Override
++    public <U> void addMemoryToBrain(MemoryKey<U> memoryKey) {
++        this.entityBrain.addMemoryToBrain(CraftMemoryKey.bukkitToMinecraft(memoryKey));
++    }
++
++    @Override
++    public <U> void eraseMemory(MemoryKey<U> memoryKey) {
++        this.entityBrain.eraseMemory(CraftMemoryKey.bukkitToMinecraft(memoryKey));
++    }
++
++    @Override
++    public <U> void setMemory(MemoryKey<U> type, @Nullable U value) {
++        this.entityBrain.setMemory(CraftMemoryKey.bukkitToMinecraft(type), CraftMemoryMapper.toNms(value));
++    }
++
++    @Override
++    public <U> void setMemoryWithExpiry(MemoryKey<U> type, U value, long expiry) {
++        this.entityBrain.setMemoryWithExpiry(CraftMemoryKey.bukkitToMinecraft(type), CraftMemoryMapper.toNms(value), expiry);
++    }
++
++    @Override
++    public <U> Optional<U> getMemory(MemoryKey<U> type) {
++        var nmsOptional = this.entityBrain.getMemory(CraftMemoryKey.bukkitToMinecraft(type));
++        if (nmsOptional.isEmpty())
++            return Optional.empty();
++        Object nmsValue = nmsOptional.get();
++        return (Optional<U>) Optional.of(CraftMemoryMapper.fromNms(nmsValue));
++    }
++
++    @Override
++    public <U> long getTimeUntilExpiry(MemoryKey<U> type) {
++        return this.entityBrain.getTimeUntilExpiry(CraftMemoryKey.bukkitToMinecraft(type));
++    }
++
++    @Override
++    public <U> boolean isMemoryValue(MemoryKey<U> type, U value) {
++        return this.entityBrain.isMemoryValue(CraftMemoryKey.bukkitToMinecraft(type), CraftMemoryMapper.toNms(value));
++    }
++
++    @Override
++    public boolean checkMemory(MemoryKey<?> type, MemoryStatus state) {
++        return this.entityBrain.checkMemory(CraftMemoryKey.bukkitToMinecraft(type), toNMS(state));
++    }
++
++    @Override
++    public EntitySchedule getSchedule() {
++        return CraftEntitySchedule.minecraftToBukkit(this.entityBrain.getSchedule(), Registries.SCHEDULE, Registry.ENTITY_SCHEDULE);
++    }
++
++    @Override
++    public void setSchedule(EntitySchedule schedule) {
++        this.entityBrain.setSchedule(CraftEntitySchedule.bukkitToMinecraft(schedule, Registries.SCHEDULE));
++    }
++
++    @Override
++    public void setCoreActivities(Set<EntityActivity> coreActivities) {
++        this.entityBrain.setCoreActivities(coreActivities.stream()
++                                                         .map(entityActivity -> CraftEntityActivity.bukkitToMinecraft(entityActivity, Registries.ACTIVITY))
++                                                         .collect(Collectors.toSet()));
++    }
++
++    @Override
++    public void useDefaultActivity() {
++        this.entityBrain.useDefaultActivity();
++    }
++
++    @Override
++    public Optional<EntityActivity> getActiveNonCoreActivity() {
++        Optional<Activity> nmsActivityOptional = this.entityBrain.getActiveNonCoreActivity();
++        return nmsActivityOptional.map(activity -> CraftEntityActivity.minecraftToBukkit(activity, Registries.ACTIVITY, Registry.ENTITY_ACTIVITY));
++
++    }
++
++    @Override
++    public void setActiveActivityIfPossible(EntityActivity activity) {
++        this.entityBrain.setActiveActivityIfPossible(CraftEntityActivity.bukkitToMinecraft(activity, Registries.ACTIVITY));
++    }
++
++    @Override
++    public void updateActivityFromSchedule(long timeOfDay, long time) {
++        this.entityBrain.updateActivityFromSchedule(timeOfDay, time);
++    }
++
++    @Override
++    public void setActiveActivityToFirstValid(List<EntityActivity> activities) {
++        List<Activity> nmsActivities = activities.stream()
++                                                 .map(entityActivity -> CraftEntityActivity.bukkitToMinecraft(entityActivity, Registries.ACTIVITY))
++                                                 .collect(Collectors.toList());
++        this.entityBrain.setActiveActivityToFirstValid(nmsActivities);
++    }
++
++    @Override
++    public void setDefaultActivity(EntityActivity activity) {
++        this.entityBrain.setDefaultActivity(CraftEntityActivity.bukkitToMinecraft(activity, Registries.ACTIVITY));
++    }
++
++    @Override
++    public void addActivity(ActivityBuilder<E> activityBuilder, boolean replaceCompleteActivity, boolean replaceActivityRequirements, boolean replaceForgettingMemories) {
++        if (activityBuilder instanceof CraftActivityBuilder<E> craftActivityBuilder)
++            craftActivityBuilder.addToBrain(this.entityBrain, replaceCompleteActivity, replaceActivityRequirements, replaceForgettingMemories);
++    }
++
++    @Override
++    public void addActivity(EntityActivity activity, Consumer<ActivityBuilder<E>> activityBuilder, boolean replaceCompleteActivity, boolean replaceActivityRequirements, boolean replaceForgettingMemories) {
++        CraftActivityBuilder<E> craftActivityBuilder1 = new CraftActivityBuilder<>(activity);
++        activityBuilder.accept(craftActivityBuilder1);
++        addActivity(craftActivityBuilder1, replaceCompleteActivity, replaceActivityRequirements, replaceForgettingMemories);
++    }
++
++    @Override
++    public boolean isActive(EntityActivity activity) {
++        return this.entityBrain.isActive(CraftEntityActivity.bukkitToMinecraft(activity, Registries.ACTIVITY));
++    }
++
++    @Override
++    public EntityBrain<E> copyWithoutBehaviours() {
++        return new CraftEntityBrain<>(this.entityBrain.copyWithoutBehaviors());
++    }
++
++    @Override
++    public void stopAll(World world, E entity) {
++        this.entityBrain.stopAll(((CraftWorld) world).getHandle(), ((CraftLivingEntity) entity).getHandle());
++    }
++
++    @Override
++    public ActivityBuilder<E> createActivityBuilder(EntityActivity entityActivity) {
++        return new CraftActivityBuilder<>(entityActivity);
++    }
++
++    @Override
++    public void tick(World world, E entity) {
++        this.entityBrain.tick(((CraftWorld) world).getHandle(), ((CraftLivingEntity) entity).getHandle());
++    }
++
++    public static net.minecraft.world.entity.ai.memory.MemoryStatus toNMS(MemoryStatus memoryStatus) {
++        return switch (memoryStatus) {
++            case VALUE_PRESENT -> net.minecraft.world.entity.ai.memory.MemoryStatus.VALUE_PRESENT;
++            case VALUE_ABSENT -> net.minecraft.world.entity.ai.memory.MemoryStatus.VALUE_ABSENT;
++            case REGISTERED -> net.minecraft.world.entity.ai.memory.MemoryStatus.REGISTERED;
++        };
++    }
++
++    public static MemoryStatus toBukkit(net.minecraft.world.entity.ai.memory.MemoryStatus memoryStatus) {
++        return switch (memoryStatus) {
++            case VALUE_PRESENT -> MemoryStatus.VALUE_PRESENT;
++            case VALUE_ABSENT -> MemoryStatus.VALUE_ABSENT;
++            case REGISTERED -> MemoryStatus.REGISTERED;
++        };
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/ai/behavior/CraftAIBehavior.java b/src/main/java/de/verdox/mccreativelab/ai/behavior/CraftAIBehavior.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..ffb72702030a7f06f9a1fcadb5390f800171ec22
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/ai/behavior/CraftAIBehavior.java
+@@ -0,0 +1,45 @@
++package de.verdox.mccreativelab.ai.behavior;
++
++import de.verdox.mccreativelab.ai.MemoryStatus;
++import net.minecraft.world.entity.ai.behavior.Behavior;
++import net.minecraft.world.entity.ai.memory.MemoryModuleType;
++import org.bukkit.craftbukkit.entity.memory.CraftMemoryKey;
++import org.bukkit.entity.LivingEntity;
++import org.bukkit.entity.memory.MemoryKey;
++
++import java.util.HashMap;
++import java.util.Map;
++
++public class CraftAIBehavior<E extends LivingEntity> extends CraftControlledBehavior<E, Behavior<?>> implements AIBehavior<E> {
++    public CraftAIBehavior(Behavior<?> handle) {
++        super(handle);
++    }
++
++    @Override
++    public int getMinDuration() {
++        return getHandle().getMinDuration();
++    }
++
++    @Override
++    public int getMaxDuration() {
++        return getHandle().getMaxDuration();
++    }
++
++    @Override
++    public Map<MemoryKey<?>, MemoryStatus> getRequiredMemoryStates() {
++        return getBukkitRequiredMemoryKeys(getHandle().getEntryCondition());
++    }
++
++    private static Map<MemoryKey<?>, MemoryStatus> getBukkitRequiredMemoryKeys(Map<MemoryModuleType<?>, net.minecraft.world.entity.ai.memory.MemoryStatus> bukkitRequiredMemoryStates) {
++        Map<MemoryKey<?>, MemoryStatus> map = new HashMap<>();
++        bukkitRequiredMemoryStates.forEach((memoryKey, memoryStatus) -> {
++            MemoryStatus bukkitMemoryStatus = switch (memoryStatus) {
++                case VALUE_PRESENT -> MemoryStatus.VALUE_PRESENT;
++                case VALUE_ABSENT -> MemoryStatus.VALUE_ABSENT;
++                case REGISTERED -> MemoryStatus.REGISTERED;
++            };
++            map.put(CraftMemoryKey.minecraftToBukkit(memoryKey), bukkitMemoryStatus);
++        });
++        return map;
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/ai/behavior/CraftControlledBehavior.java b/src/main/java/de/verdox/mccreativelab/ai/behavior/CraftControlledBehavior.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..cc3c5f50ca74f7dcc6040213421f84b8299bca11
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/ai/behavior/CraftControlledBehavior.java
+@@ -0,0 +1,16 @@
++package de.verdox.mccreativelab.ai.behavior;
++
++
++import net.minecraft.world.entity.ai.behavior.BehaviorControl;
++import org.bukkit.entity.LivingEntity;
++
++public class CraftControlledBehavior<E extends LivingEntity, T extends BehaviorControl<?>> implements ControlledBehavior<E> {
++    private final T handle;
++    public CraftControlledBehavior(T handle){
++        this.handle = handle;
++    }
++
++    public T getHandle() {
++        return handle;
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/ai/behavior/CraftOneShotBehavior.java b/src/main/java/de/verdox/mccreativelab/ai/behavior/CraftOneShotBehavior.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..2f7c9ecea8755aeef84139d7d54faec285255d74
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/ai/behavior/CraftOneShotBehavior.java
+@@ -0,0 +1,10 @@
++package de.verdox.mccreativelab.ai.behavior;
++
++import net.minecraft.world.entity.ai.behavior.OneShot;
++import org.bukkit.entity.LivingEntity;
++
++public class CraftOneShotBehavior<E extends LivingEntity> extends CraftControlledBehavior<E, OneShot<?>> implements OneShotBehavior<E> {
++    public CraftOneShotBehavior(OneShot<?> handle) {
++        super(handle);
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/ai/behavior/WrappedPaperAIBehavior.java b/src/main/java/de/verdox/mccreativelab/ai/behavior/WrappedPaperAIBehavior.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..dad4726a8d0ed48594a4cdd5de80b8b3d0c2c279
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/ai/behavior/WrappedPaperAIBehavior.java
+@@ -0,0 +1,85 @@
++package de.verdox.mccreativelab.ai.behavior;
++
++import net.minecraft.server.level.ServerLevel;
++import net.minecraft.world.entity.LivingEntity;
++import net.minecraft.world.entity.ai.behavior.Behavior;
++import net.minecraft.world.entity.ai.memory.MemoryModuleType;
++import net.minecraft.world.entity.ai.memory.MemoryStatus;
++import org.bukkit.Bukkit;
++import org.bukkit.craftbukkit.entity.memory.CraftMemoryKey;
++import org.bukkit.entity.memory.MemoryKey;
++import org.jetbrains.annotations.NotNull;
++
++import java.util.HashMap;
++import java.util.Map;
++
++public class WrappedPaperAIBehavior<T extends org.bukkit.entity.LivingEntity> extends Behavior<LivingEntity> {
++    private final CustomAIBehavior<T> paperCustomAIBehaviour;
++
++    public WrappedPaperAIBehavior(CustomAIBehavior<T> paperCustomAIBehaviour) {
++        super(getNMSRequiredMemoryState(paperCustomAIBehaviour.getRequiredMemoryStates()), paperCustomAIBehaviour.getMinDuration(), paperCustomAIBehaviour.getMaxDuration());
++        this.paperCustomAIBehaviour = paperCustomAIBehaviour;
++    }
++
++    @Override
++    public String debugString() {
++        return paperCustomAIBehaviour.getClass().getSimpleName();
++    }
++
++    @Override
++    protected boolean checkExtraStartConditions(@NotNull ServerLevel world, @NotNull LivingEntity entity) {
++        if (!isRightEntityType(entity))
++            return false;
++        org.bukkit.entity.LivingEntity livingEntity = entity.getBukkitLivingEntity();
++        return paperCustomAIBehaviour.checkExtraStartConditions(world.getWorld(), paperCustomAIBehaviour.getEntityType().cast(livingEntity), Bukkit.getCurrentTick());
++    }
++
++    @Override
++    protected void start(@NotNull ServerLevel world, @NotNull LivingEntity entity, long time) {
++        if (!isRightEntityType(entity)) {
++            stop(world, entity, time);
++            return;
++        }
++        org.bukkit.entity.LivingEntity livingEntity = entity.getBukkitLivingEntity();
++        paperCustomAIBehaviour.start(world.getWorld(), paperCustomAIBehaviour.getEntityType().cast(livingEntity), Bukkit.getCurrentTick());
++    }
++
++    @Override
++    protected void stop(@NotNull ServerLevel world, @NotNull LivingEntity entity, long time) {
++        if (!isRightEntityType(entity))
++            return;
++        org.bukkit.entity.LivingEntity livingEntity = entity.getBukkitLivingEntity();
++        paperCustomAIBehaviour.stop(world.getWorld(), paperCustomAIBehaviour.getEntityType().cast(livingEntity), Bukkit.getCurrentTick());
++    }
++
++    @Override
++    protected void tick(@NotNull ServerLevel world, @NotNull LivingEntity entity, long time) {
++        org.bukkit.entity.LivingEntity livingEntity = entity.getBukkitLivingEntity();
++        paperCustomAIBehaviour.tick(world.getWorld(), paperCustomAIBehaviour.getEntityType().cast(livingEntity), Bukkit.getCurrentTick());
++    }
++
++    @Override
++    protected boolean canStillUse(@NotNull ServerLevel world, @NotNull LivingEntity entity, long time) {
++        if (!isRightEntityType(entity))
++            return false;
++        org.bukkit.entity.LivingEntity livingEntity = entity.getBukkitLivingEntity();
++        return paperCustomAIBehaviour.canStillUse(world.getWorld(), paperCustomAIBehaviour.getEntityType().cast(livingEntity), Bukkit.getCurrentTick());
++    }
++
++    private final boolean isRightEntityType(@NotNull LivingEntity livingEntity) {
++        return paperCustomAIBehaviour.getEntityType().isAssignableFrom(livingEntity.getBukkitLivingEntity().getClass());
++    }
++
++    private static Map<MemoryModuleType<?>, MemoryStatus> getNMSRequiredMemoryState(Map<MemoryKey<?>, de.verdox.mccreativelab.ai.MemoryStatus> bukkitRequiredMemoryStates) {
++        Map<MemoryModuleType<?>, MemoryStatus> map = new HashMap<>();
++        bukkitRequiredMemoryStates.forEach((memoryKey, memoryStatus) -> {
++            MemoryStatus nmsMemoryStatus = switch (memoryStatus) {
++                case VALUE_PRESENT -> MemoryStatus.VALUE_PRESENT;
++                case VALUE_ABSENT -> MemoryStatus.VALUE_ABSENT;
++                case REGISTERED -> MemoryStatus.REGISTERED;
++            };
++            map.put(CraftMemoryKey.bukkitToMinecraft(memoryKey), nmsMemoryStatus);
++        });
++        return map;
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/ai/builder/CraftAIFactory.java b/src/main/java/de/verdox/mccreativelab/ai/builder/CraftAIFactory.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..57dc5479ed49bce74f4c556eb1aadf529049c040
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/ai/builder/CraftAIFactory.java
+@@ -0,0 +1,31 @@
++package de.verdox.mccreativelab.ai.builder;
++
++import org.bukkit.EntityActivity;
++import org.bukkit.entity.LivingEntity;
++
++public class CraftAIFactory implements AIFactory {
++
++    private static final BehaviorFactory BEHAVIOR_FACTORY = new CraftBehaviorFactory();
++    private static final GoalFactory GOAL_FACTORY = new CraftGoalFactory();
++    @Override
++    public BehaviorFactory getBehaviorFactory() {
++        return BEHAVIOR_FACTORY;
++    }
++
++    @Override
++    public GoalFactory getGoalFactory() {
++        return GOAL_FACTORY;
++    }
++
++    @Override
++    public <E extends LivingEntity> ActivityBuilder<E> createActivityBuilder(Class<? extends E> type, EntityActivity entityActivity) {
++        return new CraftActivityBuilder<>(entityActivity);
++    }
++
++    @Override
++    public <E extends LivingEntity> WeightedBehaviorsBuilder<E> createWeightedBehaviorsBuilder(Class<? extends E> type) {
++        return new CraftWeightedBehaviorsBuilder<>();
++    }
++
++
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/ai/builder/CraftActivityBuilder.java b/src/main/java/de/verdox/mccreativelab/ai/builder/CraftActivityBuilder.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..e16263942a7691d9a755f5f61d7f77747128998d
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/ai/builder/CraftActivityBuilder.java
+@@ -0,0 +1,82 @@
++package de.verdox.mccreativelab.ai.builder;
++
++import com.mojang.datafixers.util.Pair;
++import de.verdox.mccreativelab.ai.CraftEntityBrain;
++import de.verdox.mccreativelab.ai.behavior.*;
++import net.minecraft.core.registries.Registries;
++import net.minecraft.world.entity.ai.Brain;
++import net.minecraft.world.entity.ai.behavior.Behavior;
++import net.minecraft.world.entity.ai.behavior.BehaviorControl;
++import net.minecraft.world.entity.ai.memory.MemoryModuleType;
++import net.minecraft.world.entity.ai.memory.MemoryStatus;
++import net.minecraft.world.entity.schedule.Activity;
++import org.bukkit.Bukkit;
++import org.bukkit.EntityActivity;
++import org.bukkit.craftbukkit.CraftEntityActivity;
++import org.bukkit.craftbukkit.entity.memory.CraftMemoryKey;
++import org.bukkit.entity.LivingEntity;
++import org.bukkit.entity.memory.MemoryKey;
++
++import java.util.HashSet;
++import java.util.LinkedList;
++import java.util.List;
++import java.util.Set;
++import java.util.function.Consumer;
++import java.util.function.Function;
++
++public class CraftActivityBuilder<E extends LivingEntity> implements ActivityBuilder<E> {
++    public final Activity activity;
++    public final CraftWeightedBehaviorsBuilder<E> craftWeightedBehaviorsBuilder = new CraftWeightedBehaviorsBuilder<>();
++    public final Set<Pair<MemoryModuleType<?>, MemoryStatus>> requiredMemories = new HashSet<>();
++    public final Set<MemoryModuleType<?>> forgettingMemories = new HashSet<>();
++
++    public CraftActivityBuilder(EntityActivity activity) {
++        this.activity = CraftEntityActivity.bukkitToMinecraft(activity, Registries.ACTIVITY);
++    }
++
++    @Override
++    public CraftActivityBuilder<E> withRequiredMemory(MemoryKey<?> requiredMemoryKey, de.verdox.mccreativelab.ai.MemoryStatus memoryStatus) {
++        requiredMemories.add(Pair.of(CraftMemoryKey.bukkitToMinecraft(requiredMemoryKey), CraftEntityBrain.toNMS(memoryStatus)));
++        return this;
++    }
++
++    @Override
++    public CraftActivityBuilder<E> withForgettingMemoriesWhenStopped(MemoryKey<?> forgettingMemoryKey) {
++        forgettingMemories.add(CraftMemoryKey.bukkitToMinecraft(forgettingMemoryKey));
++        return this;
++    }
++
++    @Override
++    public ActivityBuilder<E> withBehaviour(int priority, ControlledBehavior<? super E> controlledBehavior) {
++        craftWeightedBehaviorsBuilder.withBehaviour(priority, controlledBehavior);
++        return this;
++    }
++
++    @Override
++    public ActivityBuilder<E> withBehaviour(int priority, AIBehavior<? super E> aiBehavior) {
++        craftWeightedBehaviorsBuilder.withBehaviour(priority, aiBehavior);
++        return this;
++    }
++
++    @Override
++    public ActivityBuilder<E> withBehaviour(int priority, CustomAIBehavior<? super E> customAIBehavior) {
++        craftWeightedBehaviorsBuilder.withBehaviour(priority, customAIBehavior);
++        return this;
++    }
++
++    @Override
++    public ActivityBuilder<E> withBehaviour(int priority, OneShotBehavior<? super E> oneShotBehavior) {
++        craftWeightedBehaviorsBuilder.withBehaviour(priority, oneShotBehavior);
++        return this;
++    }
++
++    @Override
++    public ActivityBuilder<E> withBehaviour(int priority, Function<BehaviorFactory, ControlledBehavior<? super E>> behaviourCreator) {
++        craftWeightedBehaviorsBuilder.withBehaviour(priority, behaviourCreator);
++        return this;
++    }
++
++    public void addToBrain(Brain<?> brain, boolean replaceCompleteActivity, boolean replaceActivityRequirements, boolean replaceForgettingMemories) {
++        brain.addFromCraftBuilder(this, replaceCompleteActivity, replaceActivityRequirements, replaceForgettingMemories);
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/ai/builder/CraftBehaviorFactory.java b/src/main/java/de/verdox/mccreativelab/ai/builder/CraftBehaviorFactory.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..2683b9f75587c1d5c27335e819e724c34b780a44
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/ai/builder/CraftBehaviorFactory.java
+@@ -0,0 +1,576 @@
++package de.verdox.mccreativelab.ai.builder;
++
++import com.destroystokyo.paper.entity.RangedEntity;
++import com.mojang.datafixers.util.Pair;
++import de.verdox.mccreativelab.ai.behavior.*;
++import io.papermc.paper.adventure.PaperAdventure;
++import net.kyori.adventure.sound.Sound;
++import net.minecraft.core.GlobalPos;
++import net.minecraft.core.Holder;
++import net.minecraft.core.registries.BuiltInRegistries;
++import net.minecraft.core.registries.Registries;
++import net.minecraft.resources.ResourceLocation;
++import net.minecraft.tags.TagKey;
++import net.minecraft.util.valueproviders.UniformInt;
++import net.minecraft.world.entity.PathfinderMob;
++import net.minecraft.world.entity.ai.behavior.*;
++import net.minecraft.world.entity.ai.behavior.declarative.BehaviorBuilder;
++import net.minecraft.world.entity.ai.behavior.declarative.Trigger;
++import net.minecraft.world.entity.ai.memory.MemoryModuleType;
++import net.minecraft.world.entity.ai.memory.MemoryStatus;
++import net.minecraft.world.entity.animal.Animal;
++import net.minecraft.world.level.block.Block;
++import org.bukkit.*;
++import org.bukkit.craftbukkit.CraftPoiType;
++import org.bukkit.craftbukkit.entity.CraftEntityType;
++import org.bukkit.craftbukkit.entity.CraftLivingEntity;
++import org.bukkit.craftbukkit.entity.memory.CraftMemoryKey;
++import org.bukkit.craftbukkit.tag.CraftBlockTag;
++import org.bukkit.craftbukkit.util.CraftMagicNumbers;
++import org.bukkit.craftbukkit.util.CraftNamespacedKey;
++import org.bukkit.entity.*;
++import org.bukkit.entity.memory.MemoryKey;
++
++import java.util.*;
++import java.util.function.*;
++import java.util.stream.Collectors;
++
++public class CraftBehaviorFactory implements BehaviorFactory {
++
++    private static GateBehavior.OrderPolicy toNMS(GateOrderPolicy orderPolicy) {
++        return switch (orderPolicy) {
++            case ORDERED -> GateBehavior.OrderPolicy.ORDERED;
++            case SHUFFLED -> GateBehavior.OrderPolicy.SHUFFLED;
++        };
++    }
++
++    private static GateBehavior.RunningPolicy toNMS(GateRunningPolicy runningPolicy) {
++        return switch (runningPolicy) {
++            case RUN_ONE -> GateBehavior.RunningPolicy.RUN_ONE;
++            case TRY_ALL -> GateBehavior.RunningPolicy.TRY_ALL;
++        };
++    }
++
++    private static <E extends LivingEntity> AIBehavior<E> asBehavior(Behavior<? extends net.minecraft.world.entity.LivingEntity> behaviour) {
++        return new CraftAIBehavior<>(behaviour);
++    }
++
++    private static <E extends LivingEntity> OneShotBehavior<E> asOneshot(OneShot<? extends net.minecraft.world.entity.LivingEntity> behaviour) {
++        return new CraftOneShotBehavior<>(behaviour);
++    }
++
++    private static <E extends LivingEntity> OneShotBehavior<E> asOneshot(BehaviorControl<? extends net.minecraft.world.entity.LivingEntity> behaviour) {
++        return new CraftOneShotBehavior<>((OneShot<?>) behaviour);
++    }
++
++    private static <E extends LivingEntity> ControlledBehavior<E> asControlledBehaviour(BehaviorControl<? extends net.minecraft.world.entity.LivingEntity> behaviorControl) {
++        return new CraftControlledBehavior<>(behaviorControl);
++    }
++
++    @Override
++    public OneShotBehavior<Mob> acquirePOI(Predicate<PoiType> poiTypePredicate, MemoryKey<Location> poiPosModule, MemoryKey<Location> potentialPoiPosModule, boolean onlyRunIfChild, boolean entityEvent) {
++        Predicate<Holder<net.minecraft.world.entity.ai.village.poi.PoiType>> poiPredicate = poiTypeHolder -> poiTypePredicate.test(CraftPoiType.minecraftToBukkit(poiTypeHolder.value()));
++        MemoryModuleType<GlobalPos> poiPosModuleNMS = CraftMemoryKey.bukkitToMinecraft(poiPosModule);
++        MemoryModuleType<GlobalPos> potentialPoiPosModuleNMS = CraftMemoryKey.bukkitToMinecraft(potentialPoiPosModule);
++
++        return new CraftOneShotBehavior<>((OneShot<PathfinderMob>) AcquirePoi.create(poiPredicate, poiPosModuleNMS, potentialPoiPosModuleNMS, onlyRunIfChild, entityEvent ? Optional.of((byte) 14) : Optional.empty()));
++    }
++
++    @Override
++    public AIBehavior<Animals> animalMakeLove(EntityType targetType, float speed, int approachDistance) {
++        if (!Animals.class.isAssignableFrom(targetType.getEntityClass()))
++            throw new IllegalArgumentException("Please provide an Animal EntityType");
++        return asBehavior(new AnimalMakeLove((net.minecraft.world.entity.EntityType<? extends Animal>) CraftEntityType.bukkitToMinecraft(targetType), speed, approachDistance));
++    }
++
++    @Override
++    public AIBehavior<Mob> animalPanic(float speed, Predicate<Mob> panicPredicate) {
++        return asBehavior(new AnimalPanic<>(speed, pathfinderMob -> panicPredicate.test(pathfinderMob.getBukkitCreature())));
++    }
++
++    @Override
++    public OneShotBehavior<Villager> assignProfessionFromJobSite() {
++        return asOneshot(AssignProfessionFromJobSite.create());
++    }
++
++    @Override
++    public OneShotBehavior<Ageable> babyFollowAdult(int minRange, int maxRange, float speed) {
++        return asOneshot(BabyFollowAdult.create(UniformInt.of(minRange, maxRange), speed));
++    }
++
++    @Override
++    public OneShotBehavior<Mob> backupIfTooClose(int distance, float forwardMovement) {
++        return asOneshot(BackUpIfTooClose.create(distance, forwardMovement));
++    }
++
++    @Override
++    public OneShotBehavior<LivingEntity> becomePassiveIfMemoryPresent(MemoryKey<?> requiredMemory, int duration) {
++        return asOneshot(BecomePassiveIfMemoryPresent.create(CraftMemoryKey.bukkitToMinecraft(requiredMemory), duration));
++    }
++
++    @Override
++    public AIBehavior<Villager> celebrateVillagersSurviveRaid(int minRuntime, int maxRunTime) {
++        return asBehavior(new CelebrateVillagersSurvivedRaid(minRuntime, maxRunTime));
++    }
++
++    @Override
++    public <T> OneShotBehavior<LivingEntity> copyMemoryWithExpiry(Predicate<LivingEntity> runPredicate, MemoryKey<T> sourceType, MemoryKey<T> targetType, int minExpiry, int maxExpiry) {
++        return asOneshot(CopyMemoryWithExpiry.create(livingEntity -> runPredicate.test(livingEntity.getBukkitLivingEntity()), CraftMemoryKey.bukkitToMinecraft(sourceType), CraftMemoryKey.bukkitToMinecraft(targetType), UniformInt.of(minExpiry, maxExpiry)));
++    }
++
++    @Override
++    public AIBehavior<LivingEntity> countDownCooldownTicks(MemoryKey<Integer> moduleType) {
++        return asBehavior(new CountDownCooldownTicks(CraftMemoryKey.bukkitToMinecraft(moduleType)));
++    }
++
++    @Override
++    public AIBehavior<Frog> croak() {
++        return asBehavior(new Croak());
++    }
++
++    @Override
++    public AIBehavior<RangedEntity> crossbowAttack() {
++        return asBehavior(new CrossbowAttack<>());
++    }
++
++    @Override
++    public OneShotBehavior<LivingEntity> dismountOrSkipMounting(int range, BiPredicate<LivingEntity, Entity> alternativeRideCondition) {
++        return asOneshot(DismountOrSkipMounting.create(range, (livingEntity, entity) -> alternativeRideCondition.test(livingEntity.getBukkitLivingEntity(), entity.getBukkitEntity())));
++    }
++
++    @Override
++    public ControlledBehavior<LivingEntity> doNothing(int minRuntime, int maxRunTime) {
++        return asControlledBehaviour(new DoNothing(minRuntime, maxRunTime));
++    }
++
++    @Override
++    public OneShotBehavior<LivingEntity> eraseMemoryIf(Predicate<LivingEntity> condition, MemoryKey<?> memory) {
++        return asOneshot(EraseMemoryIf.create(livingEntity -> condition.test(livingEntity.getBukkitLivingEntity()), CraftMemoryKey.bukkitToMinecraft(memory)));
++    }
++
++    @Override
++    public AIBehavior<Mob> followTemptation(Function<LivingEntity, Float> speed, Function<LivingEntity, Double> stopDistanceGetter) {
++        return asBehavior(new FollowTemptation(livingEntity -> speed.apply(livingEntity.getBukkitLivingEntity()), livingEntity -> stopDistanceGetter.apply(livingEntity.getBukkitLivingEntity())));
++    }
++
++    @Override
++    public <T extends LivingEntity> ControlledBehavior<T> gateBehaviour(Consumer<ActivityBuilder<T>> activityBuilder, GateOrderPolicy gateOrderPolicy, GateRunningPolicy gateRunningPolicy) {
++
++        CraftActivityBuilder<LivingEntity> gateActivityBuilder = (CraftActivityBuilder<LivingEntity>) Bukkit.getAIFactory().createActivityBuilder(LivingEntity.class, EntityActivity.CORE);
++        activityBuilder.accept((ActivityBuilder<T>) gateActivityBuilder);
++
++        Map<MemoryModuleType<?>, MemoryStatus> requiredMemoryState = gateActivityBuilder.requiredMemories.stream().map(memoryModuleTypeMemoryStatusPair -> Map.entry(memoryModuleTypeMemoryStatusPair.getFirst(), memoryModuleTypeMemoryStatusPair.getSecond())).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
++
++        List<com.mojang.datafixers.util.Pair<? extends BehaviorControl<? super net.minecraft.world.entity.LivingEntity>, Integer>> tasks = new LinkedList<>();
++
++        for (com.mojang.datafixers.util.Pair<Integer, BehaviorControl<? extends net.minecraft.world.entity.LivingEntity>> behaviour : gateActivityBuilder.craftWeightedBehaviorsBuilder.behaviours) {
++            BehaviorControl<? super net.minecraft.world.entity.LivingEntity> behaviorControl = (BehaviorControl<? super net.minecraft.world.entity.LivingEntity>) behaviour.getSecond();
++
++            tasks.add(com.mojang.datafixers.util.Pair.of(behaviorControl, behaviour.getFirst()));
++        }
++
++        return asControlledBehaviour(new GateBehavior<>(requiredMemoryState, gateActivityBuilder.forgettingMemories, toNMS(gateOrderPolicy), toNMS(gateRunningPolicy), tasks));
++    }
++
++    @Override
++    public AIBehavior<Villager> giveGiftToHero(int delay) {
++        return asBehavior(new GiveGiftToHero(delay));
++    }
++
++    @Override
++    public OneShotBehavior<Villager> goToClosestVillage(float speed, int completionRange) {
++        return asOneshot(GoToClosestVillage.create(speed, completionRange));
++    }
++
++    @Override
++    public AIBehavior<Villager> goToPotentialJobSite(float speed) {
++        return asBehavior(new GoToPotentialJobSite(speed));
++    }
++
++    @Override
++    public OneShotBehavior<Mob> goToTargetLocation(MemoryKey<Location> posModule, int completionRange, float speed) {
++        return asOneshot(GoToTargetLocation.create(CraftMemoryKey.bukkitToMinecraft(posModule), completionRange, speed));
++    }
++
++    @Override
++    public OneShotBehavior<LivingEntity> goToWantedItem(Predicate<LivingEntity> startCondition, float speed, boolean requiresWalkTarget, int radius) {
++        return asOneshot(GoToWantedItem.create(livingEntity -> startCondition.test(livingEntity.getBukkitLivingEntity()),speed, requiresWalkTarget, radius));
++    }
++
++    @Override
++    public AIBehavior<Villager> harvestFarmland() {
++        return asBehavior(new HarvestFarmland());
++    }
++
++    @Override
++    public OneShotBehavior<Mob> insideBrownianWalk(float speed) {
++        return asOneshot(InsideBrownianWalk.create(speed));
++    }
++
++    @Override
++    public OneShotBehavior<LivingEntity> interactWith(EntityType entityType, int maxDistance, Predicate<LivingEntity> interactorPredicate, Predicate<Entity> targetPredicate, MemoryKey<Entity> memoryKey, float speed, int completionRange) {
++        if (!LivingEntity.class.isAssignableFrom(entityType.getEntityClass()))
++            throw new IllegalArgumentException(entityType + " is not a living entity type");
++
++        net.minecraft.world.entity.EntityType<net.minecraft.world.entity.LivingEntity> nmsType = (net.minecraft.world.entity.EntityType<net.minecraft.world.entity.LivingEntity>) CraftEntityType.bukkitToMinecraft(entityType);
++
++        return asOneshot(
++            InteractWith.of(nmsType,
++                maxDistance, entity -> interactorPredicate.test(entity.getBukkitLivingEntity()),
++                entity -> targetPredicate.test(entity.getBukkitEntity()),
++                CraftMemoryKey.bukkitToMinecraft(memoryKey),
++                speed,
++                completionRange));
++    }
++
++    @Override
++    public OneShotBehavior<LivingEntity> interactWithDoor() {
++        return asOneshot(InteractWithDoor.create());
++    }
++
++    @Override
++    public AIBehavior<Mob> jumpOnBed(float walkSpeed) {
++        return asBehavior(new JumpOnBed(walkSpeed));
++    }
++
++    @Override
++    public OneShotBehavior<LivingEntity> locateHidingPlace(int maxDistance, float walkSpeed, int preferredDistance) {
++        return asOneshot(LocateHidingPlace.create(maxDistance, walkSpeed, preferredDistance));
++    }
++
++    @Override
++    public AIBehavior<Mob> longJumpMidJump(int minCooldownRange, int maxCooldownRange, Sound.Type soundType) {
++        return asBehavior(new LongJumpMidJump(UniformInt.of(minCooldownRange, maxCooldownRange), BuiltInRegistries.SOUND_EVENT.get(PaperAdventure.asVanilla(soundType.key()))));
++    }
++
++    @Override
++    public AIBehavior<Mob> longJumpToPreferredBlock(int minCooldownRange, int maxCooldownRange, int verticalRange, int horizontalRange, float maxRange, Sound.Type jumpSound, Tag<Material> favoredBlocks, float biasChance, BiPredicate<Mob, Location> jumpToPredicate) {
++
++        if (!(favoredBlocks instanceof CraftBlockTag craftBlockTag))
++            throw new IllegalArgumentException("Please provide a Block tag");
++
++        ResourceLocation key = CraftNamespacedKey.toMinecraft(craftBlockTag.getKey());
++        TagKey<Block> blockTagKey = TagKey.create(Registries.BLOCK, key);
++
++        return asBehavior(new LongJumpToPreferredBlock<>(UniformInt.of(minCooldownRange, maxCooldownRange), verticalRange, horizontalRange, maxRange, mob -> BuiltInRegistries.SOUND_EVENT.get(PaperAdventure.asVanilla(jumpSound.key())), blockTagKey, biasChance, (mob, pos) -> jumpToPredicate.test(mob.getBukkitMob(), new Location(mob
++            .getBukkitEntity().getWorld(), pos.getX(), pos.getY(), pos.getZ()))));
++    }
++
++    @Override
++    public AIBehavior<Mob> longJumpToRandomBlock(int minCooldownRange, int maxCooldownRange, int verticalRange, int horizontalRange, float maxRange, Sound.Type jumpSound) {
++        return asBehavior(new LongJumpToRandomPos<>(UniformInt.of(minCooldownRange, maxCooldownRange), verticalRange, horizontalRange, maxRange, mob -> BuiltInRegistries.SOUND_EVENT.get(PaperAdventure.asVanilla(jumpSound.key()))));
++    }
++
++    @Override
++    public AIBehavior<Villager> lookAndFollowTradingPlayerSink(float speed) {
++        return asBehavior(new LookAndFollowTradingPlayerSink(speed));
++    }
++
++    @Override
++    public AIBehavior<Mob> lookAtTargetSink(int minRunTime, int maxRunTime) {
++        return asBehavior(new LookAtTargetSink(minRunTime, maxRunTime));
++    }
++
++    @Override
++    public OneShotBehavior<Mob> meleeAttack(int cooldown) {
++        return asOneshot(MeleeAttack.create(cooldown));
++    }
++
++    @Override
++    public OneShotBehavior<LivingEntity> mount(float speed) {
++        return asOneshot(Mount.create(speed));
++    }
++
++    @Override
++    public OneShotBehavior<LivingEntity> moveToSkySeeingSpot(float speed) {
++        return asOneshot(MoveToSkySeeingSpot.create(speed));
++    }
++
++    @Override
++    public AIBehavior<Mob> moveToTargetSink(int minRunTime, int maxRunTime) {
++        return asBehavior(new MoveToTargetSink(minRunTime, maxRunTime));
++    }
++
++    @Override
++    public OneShotBehavior<Mob> playTagWithOtherKids() {
++        return asOneshot(PlayTagWithOtherKids.create());
++    }
++
++    @Override
++    public OneShotBehavior<Villager> poiCompetitorScan() {
++        return asOneshot(PoiCompetitorScan.create());
++    }
++
++    @Override
++    public AIBehavior<Mob> randomLookAround(int minCooldownRange, int maxCooldownRange, float maxYaw, float minPitch, float maxPitch) {
++        return asBehavior(new RandomLookAround(UniformInt.of(minCooldownRange, maxCooldownRange), maxYaw, minPitch, maxPitch));
++    }
++
++    @Override
++    public OneShotBehavior<Mob> randomStroll(float speed, boolean strollInsideWater) {
++        return asOneshot(RandomStroll.stroll(speed, strollInsideWater));
++    }
++
++    @Override
++    public OneShotBehavior<Mob> randomStroll(float speed, int horizontalRadius, int verticalRadius) {
++        return asOneshot(RandomStroll.stroll(speed, horizontalRadius, verticalRadius));
++    }
++
++    @Override
++    public OneShotBehavior<Mob> randomFlyStroll(float speed) {
++        return asOneshot(RandomStroll.fly(speed));
++    }
++
++    @Override
++    public OneShotBehavior<Mob> randomSwimStroll(float speed) {
++        return asOneshot(RandomStroll.swim(speed));
++    }
++
++    @Override
++    public OneShotBehavior<Villager> reactToBell() {
++        return asOneshot(ReactToBell.create());
++    }
++
++    @Override
++    public OneShotBehavior<Villager> resetProfession() {
++        return asOneshot(ResetProfession.create());
++    }
++
++    @Override
++    public OneShotBehavior<Villager> resetRaidStatus() {
++        return asOneshot(ResetRaidStatus.create());
++    }
++
++    @Override
++    public OneShotBehavior<Villager> ringBell() {
++        return asOneshot(RingBell.create());
++    }
++
++    @Override
++    public OneShotBehavior<Villager> setCloseHomeAsWalkTarget(float speed) {
++        return asOneshot(SetClosestHomeAsWalkTarget.create(speed));
++    }
++
++    @Override
++    public OneShotBehavior<LivingEntity> setEntityLookTarget(Predicate<LivingEntity> predicate, float maxDistance) {
++        return asOneshot(SetEntityLookTarget.create(livingEntity -> predicate.test(livingEntity.getBukkitLivingEntity()), maxDistance));
++    }
++
++    @Override
++    public OneShotBehavior<Villager> setHiddenState(int maxHiddenSeconds, int distance) {
++        return asOneshot(SetHiddenState.create(maxHiddenSeconds, distance));
++    }
++
++    @Override
++    public OneShotBehavior<LivingEntity> setLookAndInteract(EntityType entityType, int maxDistance) {
++        return asOneshot(SetLookAndInteract.create(CraftEntityType.bukkitToMinecraft(entityType), maxDistance));
++    }
++
++    @Override
++    public OneShotBehavior<LivingEntity> setRaidStatus() {
++        return asOneshot(SetRaidStatus.create());
++    }
++
++    @Override
++    public OneShotBehavior<Mob> setWalkTargetAwayFromPos(MemoryKey<Location> memoryKey, float speed, int range, boolean requiresWalkTarget) {
++        return asOneshot(SetWalkTargetAwayFrom.pos(CraftMemoryKey.bukkitToMinecraft(memoryKey), speed, range, requiresWalkTarget));
++    }
++
++    @Override
++    public OneShotBehavior<Mob> setWalkTargetAwayFromEntity(MemoryKey<Entity> memoryKey, float speed, int range, boolean requiresWalkTarget) {
++        return asOneshot(SetWalkTargetAwayFrom.entity(CraftMemoryKey.bukkitToMinecraft(memoryKey), speed, range, requiresWalkTarget));
++    }
++
++    @Override
++    public OneShotBehavior<Mob> setWalkTargetFromAttackTargetIfTargetOutOfReach(Function<LivingEntity, Float> speed) {
++        return asOneshot(SetWalkTargetFromAttackTargetIfTargetOutOfReach.create(livingEntity -> speed.apply(livingEntity.getBukkitLivingEntity())));
++    }
++
++    @Override
++    public OneShotBehavior<Mob> setWalkTargetFromBlockMemory(MemoryKey<Location> blockMemoryKey, float speed, int completionRange, int maxDistance, int maxRunTime) {
++        return asOneshot(SetWalkTargetFromBlockMemory.create(CraftMemoryKey.bukkitToMinecraft(blockMemoryKey), speed, completionRange, maxDistance, maxRunTime));
++    }
++
++    @Override
++    public OneShotBehavior<Mob> setWalkTargetFromLookTarget(Predicate<LivingEntity> predicate, Function<LivingEntity, Float> speed, int completionRange) {
++        return asOneshot(SetWalkTargetFromLookTarget.create(livingEntity -> predicate.test(livingEntity.getBukkitLivingEntity()), livingEntity -> speed.apply(livingEntity.getBukkitLivingEntity()), completionRange));
++    }
++
++    @Override
++    public AIBehavior<Villager> showTradesToPlayer(int minRunTime, int maxRunTime) {
++        return asBehavior(new ShowTradesToPlayer(minRunTime, maxRunTime));
++    }
++
++    @Override
++    public AIBehavior<Villager> sleepInBed() {
++        return asBehavior(new SleepInBed());
++    }
++
++    @Override
++    public OneShotBehavior<Villager> socializeAtBell() {
++        return asOneshot(SocializeAtBell.create());
++    }
++
++    @Override
++    public OneShotBehavior<Mob> startAttacking(Function<Mob, LivingEntity> targetGetter) {
++        return asOneshot(StartAttacking.create(mob -> {
++            var entity = targetGetter.apply(mob.getBukkitMob());
++            if(entity == null)
++                return Optional.empty();
++            else
++                return Optional.of(((CraftLivingEntity) entity).getHandle());
++        }));
++    }
++
++    @Override
++    public OneShotBehavior<Piglin> startCelebratingIfTargetDead(int celebrationDuration, BiPredicate<LivingEntity, LivingEntity> predicate) {
++        return asOneshot(StartCelebratingIfTargetDead.create(celebrationDuration, (livingEntity, livingEntity2) -> predicate.test(livingEntity.getBukkitLivingEntity(), livingEntity2.getBukkitLivingEntity())));
++    }
++
++    @Override
++    public AIBehavior<Mob> stopAttackingIfTargetInvalid(Predicate<LivingEntity> alternativeCondition, BiConsumer<Mob, LivingEntity> forgetCallback, boolean shouldForgetIfTargetUnreachable) {
++        return asBehavior((Behavior<? extends net.minecraft.world.entity.LivingEntity>) StopAttackingIfTargetInvalid.create(livingEntity ->
++            alternativeCondition.test(livingEntity.getBukkitLivingEntity()), (mob, livingEntity) -> {
++            forgetCallback.accept(mob.getBukkitMob(), livingEntity.getBukkitLivingEntity());
++        }, shouldForgetIfTargetUnreachable));
++    }
++
++    @Override
++    public OneShotBehavior<Mob> stopBeingAngryIfTargetDead() {
++        return asOneshot(StopBeingAngryIfTargetDead.create());
++    }
++
++    @Override
++    public OneShotBehavior<Mob> strollAroundPoi(MemoryKey<Location> posMemory, float walkSpeed, int maxDistance) {
++        return asOneshot(StrollAroundPoi.create(CraftMemoryKey.bukkitToMinecraft(posMemory), walkSpeed, maxDistance));
++    }
++
++    @Override
++    public OneShotBehavior<Mob> strollToPoi(MemoryKey<Location> posMemory, float walkSpeed, int completionRange, int maxDistance) {
++        return asOneshot(StrollToPoi.create(CraftMemoryKey.bukkitToMinecraft(posMemory), walkSpeed, completionRange, maxDistance));
++    }
++
++    @Override
++    public OneShotBehavior<Mob> strollToPoiList(MemoryKey<List<Location>> posMemory, float walkSpeed, int completionRange, int primaryPositionActivationDistance, MemoryKey<Location> primaryPosition) {
++        return asOneshot(StrollToPoiList.create(CraftMemoryKey.bukkitToMinecraft(posMemory), walkSpeed, completionRange, primaryPositionActivationDistance, CraftMemoryKey.bukkitToMinecraft(primaryPosition)));
++    }
++
++    @Override
++    public AIBehavior<Mob> swim(float chance) {
++        return asBehavior(new Swim(chance));
++    }
++
++    @Override
++    public AIBehavior<Villager> tradeWithVillager() {
++        return asBehavior(new TradeWithVillager());
++    }
++
++    @Override
++    public <T extends LivingEntity> OneShotBehavior<T> triggerGate(Consumer<WeightedBehaviorsBuilder<T>> weightedTasks, GateOrderPolicy order, GateRunningPolicy runMode) {
++        CraftWeightedBehaviorsBuilder<T> craftWeightedBehaviorsBuilder = new CraftWeightedBehaviorsBuilder<>();
++        weightedTasks.accept(craftWeightedBehaviorsBuilder);
++        List<Pair<? extends Trigger<? super net.minecraft.world.entity.LivingEntity>, Integer>> tasks = new LinkedList<>();
++
++        for (Pair<Integer, BehaviorControl<? extends net.minecraft.world.entity.LivingEntity>> behaviour : craftWeightedBehaviorsBuilder.behaviours) {
++            int priority = behaviour.getFirst();
++            Trigger<? super net.minecraft.world.entity.LivingEntity> trigger = (Trigger<? super net.minecraft.world.entity.LivingEntity>) behaviour.getSecond();
++            tasks.add(Pair.of(trigger, priority));
++        }
++        return asOneshot(TriggerGate.triggerGate(tasks, toNMS(order), toNMS(runMode)));
++    }
++
++    @Override
++    public <T extends LivingEntity> OneShotBehavior<T> sequence(OneShotBehavior<T> predicateBehavior, OneShotBehavior<T> task) {
++        return asOneshot(BehaviorBuilder.sequence((Trigger<? super net.minecraft.world.entity.LivingEntity>) ((CraftOneShotBehavior<T>) predicateBehavior).getHandle(), (Trigger<? super net.minecraft.world.entity.LivingEntity>) ((CraftOneShotBehavior<T>) task).getHandle()));
++    }
++
++    @Override
++    public <T extends LivingEntity> OneShotBehavior<T> triggerIf(Predicate<T> predicate, OneShotBehavior<T> task) {
++        return asOneshot(BehaviorBuilder.triggerIf(e -> predicate.test((T) e.getBukkitLivingEntity()), ((CraftOneShotBehavior<T>) task).getHandle()));
++    }
++
++    @Override
++    public <T extends LivingEntity> OneShotBehavior<T> triggerIf(Predicate<T> predicate) {
++        return asOneshot(BehaviorBuilder.triggerIf(e -> predicate.test((T) e.getBukkitLivingEntity())));
++    }
++
++    @Override
++    public <T extends LivingEntity> OneShotBehavior<T> triggerIf(BiPredicate<World, T> predicate) {
++        return asOneshot(BehaviorBuilder.triggerIf((serverLevel, e) -> predicate.test(serverLevel.getWorld(), (T) e.getBukkitLivingEntity())));
++    }
++
++    @Override
++    public OneShotBehavior<Mob> tryFindLand(int range, float speed) {
++        return asOneshot(TryFindLand.create(range, speed));
++    }
++
++    @Override
++    public OneShotBehavior<Mob> tryFindLandNearWater(int range, float speed) {
++        return asOneshot(TryFindLandNearWater.create(range, speed));
++    }
++
++    @Override
++    public OneShotBehavior<Mob> tryFindWater(int range, float speed) {
++        return asOneshot(TryFindWater.create(range, speed));
++    }
++
++    @Override
++    public OneShotBehavior<Frog> tryLaySpawnOnWaterNearLand(Material spawn) {
++        return asOneshot(TryLaySpawnOnWaterNearLand.create(CraftMagicNumbers.getBlock(spawn)));
++    }
++
++    @Override
++    public OneShotBehavior<Mob> updateActivityFromSchedule() {
++        return asOneshot(UpdateActivityFromSchedule.create());
++    }
++
++    @Override
++    public AIBehavior<Villager> useBonemeal() {
++        return asBehavior(new UseBonemeal());
++    }
++
++    @Override
++    public OneShotBehavior<Villager> validateNearbyPoi(Predicate<PoiType> poiTypePredicate, MemoryKey<Location> poiMemory) {
++        return asOneshot(ValidateNearbyPoi.create(poiTypeHolder -> poiTypePredicate.test(CraftPoiType.minecraftToBukkit(poiTypeHolder.value())), CraftMemoryKey.bukkitToMinecraft(poiMemory)));
++    }
++
++    @Override
++    public OneShotBehavior<Villager> villageBoundRandomStroll(float walkSpeed, int horizontalRange, int verticalRange) {
++        return asOneshot(VillageBoundRandomStroll.create(walkSpeed, horizontalRange, verticalRange));
++    }
++
++    @Override
++    public OneShotBehavior<Villager> villagerCalmDown() {
++        return asOneshot(VillagerCalmDown.create());
++    }
++
++    @Override
++    public AIBehavior<Villager> villagerMakeLove() {
++        return asBehavior(new VillagerMakeLove());
++    }
++
++    @Override
++    public AIBehavior<Villager> villagerPanicTrigger() {
++        return asBehavior(new VillagerPanicTrigger());
++    }
++
++    @Override
++    public OneShotBehavior<Villager> wakeUp() {
++        return asOneshot(WakeUp.create());
++    }
++
++    @Override
++    public AIBehavior<Villager> workAtComposter() {
++        return asBehavior(new WorkAtComposter());
++    }
++
++    @Override
++    public AIBehavior<Villager> workAtPoi() {
++        return asBehavior(new WorkAtPoi());
++    }
++
++    @Override
++    public OneShotBehavior<Villager> yieldJobSite(float speed) {
++        return asOneshot(YieldJobSite.create(speed));
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/ai/builder/CraftGoalFactory.java b/src/main/java/de/verdox/mccreativelab/ai/builder/CraftGoalFactory.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..7110abaac95d29e5ec2ec446de56c7d02c54ba7e
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/ai/builder/CraftGoalFactory.java
+@@ -0,0 +1,339 @@
++package de.verdox.mccreativelab.ai.builder;
++
++import com.destroystokyo.paper.entity.RangedEntity;
++import com.destroystokyo.paper.entity.ai.VanillaGoal;
++import de.verdox.mccreativelab.random.VanillaRandomSource;
++import io.papermc.paper.adventure.PaperAdventure;
++import net.kyori.adventure.sound.Sound;
++import net.minecraft.core.registries.BuiltInRegistries;
++import net.minecraft.server.level.ServerLevel;
++import net.minecraft.world.entity.PathfinderMob;
++import net.minecraft.world.entity.TamableAnimal;
++import net.minecraft.world.entity.ai.goal.*;
++import net.minecraft.world.entity.animal.AbstractSchoolingFish;
++import net.minecraft.world.entity.animal.Animal;
++import net.minecraft.world.entity.animal.ShoulderRidingEntity;
++import net.minecraft.world.entity.monster.CrossbowAttackMob;
++import net.minecraft.world.entity.monster.RangedAttackMob;
++import org.bukkit.Difficulty;
++import org.bukkit.Material;
++import org.bukkit.World;
++import net.minecraft.world.entity.player.Player;
++import org.bukkit.block.BlockState;
++import org.bukkit.craftbukkit.CraftRegionAccessor;
++import org.bukkit.craftbukkit.CraftWorld;
++import org.bukkit.craftbukkit.entity.CraftEntity;
++import org.bukkit.craftbukkit.entity.CraftMob;
++import org.bukkit.craftbukkit.inventory.CraftItemStack;
++import org.bukkit.craftbukkit.inventory.CraftRecipe;
++import org.bukkit.craftbukkit.util.CraftMagicNumbers;
++import org.bukkit.entity.*;
++import org.bukkit.inventory.ItemStack;
++import org.bukkit.inventory.RecipeChoice;
++
++import java.util.function.BooleanSupplier;
++import java.util.function.Function;
++import java.util.function.Predicate;
++
++public class CraftGoalFactory implements GoalFactory {
++    @Override
++    public VanillaGoal<Mob> avoidEntity(Mob mob, EntityType entityType, Predicate<LivingEntity> extraInclusionPredicate, float distance, double slowSpeed, double fastSpeed, Predicate<LivingEntity> inclusionSelector) {
++        return asGoal(new AvoidEntityGoal<>(toNms(mob), toNms(mob.getWorld(), entityType), toNms(extraInclusionPredicate), distance, slowSpeed, fastSpeed, toNms(inclusionSelector)));
++    }
++
++    @Override
++    public VanillaGoal<Wolf> beg(Wolf wolf, float begDistance) {
++        return asGoal(new BegGoal((net.minecraft.world.entity.animal.Wolf) toNms(wolf), begDistance));
++    }
++
++    @Override
++    public VanillaGoal<Mob> breakDoor(Mob mob, Predicate<Difficulty> difficultySufficientPredicate) {
++        return asGoal(new BreakDoorGoal(toNms(mob), toNmsDifficultyPredicate(difficultySufficientPredicate)));
++    }
++
++    @Override
++    public VanillaGoal<Mob> breathAir(Mob mob) {
++        return asGoal(new BreathAirGoal(toNms(mob)));
++    }
++
++    @Override
++    public VanillaGoal<Animals> breed(Animals animal, double speed, EntityType breedTarget) {
++        return asGoal(new BreedGoal((Animal) toNms(animal), speed, (Class<? extends Animal>) toNms(animal.getWorld(), breedTarget)));
++    }
++
++    @Override
++    public VanillaGoal<Cat> catLieOnBed(Cat cat, double speed, int range) {
++        return asGoal(new CatLieOnBedGoal((net.minecraft.world.entity.animal.Cat) toNms(cat), speed, range));
++    }
++
++    @Override
++    public VanillaGoal<Cat> catSitOnBlock(Cat cat, double speed) {
++        return asGoal(new CatSitOnBlockGoal((net.minecraft.world.entity.animal.Cat) toNms(cat), speed));
++    }
++
++    @Override
++    public VanillaGoal<Mob> climbOnTopOfPowderSnow(Mob mob, World world) {
++        return asGoal(new ClimbOnTopOfPowderSnowGoal(toNms(mob), toNms(world)));
++    }
++
++    @Override
++    public VanillaGoal<Dolphin> dolphinJump(Dolphin dolphin, int chance) {
++        return asGoal(new DolphinJumpGoal((net.minecraft.world.entity.animal.Dolphin) toNms(dolphin), chance));
++    }
++
++    @Override
++    public VanillaGoal<Mob> eatBlock(Mob mob, Function<VanillaRandomSource, Boolean> chanceToEat, Predicate<BlockState> predicate) {
++        return asGoal(new EatBlockGoal(toNms(mob), chanceToEat, predicate));
++    }
++
++    @Override
++    public VanillaGoal<Mob> fleeSun(Mob mob, double speed) {
++        return asGoal(new FleeSunGoal(toNms(mob), speed));
++    }
++
++    @Override
++    public VanillaGoal<Mob> floatOnWater(Mob mob) {
++        return asGoal(new FloatGoal(toNms(mob)));
++    }
++
++    @Override
++    public VanillaGoal<Mob> followBoat(Mob mob) {
++        return asGoal(new FollowBoatGoal(toNms(mob)));
++    }
++
++    @Override
++    public VanillaGoal<Fish> followFlockLeader(Fish fish) {
++        return asGoal(new FollowFlockLeaderGoal((AbstractSchoolingFish) toNms(fish)));
++    }
++
++    @Override
++    public VanillaGoal<Fish> followMob(Mob mob, double speed, float minDistance, float maxDistance, Predicate<Mob> followPredicate) {
++        return asGoal(new FollowMobGoal(toNms(mob), speed, minDistance, maxDistance, toNMSMobPredicate(followPredicate)));
++    }
++
++    @Override
++    public VanillaGoal<Tameable> followOwner(Tameable tameable, double speed, float minDistance, float maxDistance, boolean leavesAllowed) {
++        return asGoal(new FollowOwnerGoal((TamableAnimal) toNms(tameable), speed, minDistance, maxDistance, leavesAllowed));
++    }
++
++    @Override
++    public VanillaGoal<Animals> followParent(Animals animal, double speed) {
++        return asGoal(new FollowParentGoal((Animal) toNms(animal), speed));
++    }
++
++    @Override
++    public VanillaGoal<Mob> randomStrollInVillage(Mob mob, double speed) {
++        return asGoal(new GolemRandomStrollInVillageGoal(toNms(mob), speed));
++    }
++
++    @Override
++    public VanillaGoal<Mob> interact(Mob mob, EntityType entityType, float range, float chance) {
++        return asGoal(new InteractGoal(toNms(mob), toNms(mob.getWorld(), entityType), range, chance));
++    }
++
++    @Override
++    public VanillaGoal<Parrot> landOnOwnersShoulders(Parrot parrot) {
++        return asGoal(new LandOnOwnersShoulderGoal((ShoulderRidingEntity) toNms(parrot)));
++    }
++
++    @Override
++    public VanillaGoal<Mob> leapAtTarget(Mob mob, float velocity) {
++        return asGoal(new LeapAtTargetGoal(toNms(mob), velocity));
++    }
++
++    @Override
++    public VanillaGoal<Llama> llamaFollowCaravan(Llama llama, double speed) {
++        return asGoal(new LlamaFollowCaravanGoal((net.minecraft.world.entity.animal.horse.Llama) toNms(llama), speed));
++    }
++
++    @Override
++    public VanillaGoal<Mob> lookAtMob(Mob mob, EntityType targetType, float range, float change, boolean lookForward) {
++        return asGoal(new LookAtPlayerGoal(toNms(mob), toNms(mob.getWorld(), targetType), range, change, lookForward));
++    }
++
++    @Override
++    public VanillaGoal<AbstractVillager> lookAtTradingPlayer(AbstractVillager abstractVillager) {
++        return asGoal(new LookAtTradingPlayerGoal((net.minecraft.world.entity.npc.AbstractVillager) toNms(abstractVillager)));
++    }
++
++    @Override
++    public VanillaGoal<Mob> meleeAttack(Mob mob, double speed, boolean pauseWhenMobIdle) {
++        return asGoal(new MeleeAttackGoal(toNms(mob), speed, pauseWhenMobIdle));
++    }
++
++    @Override
++    public VanillaGoal<Mob> moveBackToVillage(Mob mob, double speed, boolean canDespawn) {
++        return asGoal(new MoveBackToVillageGoal(toNms(mob), speed, canDespawn));
++    }
++
++    @Override
++    public VanillaGoal<Mob> moveThroughVillage(Mob mob, double speed, boolean requiresNighttime, int distance, BooleanSupplier doorPassingThroughGetter) {
++        return asGoal(new MoveThroughVillageGoal(toNms(mob), speed, requiresNighttime, distance, doorPassingThroughGetter));
++    }
++
++    @Override
++    public VanillaGoal<Mob> moveTowardsTarget(Mob mob, double speed, float maxDistance) {
++        return asGoal(new MoveTowardsTargetGoal(toNms(mob), speed, maxDistance));
++    }
++
++    @Override
++    public VanillaGoal<Mob> ocelotAttack(Mob mob) {
++        return asGoal(new OcelotAttackGoal(toNms(mob)));
++    }
++
++    @Override
++    public VanillaGoal<IronGolem> offerFlower(IronGolem ironGolem) {
++        return asGoal(new OfferFlowerGoal((net.minecraft.world.entity.animal.IronGolem) toNms(ironGolem)));
++    }
++
++    @Override
++    public VanillaGoal<Mob> openDoor(Mob mob, boolean delayedClose) {
++        return asGoal(new OpenDoorGoal(toNms(mob), delayedClose));
++    }
++
++    @Override
++    public VanillaGoal<Mob> panic(Mob mob, double speed) {
++        return asGoal(new PanicGoal(toNms(mob), speed));
++    }
++
++    @Override
++    public VanillaGoal<Raider> pathFindToRaid(Raider raider) {
++        return asGoal(new PathfindToRaidGoal<>((net.minecraft.world.entity.raid.Raider) toNms(raider)));
++    }
++
++    @Override
++    public VanillaGoal<Mob> randomLookAround(Mob mob) {
++        return asGoal(new RandomLookAroundGoal(toNms(mob)));
++    }
++
++    @Override
++    public VanillaGoal<AbstractHorse> randomStand(AbstractHorse abstractHorse) {
++        return asGoal(new RandomStandGoal((net.minecraft.world.entity.animal.horse.AbstractHorse) toNms(abstractHorse)));
++    }
++
++    @Override
++    public VanillaGoal<Mob> randomSwim(Mob mob, double speed, int chance) {
++        return asGoal(new RandomSwimmingGoal(toNms(mob), speed, chance));
++    }
++
++    @Override
++    public VanillaGoal<RangedEntity> rangedAttack(RangedEntity rangedEntity, double mobSpeed, int minIntervalTicks, int maxIntervalTicks, float maxShootRange) {
++        return asGoal(new RangedAttackGoal((RangedAttackMob) toNms(rangedEntity), mobSpeed, minIntervalTicks, maxIntervalTicks, maxShootRange));
++    }
++
++    @Override
++    public VanillaGoal<RangedEntity> rangedBowAttack(RangedEntity rangedEntity, double speed, int attackInterval, float range) {
++        return asGoal(new RangedBowAttackGoal<>((net.minecraft.world.entity.monster.Monster & RangedAttackMob) toNms(rangedEntity), speed, attackInterval, range));
++    }
++
++    @Override
++    public VanillaGoal<RangedEntity> rangedCrossBowAttack(RangedEntity rangedEntity, double speed, float range) {
++        return asGoal(new RangedCrossbowAttackGoal<>((net.minecraft.world.entity.monster.Monster & RangedAttackMob & CrossbowAttackMob) toNms(rangedEntity), speed, range));
++    }
++
++    @Override
++    public VanillaGoal<Mob> removeBlock(Mob mob, Material blockType, double speed, int maxYDifference) {
++        return asGoal(new RemoveBlockGoal(CraftMagicNumbers.getBlock(blockType), toNms(mob), speed, maxYDifference));
++    }
++
++    @Override
++    public VanillaGoal<Mob> restrictSun(Mob mob) {
++        return asGoal(new RestrictSunGoal(toNms(mob)));
++    }
++
++    @Override
++    public VanillaGoal<AbstractHorse> runAroundLikeCrazy(AbstractHorse abstractHorse, double speed) {
++        return asGoal(new RunAroundLikeCrazyGoal((net.minecraft.world.entity.animal.horse.AbstractHorse) toNms(abstractHorse), speed));
++    }
++
++    @Override
++    public VanillaGoal<Tameable> sitWhenOrderedTo(Tameable tameable) {
++        return asGoal(new SitWhenOrderedToGoal((TamableAnimal) toNms(tameable)));
++    }
++
++    @Override
++    public VanillaGoal<Mob> strollThroughVillage(Mob mob, int searchEngine) {
++        return asGoal(new StrollThroughVillageGoal(toNms(mob), searchEngine));
++    }
++
++    @Override
++    public VanillaGoal<Creeper> swellGoal(Creeper creeper, double distanceToStartSwell, double distanceToStopSwell) {
++        return asGoal(new SwellGoal((net.minecraft.world.entity.monster.Creeper) toNms(creeper), distanceToStartSwell, distanceToStopSwell));
++    }
++
++    @Override
++    public VanillaGoal<Mob> temptGoal(Mob mob, double speed, RecipeChoice food, boolean canBeScared) {
++        return asGoal(new TemptGoal(toNms(mob), speed, CraftRecipe.toIngredient(food, true), canBeScared));
++    }
++
++    @Override
++    public VanillaGoal<AbstractVillager> tradeWithPlayer(AbstractVillager abstractVillager) {
++        return asGoal(new TradeWithPlayerGoal((net.minecraft.world.entity.npc.AbstractVillager) toNms(abstractVillager)));
++    }
++
++    @Override
++    public VanillaGoal<Mob> tryFindWater(Mob mob) {
++        return asGoal(new TryFindWaterGoal(toNms(mob)));
++    }
++
++    @Override
++    public VanillaGoal<Mob> useItem(Mob mob, ItemStack item, Sound.Type type, Predicate<Mob> mobPredicate) {
++        return asGoal(new UseItemGoal<>(toNms(mob), CraftItemStack.asNMSCopy(item), BuiltInRegistries.SOUND_EVENT.get(PaperAdventure.asVanilla(type.key())), toNMSMobPredicate(mobPredicate)));
++    }
++
++    @Override
++    public VanillaGoal<Mob> waterAvoidRandomFly(Mob mob, double speed) {
++        return asGoal(new WaterAvoidingRandomFlyingGoal(toNms(mob), speed));
++    }
++
++    @Override
++    public VanillaGoal<Mob> waterAvoidRandomStroll(Mob mob, double speed, float probability) {
++        return asGoal(new WaterAvoidingRandomStrollGoal(toNms(mob), speed, probability));
++    }
++
++    @Override
++    public VanillaGoal<Zombie> zombieAttackGoal(Zombie zombie, double speed, boolean pauseWhenMobIdle) {
++        return asGoal(new ZombieAttackGoal((net.minecraft.world.entity.monster.Zombie) toNms(zombie), speed, pauseWhenMobIdle));
++    }
++
++    private Class<? extends net.minecraft.world.entity.LivingEntity> toNms(World world, EntityType entityType) {
++        if(entityType.equals(EntityType.PLAYER))
++            return Player.class;
++
++        CraftRegionAccessor craftRegionAccessor = (CraftRegionAccessor) world;
++        return (Class<? extends PathfinderMob>) ((CraftEntity) craftRegionAccessor.createEntity(world.getSpawnLocation(), entityType.getEntityClass()))
++            .getHandle().getClass();
++    }
++
++    private Predicate<net.minecraft.world.entity.LivingEntity> toNms(Predicate<LivingEntity> predicate) {
++        return livingEntity -> predicate.test(livingEntity.getBukkitLivingEntity());
++    }
++
++    private net.minecraft.world.entity.PathfinderMob toNms(Mob mob) {
++        return (PathfinderMob) ((CraftMob) mob).getHandle();
++    }
++
++    private ServerLevel toNms(World world) {
++        return ((CraftWorld) world).getHandle();
++    }
++
++    private Predicate<net.minecraft.world.Difficulty> toNmsDifficultyPredicate(Predicate<Difficulty> predicate) {
++        return difficulty -> {
++            Difficulty bukkitDifficulty = switch (difficulty) {
++                case PEACEFUL -> Difficulty.PEACEFUL;
++                case EASY -> Difficulty.EASY;
++                case NORMAL -> Difficulty.NORMAL;
++                case HARD -> Difficulty.HARD;
++            };
++            return predicate.test(bukkitDifficulty);
++        };
++    }
++
++    private Predicate<net.minecraft.world.entity.Mob> toNMSMobPredicate(Predicate<Mob> predicate){
++        return mob -> predicate.test(mob.getBukkitMob());
++    }
++
++    private <T extends Mob> VanillaGoal<T> asGoal(Goal goal) {
++        return (VanillaGoal<T>) goal.asPaperVanillaGoal();
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/ai/builder/CraftWeightedBehaviorsBuilder.java b/src/main/java/de/verdox/mccreativelab/ai/builder/CraftWeightedBehaviorsBuilder.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..a4ecfb6a7699e62603e2a1984b2e3276f9bdf4b2
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/ai/builder/CraftWeightedBehaviorsBuilder.java
+@@ -0,0 +1,60 @@
++package de.verdox.mccreativelab.ai.builder;
++
++import com.mojang.datafixers.util.Pair;
++import de.verdox.mccreativelab.ai.behavior.*;
++import net.minecraft.world.entity.ai.behavior.Behavior;
++import net.minecraft.world.entity.ai.behavior.BehaviorControl;
++import org.bukkit.Bukkit;
++import org.bukkit.entity.LivingEntity;
++
++import java.util.LinkedList;
++import java.util.List;
++import java.util.function.Function;
++
++public class CraftWeightedBehaviorsBuilder<E extends LivingEntity> implements WeightedBehaviorsBuilder<E> {
++    public final List<Pair<Integer, BehaviorControl<? extends net.minecraft.world.entity.LivingEntity>>> behaviours = new LinkedList<>();
++    @Override
++    public WeightedBehaviorsBuilder<E> withBehaviour(int priority, ControlledBehavior<? super E> aiBehavior) {
++        if (aiBehavior instanceof CustomAIBehavior<?> customAiBehaviour1)
++            return withBehaviour(priority, (CustomAIBehavior<E>) customAiBehaviour1);
++        else if (aiBehavior instanceof OneShotBehavior<?> oneShotBehavior)
++            return withBehaviour(priority, (OneShotBehavior<? super E>) oneShotBehavior);
++        if (aiBehavior instanceof AIBehavior<?> aiBehaviour)
++            return withBehaviour(priority, (AIBehavior<? super E>) aiBehaviour);
++        if (aiBehavior instanceof CraftControlledBehavior<?, ?> craftControlledBehavior) {
++            this.behaviours.add(Pair.of(priority, craftControlledBehavior.getHandle()));
++            return this;
++        } else throw new IllegalArgumentException("Unknown ControlledBehaviour implementation " + aiBehavior.getClass()
++                                                                                                            .getName());
++    }
++
++    @Override
++    public WeightedBehaviorsBuilder<E> withBehaviour(int priority, AIBehavior<? super E> customAiBehavior) {
++        if (customAiBehavior instanceof CraftAIBehavior<?> craftAIBehavior)
++            this.behaviours.add(Pair.of(priority, craftAIBehavior.getHandle()));
++        else
++            throw new IllegalArgumentException("You may not use your own implementation of AIBehavior. Consider using CustomAIBehaviour");
++        return this;
++    }
++
++    @Override
++    public WeightedBehaviorsBuilder<E> withBehaviour(int priority, CustomAIBehavior<? super E> customAiBehaviour) {
++        Behavior<net.minecraft.world.entity.LivingEntity> behavior = new WrappedPaperAIBehavior<>(customAiBehaviour);
++        this.behaviours.add(Pair.of(priority, behavior));
++        return this;
++    }
++
++    @Override
++    public WeightedBehaviorsBuilder<E> withBehaviour(int priority, OneShotBehavior<? super E> aiBehavior) {
++        if (aiBehavior instanceof CraftOneShotBehavior<?> craftOneShotBehaviour)
++            this.behaviours.add(Pair.of(priority, craftOneShotBehaviour.getHandle()));
++        else
++            throw new IllegalArgumentException("You may not use your own implementation of OneShotBehavior. Consider using CustomAIBehaviour");
++        return this;
++    }
++
++    @Override
++    public WeightedBehaviorsBuilder<E> withBehaviour(int priority, Function<BehaviorFactory, ControlledBehavior<? super E>> behaviourCreator) {
++        return withBehaviour(priority, behaviourCreator.apply(Bukkit.getAIFactory().getBehaviorFactory()));
++    }
++}
+diff --git a/src/main/java/net/minecraft/world/entity/ai/Brain.java b/src/main/java/net/minecraft/world/entity/ai/Brain.java
+index 40352c1cff78e04e09a6d7845714810321abd53c..5d96da6627c58e7d5ebeec1952fd547c319eb274 100644
+--- a/src/main/java/net/minecraft/world/entity/ai/Brain.java
++++ b/src/main/java/net/minecraft/world/entity/ai/Brain.java
+@@ -194,14 +194,14 @@ public class Brain<E extends LivingEntity> {
+         if (optional == null) {
+             throw new IllegalStateException("Unregistered memory fetched: " + type);
+         } else {
+-            return optional.map(ExpirableValue::getValue);
++            return (Optional<U>) optional.map(ExpirableValue::getValue);
+         }
+     }
+ 
+     @Nullable
+     public <U> Optional<U> getMemoryInternal(MemoryModuleType<U> type) {
+         Optional<? extends ExpirableValue<?>> optional = this.memories.get(type);
+-        return optional == null ? null : optional.map(ExpirableValue::getValue);
++        return optional == null ? null : (Optional<U>) optional.map(ExpirableValue::getValue);
+     }
+ 
+     public <U> long getTimeUntilExpiry(MemoryModuleType<U> type) {
+@@ -362,6 +362,11 @@ public class Brain<E extends LivingEntity> {
+         Set<Pair<MemoryModuleType<?>, MemoryStatus>> requiredMemories,
+         Set<MemoryModuleType<?>> forgettingMemories
+     ) {
++        // MCCreativeLab start - Make it modifiable
++
++        requiredMemories = new java.util.HashSet<>(requiredMemories);
++        forgettingMemories = new java.util.HashSet<>(forgettingMemories);
++        // MCCreativeLab end - Make it modifiable
+         this.activityRequirements.put(activity, requiredMemories);
+         if (!forgettingMemories.isEmpty()) {
+             this.activityMemoriesToEraseWhenStopped.put(activity, forgettingMemories);
+@@ -374,6 +379,59 @@ public class Brain<E extends LivingEntity> {
+                 .add((BehaviorControl<? super E>)pair.getSecond());
+         }
+     }
++    // MCCLab start - Add CraftEntityBrain
++    public void addFromCraftBuilder(de.verdox.mccreativelab.ai.builder.CraftActivityBuilder<?> craftActivityBuilder, boolean replaceCompleteActivity, boolean replaceActivityRequirements, boolean replaceForgettingMemories) {
++        if(replaceCompleteActivity)
++            removeAllBehavioursByActivity(craftActivityBuilder.activity);
++
++        Activity activity = craftActivityBuilder.activity;
++        Set<Pair<MemoryModuleType<?>, MemoryStatus>> requiredMemories = craftActivityBuilder.requiredMemories;
++        Set<MemoryModuleType<?>> forgettingMemories = craftActivityBuilder.forgettingMemories;
++        var indexedTasks = craftActivityBuilder.craftWeightedBehaviorsBuilder.behaviours;
++        if(replaceActivityRequirements)
++            this.activityRequirements.put(activity, requiredMemories);
++        else
++            this.activityRequirements.computeIfAbsent(activity, activity1 -> new java.util.HashSet<>()).addAll(requiredMemories);
++
++        if(replaceForgettingMemories){
++            if (!forgettingMemories.isEmpty())
++                this.activityMemoriesToEraseWhenStopped.put(activity, forgettingMemories);
++            else
++                this.activityRequirements.remove(activity);
++        }
++        else
++            this.activityMemoriesToEraseWhenStopped.computeIfAbsent(activity, activity1 -> new java.util.HashSet<>()).addAll(forgettingMemories);
++
++        for (Pair<Integer, BehaviorControl<? extends LivingEntity>> pair : indexedTasks) {
++            this.availableBehaviorsByPriority.computeIfAbsent(pair.getFirst(), (index) -> {
++                return Maps.newHashMap();
++            }).computeIfAbsent(activity, (activity2) -> {
++                return Sets.newLinkedHashSet();
++            }).add((BehaviorControl<? super E>) pair.getSecond());
++        }
++    }
++
++    public void removeAllBehavioursByActivity(Activity activity){
++        this.activityRequirements.remove(activity);
++        this.activityMemoriesToEraseWhenStopped.remove(activity);
++        java.util.Iterator<Map.Entry<Integer, Map<Activity, Set<BehaviorControl<? super E>>>>> iterator = this.availableBehaviorsByPriority.entrySet().iterator();
++        while(iterator.hasNext()){
++            Map.Entry<Integer, Map<Activity, Set<BehaviorControl<? super E>>>> value = iterator.next();
++            Map<Activity, Set<BehaviorControl<? super E>>> activityMap = value.getValue();
++            activityMap.remove(activity);
++            if(activityMap.isEmpty())
++                iterator.remove();
++        }
++    }
++
++    public Map<Integer, Map<Activity, Set<BehaviorControl<? super E>>>> getAvailableBehaviorsByPriority() {
++        return availableBehaviorsByPriority;
++    }
++
++    public void addMemoryToBrain(MemoryModuleType<?> memoryModuleType){
++        this.memories.put(memoryModuleType, Optional.empty());
++    }
++    // MCCLab stop - Add CraftEntityBrain
+ 
+     @VisibleForTesting
+     public void removeAllBehaviors() {
+diff --git a/src/main/java/net/minecraft/world/entity/ai/behavior/Behavior.java b/src/main/java/net/minecraft/world/entity/ai/behavior/Behavior.java
+index 9379dd4056018b52c93ed4888dcdc94579bd9691..139aecc7129740f93eee46374681612ec243c413 100644
+--- a/src/main/java/net/minecraft/world/entity/ai/behavior/Behavior.java
++++ b/src/main/java/net/minecraft/world/entity/ai/behavior/Behavior.java
+@@ -42,6 +42,10 @@ public abstract class Behavior<E extends LivingEntity> implements BehaviorContro
+         // Paper end - configurable behavior tick rate and timings
+     }
+ 
++    public String getConfigKey() {
++        return configKey;
++    }
++
+     @Override
+     public Behavior.Status getStatus() {
+         return this.status;
+@@ -127,4 +131,16 @@ public abstract class Behavior<E extends LivingEntity> implements BehaviorContro
+         STOPPED,
+         RUNNING;
+     }
++
++    public int getMaxDuration() {
++        return maxDuration;
++    }
++
++    public int getMinDuration() {
++        return minDuration;
++    }
++
++    public Map<MemoryModuleType<?>, MemoryStatus> getEntryCondition() {
++        return entryCondition;
++    }
+ }
+diff --git a/src/main/java/net/minecraft/world/entity/ai/goal/EatBlockGoal.java b/src/main/java/net/minecraft/world/entity/ai/goal/EatBlockGoal.java
+index 4e2c23ccdf4e4a4d65b291dbe20952bae1838bff..6e734ef2da4307e2a86fc70a00427240df7e7303 100644
+--- a/src/main/java/net/minecraft/world/entity/ai/goal/EatBlockGoal.java
++++ b/src/main/java/net/minecraft/world/entity/ai/goal/EatBlockGoal.java
+@@ -22,11 +22,23 @@ public class EatBlockGoal extends Goal {
+     private final Mob mob;
+     private final Level level;
+     private int eatAnimationTick;
++    private final java.util.function.Function<de.verdox.mccreativelab.random.VanillaRandomSource, Boolean> chanceToEat;
++    private final Predicate<org.bukkit.block.BlockState> bukkitBlockStatePredicate;
++
++    public EatBlockGoal(Mob mob, java.util.function.Function<de.verdox.mccreativelab.random.VanillaRandomSource, Boolean> chanceToEat, Predicate<org.bukkit.block.BlockState> bukkitBlockStatePredicate) {
++        this.mob = mob;
++        this.level = mob.level();
++        this.chanceToEat = chanceToEat;
++        this.bukkitBlockStatePredicate = bukkitBlockStatePredicate;
++        this.setFlags(EnumSet.of(Goal.Flag.MOVE, Goal.Flag.LOOK, Goal.Flag.JUMP));
++    }
+ 
+     public EatBlockGoal(Mob mob) {
+         this.mob = mob;
+         this.level = mob.level();
+         this.setFlags(EnumSet.of(Goal.Flag.MOVE, Goal.Flag.LOOK, Goal.Flag.JUMP));
++        this.bukkitBlockStatePredicate = blockState -> blockState.getBlock().equals(Blocks.SHORT_GRASS) || blockState.getBlock().equals(Blocks.TALL_GRASS) || blockState.getBlock().equals(Blocks.GRASS_BLOCK);
++        this.chanceToEat = vanillaRandomSource -> this.mob.getRandom().nextInt(this.mob.isBaby() ? 50 : 1000) != 0;
+     }
+ 
+     @Override
+@@ -36,12 +48,13 @@ public class EatBlockGoal extends Goal {
+             return false;
+         }
+         // Paper end
+-        if (this.mob.getRandom().nextInt(this.mob.isBaby() ? 50 : 1000) != 0) {
++        if (!this.chanceToEat.apply(new de.verdox.mccreativelab.random.CraftVanillaRandomSource(this.mob.getRandom()))) {
+             return false;
+         } else {
+             BlockPos blockposition = this.mob.blockPosition();
+ 
+-            return EatBlockGoal.IS_TALL_GRASS.test(this.level.getBlockState(blockposition)) ? true : this.level.getBlockState(blockposition.below()).is(Blocks.GRASS_BLOCK);
++            org.bukkit.block.BlockState blockState = this.level.getWorld().getBlockAt(blockposition.getX(), blockposition.getY(), blockposition.getZ()).getState();
++            return bukkitBlockStatePredicate.test(blockState) || bukkitBlockStatePredicate.test(blockState.getBlock().getRelative(0, -1, 0).getState());
+         }
+     }
+ 
+@@ -73,22 +86,28 @@ public class EatBlockGoal extends Goal {
+             BlockPos blockposition = this.mob.blockPosition();
+ 
+             final BlockState blockState = this.level.getBlockState(blockposition); // Paper - fix wrong block state
+-            if (EatBlockGoal.IS_TALL_GRASS.test(blockState)) { // Paper - fix wrong block state
+-                if (CraftEventFactory.callEntityChangeBlockEvent(this.mob, blockposition, blockState.getFluidState().createLegacyBlock(), !this.level.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING))) { // CraftBukkit // Paper - fix wrong block state
++            org.bukkit.block.BlockState bukkitBlockState = this.level.getWorld().getBlockState(blockposition.getX(), blockposition.getY(), blockposition.getZ());
++            if (bukkitBlockStatePredicate.test(bukkitBlockState)) { // Paper - fix wrong block state
++                if (CraftEventFactory.callEntityChangeBlockEvent(this.mob, blockposition, blockState.getFluidState()
++                                                                                                    .createLegacyBlock(), !this.level
++                    .getGameRules()
++                    .getBoolean(GameRules.RULE_MOBGRIEFING))) { // CraftBukkit // Paper - fix wrong block state
+                     this.level.destroyBlock(blockposition, false);
+                 }
+ 
+-                this.mob.ate();
++                this.mob.ateCustom();
+             } else {
+                 BlockPos blockposition1 = blockposition.below();
+ 
+                 if (this.level.getBlockState(blockposition1).is(Blocks.GRASS_BLOCK)) {
+-                    if (CraftEventFactory.callEntityChangeBlockEvent(this.mob, blockposition1, Blocks.DIRT.defaultBlockState(), !this.level.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING))) { // CraftBukkit // Paper - Fix wrong block state
++                    if (CraftEventFactory.callEntityChangeBlockEvent(this.mob, blockposition1, Blocks.DIRT.defaultBlockState(), !this.level
++                        .getGameRules()
++                        .getBoolean(GameRules.RULE_MOBGRIEFING))) { // CraftBukkit // Paper - Fix wrong block state
+                         this.level.levelEvent(2001, blockposition1, Block.getId(Blocks.GRASS_BLOCK.defaultBlockState()));
+                         this.level.setBlock(blockposition1, Blocks.DIRT.defaultBlockState(), 2);
+                     }
+ 
+-                    this.mob.ate();
++                    this.mob.ateCustom();
+                 }
+             }
+ 
+diff --git a/src/main/java/net/minecraft/world/entity/ai/goal/FollowMobGoal.java b/src/main/java/net/minecraft/world/entity/ai/goal/FollowMobGoal.java
+index 9a75a92ad7b325362a293f0390e95f6d03b1bda6..242c10d7e84fb2f17cbb95b734dc38dccf0d3bb0 100644
+--- a/src/main/java/net/minecraft/world/entity/ai/goal/FollowMobGoal.java
++++ b/src/main/java/net/minecraft/world/entity/ai/goal/FollowMobGoal.java
+@@ -23,6 +23,19 @@ public class FollowMobGoal extends Goal {
+     private float oldWaterCost;
+     private final float areaSize;
+ 
++    public FollowMobGoal(Mob mob, double speed, float minDistance, float maxDistance, Predicate<Mob> followPredicate) {
++        this.mob = mob;
++        this.followPredicate = followPredicate;
++        this.speedModifier = speed;
++        this.navigation = mob.getNavigation();
++        this.stopDistance = minDistance;
++        this.areaSize = maxDistance;
++        this.setFlags(EnumSet.of(Goal.Flag.MOVE, Goal.Flag.LOOK));
++        if (!(mob.getNavigation() instanceof GroundPathNavigation) && !(mob.getNavigation() instanceof FlyingPathNavigation)) {
++            throw new IllegalArgumentException("Unsupported mob type for FollowMobGoal");
++        }
++    }
++
+     public FollowMobGoal(Mob mob, double speed, float minDistance, float maxDistance) {
+         this.mob = mob;
+         this.followPredicate = target -> target != null && mob.getClass() != target.getClass();
+diff --git a/src/main/java/net/minecraft/world/entity/ai/goal/SwellGoal.java b/src/main/java/net/minecraft/world/entity/ai/goal/SwellGoal.java
+index 137ec75ee803789deb7b1ca93dd9369c9af362b9..cb433002b980ad0ee8f7c265975e308efff8c5c3 100644
+--- a/src/main/java/net/minecraft/world/entity/ai/goal/SwellGoal.java
++++ b/src/main/java/net/minecraft/world/entity/ai/goal/SwellGoal.java
+@@ -9,16 +9,27 @@ public class SwellGoal extends Goal {
+     private final Creeper creeper;
+     @Nullable
+     private LivingEntity target;
++    private double distanceToStartSwell;
++    private double distanceToStopSwell;
++
++    public SwellGoal(Creeper creeper, double distanceToStartSwell, double distanceToStopSwell) {
++        this.creeper = creeper;
++        this.distanceToStartSwell = distanceToStartSwell;
++        this.distanceToStopSwell = distanceToStopSwell;
++        this.setFlags(EnumSet.of(Goal.Flag.MOVE));
++    }
+ 
+     public SwellGoal(Creeper creeper) {
+         this.creeper = creeper;
+         this.setFlags(EnumSet.of(Goal.Flag.MOVE));
++        this.distanceToStartSwell = 9.0;
++        this.distanceToStopSwell = 49.0;
+     }
+ 
+     @Override
+     public boolean canUse() {
+         LivingEntity livingEntity = this.creeper.getTarget();
+-        return this.creeper.getSwellDir() > 0 || livingEntity != null && this.creeper.distanceToSqr(livingEntity) < 9.0;
++        return this.creeper.getSwellDir() > 0 || livingEntity != null && this.creeper.distanceToSqr(livingEntity) < distanceToStartSwell;
+     }
+ 
+     // Paper start - Fix MC-179072
+@@ -48,7 +59,7 @@ public class SwellGoal extends Goal {
+     public void tick() {
+         if (this.target == null) {
+             this.creeper.setSwellDir(-1);
+-        } else if (this.creeper.distanceToSqr(this.target) > 49.0) {
++        } else if (this.creeper.distanceToSqr(this.target) > distanceToStopSwell) {
+             this.creeper.setSwellDir(-1);
+         } else if (!this.creeper.getSensing().hasLineOfSight(this.target)) {
+             this.creeper.setSwellDir(-1);
+diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
+index 94a31c8f903eb61eb6d203e8e6fe8fb0beca28b1..277b2199370f0b0333edd9caf31af1984b24f3d9 100644
+--- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
++++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
+@@ -12,6 +12,8 @@ import com.mojang.brigadier.StringReader;
+ import com.mojang.brigadier.exceptions.CommandSyntaxException;
+ import com.mojang.serialization.Dynamic;
+ import com.mojang.serialization.Lifecycle;
++import de.verdox.mccreativelab.ai.builder.AIFactory;
++import de.verdox.mccreativelab.ai.builder.CraftAIFactory;
+ import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
+ import java.awt.image.BufferedImage;
+ import java.io.ByteArrayOutputStream;
+@@ -253,6 +255,7 @@ import org.bukkit.scoreboard.Criteria;
+ import org.bukkit.structure.StructureManager;
+ import org.bukkit.util.StringUtil;
+ import org.bukkit.util.permissions.DefaultPermissions;
++import org.jetbrains.annotations.NotNull;
+ import org.yaml.snakeyaml.LoaderOptions;
+ import org.yaml.snakeyaml.Yaml;
+ import org.yaml.snakeyaml.constructor.SafeConstructor;
+@@ -376,6 +379,15 @@ public final class CraftServer implements Server {
+     }
+     // Paper end - Folia reagion threading API
+ 
++    // Paper start - Add AI Library
++    private AIFactory aiFactory = new CraftAIFactory();
++    @NotNull
++    @Override
++    public AIFactory aiFactory(){
++        return aiFactory;
++    }
++    // Paper end - Add AI Library
++
+     static {
+         ConfigurationSerialization.registerClass(CraftOfflinePlayer.class);
+         ConfigurationSerialization.registerClass(CraftPlayerProfile.class);
+@@ -1091,6 +1103,7 @@ public final class CraftServer implements Server {
+         io.papermc.paper.plugin.PluginInitializerManager.reload(this.console); // Paper
+         this.loadPlugins();
+         this.enablePlugins(PluginLoadOrder.STARTUP);
++        net.minecraft.world.level.block.Blocks.rebuildCache();
+         this.enablePlugins(PluginLoadOrder.POSTWORLD);
+         if (io.papermc.paper.plugin.PluginInitializerManager.instance().pluginRemapper != null) io.papermc.paper.plugin.PluginInitializerManager.instance().pluginRemapper.pluginsEnabled(); // Paper - Remap plugins
+         // Paper start - brigadier command API
+diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftLivingEntity.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftLivingEntity.java
+index 2d4e49f386be35ee8912c1bca38f74b8d8926f3a..b2ce763fd0790f803d19c972fc893dae124bf23e 100644
+--- a/src/main/java/org/bukkit/craftbukkit/entity/CraftLivingEntity.java
++++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftLivingEntity.java
+@@ -908,6 +908,11 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
+         this.getHandle().getBrain().setMemory(CraftMemoryKey.bukkitToMinecraft(memoryKey), CraftMemoryMapper.toNms(t));
+     }
+ 
++    @Override
++    public <T extends LivingEntity> de.verdox.mccreativelab.ai.EntityBrain<T> getBrain(Class<? extends T> type) {
++        return new de.verdox.mccreativelab.ai.CraftEntityBrain<>((net.minecraft.world.entity.ai.Brain<net.minecraft.world.entity.LivingEntity>) getHandle().getBrain());
++    }
++
+     @Override
+     public Sound getHurtSound() {
+         SoundEvent sound = this.getHandle().getHurtSound0(this.getHandle().damageSources().generic());
+diff --git a/src/main/java/org/bukkit/craftbukkit/entity/memory/CraftMemoryMapper.java b/src/main/java/org/bukkit/craftbukkit/entity/memory/CraftMemoryMapper.java
+index ad42f2bf5d2bf2d1e340d1ad34ae912422c2ba5d..71f2c553f20315321a0993431442609d3ece205a 100644
+--- a/src/main/java/org/bukkit/craftbukkit/entity/memory/CraftMemoryMapper.java
++++ b/src/main/java/org/bukkit/craftbukkit/entity/memory/CraftMemoryMapper.java
+@@ -1,5 +1,7 @@
+ package org.bukkit.craftbukkit.entity.memory;
+ 
++import java.util.LinkedList;
++import java.util.List;
+ import java.util.UUID;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.GlobalPos;
+@@ -23,6 +25,15 @@ public final class CraftMemoryMapper {
+             return (Boolean) object;
+         } else if (object instanceof Integer) {
+             return (Integer) object;
++        } else if(object instanceof net.minecraft.world.entity.Entity entity) {
++            return entity.getBukkitEntity();
++        }
++        else if(object instanceof List<?> list){
++            List<Object> listCopy = new LinkedList<>();
++            for (Object o : list) {
++                listCopy.add(fromNms(o));
++            }
++            return listCopy;
+         }
+ 
+         throw new UnsupportedOperationException("Do not know how to map " + object);
+@@ -41,6 +52,13 @@ public final class CraftMemoryMapper {
+             return (Boolean) object;
+         } else if (object instanceof Integer) {
+             return (Integer) object;
++        } else if(object instanceof org.bukkit.entity.Entity entity) {
++            return ((org.bukkit.craftbukkit.entity.CraftEntity) entity).getHandle();
++        } else if(object instanceof List<?> list){
++            List<Object> listCopy = new LinkedList<>();
++            for (Object o : list)
++                listCopy.add(toNms(o));
++            return listCopy;
+         }
+ 
+         throw new UnsupportedOperationException("Do not know how to map " + object);

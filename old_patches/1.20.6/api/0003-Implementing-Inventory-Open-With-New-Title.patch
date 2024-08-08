@@ -1,0 +1,37 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <lukasjonsson@outlook.de>
+Date: Mon, 13 Nov 2023 15:24:30 +0100
+Subject: [PATCH] Implementing Inventory Open With New Title
+
+
+diff --git a/src/main/java/org/bukkit/entity/HumanEntity.java b/src/main/java/org/bukkit/entity/HumanEntity.java
+index ee866f3497ed56708d4062685f5585ca06a03955..16112efd9b1286cc88d70c476ae8ad8ae7f81f6e 100644
+--- a/src/main/java/org/bukkit/entity/HumanEntity.java
++++ b/src/main/java/org/bukkit/entity/HumanEntity.java
+@@ -2,6 +2,8 @@ package org.bukkit.entity;
+ 
+ import java.util.Collection;
+ import java.util.Set;
++
++import net.kyori.adventure.text.Component;
+ import org.bukkit.GameMode;
+ import org.bukkit.Location;
+ import org.bukkit.Material;
+@@ -111,6 +113,17 @@ public interface HumanEntity extends LivingEntity, AnimalTamer, InventoryHolder
+     @Nullable
+     public InventoryView openInventory(@NotNull Inventory inventory);
+ 
++    /**
++     * Opens an inventory window with the specified inventory on the top and
++     * the player's inventory on the bottom.
++     *
++     * @param inventory The inventory to open
++     * @param title     The shown title of the inventory
++     * @return The newly opened inventory view
++     */
++    @Nullable
++    public InventoryView openInventory(@NotNull Inventory inventory, Component title);
++
+     /**
+      * Opens an empty workbench inventory window with the player's inventory
+      * on the bottom.

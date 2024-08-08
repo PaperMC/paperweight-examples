@@ -1,0 +1,32 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <lukasjonsson@outlook.de>
+Date: Wed, 15 Nov 2023 17:47:39 +0100
+Subject: [PATCH] Adding growTreeIfSapling helper method to Bukkit World class
+
+
+diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
+index f2b20ed5063a293f0b464548f590d652170cd1d8..9396207234e7d5ffce18c2a9bd273d4c92d32609 100644
+--- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
++++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
+@@ -165,6 +165,21 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+     private final CraftPersistentDataContainer persistentDataContainer = new CraftPersistentDataContainer(CraftWorld.DATA_TYPE_REGISTRY);
+     private net.kyori.adventure.pointer.Pointers adventure$pointers; // Paper - implement pointers
+ 
++    // MCCLab - start
++    @Override
++    public boolean growTreeIfSapling(@NotNull Location location) {
++        var blockPos = new BlockPos(location.getBlockX(),location.getBlockY(),location.getBlockZ());
++        var block = world.getBlockIfLoaded(blockPos);
++        if(block == null)
++            return false;
++        var blockState = world.getBlockState(blockPos);
++        if(block instanceof net.minecraft.world.level.block.SaplingBlock saplingBlock) {
++            saplingBlock.advanceTree(world, new BlockPos(location.getBlockX(), location.getBlockY(), location.getBlockZ()), blockState, world.random);
++            return true;
++        }
++        return false;
++    }
++    // MCCLab - end
+     // Paper start - Provide fast information methods
+     @Override
+     public int getEntityCount() {

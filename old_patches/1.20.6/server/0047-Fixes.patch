@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: verdox <mail.ysp@web.de>
-Date: Wed, 19 Jun 2024 15:13:05 +0000
-Subject: [PATCH] Flipped Custom Coordinate Flag in CraftrAdvancementBuilder
+Date: Thu, 27 Jun 2024 15:26:52 +0000
+Subject: [PATCH] Fixes
 
 
 diff --git a/src/main/java/de/verdox/mccreativelab/advancement/CraftAdvancementBuilder.java b/src/main/java/de/verdox/mccreativelab/advancement/CraftAdvancementBuilder.java

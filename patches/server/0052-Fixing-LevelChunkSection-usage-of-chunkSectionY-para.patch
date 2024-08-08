@@ -1,0 +1,70 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: verdox <mail.ysp@web.de>
+Date: Wed, 7 Aug 2024 13:06:47 +0000
+Subject: [PATCH] Fixing LevelChunkSection usage of chunkSectionY parameter
+
+
+diff --git a/src/main/java/net/minecraft/world/level/chunk/LevelChunkSection.java b/src/main/java/net/minecraft/world/level/chunk/LevelChunkSection.java
+index 4fbc05991c643a9652f9990a6bd01009ad381de1..f16bd7f5a99417d5b3c213db9fe375c25781dd11 100644
+--- a/src/main/java/net/minecraft/world/level/chunk/LevelChunkSection.java
++++ b/src/main/java/net/minecraft/world/level/chunk/LevelChunkSection.java
+@@ -106,7 +106,7 @@ public class LevelChunkSection implements ca.spottedleaf.moonrise.patches.block_
+ 
+         // MCCLab start - Add BlockBehaviour
+         int globalX = chunkPos != null ? chunkPos.x * 16 + x : -1;
+-        int globalY = (((level.getMinSection() + chunkSectionY) << 4) + y);
++        int globalY = (((chunkSectionY) << 4) + y);
+         int globalZ = chunkPos != null ? chunkPos.z * 16 + z : -1;
+         // MCCLab end - Add BlockBehaviour
+ 
+@@ -207,12 +207,12 @@ public class LevelChunkSection implements ca.spottedleaf.moonrise.patches.block_
+ 
+                 // MCCLab start - Add BlockBehaviour
+                 int sizedBitsOfBlockStatePalette = 4;
+-                int x = i & ((1 << sizedBitsOfBlockStatePalette) - 1);
+-                int z = (i >> sizedBitsOfBlockStatePalette) & ((1 << sizedBitsOfBlockStatePalette) - 1);
+-                int y = (i >> (sizedBitsOfBlockStatePalette * 2)) & ((1 << sizedBitsOfBlockStatePalette) - 1);
++                int x = paletteIdx & ((1 << sizedBitsOfBlockStatePalette) - 1);
++                int z = (paletteIdx >> sizedBitsOfBlockStatePalette) & ((1 << sizedBitsOfBlockStatePalette) - 1);
++                int y = (paletteIdx >> (sizedBitsOfBlockStatePalette * 2)) & ((1 << sizedBitsOfBlockStatePalette) - 1);
+ 
+                 int globalX = chunkPos != null ? chunkPos.x * 16 + x : -1;
+-            int globalY = (((level.getMinSection() + chunkSectionY) << 4) + y);
++                int globalY = (((chunkSectionY) << 4) + y);
+                 int globalZ = chunkPos != null ? chunkPos.z * 16 + z : -1;
+                 // MCCLab end - Add BlockBehaviour
+ 
+diff --git a/src/main/java/net/minecraft/world/level/chunk/storage/ChunkSerializer.java b/src/main/java/net/minecraft/world/level/chunk/storage/ChunkSerializer.java
+index 3924ab7f7940e7bc912bd4b0a117f771233f6268..ff64d521ce537890473ffd1f309002281391c2bc 100644
+--- a/src/main/java/net/minecraft/world/level/chunk/storage/ChunkSerializer.java
++++ b/src/main/java/net/minecraft/world/level/chunk/storage/ChunkSerializer.java
+@@ -176,7 +176,7 @@ public class ChunkSerializer {
+                     object = new PalettedContainer<>(iregistry.asHolderIdMap(), iregistry.getHolderOrThrow(Biomes.PLAINS), PalettedContainer.Strategy.SECTION_BIOMES, null); // Paper - Anti-Xray - Add preset biomes
+                 }
+ 
+-                LevelChunkSection chunksection = new LevelChunkSection(world, chunkPos, datapaletteblock, (PalettedContainer) object, k); // CraftBukkit - read/write
++                LevelChunkSection chunksection = new LevelChunkSection(world, chunkPos, datapaletteblock, (PalettedContainer) object, world.getSectionYFromSectionIndex(k)); // CraftBukkit - read/write
+ 
+                 achunksection[k] = chunksection;
+                 SectionPos sectionposition = SectionPos.of(chunkPos, b0);
+diff --git a/src/main/java/org/bukkit/craftbukkit/generator/OldCraftChunkData.java b/src/main/java/org/bukkit/craftbukkit/generator/OldCraftChunkData.java
+index c7bc571abfe551e092b5effd7bfd79af2920c7fb..dcb17a0273280dea8feee9b69871ae1456c56c0e 100644
+--- a/src/main/java/org/bukkit/craftbukkit/generator/OldCraftChunkData.java
++++ b/src/main/java/org/bukkit/craftbukkit/generator/OldCraftChunkData.java
+@@ -10,6 +10,7 @@ import net.minecraft.world.level.chunk.LevelChunkSection;
+ import org.bukkit.Material;
+ import org.bukkit.block.Biome;
+ import org.bukkit.block.data.BlockData;
++import org.bukkit.craftbukkit.CraftWorld;
+ import org.bukkit.craftbukkit.block.CraftBlockType;
+ import org.bukkit.craftbukkit.block.data.CraftBlockData;
+ import org.bukkit.craftbukkit.util.CraftMagicNumbers;
+@@ -181,7 +182,7 @@ public final class OldCraftChunkData implements ChunkGenerator.ChunkData {
+         int offset = (y - this.minHeight) >> 4;
+         LevelChunkSection section = this.sections[offset];
+         if (create && section == null) {
+-            this.sections[offset] = section = new LevelChunkSection(this.biomes, this.world instanceof org.bukkit.craftbukkit.CraftWorld ? ((org.bukkit.craftbukkit.CraftWorld) this.world).getHandle() : null, null, offset); // Paper - Anti-Xray - Add parameters
++            this.sections[offset] = section = new LevelChunkSection(this.biomes, this.world instanceof org.bukkit.craftbukkit.CraftWorld ? ((org.bukkit.craftbukkit.CraftWorld) this.world).getHandle() : null, null, ((CraftWorld) world).getHandle().getSectionYFromSectionIndex(offset)); // Paper - Anti-Xray - Add parameters
+         }
+         return section;
+     }

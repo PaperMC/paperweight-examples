@@ -1,0 +1,5 @@
+
+- replaceMissingSections function in ChunkAccess uses the chunk section index shifted by min section. The logic however requires a different interpretation. Needs a fix
+- PDC logic was splitted into view and write. Persistent Data Object Logic must be changed accordingly (Maybe just remove it completely and add callback functions to toTagCompound in StorageBehavior()
+- ChunkDataCreateEvent must be called in ChunkGenerator on structureStartGenerate
+

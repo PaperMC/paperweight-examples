@@ -6,7 +6,7 @@ Subject: [PATCH] Adding behaviours
 
 diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/BehaviourUtil.java b/src/main/java/de/verdox/mccreativelab/behaviour/BehaviourUtil.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..3d32cf0cbd3769ba7404cc9f6aca049763ee9f14
+index 0000000000000000000000000000000000000000..46a81c9c3ccee338ec012b1144e320d9dce74cc9
 --- /dev/null
 +++ b/src/main/java/de/verdox/mccreativelab/behaviour/BehaviourUtil.java
 @@ -0,0 +1,269 @@
@@ -2211,7 +2211,7 @@ index 14ee7b5b9b804bebd4e2a846b238547a28a36035..18f8dc2ca10f7556355731b3376bad7c
  
                      if (iblockdata.hasBlockEntity()) {
 diff --git a/src/main/java/net/minecraft/world/level/chunk/LevelChunkSection.java b/src/main/java/net/minecraft/world/level/chunk/LevelChunkSection.java
-index a2a5aef769ee8bb638a5a9f3da9812fa4a85dda5..bc0f17fff2b71c4dcad555144d046be036744530 100644
+index a2a5aef769ee8bb638a5a9f3da9812fa4a85dda5..df8fdfd9757e7f5938280a8ee1a1a07f78fc5494 100644
 --- a/src/main/java/net/minecraft/world/level/chunk/LevelChunkSection.java
 +++ b/src/main/java/net/minecraft/world/level/chunk/LevelChunkSection.java
 @@ -28,6 +28,11 @@ public class LevelChunkSection {

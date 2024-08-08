@@ -1,6 +1,7 @@
 package de.verdox.mccreativelab;
 
 import de.verdox.itemformat.BasicItemFormat;
+import de.verdox.mccreativelab.behaviour.RepairItemBehaviour;
 import de.verdox.mccreativelab.event.MCCreativeLabReloadEvent;
 import de.verdox.mccreativelab.features.legacy.LegacyFeatures;
 import de.verdox.mccreativelab.world.block.FakeBlockRegistry;
@@ -10,6 +11,7 @@ import de.verdox.mccreativelab.world.block.replaced.ReplacedBlocks;
 import de.verdox.mccreativelab.world.item.FakeItemRegistry;
 import de.verdox.mccreativelab.world.item.data.ItemDataContainer;
 import de.verdox.mccreativelab.world.sound.ReplacedSoundGroups;
+import de.verdox.mccreativelab.wrapper.MCCItemType;
 import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
 import org.bukkit.WorldCreator;
@@ -60,6 +62,18 @@ public class ServerSoftwareExclusives implements Listener {
                         });
                 }
                 return false;
+            }
+        });
+
+        RepairItemBehaviour.REPAIR_ITEM_BEHAVIOUR.setBehaviour(new RepairItemBehaviour() {
+            @Override
+            public boolean canCombine(ItemStack first, ItemStack second) {
+                return MCCItemType.of(first).isSame(second);
+            }
+
+            @Override
+            public ItemStack assemble(ItemStack first, ItemStack second) {
+                return MCCItemType.of(first).createItem();
             }
         });
     }

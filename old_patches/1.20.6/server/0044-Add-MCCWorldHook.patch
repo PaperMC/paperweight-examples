@@ -5,7 +5,7 @@ Subject: [PATCH] Add MCCWorldHook
 
 
 diff --git a/src/main/java/de/verdox/mccreativelab/CreativeLabImpl.java b/src/main/java/de/verdox/mccreativelab/CreativeLabImpl.java
-index f3ede58efd53d2622ccf0c244d75674ebeaaad23..8d136f5210c59c2dabcb54d68bd59b10096a38d2 100644
+index f3ede58efd53d2622ccf0c244d75674ebeaaad23..942922d9fc899d8222612efda0dc2a78e49d0db0 100644
 --- a/src/main/java/de/verdox/mccreativelab/CreativeLabImpl.java
 +++ b/src/main/java/de/verdox/mccreativelab/CreativeLabImpl.java
 @@ -16,6 +16,17 @@ public final class CreativeLabImpl implements CreativeLab {
@@ -15,12 +15,12 @@ index f3ede58efd53d2622ccf0c244d75674ebeaaad23..8d136f5210c59c2dabcb54d68bd59b10
 +    @Override
 +    public void setWorldHook(org.bukkit.World world, @NotNull de.verdox.mccreativelab.behaviour.MCCWorldHook mccWorldHook) {
 +        Objects.requireNonNull(mccWorldHook, "mccWorldHook cannot be null");
-+        ((CraftWorld) world).getHandle().mccWorldHook = mccWorldHook;
++        ((org.bukkit.craftbukkit.CraftWorld) world).getHandle().mccWorldHook = mccWorldHook;
 +    }
 +
 +    @Override
 +    public @NotNull de.verdox.mccreativelab.behaviour.MCCWorldHook getWorldHook(@NotNull org.bukkit.World world) {
-+        return ((CraftWorld) world).getHandle().mccWorldHook;
++        return ((org.bukkit.craftbukkit.CraftWorld) world).getHandle().mccWorldHook;
 +    }
 +
      @Override

@@ -1,0 +1,19 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: verdox <mail.ysp@web.de>
+Date: Fri, 28 Jun 2024 16:44:00 +0000
+Subject: [PATCH] fix recalcBlockCounts blockbehaviour for random ticks
+
+
+diff --git a/src/main/java/net/minecraft/world/level/chunk/LevelChunkSection.java b/src/main/java/net/minecraft/world/level/chunk/LevelChunkSection.java
+index df8fdfd9757e7f5938280a8ee1a1a07f78fc5494..2785543efe254b9fe0bb3605b98e7d393497954b 100644
+--- a/src/main/java/net/minecraft/world/level/chunk/LevelChunkSection.java
++++ b/src/main/java/net/minecraft/world/level/chunk/LevelChunkSection.java
+@@ -175,7 +175,7 @@ public class LevelChunkSection {
+             int y = (i >> (sizedBitsOfBlockStatePalette * 2)) & ((1 << sizedBitsOfBlockStatePalette) - 1);
+ 
+             int globalX = chunkPos != null ? chunkPos.x * 16 + x : -1;
+-            int globalY = chunkSectionY << 4 + y;
++            int globalY = (((level.getMinSection() + chunkSectionY) << 4) + y);
+             int globalZ = chunkPos != null ? chunkPos.z * 16 + z : -1;
+             // MCCLab end - Add BlockBehaviour
+ 

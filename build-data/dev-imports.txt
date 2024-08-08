@@ -20,5 +20,14 @@ minecraft net.minecraft.world.level.levelgen.structure.pools.SinglePoolElement
 minecraft net.minecraft.world.level.levelgen.structure.PoolElementStructurePiece
 minecraft net.minecraft.world.level.levelgen.structure.templatesystem.StructureProcessor
 minecraft net.minecraft.world.entity.Marker
+minecraft net.minecraft.world.item.Item
+minecraft net.minecraft.world.item.crafting.RepairItemRecipe
 # Player Force Resource Pack
 minecraft net.minecraft.server.network.config.ServerResourcePackConfigurationTask
+minecraft net.minecraft.world.level.levelgen.structure.pools.JigsawPlacement
+minecraft net.minecraft.world.level.levelgen.structure.pools.StructurePoolElement
+minecraft net.minecraft.world.level.levelgen.structure.pools.JigsawJunction
+minecraft net.minecraft.world.level.levelgen.structure.structures.JigsawStructure
+minecraft net.minecraft.data.worldgen.Structures
+minecraft net.minecraft.world.level.levelgen.structure.BuiltinStructures
+minecraft net.minecraft.data.worldgen.StructureSets

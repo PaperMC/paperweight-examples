@@ -1,0 +1,170 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <lukasjonsson@outlook.de>
+Date: Sun, 12 Nov 2023 13:37:22 +0100
+Subject: [PATCH] Implementing Async Events for Chunk Creation, Saving,
+ Loading. These Events occur on the respective async chunk thread.
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/events/ChunkDataCreateEvent.java b/src/main/java/de/verdox/mccreativelab/events/ChunkDataCreateEvent.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..8df6c57721400f106daf43e20768e585c3f4e19b
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/events/ChunkDataCreateEvent.java
+@@ -0,0 +1,25 @@
++package de.verdox.mccreativelab.events;
++
++import org.bukkit.World;
++import org.bukkit.persistence.PersistentDataContainer;
++import org.jetbrains.annotations.NotNull;
++import de.verdox.mccreativelab.worldgen.WorldGenChunk;
++
++public class ChunkDataCreateEvent extends ChunkDataEvent {
++    private static final HandlerList handlers = new HandlerList();
++
++    public ChunkDataCreateEvent(@NotNull World world, @NotNull WorldGenChunk chunk, @NotNull ChunkDataEvent.ChunkPos chunkPos, @NotNull PersistentDataContainer persistentDataContainer) {
++        super(world, chunk, chunkPos, persistentDataContainer);
++    }
++
++    @NotNull
++    public static HandlerList getHandlerList() {
++        return handlers;
++    }
++
++    @NotNull
++    public HandlerList getHandlers() {
++        return handlers;
++    }
++
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/events/ChunkDataEvent.java b/src/main/java/de/verdox/mccreativelab/events/ChunkDataEvent.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..1883695b6e9ae836d0517043441f53e749e9c110
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/events/ChunkDataEvent.java
+@@ -0,0 +1,55 @@
++package de.verdox.mccreativelab.events;
++
++import org.bukkit.Bukkit;
++import org.bukkit.Chunk;
++import org.bukkit.World;
++import org.bukkit.event.Event;
++import org.bukkit.event.HandlerList;
++import org.bukkit.persistence.PersistentDataContainer;
++import org.jetbrains.annotations.NotNull;
++import org.jetbrains.annotations.Nullable;
++import de.verdox.mccreativelab.worldgen.WorldGenChunk;
++
++public abstract class ChunkDataEvent extends Event {
++
++    private final World world;
++
++    private final WorldGenChunk chunk;
++
++    private final ChunkPos chunkPos;
++
++    private final PersistentDataContainer persistentDataContainer;
++
++    public ChunkDataEvent(@NotNull World world, @NotNull WorldGenChunk chunk, @NotNull ChunkPos chunkPos, @NotNull PersistentDataContainer persistentDataContainer) {
++        super(!Bukkit.isPrimaryThread());
++        this.world = world;
++        this.chunk = chunk;
++        this.chunkPos = chunkPos;
++        this.persistentDataContainer = persistentDataContainer;
++    }
++
++    @NotNull
++    public ChunkPos getChunkPos() {
++        return this.chunkPos;
++    }
++
++    @NotNull
++    public WorldGenChunk getChunk() {
++        return this.chunk;
++    }
++
++    @NotNull
++    public World getWorld() {
++        return this.world;
++    }
++
++    @NotNull
++    public PersistentDataContainer getPersistentDataContainer() {
++        return this.persistentDataContainer;
++    }
++
++
++    public record ChunkPos(int x, int z) {
++
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/events/ChunkDataLoadEvent.java b/src/main/java/de/verdox/mccreativelab/events/ChunkDataLoadEvent.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..64011b084ccafbe53970a34fb3432776f2a1f11c
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/events/ChunkDataLoadEvent.java
+@@ -0,0 +1,26 @@
++package de.verdox.mccreativelab.events;
++
++import org.bukkit.Chunk;
++import org.bukkit.World;
++import org.bukkit.persistence.PersistentDataContainer;
++import org.jetbrains.annotations.NotNull;
++import org.jetbrains.annotations.Nullable;
++import de.verdox.mccreativelab.worldgen.WorldGenChunk;
++
++public class ChunkDataLoadEvent extends ChunkDataEvent {
++    private static final HandlerList handlers = new HandlerList();
++
++    public ChunkDataLoadEvent(@NotNull World world, @NotNull WorldGenChunk chunk, @NotNull ChunkDataEvent.ChunkPos chunkPos, @NotNull PersistentDataContainer persistentDataContainer) {
++        super(world, chunk, chunkPos, persistentDataContainer);
++    }
++
++    @NotNull
++    public static HandlerList getHandlerList() {
++        return handlers;
++    }
++
++    @NotNull
++    public HandlerList getHandlers() {
++        return handlers;
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/events/ChunkDataSaveEvent.java b/src/main/java/de/verdox/mccreativelab/events/ChunkDataSaveEvent.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..8418bc26de6b3440df443b55c5b8b9b942f4f33c
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/events/ChunkDataSaveEvent.java
+@@ -0,0 +1,33 @@
++package de.verdox.mccreativelab.events;
++
++import org.bukkit.Chunk;
++import org.bukkit.World;
++import org.bukkit.persistence.PersistentDataContainer;
++import org.jetbrains.annotations.NotNull;
++import org.jetbrains.annotations.Nullable;
++import de.verdox.mccreativelab.worldgen.WorldGenChunk;
++
++public class ChunkDataSaveEvent extends ChunkDataEvent {
++    private static final HandlerList handlers = new HandlerList();
++
++    private final boolean unloaded;
++
++    public ChunkDataSaveEvent(@NotNull World world, @NotNull WorldGenChunk chunk, @NotNull ChunkDataEvent.ChunkPos chunkPos, @NotNull PersistentDataContainer persistentDataContainer, boolean unloaded) {
++        super(world, chunk, chunkPos, persistentDataContainer);
++        this.unloaded = unloaded;
++    }
++
++    public boolean isUnloaded() {
++        return this.unloaded;
++    }
++
++    @NotNull
++    public static HandlerList getHandlerList() {
++        return handlers;
++    }
++
++    @NotNull
++    public HandlerList getHandlers() {
++        return handlers;
++    }
++}

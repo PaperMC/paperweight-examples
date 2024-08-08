@@ -1,0 +1,19 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: verdox <mail.ysp@web.de>
+Date: Thu, 27 Jun 2024 15:26:53 +0000
+Subject: [PATCH] Fixes
+
+
+diff --git a/src/main/java/org/bukkit/World.java b/src/main/java/org/bukkit/World.java
+index e07048c269c51ffa943ba2fe0aa2985db0460a17..b409c317dd6c18eb5447f6f6b983da98e8a02ed3 100644
+--- a/src/main/java/org/bukkit/World.java
++++ b/src/main/java/org/bukkit/World.java
+@@ -2841,7 +2841,7 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
+     int getSimulationDistance();
+ 
+     /**
+-     * Returns the {@link WorldGenData} of this world
++     * Returns the {@link io.papermc.paper.world.worldgen.WorldGenData} of this world
+      * @return the world gen data
+      */
+     public io.papermc.paper.world.worldgen.WorldGenData getWorldGenData();

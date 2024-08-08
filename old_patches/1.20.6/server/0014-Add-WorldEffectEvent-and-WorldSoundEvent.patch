@@ -1,0 +1,171 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <mail.ysp@web.de>
+Date: Sun, 7 Jan 2024 02:02:30 +0100
+Subject: [PATCH] Add WorldEffectEvent and WorldSoundEvent
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/event/EventToPacketFactory.java b/src/main/java/de/verdox/mccreativelab/event/EventToPacketFactory.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..a808416df475ea14399e9e725f3a87886cdb9b52
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/event/EventToPacketFactory.java
+@@ -0,0 +1,123 @@
++package de.verdox.mccreativelab.event;
++
++import io.papermc.paper.event.world.WorldEffectEvent;
++import io.papermc.paper.event.world.WorldSoundEvent;
++import net.kyori.adventure.sound.Sound;
++import net.minecraft.core.BlockPos;
++import net.minecraft.core.Holder;
++import net.minecraft.core.registries.BuiltInRegistries;
++import net.minecraft.network.protocol.game.ClientboundLevelEventPacket;
++import net.minecraft.network.protocol.game.ClientboundSoundPacket;
++import net.minecraft.resources.ResourceLocation;
++import net.minecraft.server.level.ServerLevel;
++import net.minecraft.server.level.ServerPlayer;
++import net.minecraft.sounds.SoundEvent;
++import net.minecraft.sounds.SoundSource;
++import net.minecraft.world.entity.Entity;
++import net.minecraft.world.level.GameRules;
++import org.bukkit.Effect;
++import org.bukkit.Location;
++import org.bukkit.NamespacedKey;
++import org.bukkit.craftbukkit.CraftEffect;
++import org.bukkit.craftbukkit.CraftWorld;
++import org.bukkit.craftbukkit.entity.CraftPlayer;
++import org.bukkit.craftbukkit.util.CraftNamespacedKey;
++import org.bukkit.entity.Player;
++import org.jetbrains.annotations.Nullable;
++
++import java.util.Optional;
++
++public class EventToPacketFactory {
++    public static void globalLevelEvent(ServerLevel serverLevel, int eventId, BlockPos pos, int data) {
++        if (serverLevel.getGameRules().getBoolean(GameRules.RULE_GLOBAL_SOUND_EVENTS)) {
++            WorldEffectEvent worldEffectEvent = createWorldEffectEvent(serverLevel, null, eventId, pos, data, true);
++            callEventAndBroadcastPacket(worldEffectEvent);
++        } else {
++            levelEvent(serverLevel, null, eventId, pos, data);
++        }
++    }
++
++    public static void levelEvent(ServerLevel serverLevel, @javax.annotation.Nullable net.minecraft.world.entity.player.Player except, int eventId, BlockPos pos, int data) {
++        WorldEffectEvent worldEffectEvent = createWorldEffectEvent(serverLevel, except, eventId, pos, data, false);
++        callEventAndBroadcastPacket(worldEffectEvent);
++    }
++
++    public static void playSeededSound(ServerLevel serverLevel, @javax.annotation.Nullable net.minecraft.world.entity.player.Player except, double x, double y, double z, Holder<SoundEvent> sound, SoundSource category, float volume, float pitch, long seed) {
++        WorldSoundEvent worldSoundEvent = createWorldSoundEvent(serverLevel, except, null, x, y, z, sound, category, volume, pitch, seed);
++        if (worldSoundEvent != null) callEventAndBroadcastPacket(worldSoundEvent, false);
++    }
++
++    public static void playSeededSound(ServerLevel serverLevel, @javax.annotation.Nullable net.minecraft.world.entity.player.Player except, Entity entity, Holder<SoundEvent> sound, SoundSource category, float volume, float pitch, long seed) {
++        WorldSoundEvent worldSoundEvent = createWorldSoundEvent(serverLevel, except, entity, entity.getX(), entity.getY(), entity.getZ(), sound, category, volume, pitch, seed);
++        if (worldSoundEvent != null) callEventAndBroadcastPacket(worldSoundEvent, false);
++    }
++
++    public static WorldSoundEvent createWorldSoundEvent(ServerLevel serverLevel, @Nullable net.minecraft.world.entity.player.Player except, @Nullable Entity entity, double x, double y, double z, Holder<SoundEvent> sound, SoundSource category, float volume, float pitch, long seed) {
++        if (sound.unwrapKey().isEmpty())
++            return null;
++        NamespacedKey soundType = CraftNamespacedKey.fromMinecraft(sound.unwrapKey().get().location());
++        Player player = except != null ? (Player) except.getBukkitEntity() : null;
++        Sound.Source adventureSource = Sound.Source.valueOf(category.getName().toUpperCase());
++        Location location = new Location(serverLevel.getWorld(), x, y, z);
++
++        return new WorldSoundEvent(serverLevel.getWorld(), location, player, entity != null ? entity.getBukkitEntity() : null, soundType, adventureSource, volume, pitch, seed);
++    }
++
++    public static WorldEffectEvent createWorldEffectEvent(ServerLevel serverLevel, @Nullable net.minecraft.world.entity.player.Player except, int eventId, BlockPos pos, int data, boolean global) {
++        Effect bukkitEffect = Effect.getById(eventId);
++        Player player = except != null ? (Player) except.getBukkitEntity() : null;
++        Location location = new Location(serverLevel.getWorld(), pos.getX(), pos.getY(), pos.getZ());
++
++        return new WorldEffectEvent(serverLevel.getWorld(), location, player, bukkitEffect, data, global);
++    }
++
++    public static void callEventAndBroadcastPacket(WorldEffectEvent event) {
++        if (!event.callEvent()) return;
++        ServerLevel serverLevel = ((CraftWorld) event.getWorld()).getHandle();
++        int data;
++        if (event.getData() instanceof Integer integer)
++            data = integer;
++        else
++            data = CraftEffect.getDataValue(event.getEffect(), event.getData());
++
++        ClientboundLevelEventPacket clientboundLevelEventPacket = new ClientboundLevelEventPacket(event.getEffect()
++                                                                                                       .getId(), new BlockPos(event
++            .getSoundLocation().getBlockX(), event.getSoundLocation().getBlockY(), event.getSoundLocation()
++                                                                                        .getBlockZ()), data, event.isGlobal());
++
++        if (event.isGlobal())
++            serverLevel.getServer().getPlayerList().broadcastAll(clientboundLevelEventPacket);
++        else {
++            ServerPlayer serverPlayer = event.getExcept() != null ? ((CraftPlayer) event.getExcept()).getHandle() : null;
++            serverLevel.getServer().getPlayerList()
++                       .broadcast(serverPlayer, event.getSoundLocation().getX(), event.getSoundLocation().getY(), event
++                           .getSoundLocation().getZ(), 64.0D, serverLevel.dimension(), clientboundLevelEventPacket);
++        }
++    }
++
++    public static void callEventAndBroadcastPacket(WorldSoundEvent event, boolean global) {
++        if (!event.callEvent()) return;
++        ServerLevel serverLevel = ((CraftWorld) event.getWorld()).getHandle();
++        final double posX = event.getEmitter() != null ? event.getEmitter().getLocation().getX() : event
++            .getSoundLocation().getX();
++        final double posY = event.getEmitter() != null ? event.getEmitter().getLocation().getY() : event
++            .getSoundLocation().getY();
++        final double posZ = event.getEmitter() != null ? event.getEmitter().getLocation().getZ() : event
++            .getSoundLocation().getZ();
++        final ResourceLocation name = io.papermc.paper.adventure.PaperAdventure.asVanilla(event.getSound());
++        final Optional<SoundEvent> soundEvent = BuiltInRegistries.SOUND_EVENT.getOptional(name);
++        final SoundSource source = io.papermc.paper.adventure.PaperAdventure.asVanilla(event.getSoundCategory());
++        final Holder<SoundEvent> soundEventHolder = soundEvent.map(BuiltInRegistries.SOUND_EVENT::wrapAsHolder)
++                                                              .orElseGet(() -> Holder.direct(SoundEvent.createVariableRangeEvent(name)));
++
++        ClientboundSoundPacket packet = new ClientboundSoundPacket(soundEventHolder, source, posX, posY, posZ, event.getVolume(), event.getPitch(), event.getSeed());
++        ServerPlayer serverPlayer = event.getExcept() != null ? ((CraftPlayer) event.getExcept()).getHandle() : null;
++
++        if (global)
++            serverLevel.getServer().getPlayerList().broadcastAll(packet, serverPlayer);
++        else
++            serverLevel.getServer().getPlayerList().broadcast(serverPlayer, posX, posY, posZ, soundEventHolder.value()
++                                                                                                              .getRange(event.getVolume()), serverLevel.dimension(), packet);
++    }
++
++}
+diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
+index ca56a0b596976448da6bb2a0e82b3d5cd4133e12..b8b4792b4463965a2a5babb2b41adf56f1a3b4b8 100644
+--- a/src/main/java/net/minecraft/server/level/ServerLevel.java
++++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
+@@ -1813,27 +1813,22 @@ public class ServerLevel extends Level implements WorldGenLevel {
+ 
+     @Override
+     public void playSeededSound(@Nullable Player source, double x, double y, double z, Holder<SoundEvent> sound, SoundSource category, float volume, float pitch, long seed) {
+-        this.server.getPlayerList().broadcast(source, x, y, z, (double) ((SoundEvent) sound.value()).getRange(volume), this.dimension(), new ClientboundSoundPacket(sound, category, x, y, z, volume, pitch, seed));
++        de.verdox.mccreativelab.event.EventToPacketFactory.playSeededSound(this, source, x, y, z, sound, category, volume, pitch, seed); // Paper - add WorldSoundEvent
+     }
+ 
+     @Override
+     public void playSeededSound(@Nullable Player source, Entity entity, Holder<SoundEvent> sound, SoundSource category, float volume, float pitch, long seed) {
+-        this.server.getPlayerList().broadcast(source, entity.getX(), entity.getY(), entity.getZ(), (double) ((SoundEvent) sound.value()).getRange(volume), this.dimension(), new ClientboundSoundEntityPacket(sound, category, entity, volume, pitch, seed));
++        de.verdox.mccreativelab.event.EventToPacketFactory.playSeededSound(this, source, entity, sound, category, volume, pitch, seed); // Paper - add WorldSoundEvent
+     }
+ 
+     @Override
+     public void globalLevelEvent(int eventId, BlockPos pos, int data) {
+-        if (this.getGameRules().getBoolean(GameRules.RULE_GLOBAL_SOUND_EVENTS)) {
+-            this.server.getPlayerList().broadcastAll(new ClientboundLevelEventPacket(eventId, pos, data, true));
+-        } else {
+-            this.levelEvent((Player) null, eventId, pos, data);
+-        }
+-
++        de.verdox.mccreativelab.event.EventToPacketFactory.globalLevelEvent(this, eventId, pos ,data); // Paper - add WorldEffectEvent
+     }
+ 
+     @Override
+     public void levelEvent(@Nullable Player player, int eventId, BlockPos pos, int data) {
+-        this.server.getPlayerList().broadcast(player, (double) pos.getX(), (double) pos.getY(), (double) pos.getZ(), 64.0D, this.dimension(), new ClientboundLevelEventPacket(eventId, pos, data, false)); // Paper - diff on change (the 64.0 distance is used as defaults for sound ranges in spigot config for ender dragon, end portal and wither)
++        de.verdox.mccreativelab.event.EventToPacketFactory.levelEvent(this, player, eventId, pos ,data); // Paper - add WorldEffectEvent
+     }
+ 
+     public int getLogicalHeight() {

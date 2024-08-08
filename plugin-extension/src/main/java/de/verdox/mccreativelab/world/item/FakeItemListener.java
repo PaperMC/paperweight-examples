@@ -1,7 +1,9 @@
 package de.verdox.mccreativelab.world.item;
 
 import de.verdox.mccreativelab.MCCreativeLabExtension;
+import de.verdox.mccreativelab.generator.datapack.wrapper.elements.RecipeResult;
 import de.verdox.mccreativelab.registry.Reference;
+import de.verdox.mccreativelab.wrapper.MCCItemType;
 import org.bukkit.GameMode;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -9,12 +11,10 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityDropItemEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
-import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.inventory.InventoryDragEvent;
-import org.bukkit.event.inventory.InventoryMoveItemEvent;
-import org.bukkit.event.inventory.InventoryPickupItemEvent;
+import org.bukkit.event.inventory.*;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerItemDamageEvent;
+import org.bukkit.inventory.ComplexRecipe;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.Iterator;
@@ -75,5 +75,26 @@ public class FakeItemListener implements Listener {
         if(fakeItemReference == null)
             return;
         e.setCancelled(fakeItemReference.unwrapValue().getFakeItemProperties().isPreventInventoryClick());
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void fixItemRepairRecipesNotWorkingWithCustomModelData(PrepareItemCraftEvent e){
+        if(!(e.getRecipe() instanceof ComplexRecipe complexRecipe) || !e.isRepair())
+            return;
+
+        MCCItemType repairedType = null;
+
+        for (ItemStack matrix : e.getInventory().getMatrix()) {
+            if(matrix == null)
+                continue;
+            if(repairedType == null)
+                repairedType = MCCItemType.of(matrix);
+            else {
+                if(!repairedType.isSame(matrix))
+                    break;
+
+            }
+        }
+
     }
 }

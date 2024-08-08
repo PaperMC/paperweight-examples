@@ -1,0 +1,36 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: verdox <mail.ysp@web.de>
+Date: Thu, 27 Jun 2024 15:30:03 +0000
+Subject: [PATCH] add isCorrectToolForDrops to ItemBehavior
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/ItemBehaviourUtil.java b/src/main/java/de/verdox/mccreativelab/behaviour/ItemBehaviourUtil.java
+index cda9bdf631325975f8de24d2ce1b5ee5a3cb59ff..5b9a675a01c283637ee76bb45e21fc812c4654d2 100644
+--- a/src/main/java/de/verdox/mccreativelab/behaviour/ItemBehaviourUtil.java
++++ b/src/main/java/de/verdox/mccreativelab/behaviour/ItemBehaviourUtil.java
+@@ -76,7 +76,10 @@ public class ItemBehaviourUtil extends BehaviourUtil {
+     public static boolean isCorrectToolForDrops(ItemStack stack, BlockState blockState) {
+         return evaluateBoolean(getBehaviour(stack),
+             itemBehaviour -> itemBehaviour.isCorrectToolForDrops(stack.asBukkitMirror(), blockState.createCraftBlockData()),
+-            () -> stack.isCorrectToolForDrops(blockState)
++            () -> {
++                net.minecraft.world.item.component.Tool tool = stack.get(DataComponents.TOOL);
++                return tool != null && tool.isCorrectForDrops(blockState);
++            }
+         );
+     }
+ 
+diff --git a/src/main/java/net/minecraft/world/item/Item.java b/src/main/java/net/minecraft/world/item/Item.java
+index 00d2819494d60b54aa268bbe2ccf57be605ceb30..1af150b073b0a2f96dbf1e808db7b27486049717 100644
+--- a/src/main/java/net/minecraft/world/item/Item.java
++++ b/src/main/java/net/minecraft/world/item/Item.java
+@@ -200,8 +200,7 @@ public class Item implements FeatureElement, ItemLike {
+     }
+ 
+     public boolean isCorrectToolForDrops(ItemStack stack, BlockState state) {
+-        Tool tool = stack.get(DataComponents.TOOL);
+-        return tool != null && tool.isCorrectForDrops(state);
++        return de.verdox.mccreativelab.behaviour.ItemBehaviourUtil.isCorrectToolForDrops(stack, state);
+     }
+ 
+     public InteractionResult interactLivingEntity(ItemStack stack, Player user, LivingEntity entity, InteractionHand hand) {

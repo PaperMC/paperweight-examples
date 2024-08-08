@@ -1,0 +1,43 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: verdox <mail.ysp@web.de>
+Date: Wed, 1 May 2024 15:04:15 +0000
+Subject: [PATCH] Make ChunkDataEvents use WorldGenChunk
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/worldgen/ChunkDataUtil.java b/src/main/java/de/verdox/mccreativelab/worldgen/ChunkDataUtil.java
+index d133885c10963eb756463d8b5a4ff67d32a2e56d..da50153087dd885360d56c8c543e617c5458f37a 100644
+--- a/src/main/java/de/verdox/mccreativelab/worldgen/ChunkDataUtil.java
++++ b/src/main/java/de/verdox/mccreativelab/worldgen/ChunkDataUtil.java
+@@ -15,18 +15,18 @@ public class ChunkDataUtil {
+ 
+     public static void callChunkDataCreateEvent(ServerLevel serverLevel, ChunkAccess chunkAccess, PersistentDataContainer persistentDataContainer) {
+         Bukkit.getPluginManager()
+-              .callEvent(new ChunkDataCreateEvent(serverLevel.getWorld(), getCraftChunk(chunkAccess), createEventChunkPos(chunkAccess), persistentDataContainer));
++              .callEvent(new ChunkDataCreateEvent(serverLevel.getWorld(), getCraftChunk(serverLevel, chunkAccess, persistentDataContainer), createEventChunkPos(chunkAccess), persistentDataContainer));
+         chunkAccess.persistentDataContainer.dirty(true);
+     }
+ 
+     public static void callChunkDataLoadEvent(ServerLevel serverLevel, ChunkAccess chunkAccess, PersistentDataContainer persistentDataContainer) {
+         Bukkit.getPluginManager().
+-              callEvent(new ChunkDataLoadEvent(serverLevel.getWorld(), getCraftChunk(chunkAccess), createEventChunkPos(chunkAccess), persistentDataContainer));
++              callEvent(new ChunkDataLoadEvent(serverLevel.getWorld(), getCraftChunk(serverLevel, chunkAccess, persistentDataContainer), createEventChunkPos(chunkAccess), persistentDataContainer));
+     }
+ 
+     public static void callChunkDataSaveEvent(ServerLevel serverLevel, ChunkAccess chunkAccess, PersistentDataContainer persistentDataContainer, boolean unloadingChunk) {
+         Bukkit.getPluginManager()
+-              .callEvent(new ChunkDataSaveEvent(serverLevel.getWorld(), getCraftChunk(chunkAccess), createEventChunkPos(chunkAccess), persistentDataContainer, unloadingChunk));
++              .callEvent(new ChunkDataSaveEvent(serverLevel.getWorld(), getCraftChunk(serverLevel, chunkAccess, persistentDataContainer), createEventChunkPos(chunkAccess), persistentDataContainer, unloadingChunk));
+         chunkAccess.persistentDataContainer.dirty(true);
+     }
+ 
+@@ -34,8 +34,8 @@ public class ChunkDataUtil {
+         return new ChunkDataEvent.ChunkPos(chunkAccess.locX, chunkAccess.locZ);
+     }
+ 
+-    private static CraftChunk getCraftChunk(ChunkAccess chunkAccess) {
+-        return chunkAccess instanceof LevelChunk chunk ? new CraftChunk(chunk) : null;
++    private static CraftWorldGenChunk getCraftChunk(ServerLevel serverLevel, ChunkAccess chunkAccess, PersistentDataContainer persistentDataContainer) {
++        return new CraftWorldGenChunk(serverLevel.getWorld(), chunkAccess);
+     }
+ 
+ }
