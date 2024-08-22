@@ -10,6 +10,7 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.ItemDisplay;
+import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.Nullable;
 
@@ -84,7 +85,7 @@ public class SolidFullBlockEntityBasedDisplayStrategy extends FakeBlockVisualStr
         Location blockCenter = block.getLocation().clone().add(0.5, 0.5, 0.5);
         Location spawnLocation = blockCenter.clone().add(blockFace.getDirection().clone().multiply(0.5));
 
-        ItemDisplay itemDisplay = (ItemDisplay) block.getWorld().spawnEntity(spawnLocation, EntityType.ITEM_DISPLAY);
+        ItemDisplay itemDisplay = (ItemDisplay) block.getWorld().spawnEntity(spawnLocation, EntityType.ITEM_DISPLAY, CreatureSpawnEvent.SpawnReason.CUSTOM);
         setupItemDisplayNBT(itemDisplay, blockFace, itemTextureData, block, fakeBlockState);
 
         return itemDisplay;

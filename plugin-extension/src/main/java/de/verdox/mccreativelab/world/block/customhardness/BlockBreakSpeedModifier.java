@@ -34,6 +34,7 @@ import org.bukkit.event.player.PlayerAnimationType;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.inventory.EquipmentSlotGroup;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.potion.PotionEffect;
@@ -52,7 +53,8 @@ public class BlockBreakSpeedModifier implements Listener {
     private static final EntityMetadataPredicate.TickDelay DELAY_ARM_SWING_DETECTION = new EntityMetadataPredicate.TickDelay("ArmSwingDetection", 1);
     private static final Map<Player, BlockBreakProgress> map = new HashMap<>();
     private static final Map<Block, Set<Player>> blockBrokenToPlayerMapping = new HashMap<>();
-    private static final AttributeModifier NO_BLOCK_BREAK_MODIFIER = new AttributeModifier("fake_block_break_effect", -1, AttributeModifier.Operation.ADD_NUMBER);
+    private static final NamespacedKey MODIFIER_KEY = new NamespacedKey("oneblock", "fake_block_break_effect");
+    private static final AttributeModifier NO_BLOCK_BREAK_MODIFIER = new AttributeModifier(MODIFIER_KEY, -1, AttributeModifier.Operation.ADD_NUMBER);
 
     @EventHandler
     public void onInteract(PlayerInteractEvent e) {
@@ -169,13 +171,13 @@ public class BlockBreakSpeedModifier implements Listener {
     }
 
     private static void applyBlockBreakModifier(Player player) {
-        if (player.getAttribute(Attribute.PLAYER_BLOCK_BREAK_SPEED).getModifier(NO_BLOCK_BREAK_MODIFIER.getUniqueId()) == null) {
+        if (player.getAttribute(Attribute.PLAYER_BLOCK_BREAK_SPEED).getModifier(MODIFIER_KEY) == null) {
             player.getAttribute(Attribute.PLAYER_BLOCK_BREAK_SPEED).addTransientModifier(NO_BLOCK_BREAK_MODIFIER);
         }
     }
 
     private static void removeBlockModifier(Player player) {
-        if (player.getAttribute(Attribute.PLAYER_BLOCK_BREAK_SPEED).getModifier(NO_BLOCK_BREAK_MODIFIER.getUniqueId()) != null) {
+        if (player.getAttribute(Attribute.PLAYER_BLOCK_BREAK_SPEED).getModifier(MODIFIER_KEY) != null) {
             player.getAttribute(Attribute.PLAYER_BLOCK_BREAK_SPEED).removeModifier(NO_BLOCK_BREAK_MODIFIER);
         }
     }
@@ -326,21 +328,5 @@ public class BlockBreakSpeedModifier implements Listener {
                 player.sendBlockDamage(block.getLocation(), progress, entityId);
             }
         }
-    }
-
-    private static boolean hasEnchantmentLevel(Player player, Enchantment enchantment) {
-        return getEnchantmentLevel(player, enchantment) > 0;
-    }
-
-    private static int getEnchantmentLevel(Player player, Enchantment enchantment) {
-        int level = 0;
-        for (EquipmentSlot activeSlot : enchantment.getActiveSlots()) {
-
-            ItemStack stack = player.getInventory().getItem(activeSlot);
-            int foundLevel = stack.getEnchantmentLevel(enchantment);
-            if (foundLevel > level)
-                level = foundLevel;
-        }
-        return level;
     }
 }

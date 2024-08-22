@@ -26,6 +26,7 @@ import org.codehaus.plexus.util.FileUtils;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
+import java.util.logging.Logger;
 
 public class CustomResourcePack extends CustomPack<CustomResourcePack> {
     public static final AssetPath resourcePacksFolder = AssetPath.buildPath("resourcePacks");

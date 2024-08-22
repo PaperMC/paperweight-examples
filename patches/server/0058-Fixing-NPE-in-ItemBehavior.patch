@@ -1,0 +1,31 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: verdox <mail.ysp@web.de>
+Date: Mon, 19 Aug 2024 19:57:12 +0000
+Subject: [PATCH] Fixing NPE in ItemBehavior
+
+
+diff --git a/src/main/java/org/bukkit/craftbukkit/inventory/CraftItemStack.java b/src/main/java/org/bukkit/craftbukkit/inventory/CraftItemStack.java
+index 90c799b305cad6677e4cc52e769e41d65654e9fc..2392cbed67a263d008f0be27726c1b1c33aaeefa 100644
+--- a/src/main/java/org/bukkit/craftbukkit/inventory/CraftItemStack.java
++++ b/src/main/java/org/bukkit/craftbukkit/inventory/CraftItemStack.java
+@@ -555,6 +555,8 @@ public final class CraftItemStack extends ItemStack {
+     // MCCLab start - Add ItemBehaviour as instance to this specific Item Stack
+     @Override
+     public @org.jetbrains.annotations.Nullable de.verdox.mccreativelab.behaviour.ItemBehaviour getDefinedItemBehaviour() {
++        if(this.handle == null)
++            return null;
+         return this.handle.itemBehaviour;
+     }
+ 
+@@ -569,6 +571,11 @@ public final class CraftItemStack extends ItemStack {
+ 
+     @Override
+     public void setItemBehaviour(@org.jetbrains.annotations.Nullable de.verdox.mccreativelab.behaviour.ItemBehaviour itemBehaviour) {
++        if(this.handle == null){
++            if(itemBehaviour == null)
++                return;
++            throw new IllegalArgumentException("Cannot set itemBehaviour for empty item "+this);
++        }
+         this.handle.itemBehaviour = itemBehaviour;
+     }
+ 

@@ -17,8 +17,10 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.BlockDataMeta;
 import org.bukkit.inventory.meta.BlockStateMeta;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.yaml.snakeyaml.error.Mark;
 
 import java.util.HashSet;
@@ -68,7 +70,7 @@ public class FakeBlockEntityStorage {
 
         }*/
     public static FakeBlockEntity getAsFakeBlockEntity(Marker marker) {
-        FakeBlockEntity fakeBlockEntity = marker.getPersistentDataContainer().getPersistentDataObjectCache().loadPersistentDataObject(FAKE_BLOCK_ENTITY_KEY, FakeBlockEntity.class);
+        FakeBlockEntity fakeBlockEntity = load(marker);
         if (fakeBlockEntity != null)
             return fakeBlockEntity;
 
@@ -94,10 +96,11 @@ public class FakeBlockEntityStorage {
                 fakeBlockEntity.setFakeBlockEntityType(fakeBlockEntityType);
                 fakeBlockEntity.setNamespacedKey(keyOfBlockEntityType);
                 marker.setCustomEntityBehaviour(Marker.class, new FakeBlockEntityBehaviour(fakeBlockEntity));
-                return marker.getPersistentDataContainer().getPersistentDataObjectCache().loadOrCreatePersistentDataObject(FAKE_BLOCK_ENTITY_KEY, fakeBlockEntity);
+                return loadOrCreate(marker, fakeBlockEntity);
             }
         }
-        return marker.getPersistentDataContainer().getPersistentDataObjectCache().loadPersistentDataObject(FAKE_BLOCK_ENTITY_KEY, FakeBlockEntity.class);
+
+        return load(marker);
     }
 
     public static FakeBlockEntity getFakeBlockEntityAt(Block blockLocation) {
@@ -125,7 +128,7 @@ public class FakeBlockEntityStorage {
         if (!FAKE_BLOCK_ENTITY_TYPE_REGISTRY.contains(fakeBlockState.getFakeBlock().getFakeBlockEntityType().getKey()))
             throw new IllegalArgumentException("The FakeBlock " + fakeBlockState.getFakeBlock().getKey().asString() + " tried to create a FakeBlockEntity with the type " + fakeBlockState.getFakeBlock().getFakeBlockEntityType().getKey().asString() + ". However, the EntityType was not registered to the BlockEntityType Registry. This is a plugin related bug and should be reported to the plugin author!");
 
-        Marker marker = (Marker) location.getWorld().spawnEntity(location.getBlock().getLocation(), EntityType.MARKER, CreatureSpawnEvent.SpawnReason.NATURAL);
+        Marker marker = (Marker) location.getWorld().spawnEntity(location.getBlock().getLocation(), EntityType.MARKER, CreatureSpawnEvent.SpawnReason.CUSTOM);
 
         FakeBlockEntity fakeBlockEntity = fakeBlockState.getFakeBlock().getFakeBlockEntityType().create();
 
@@ -133,7 +136,7 @@ public class FakeBlockEntityStorage {
         fakeBlockEntity.setNamespacedKey(fakeBlockState.getFakeBlock().getFakeBlockEntityType().getKey());
         fakeBlockEntity.setFakeBlockEntityType(fakeBlockState.getFakeBlock().getFakeBlockEntityType());
         marker.setCustomEntityBehaviour(Marker.class, new FakeBlockEntityBehaviour(fakeBlockEntity));
-        return marker.getPersistentDataContainer().getPersistentDataObjectCache().loadOrCreatePersistentDataObject(FAKE_BLOCK_ENTITY_KEY, fakeBlockEntity);
+        return loadOrCreate(marker, fakeBlockEntity);
     }
 
     public static void removeFakeBlockEntityAt(Location location) {
@@ -147,5 +150,29 @@ public class FakeBlockEntityStorage {
     public static <T extends FakeBlockEntity> Reference<FakeBlockEntityType<T>> register(NamespacedKey namespacedKey, FakeBlock fakeBlock, Supplier<T> entityConstructor) {
         FakeBlockEntityType<T> entityType = new FakeBlockEntityType<>(namespacedKey, fakeBlock, entityConstructor);
         return FAKE_BLOCK_ENTITY_TYPE_REGISTRY.register(entityType.getKey(), entityType);
+    }
+
+    @Nullable
+    private static FakeBlockEntity load(Marker marker) {
+/*        if (!marker.hasMetadata(FAKE_BLOCK_ENTITY_KEY.asString()))
+            return null;
+        return (FakeBlockEntity) marker.getMetadata(FAKE_BLOCK_ENTITY_KEY.asString()).get(0).value();*/
+        return marker.getPersistentDataContainer().getPersistentDataObjectCache().loadPersistentDataObject(FAKE_BLOCK_ENTITY_KEY, FakeBlockEntity.class);
+    }
+
+    @NotNull
+    private static FakeBlockEntity loadOrCreate(Marker marker, Supplier<FakeBlockEntity> constructor) {
+/*        if (!marker.hasMetadata(FAKE_BLOCK_ENTITY_KEY.asString())) {
+            FakeBlockEntity fakeBlockEntity = constructor.get();
+            marker.setMetadata(FAKE_BLOCK_ENTITY_KEY.asString(), new FixedMetadataValue(MCCreativeLabExtension.getInstance(), fakeBlockEntity));
+            return fakeBlockEntity;
+        }
+        return (FakeBlockEntity) marker.getMetadata(FAKE_BLOCK_ENTITY_KEY.asString()).get(0).value();*/
+        return marker.getPersistentDataContainer().getPersistentDataObjectCache().loadOrCreatePersistentDataObject(FAKE_BLOCK_ENTITY_KEY, constructor.get());
+    }
+
+    @NotNull
+    private static FakeBlockEntity loadOrCreate(Marker marker, FakeBlockEntity defaultValue) {
+        return loadOrCreate(marker, () -> defaultValue);
     }
 }

@@ -4,6 +4,7 @@ import de.verdox.mccreativelab.MCCreativeLabExtension;
 import de.verdox.mccreativelab.world.block.FakeBlock;
 import de.verdox.mccreativelab.world.block.FakeBlockStorage;
 import de.verdox.mccreativelab.registry.exception.PaletteValueUnknownException;
+import de.verdox.mccreativelab.world.block.entity.FakeBlockEntityStorage;
 import de.verdox.mccreativelab.world.block.replaced.ReplacedBlocks;
 import de.verdox.mccreativelab.world.item.FakeItem;
 import net.kyori.adventure.text.Component;
@@ -88,6 +89,7 @@ public class FakeBlockCommand extends Command {
                     NamespacedKey namespacedKey = NamespacedKey.fromString(keyAsString);
                     FakeBlock fakeBlock = MCCreativeLabExtension.getFakeBlockRegistry().get(namespacedKey);
                     FakeBlockStorage.setFakeBlock(block.getLocation(), fakeBlock, false);
+                    FakeBlockEntityStorage.createFakeBlockEntity(fakeBlock.getDefaultBlockState(), block.getLocation());
                 } catch (Exception e) {
                     sender.sendMessage("Please provide a valid custom item");
                     return false;

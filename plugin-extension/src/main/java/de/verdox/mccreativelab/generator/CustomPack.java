@@ -1,6 +1,5 @@
 package de.verdox.mccreativelab.generator;
 
-import org.bukkit.Bukkit;
 import org.codehaus.plexus.util.FileUtils;
 import org.jetbrains.annotations.Nullable;
 
@@ -8,6 +7,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.*;
+import java.util.logging.Logger;
 
 public abstract class CustomPack<C extends CustomPack<C>> {
     protected final String packName;
@@ -21,6 +21,7 @@ public abstract class CustomPack<C extends CustomPack<C>> {
     private boolean wasModified = false;
     private boolean noNewInstallations;
     private boolean isReloading;
+    private static Logger LOGGER = Logger.getGlobal();
     private ConfigurableResourceStorage<C> configurableResourceStorage = new ConfigurableResourceStorage<>();
 
     public CustomPack(String packName, int packFormat, String description, AssetPath savePath) {
@@ -45,12 +46,12 @@ public abstract class CustomPack<C extends CustomPack<C>> {
         isReloading = reload;
 
         FileUtils.deleteDirectory(packFromLastRestart.toPath().toFile());
-        Bukkit.getLogger().info("Moving old RP to " + packFromLastRestart.toPath());
-        packFromLastRestart.toPath().toFile().getParentFile().mkdirs();
+        //LOGGER.info("Moving old RP to " + packFromLastRestart.toPath());
+        //packFromLastRestart.toPath().toFile().getParentFile().mkdirs();
 
-        org.apache.commons.io.FileUtils.copyDirectory(pathToSavePackDataTo.toPath().toFile(), packFromLastRestart.toPath().toFile());
+        //org.apache.commons.io.FileUtils.copyDirectory(pathToSavePackDataTo.toPath().toFile(), packFromLastRestart.toPath().toFile());
         try {
-            Bukkit.getLogger().info("Deleting folder " + pathToSavePackDataTo.toPath().toFile());
+            LOGGER.info("Deleting folder " + pathToSavePackDataTo.toPath().toFile());
             FileUtils.deleteDirectory(pathToSavePackDataTo.toPath().toFile());
             createDescriptionFile();
             includeThirdPartyFiles();

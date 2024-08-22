@@ -3,6 +3,7 @@ package de.verdox.mccreativelab.world.block;
 import com.destroystokyo.paper.event.entity.EntityAddToWorldEvent;
 import com.destroystokyo.paper.event.entity.EntityRemoveFromWorldEvent;
 import de.verdox.mccreativelab.MCCreativeLabExtension;
+import de.verdox.mccreativelab.behaviour.entity.EntityBehaviour;
 import de.verdox.mccreativelab.events.ChunkDataEvent;
 import de.verdox.mccreativelab.world.block.display.strategy.FakeBlockVisualStrategy;
 import de.verdox.mccreativelab.events.ChunkDataCreateEvent;
@@ -88,8 +89,9 @@ public class FakeBlockCacheHandler implements Listener {
     public void entityRemoveFromWorld(EntityRemoveFromWorldEvent e) {
         if (e.getEntity() instanceof Marker marker) {
             FakeBlockEntity fakeBlockEntity = FakeBlockEntityStorage.getAsFakeBlockEntity(marker);
-            if (fakeBlockEntity != null)
+            if (fakeBlockEntity != null) {
                 fakeBlockEntity.onUnload();
+            }
         }
     }
 

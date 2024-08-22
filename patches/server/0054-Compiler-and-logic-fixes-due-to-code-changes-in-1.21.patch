@@ -1,0 +1,322 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: verdox <mail.ysp@web.de>
+Date: Thu, 8 Aug 2024 12:37:49 +0000
+Subject: [PATCH] Compiler and logic fixes due to code changes in 1.21
+
+
+diff --git a/src/main/java/ca/spottedleaf/moonrise/patches/chunk_system/ChunkSystemFeatures.java b/src/main/java/ca/spottedleaf/moonrise/patches/chunk_system/ChunkSystemFeatures.java
+index 67f6dd9a4855611cfe242c2e37e90f6d27d4c823..efc52443d616a8efa25c0215cbd0a4282e1d0a4f 100644
+--- a/src/main/java/ca/spottedleaf/moonrise/patches/chunk_system/ChunkSystemFeatures.java
++++ b/src/main/java/ca/spottedleaf/moonrise/patches/chunk_system/ChunkSystemFeatures.java
+@@ -17,8 +17,8 @@ public final class ChunkSystemFeatures {
+         return net.minecraft.world.level.chunk.storage.ChunkSerializer.getAsyncSaveData(world, chunk);
+     }
+ 
+-    public static CompoundTag saveChunkAsync(final ServerLevel world, final ChunkAccess chunk, final AsyncChunkSaveData asyncSaveData) {
+-        return net.minecraft.world.level.chunk.storage.ChunkSerializer.saveChunk(world, chunk, asyncSaveData);
++    public static CompoundTag saveChunkAsync(final ServerLevel world, final ChunkAccess chunk, final AsyncChunkSaveData asyncSaveData, boolean unload) {
++        return net.minecraft.world.level.chunk.storage.ChunkSerializer.saveChunk(world, chunk, asyncSaveData, unload);
+     }
+ 
+     public static boolean forceNoSave(final ChunkAccess chunk) {
+diff --git a/src/main/java/de/verdox/mccreativelab/AsyncWorldCreation.java b/src/main/java/de/verdox/mccreativelab/AsyncWorldCreation.java
+index 7502f2407a309b4e2ad8f24da84f9aced3032b3b..82b19a39d23ffbbec5f92583c470e5d43c3964a1 100644
+--- a/src/main/java/de/verdox/mccreativelab/AsyncWorldCreation.java
++++ b/src/main/java/de/verdox/mccreativelab/AsyncWorldCreation.java
+@@ -15,6 +15,7 @@ import net.minecraft.nbt.CompoundTag;
+ import net.minecraft.nbt.NbtException;
+ import net.minecraft.nbt.ReportedNbtException;
+ import net.minecraft.resources.ResourceKey;
++import net.minecraft.resources.ResourceLocation;
+ import net.minecraft.server.MinecraftServer;
+ import net.minecraft.server.WorldLoader;
+ import net.minecraft.server.dedicated.DedicatedServerProperties;
+@@ -301,7 +302,8 @@ public class AsyncWorldCreation {
+         } else if (name.equals(levelName + "_the_end")) {
+             worldKey = Level.END;
+         } else {
+-            worldKey = ResourceKey.create(Registries.DIMENSION, new net.minecraft.resources.ResourceLocation(creator.key().getNamespace().toLowerCase(Locale.ENGLISH), creator.key().getKey().toLowerCase(Locale.ENGLISH))); // Paper
++
++            worldKey = ResourceKey.create(Registries.DIMENSION, ResourceLocation.fromNamespaceAndPath(creator.key().getNamespace().toLowerCase(Locale.ENGLISH), creator.key().getKey().toLowerCase(Locale.ENGLISH))); // Paper
+         }
+         return worldKey;
+     }
+diff --git a/src/main/java/de/verdox/mccreativelab/ai/builder/CraftBehaviorFactory.java b/src/main/java/de/verdox/mccreativelab/ai/builder/CraftBehaviorFactory.java
+index 2683b9f75587c1d5c27335e819e724c34b780a44..ed95db79fca3a1dfb84d6726398a2a224d79a3fc 100644
+--- a/src/main/java/de/verdox/mccreativelab/ai/builder/CraftBehaviorFactory.java
++++ b/src/main/java/de/verdox/mccreativelab/ai/builder/CraftBehaviorFactory.java
+@@ -4,6 +4,7 @@ import com.destroystokyo.paper.entity.RangedEntity;
+ import com.mojang.datafixers.util.Pair;
+ import de.verdox.mccreativelab.ai.behavior.*;
+ import io.papermc.paper.adventure.PaperAdventure;
++import io.papermc.paper.registry.PaperRegistries;
+ import net.kyori.adventure.sound.Sound;
+ import net.minecraft.core.GlobalPos;
+ import net.minecraft.core.Holder;
+@@ -22,12 +23,14 @@ import net.minecraft.world.entity.animal.Animal;
+ import net.minecraft.world.level.block.Block;
+ import org.bukkit.*;
+ import org.bukkit.craftbukkit.CraftPoiType;
++import org.bukkit.craftbukkit.damage.CraftDamageType;
+ import org.bukkit.craftbukkit.entity.CraftEntityType;
+ import org.bukkit.craftbukkit.entity.CraftLivingEntity;
+ import org.bukkit.craftbukkit.entity.memory.CraftMemoryKey;
+ import org.bukkit.craftbukkit.tag.CraftBlockTag;
+ import org.bukkit.craftbukkit.util.CraftMagicNumbers;
+ import org.bukkit.craftbukkit.util.CraftNamespacedKey;
++import org.bukkit.damage.DamageType;
+ import org.bukkit.entity.*;
+ import org.bukkit.entity.memory.MemoryKey;
+ 
+@@ -84,8 +87,8 @@ public class CraftBehaviorFactory implements BehaviorFactory {
+     }
+ 
+     @Override
+-    public AIBehavior<Mob> animalPanic(float speed, Predicate<Mob> panicPredicate) {
+-        return asBehavior(new AnimalPanic<>(speed, pathfinderMob -> panicPredicate.test(pathfinderMob.getBukkitCreature())));
++    public AIBehavior<Mob> animalPanic(float speed, Function<Mob, io.papermc.paper.registry.tag.TagKey<DamageType>> panicPredicate) {
++        return asBehavior(new AnimalPanic<>(speed, pathfinderMob -> PaperRegistries.toNms(panicPredicate.apply(((Mob)pathfinderMob.getBukkitLivingEntity())))));
+     }
+ 
+     @Override
+@@ -252,7 +255,7 @@ public class CraftBehaviorFactory implements BehaviorFactory {
+         ResourceLocation key = CraftNamespacedKey.toMinecraft(craftBlockTag.getKey());
+         TagKey<Block> blockTagKey = TagKey.create(Registries.BLOCK, key);
+ 
+-        return asBehavior(new LongJumpToPreferredBlock<>(UniformInt.of(minCooldownRange, maxCooldownRange), verticalRange, horizontalRange, maxRange, mob -> BuiltInRegistries.SOUND_EVENT.get(PaperAdventure.asVanilla(jumpSound.key())), blockTagKey, biasChance, (mob, pos) -> jumpToPredicate.test(mob.getBukkitMob(), new Location(mob
++        return asBehavior(new LongJumpToPreferredBlock<>(UniformInt.of(minCooldownRange, maxCooldownRange), verticalRange, horizontalRange, maxRange, mob -> BuiltInRegistries.SOUND_EVENT.get(PaperAdventure.asVanilla(jumpSound.key())), blockTagKey, biasChance, (mob, pos) -> jumpToPredicate.test((Mob) mob.getBukkitLivingEntity(), new Location(mob
+             .getBukkitEntity().getWorld(), pos.getX(), pos.getY(), pos.getZ()))));
+     }
+ 
+@@ -414,7 +417,7 @@ public class CraftBehaviorFactory implements BehaviorFactory {
+     @Override
+     public OneShotBehavior<Mob> startAttacking(Function<Mob, LivingEntity> targetGetter) {
+         return asOneshot(StartAttacking.create(mob -> {
+-            var entity = targetGetter.apply(mob.getBukkitMob());
++            var entity = targetGetter.apply((Mob)mob.getBukkitLivingEntity());
+             if(entity == null)
+                 return Optional.empty();
+             else
+@@ -431,7 +434,7 @@ public class CraftBehaviorFactory implements BehaviorFactory {
+     public AIBehavior<Mob> stopAttackingIfTargetInvalid(Predicate<LivingEntity> alternativeCondition, BiConsumer<Mob, LivingEntity> forgetCallback, boolean shouldForgetIfTargetUnreachable) {
+         return asBehavior((Behavior<? extends net.minecraft.world.entity.LivingEntity>) StopAttackingIfTargetInvalid.create(livingEntity ->
+             alternativeCondition.test(livingEntity.getBukkitLivingEntity()), (mob, livingEntity) -> {
+-            forgetCallback.accept(mob.getBukkitMob(), livingEntity.getBukkitLivingEntity());
++            forgetCallback.accept((Mob) mob.getBukkitLivingEntity(), livingEntity.getBukkitLivingEntity());
+         }, shouldForgetIfTargetUnreachable));
+     }
+ 
+diff --git a/src/main/java/de/verdox/mccreativelab/ai/builder/CraftGoalFactory.java b/src/main/java/de/verdox/mccreativelab/ai/builder/CraftGoalFactory.java
+index 7110abaac95d29e5ec2ec446de56c7d02c54ba7e..19fb405ddaef1c046451a31f1be0b4619e277183 100644
+--- a/src/main/java/de/verdox/mccreativelab/ai/builder/CraftGoalFactory.java
++++ b/src/main/java/de/verdox/mccreativelab/ai/builder/CraftGoalFactory.java
+@@ -112,8 +112,8 @@ public class CraftGoalFactory implements GoalFactory {
+     }
+ 
+     @Override
+-    public VanillaGoal<Tameable> followOwner(Tameable tameable, double speed, float minDistance, float maxDistance, boolean leavesAllowed) {
+-        return asGoal(new FollowOwnerGoal((TamableAnimal) toNms(tameable), speed, minDistance, maxDistance, leavesAllowed));
++    public VanillaGoal<Tameable> followOwner(Tameable tameable, double speed, float minDistance, float maxDistance) {
++        return asGoal(new FollowOwnerGoal((TamableAnimal) toNms(tameable), speed, minDistance, maxDistance));
+     }
+ 
+     @Override
+@@ -330,7 +330,7 @@ public class CraftGoalFactory implements GoalFactory {
+     }
+ 
+     private Predicate<net.minecraft.world.entity.Mob> toNMSMobPredicate(Predicate<Mob> predicate){
+-        return mob -> predicate.test(mob.getBukkitMob());
++        return mob -> predicate.test((Mob)mob.getBukkitLivingEntity());
+     }
+ 
+     private <T extends Mob> VanillaGoal<T> asGoal(Goal goal) {
+diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/EntityBehaviourUtil.java b/src/main/java/de/verdox/mccreativelab/behaviour/EntityBehaviourUtil.java
+index 6991cdfad5a4e5954731ad4b3598d1cda87507a2..2af88d8475201be5ee64ed36280d4113138f58e1 100644
+--- a/src/main/java/de/verdox/mccreativelab/behaviour/EntityBehaviourUtil.java
++++ b/src/main/java/de/verdox/mccreativelab/behaviour/EntityBehaviourUtil.java
+@@ -132,7 +132,7 @@ public class EntityBehaviourUtil extends BehaviourUtil {
+ 
+     public static class Animal {
+         public static boolean canMate(net.minecraft.world.entity.animal.Animal entity, net.minecraft.world.entity.animal.Animal other, Supplier<Boolean> vanillaLogic) {
+-            return evaluateBoolean(getBehaviour(entity, Animals.class, AnimalEntityBehaviour.class), entityBehaviour -> entityBehaviour.canMate((org.bukkit.entity.Animals) entity.getBukkitLivingEntity(), (org.bukkit.entity.Animals) other.getBukkitMob()), vanillaLogic);
++            return evaluateBoolean(getBehaviour(entity, Animals.class, AnimalEntityBehaviour.class), entityBehaviour -> entityBehaviour.canMate((org.bukkit.entity.Animals) entity.getBukkitLivingEntity(), (org.bukkit.entity.Animals) other.getBukkitLivingEntity()), vanillaLogic);
+         }
+ 
+         public static void breedCallback(net.minecraft.world.entity.animal.Animal parent1, net.minecraft.world.entity.animal.Animal parent2, net.minecraft.world.entity.AgeableMob child){
+diff --git a/src/main/java/net/minecraft/server/level/ServerPlayer.java b/src/main/java/net/minecraft/server/level/ServerPlayer.java
+index c458fb393316fb11e3f28a375190d335012b2c03..345528d4d709fc8291a2db6187997b32d93be12d 100644
+--- a/src/main/java/net/minecraft/server/level/ServerPlayer.java
++++ b/src/main/java/net/minecraft/server/level/ServerPlayer.java
+@@ -1028,11 +1028,8 @@ public class ServerPlayer extends net.minecraft.world.entity.player.Player imple
+ 
+         if (!keepInventory) {
+             for (ItemStack item : this.getInventory().getContents()) {
+-<<<<<<< HEAD
+                 if (!item.isEmpty() && !EnchantmentHelper.has(item, EnchantmentEffectComponents.PREVENT_EQUIPMENT_DROP)) {
+-=======
+-                if (!item.isEmpty() && !EnchantmentHelper.hasVanishingCurse(item) && de.verdox.mccreativelab.behaviour.ItemBehaviourUtil.canDrop(item)) { // MCCreativeLab - Add ItemBehaviour
+->>>>>>> Adding behaviours
++
+                     loot.add(new DefaultDrop(item, stack -> this.drop(stack, true, false, false))); // Paper - Restore vanilla drops behavior; drop function taken from Inventory#dropAll (don't fire drop event)
+                 }
+             }
+diff --git a/src/main/java/net/minecraft/stats/ServerStatsCounter.java b/src/main/java/net/minecraft/stats/ServerStatsCounter.java
+index 3ac6a6305faa4ac3ef340687d1ec3f795e831626..6db489cc6f32b4cdd3f35e783a9fc5e200c5435e 100644
+--- a/src/main/java/net/minecraft/stats/ServerStatsCounter.java
++++ b/src/main/java/net/minecraft/stats/ServerStatsCounter.java
+@@ -303,7 +303,7 @@ public class ServerStatsCounter extends StatsCounter {
+                             String s1 = (String) iterator.next();
+ 
+                             if (nbttagcompound1.contains(s1, 10)) {
+-                                Util.ifElse(BuiltInRegistries.STAT_TYPE.getOptional(new ResourceLocation(s1)), (statisticwrapper) -> {
++                                Util.ifElse(BuiltInRegistries.STAT_TYPE.getOptional(ResourceLocation.parse(s1)), (statisticwrapper) -> {
+                                     CompoundTag nbttagcompound2 = nbttagcompound1.getCompound(s1);
+                                     Iterator iterator1 = nbttagcompound2.getAllKeys().iterator();
+ 
+diff --git a/src/main/java/net/minecraft/world/item/crafting/Recipe.java b/src/main/java/net/minecraft/world/item/crafting/Recipe.java
+index 2de30d6bab8443a21988a5935ce07518317d261b..2c4f13c73341623d73f5ef5bc543d85082bfd9e8 100644
+--- a/src/main/java/net/minecraft/world/item/crafting/Recipe.java
++++ b/src/main/java/net/minecraft/world/item/crafting/Recipe.java
+@@ -33,7 +33,7 @@ public interface Recipe<T extends RecipeInput> {
+             ItemStack item = input.getItem(i);
+ 
+             if (item.hasCraftingRemainingItem()) {
+-                nonnulllist.set(i, new ItemStack(item.getCraftingRemainingItem()));
++                nonnulllist.set(i, item.getCraftingRemainingItem());
+             }
+         }
+ 
+diff --git a/src/main/java/net/minecraft/world/level/chunk/storage/ChunkSerializer.java b/src/main/java/net/minecraft/world/level/chunk/storage/ChunkSerializer.java
+index ff64d521ce537890473ffd1f309002281391c2bc..254d7a7e5aa702627a8a2d485c0af0cb36773e62 100644
+--- a/src/main/java/net/minecraft/world/level/chunk/storage/ChunkSerializer.java
++++ b/src/main/java/net/minecraft/world/level/chunk/storage/ChunkSerializer.java
+@@ -385,9 +385,9 @@ public class ChunkSerializer {
+      }
+     // Paper end - async chunk saving
+ 
+-    public static CompoundTag write(ServerLevel world, ChunkAccess chunk) {
++    public static CompoundTag write(ServerLevel world, ChunkAccess chunk, boolean unloading) {
+         // Paper start - async chunk saving
+-        return saveChunk(world, chunk, null, false);
++        return saveChunk(world, chunk, null, unloading);
+     }
+     public static CompoundTag saveChunk(ServerLevel world, ChunkAccess chunk, ca.spottedleaf.moonrise.patches.chunk_system.async_save.AsyncChunkSaveData asyncsavedata, boolean unloadingChunk) {
+         // Paper end - async chunk saving
+diff --git a/src/main/java/org/bukkit/craftbukkit/inventory/CraftItemStack.java b/src/main/java/org/bukkit/craftbukkit/inventory/CraftItemStack.java
+index d82f814d73688586335be4b51f6f9a6ad5712e86..90c799b305cad6677e4cc52e769e41d65654e9fc 100644
+--- a/src/main/java/org/bukkit/craftbukkit/inventory/CraftItemStack.java
++++ b/src/main/java/org/bukkit/craftbukkit/inventory/CraftItemStack.java
+@@ -3,6 +3,8 @@ package org.bukkit.craftbukkit.inventory;
+ import com.google.common.base.Preconditions;
+ import com.google.common.collect.ImmutableMap;
+ import java.util.Map;
++
++import de.verdox.mccreativelab.behaviour.ItemBehaviour;
+ import net.minecraft.core.Holder;
+ import net.minecraft.core.component.DataComponentPatch;
+ import net.minecraft.core.component.DataComponents;
+@@ -22,6 +24,7 @@ import org.bukkit.inventory.ItemStack;
+ import org.bukkit.inventory.meta.ItemMeta;
+ import org.bukkit.material.MaterialData;
+ import org.jetbrains.annotations.ApiStatus;
++import org.jetbrains.annotations.Nullable;
+ 
+ @DelegateDeserialization(ItemStack.class)
+ public final class CraftItemStack extends ItemStack {
+@@ -94,19 +97,10 @@ public final class CraftItemStack extends ItemStack {
+         if (original == null || original.isEmpty()) {
+             return net.minecraft.world.item.ItemStack.EMPTY;
+         }
+-<<<<<<< HEAD
+         final CraftItemStack stack = getCraftStack(original);
+-        return stack.handle == null ? net.minecraft.world.item.ItemStack.EMPTY : stack.handle.copy();
+-        // Paper end - re-implement after delegating all api ItemStack calls to CraftItemStack
+-=======
+-
+-        net.minecraft.world.item.ItemStack stack = new net.minecraft.world.item.ItemStack(item, original.getAmount());
+-        if (original.hasItemMeta()) {
+-            CraftItemStack.setItemMeta(stack, original.getItemMeta());
+-        }
+-        stack.itemBehaviour = original.getDefinedItemBehaviour(); // MCCLab - Add ItemBehaviour as instance to this specific Item Stack
+-        return stack;
+->>>>>>> Adding behaviours
++        net.minecraft.world.item.ItemStack nms = stack.handle == null ? net.minecraft.world.item.ItemStack.EMPTY : stack.handle.copy();
++        nms.itemBehaviour = original.getDefinedItemBehaviour();
++        return nms;
+     }
+ 
+     // Paper start
+@@ -129,22 +123,10 @@ public final class CraftItemStack extends ItemStack {
+      * Copies the NMS stack to return as a strictly-Bukkit stack
+      */
+     public static ItemStack asBukkitCopy(net.minecraft.world.item.ItemStack original) {
+-<<<<<<< HEAD
+         // Paper start - no such thing as a "strictly-Bukkit stack" anymore
+         // we copy the stack since it should be a complete copy not a mirror
+         return asCraftMirror(original.copy());
+         // Paper end
+-=======
+-        if (original.isEmpty()) {
+-            return new ItemStack(Material.AIR);
+-        }
+-        ItemStack stack = new ItemStack(CraftItemType.minecraftToBukkit(original.getItem()), original.getCount());
+-        if (CraftItemStack.hasItemMeta(original)) {
+-            stack.setItemMeta(CraftItemStack.getItemMeta(original));
+-        }
+-        stack.setItemBehaviour(original.itemBehaviour); // MCCLab - Add ItemBehaviour as instance to this specific Item Stack
+-        return stack;
+->>>>>>> Adding behaviours
+     }
+ 
+     public static CraftItemStack asCraftMirror(net.minecraft.world.item.ItemStack original) {
+@@ -511,7 +493,7 @@ public final class CraftItemStack extends ItemStack {
+     }
+     // Paper end
+ 
+-<<<<<<< HEAD
++
+     // Paper start - pdc
+     private net.minecraft.nbt.CompoundTag getPdcTag() {
+         if (this.handle == null) {
+@@ -570,23 +552,30 @@ public final class CraftItemStack extends ItemStack {
+         return this.pdcView;
+     }
+     // Paper end - pdc
+-=======
+     // MCCLab start - Add ItemBehaviour as instance to this specific Item Stack
+     @Override
+-    public @org.jetbrains.annotations.Nullable de.verdox.mccreativelab.behaviour.ItemBehaviour getItemBehaviour() {
+-        if(this.handle != null)
+-            return this.handle.itemBehaviour;
+-        return super.getItemBehaviour();
++    public @org.jetbrains.annotations.Nullable de.verdox.mccreativelab.behaviour.ItemBehaviour getDefinedItemBehaviour() {
++        return this.handle.itemBehaviour;
+     }
+ 
++    @Nullable
+     @Override
+-    public void setItemBehaviour(@org.jetbrains.annotations.Nullable de.verdox.mccreativelab.behaviour.ItemBehaviour itemBehaviour) {
+-        if(this.handle != null)
+-            this.handle.itemBehaviour = itemBehaviour;
++    public ItemBehaviour getItemBehaviour() {
++        if(handle.itemBehaviour != null)
++            return handle.itemBehaviour;
+         else
+-            super.setItemBehaviour(itemBehaviour);
++            return de.verdox.mccreativelab.behaviour.ItemBehaviour.ITEM_BEHAVIOUR.getBehaviour(de.verdox.mccreativelab.recipe.CustomItemData.fromItemStack(this));
++    }
++
++    @Override
++    public void setItemBehaviour(@org.jetbrains.annotations.Nullable de.verdox.mccreativelab.behaviour.ItemBehaviour itemBehaviour) {
++        this.handle.itemBehaviour = itemBehaviour;
+     }
+-    // MCCLab end - Add ItemBehaviour as instance to this specific Item Stack
+ 
+->>>>>>> Adding behaviours
++    @Override
++    public boolean hasCustomItemBehaviour() {
++        return this.handle.itemBehaviour != null;
++    }
++
++    // MCCLab end - Add ItemBehaviour as instance to this specific Item Stack
+ }

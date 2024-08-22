@@ -1,0 +1,101 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: verdox <mail.ysp@web.de>
+Date: Mon, 19 Aug 2024 19:56:57 +0000
+Subject: [PATCH] Removing enums for pack asset types
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/data/DataPackInterceptor.java b/src/main/java/de/verdox/mccreativelab/data/DataPackInterceptor.java
+index 8c55a63718110d465675190cad6c749767ce6b6c..4f279af4b20db96306ee0240f041825af81073e2 100644
+--- a/src/main/java/de/verdox/mccreativelab/data/DataPackInterceptor.java
++++ b/src/main/java/de/verdox/mccreativelab/data/DataPackInterceptor.java
+@@ -4,6 +4,7 @@ import com.google.gson.JsonObject;
+ import net.kyori.adventure.key.Key;
+ 
+ import javax.annotation.Nullable;
++import java.util.Objects;
+ import java.util.function.Consumer;
+ import java.util.function.Function;
+ 
+@@ -18,53 +19,53 @@ public interface DataPackInterceptor {
+ 
+     /**
+      * Modifies a data pack element loaded into the server. The provided function modifies the asset and returns true if the asset should be loaded.
++     *
+      * @param packAssetType - The Pack Asset Type
+-     * @param key - The Key
+-     * @param modifier - The modification function
++     * @param key           - The Key
++     * @param modifier      - The modification function
+      * @return - The interceptor
+      */
+     DataPackInterceptor modify(PackAssetType packAssetType, Key key, Function<DataPackAsset, Boolean> modifier);
+ 
+     /**
+      * Modifies a data pack element loaded into the server. The provided function modifies the asset and returns true if the asset should be loaded.
++     *
+      * @param modifier - The modification function
+      * @return - The interceptor
+      */
+     DataPackInterceptor modify(Function<DataPackAsset, Boolean> modifier);
+ 
+-    record DataPackAsset(PackAssetType packAssetType, Key key, JsonObject jsonObject) {}
+-
+-    enum PackAssetType {
+-        ADVANCEMENT("advancements"),
+-        CHAT_TYPE("chat_type"),
+-        DAMAGE_TYPE("damage_type"),
+-        DIMENSION_TYPE("dimension_type"),
+-        LOOT_TABLES("loot_tables"),
+-        RECIPES("recipes"),
+-        STRUCTURES("structures"),
+-        TAGS("tags"),
+-        TRIM_MATERIAL("trim_material"),
+-        TRIM_PATTERN("trim_pattern"),
+-        WORLDGEN("worldgen"),
+-        ;
+-        private final String parentFolder;
++    record DataPackAsset(PackAssetType packAssetType, Key key, JsonObject jsonObject) {
++    }
+ 
+-        PackAssetType(String parentFolder) {
+-
+-            this.parentFolder = parentFolder;
+-        }
++    record PackAssetType(String parentFolder) {
++        public static final PackAssetType ADVANCEMENT = new PackAssetType("advancement");
++        public static final PackAssetType CHAT_TYPE = new PackAssetType("chat_type");
++        public static final PackAssetType DAMAGE_TYPE = new PackAssetType("damage_type");
++        public static final PackAssetType DIMENSION_TYPE = new PackAssetType("dimension_type");
++        public static final PackAssetType LOOT_TABLE = new PackAssetType("loot_table");
++        public static final PackAssetType RECIPE = new PackAssetType("recipe");
++        public static final PackAssetType STRUCTURES = new PackAssetType("structures");
++        public static final PackAssetType TAGS = new PackAssetType("tags");
++        public static final PackAssetType TRIM_MATERIAL = new PackAssetType("trim_material");
++        public static final PackAssetType TRIM_PATTERN = new PackAssetType("trim_pattern");
++        public static final PackAssetType WORLDGEN = new PackAssetType("worldgen");
+ 
+         public String getParentFolder() {
+             return parentFolder;
+         }
+ 
+-        @Nullable
+-        public static PackAssetType getByParentFolder(String parentFolder) {
+-            for (PackAssetType value : PackAssetType.values()) {
+-                if (value.getParentFolder().equals(parentFolder))
+-                    return value;
+-            }
+-            return null;
++        @Override
++        public boolean equals(Object o) {
++            if (this == o) return true;
++            if (o == null || getClass() != o.getClass()) return false;
++            PackAssetType that = (PackAssetType) o;
++            return Objects.equals(parentFolder, that.parentFolder);
++        }
++
++        @Override
++        public int hashCode() {
++            return Objects.hash(parentFolder);
+         }
+     }
+ }
