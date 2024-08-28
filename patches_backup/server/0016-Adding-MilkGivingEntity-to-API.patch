@@ -1,0 +1,98 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <mail.ysp@web.de>
+Date: Fri, 12 Jan 2024 16:01:12 +0100
+Subject: [PATCH] Adding MilkGivingEntity to API
+
+
+diff --git a/src/main/java/net/minecraft/world/entity/animal/Cow.java b/src/main/java/net/minecraft/world/entity/animal/Cow.java
+index e336934f37075a827843e4b1bb2b6b660d2c60c9..42a5ab8af640c89d43da08f19f852e376284ee36 100644
+--- a/src/main/java/net/minecraft/world/entity/animal/Cow.java
++++ b/src/main/java/net/minecraft/world/entity/animal/Cow.java
+@@ -44,6 +44,7 @@ public class Cow extends Animal {
+         super(type, world);
+     }
+ 
++    public boolean canGiveMilk = true; // Paper - Can give milk API attribute
+     @Override
+     protected void registerGoals() {
+         this.goalSelector.addGoal(0, new FloatGoal(this));
+@@ -96,7 +97,13 @@ public class Cow extends Animal {
+     public InteractionResult mobInteract(Player player, InteractionHand hand) {
+         ItemStack itemstack = player.getItemInHand(hand);
+ 
+-        if (itemstack.is(Items.BUCKET) && !this.isBaby()) {
++        if (canGiveMilk && itemstack.is(Items.BUCKET) && !this.isBaby()) {
++            // Paper start - Can give milk API attribute
++            if(!canGiveMilk){
++                player.containerMenu.sendAllDataToRemote();
++                return super.mobInteract(player, hand);
++            }
++            // Paper end - Can give milk API attribute
+             // CraftBukkit start - Got milk?
+             PlayerBucketFillEvent event = CraftEventFactory.callPlayerBucketFillEvent((ServerLevel) player.level(), player, this.blockPosition(), this.blockPosition(), null, itemstack, Items.MILK_BUCKET, hand);
+ 
+diff --git a/src/main/java/net/minecraft/world/entity/animal/goat/Goat.java b/src/main/java/net/minecraft/world/entity/animal/goat/Goat.java
+index 376bcbc189008464f4d518c1e07643431ba96306..11414122e97de69460a54c71fbb81434bbe158ed 100644
+--- a/src/main/java/net/minecraft/world/entity/animal/goat/Goat.java
++++ b/src/main/java/net/minecraft/world/entity/animal/goat/Goat.java
+@@ -75,6 +75,7 @@ public class Goat extends Animal {
+     public static final EntityDataAccessor<Boolean> DATA_HAS_RIGHT_HORN = SynchedEntityData.defineId(Goat.class, EntityDataSerializers.BOOLEAN);
+     private boolean isLoweringHead;
+     private int lowerHeadTick;
++    public boolean canGiveMilk = true; // Paper - Can give milk API attribute
+ 
+     public Goat(EntityType<? extends Goat> type, Level world) {
+         super(type, world);
+@@ -230,6 +231,12 @@ public class Goat extends Animal {
+         ItemStack itemstack = player.getItemInHand(hand);
+ 
+         if (itemstack.is(Items.BUCKET) && !this.isBaby()) {
++            // Paper start - Can give milk API attribute
++            if(!canGiveMilk){
++                player.containerMenu.sendAllDataToRemote();
++                return super.mobInteract(player, hand);
++            }
++            // Paper end - Can give milk API attribute
+             // CraftBukkit start - Got milk?
+             PlayerBucketFillEvent event = CraftEventFactory.callPlayerBucketFillEvent((ServerLevel) player.level(), player, this.blockPosition(), this.blockPosition(), null, itemstack, Items.MILK_BUCKET, hand);
+ 
+diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftCow.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftCow.java
+index 7babc404e4920cd264206d4e83b1be6f841cdb8c..a30124fe8b18af4811df3e8209f32f19dc32c3a8 100644
+--- a/src/main/java/org/bukkit/craftbukkit/entity/CraftCow.java
++++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftCow.java
+@@ -18,4 +18,15 @@ public class CraftCow extends CraftAnimals implements Cow {
+     public String toString() {
+         return "CraftCow";
+     }
++    // Paper start - // Paper - Can give milk API attribute
++    @Override
++    public boolean canGiveMilk() {
++        return getHandle().canGiveMilk;
++    }
++
++    @Override
++    public void setCanGiveMilk(boolean giveMilk) {
++        getHandle().canGiveMilk = giveMilk;
++    }
++    // Paper end - // Paper - Can give milk API attribute
+ }
+diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftGoat.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftGoat.java
+index 2c21de478bff9cdf13ba46cd041831d54c11e924..5069d0333d088da35b44e2f5ee6c47a016e1cf0e 100644
+--- a/src/main/java/org/bukkit/craftbukkit/entity/CraftGoat.java
++++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftGoat.java
+@@ -55,4 +55,15 @@ public class CraftGoat extends CraftAnimals implements Goat {
+         this.getHandle().ram(((CraftLivingEntity) entity).getHandle());
+     }
+     // Paper end
++    // Paper start - // Paper - Can give milk API attribute
++    @Override
++    public boolean canGiveMilk() {
++        return getHandle().canGiveMilk;
++    }
++
++    @Override
++    public void setCanGiveMilk(boolean giveMilk) {
++        getHandle().canGiveMilk = giveMilk;
++    }
++    // Paper end - // Paper - Can give milk API attribute
+ }

@@ -1,0 +1,18 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: verdox <mail.ysp@web.de>
+Date: Thu, 8 Aug 2024 12:50:33 +0000
+Subject: [PATCH] Small logic fix in CustomItemData
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/recipe/CustomItemData.java b/src/main/java/de/verdox/mccreativelab/recipe/CustomItemData.java
+index 4a1d71e746c0f989de89bf5e94fd90f5413e0f9c..504b1cec9736f8a0b4862ac31466494e177b5e8c 100644
+--- a/src/main/java/de/verdox/mccreativelab/recipe/CustomItemData.java
++++ b/src/main/java/de/verdox/mccreativelab/recipe/CustomItemData.java
+@@ -25,6 +25,6 @@ public record CustomItemData(Material material, int customModelData) {
+     }
+ 
+     public static CustomItemData fromItemStack(ItemStack stack) {
+-        return new CustomItemData(stack.getType(), stack.getItemMeta().hasCustomModelData() ? stack.getItemMeta().getCustomModelData() : 0);
++        return new CustomItemData(stack.getType(), stack.hasItemMeta() ? stack.getItemMeta().hasCustomModelData() ? stack.getItemMeta().getCustomModelData() : 0 : 0);
+     }
+ }

@@ -1,0 +1,137 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <lukasjonsson@outlook.de>
+Date: Sun, 12 Nov 2023 13:49:21 +0100
+Subject: [PATCH] Implementing Async Events for Chunk Creation, Saving,
+ Loading. These Events occur on the respective async chunk thread.
+
+
+diff --git a/src/main/java/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/NewChunkHolder.java b/src/main/java/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/NewChunkHolder.java
+index 9fcd1b6eef82cd0bbcddab26cf5aaf880d236969..d01538ee271de7407b351bc8f61b0bc90922b98d 100644
+--- a/src/main/java/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/NewChunkHolder.java
++++ b/src/main/java/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/NewChunkHolder.java
+@@ -1754,14 +1754,14 @@ public final class NewChunkHolder {
+         public void run() {
+             final CompoundTag toSerialize;
+             try {
+-                toSerialize = ChunkSystemFeatures.saveChunkAsync(this.world, this.chunk, this.asyncSaveData);
++                toSerialize = ChunkSystemFeatures.saveChunkAsync(this.world, this.chunk, this.asyncSaveData, false);
+             } catch (final Throwable throwable) {
+                 LOGGER.error("Failed to asynchronously save chunk " + this.chunk.getPos() + " for world '" + WorldUtil.getWorldName(this.world) + "', falling back to synchronous save", throwable);
+                 final ChunkPos pos = this.chunk.getPos();
+                 ((ChunkSystemServerLevel)this.world).moonrise$getChunkTaskScheduler().scheduleChunkTask(pos.x, pos.z, () -> {
+                     final CompoundTag synchronousSave;
+                     try {
+-                        synchronousSave = ChunkSystemFeatures.saveChunkAsync(AsyncChunkSerializeTask.this.world, AsyncChunkSerializeTask.this.chunk, AsyncChunkSerializeTask.this.asyncSaveData);
++                        synchronousSave = ChunkSystemFeatures.saveChunkAsync(AsyncChunkSerializeTask.this.world, AsyncChunkSerializeTask.this.chunk, AsyncChunkSerializeTask.this.asyncSaveData, false);
+                     } catch (final Throwable throwable2) {
+                         LOGGER.error("Failed to synchronously save chunk " + AsyncChunkSerializeTask.this.chunk.getPos() + " for world '" + WorldUtil.getWorldName(AsyncChunkSerializeTask.this.world) + "', chunk data will be lost", throwable2);
+                         AsyncChunkSerializeTask.this.toComplete.completeAsyncUnloadDataSave(RegionFileIOThread.RegionFileType.CHUNK_DATA, null);
+@@ -1815,7 +1815,7 @@ public final class NewChunkHolder {
+                 }
+             }
+ 
+-            final CompoundTag save = ChunkSerializer.write(this.world, chunk);
++            final CompoundTag save = ChunkSerializer.write(this.world, chunk, unloading);
+ 
+             if (unloading) {
+                 completing = true;
+diff --git a/src/main/java/de/verdox/mccreativelab/worldgen/ChunkDataUtil.java b/src/main/java/de/verdox/mccreativelab/worldgen/ChunkDataUtil.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..d133885c10963eb756463d8b5a4ff67d32a2e56d
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/worldgen/ChunkDataUtil.java
+@@ -0,0 +1,41 @@
++package de.verdox.mccreativelab.worldgen;
++
++import de.verdox.mccreativelab.events.ChunkDataCreateEvent;
++import de.verdox.mccreativelab.events.ChunkDataEvent;
++import de.verdox.mccreativelab.events.ChunkDataLoadEvent;
++import de.verdox.mccreativelab.events.ChunkDataSaveEvent;
++import net.minecraft.server.level.ServerLevel;
++import net.minecraft.world.level.chunk.ChunkAccess;
++import net.minecraft.world.level.chunk.LevelChunk;
++import org.bukkit.Bukkit;
++import org.bukkit.craftbukkit.CraftChunk;
++import org.bukkit.persistence.PersistentDataContainer;
++
++public class ChunkDataUtil {
++
++    public static void callChunkDataCreateEvent(ServerLevel serverLevel, ChunkAccess chunkAccess, PersistentDataContainer persistentDataContainer) {
++        Bukkit.getPluginManager()
++              .callEvent(new ChunkDataCreateEvent(serverLevel.getWorld(), getCraftChunk(chunkAccess), createEventChunkPos(chunkAccess), persistentDataContainer));
++        chunkAccess.persistentDataContainer.dirty(true);
++    }
++
++    public static void callChunkDataLoadEvent(ServerLevel serverLevel, ChunkAccess chunkAccess, PersistentDataContainer persistentDataContainer) {
++        Bukkit.getPluginManager().
++              callEvent(new ChunkDataLoadEvent(serverLevel.getWorld(), getCraftChunk(chunkAccess), createEventChunkPos(chunkAccess), persistentDataContainer));
++    }
++
++    public static void callChunkDataSaveEvent(ServerLevel serverLevel, ChunkAccess chunkAccess, PersistentDataContainer persistentDataContainer, boolean unloadingChunk) {
++        Bukkit.getPluginManager()
++              .callEvent(new ChunkDataSaveEvent(serverLevel.getWorld(), getCraftChunk(chunkAccess), createEventChunkPos(chunkAccess), persistentDataContainer, unloadingChunk));
++        chunkAccess.persistentDataContainer.dirty(true);
++    }
++
++    public static ChunkDataEvent.ChunkPos createEventChunkPos(ChunkAccess chunkAccess) {
++        return new ChunkDataEvent.ChunkPos(chunkAccess.locX, chunkAccess.locZ);
++    }
++
++    private static CraftChunk getCraftChunk(ChunkAccess chunkAccess) {
++        return chunkAccess instanceof LevelChunk chunk ? new CraftChunk(chunk) : null;
++    }
++
++}
+diff --git a/src/main/java/net/minecraft/world/level/chunk/status/ChunkStatus.java b/src/main/java/net/minecraft/world/level/chunk/status/ChunkStatus.java
+index 3723c07183e7b894cccf4d01bedf1d0d832c1910..9f12e41a5f55093963bbc101b97b294808496fc1 100644
+--- a/src/main/java/net/minecraft/world/level/chunk/status/ChunkStatus.java
++++ b/src/main/java/net/minecraft/world/level/chunk/status/ChunkStatus.java
+@@ -10,6 +10,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
+ import net.minecraft.resources.ResourceLocation;
+ import net.minecraft.world.level.levelgen.Heightmap;
+ import org.jetbrains.annotations.VisibleForTesting;
++import net.minecraft.world.level.levelgen.WorldGenerationContext;
+ 
+ public class ChunkStatus implements ca.spottedleaf.moonrise.patches.chunk_system.level.chunk.ChunkSystemChunkStatus { // Paper - rewrite chunk system
+     public static final int MAX_STRUCTURE_DISTANCE = 8;
+diff --git a/src/main/java/net/minecraft/world/level/chunk/storage/ChunkSerializer.java b/src/main/java/net/minecraft/world/level/chunk/storage/ChunkSerializer.java
+index 69e8e978593027d17789104f0aec0411b2c41044..3924ab7f7940e7bc912bd4b0a117f771233f6268 100644
+--- a/src/main/java/net/minecraft/world/level/chunk/storage/ChunkSerializer.java
++++ b/src/main/java/net/minecraft/world/level/chunk/storage/ChunkSerializer.java
+@@ -306,6 +306,7 @@ public class ChunkSerializer {
+         ca.spottedleaf.moonrise.patches.starlight.util.SaveUtil.loadLightHook(world, chunkPos, nbt, (ChunkAccess)object1); // Paper - rewrite chunk system - note: it's ok to pass the raw value instead of wrapped
+ 
+         if (chunktype == ChunkType.LEVELCHUNK) {
++            de.verdox.mccreativelab.worldgen.ChunkDataUtil.callChunkDataLoadEvent(world, (ChunkAccess) object1, ((ChunkAccess) object1).persistentDataContainer); // MCCLab - Add Async Chunk Event
+             return new ImposterProtoChunk((LevelChunk) object1, false);
+         } else {
+             ProtoChunk protochunk1 = (ProtoChunk) object1;
+@@ -340,7 +341,7 @@ public class ChunkSerializer {
+ 
+                 protochunk1.setCarvingMask(worldgenstage_features, new CarvingMask(nbttagcompound5.getLongArray(s1), ((ChunkAccess) object1).getMinBuildHeight()));
+             }
+-
++            de.verdox.mccreativelab.worldgen.ChunkDataUtil.callChunkDataLoadEvent(world, (ChunkAccess) object1, ((ChunkAccess) object1).persistentDataContainer); // MCCLab - Add Async Chunk Event
+             return protochunk1;
+         }
+     }
+@@ -386,9 +387,9 @@ public class ChunkSerializer {
+ 
+     public static CompoundTag write(ServerLevel world, ChunkAccess chunk) {
+         // Paper start - async chunk saving
+-        return saveChunk(world, chunk, null);
++        return saveChunk(world, chunk, null, false);
+     }
+-    public static CompoundTag saveChunk(ServerLevel world, ChunkAccess chunk, ca.spottedleaf.moonrise.patches.chunk_system.async_save.AsyncChunkSaveData asyncsavedata) {
++    public static CompoundTag saveChunk(ServerLevel world, ChunkAccess chunk, ca.spottedleaf.moonrise.patches.chunk_system.async_save.AsyncChunkSaveData asyncsavedata, boolean unloadingChunk) {
+         // Paper end - async chunk saving
+         ChunkPos chunkcoordintpair = chunk.getPos();
+         CompoundTag nbttagcompound = NbtUtils.addCurrentDataVersion(new CompoundTag());
+@@ -540,6 +541,7 @@ public class ChunkSerializer {
+ 
+         nbttagcompound.put("Heightmaps", nbttagcompound3);
+         nbttagcompound.put("structures", ChunkSerializer.packStructureData(StructurePieceSerializationContext.fromLevel(world), chunkcoordintpair, chunk.getAllStarts(), chunk.getAllReferences()));
++        de.verdox.mccreativelab.worldgen.ChunkDataUtil.callChunkDataSaveEvent(world, chunk, chunk.persistentDataContainer, unloadingChunk); // MCCLab - Add Async Chunk Event
+         // CraftBukkit start - store chunk persistent data in nbt
+         if (!chunk.persistentDataContainer.isEmpty()) { // SPIGOT-6814: Always save PDC to account for 1.17 to 1.18 chunk upgrading.
+             nbttagcompound.put("ChunkBukkitValues", chunk.persistentDataContainer.toTagCompound());

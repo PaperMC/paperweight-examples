@@ -1,0 +1,44 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: verdox <mail.ysp@web.de>
+Date: Wed, 1 May 2024 15:15:21 +0000
+Subject: [PATCH] Adding ItemDisplayBehaviour
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/ItemDisplayBehaviour.java b/src/main/java/de/verdox/mccreativelab/behaviour/ItemDisplayBehaviour.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..0f1632d4e525c0bd33b33973d073d7e60e03c118
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/behaviour/ItemDisplayBehaviour.java
+@@ -0,0 +1,32 @@
++package de.verdox.mccreativelab.behaviour;
++
++import de.verdox.mccreativelab.CustomBehaviour;
++import net.kyori.adventure.text.format.Style;
++import net.kyori.adventure.text.format.TextColor;
++import net.kyori.adventure.text.format.TextDecoration;
++import org.bukkit.inventory.ItemStack;
++
++/**
++ * Represents the internal server behaviour when items are fomatted
++ */
++public interface ItemDisplayBehaviour extends Behaviour {
++    CustomBehaviour<ItemDisplayBehaviour> BASIC_LORE_BEHAVIOUR = new CustomBehaviour<>(ItemDisplayBehaviour.class, new ItemDisplayBehaviour() {}, "MCCLab - WorldGenerationBehaviour");
++
++    /**
++     * Returns the basic style an item lore gets.
++     * @param stack The ItemStack getting the format
++     * @return the style
++     */
++    default Style basicLoreStyle(ItemStack stack){
++        return Style.empty().color(TextColor.fromCSSHexString("#aa00aa")).decoration(TextDecoration.ITALIC, true);
++    }
++
++    /**
++     * Returns the basic style an item name gets.
++     * @param stack The ItemStack getting the format
++     * @return the style
++     */
++    default Style basicCustomNameStyle(ItemStack stack){
++        return Style.empty().decoration(TextDecoration.ITALIC, true);
++    }
++}

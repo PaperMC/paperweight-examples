@@ -1,0 +1,37 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <mail.ysp@web.de>
+Date: Wed, 21 Feb 2024 17:56:40 +0100
+Subject: [PATCH] Adding GeneratedStructure to AsyncStructureGenerateEvent
+
+
+diff --git a/src/main/java/net/minecraft/world/level/levelgen/structure/StructureStart.java b/src/main/java/net/minecraft/world/level/levelgen/structure/StructureStart.java
+index 1695cff01932d435848e230921d1680b69a41d73..a7b802b27648a9dcbd7a5e2808825e52bec5214e 100644
+--- a/src/main/java/net/minecraft/world/level/levelgen/structure/StructureStart.java
++++ b/src/main/java/net/minecraft/world/level/levelgen/structure/StructureStart.java
+@@ -113,7 +113,7 @@ public final class StructureStart {
+             if (!pieces.isEmpty()) {
+                 org.bukkit.craftbukkit.util.TransformerGeneratorAccess transformerAccess = new org.bukkit.craftbukkit.util.TransformerGeneratorAccess();
+                 transformerAccess.setHandle(world);
+-                transformerAccess.setStructureTransformer(new org.bukkit.craftbukkit.util.CraftStructureTransformer(this.generationEventCause, world, structureAccessor, this.structure, chunkBox, chunkPos));
++                transformerAccess.setStructureTransformer(new org.bukkit.craftbukkit.util.CraftStructureTransformer(this, this.generationEventCause, world, structureAccessor, this.structure, chunkBox, chunkPos)); // Paper - Add GeneratedStructure to AsyncStructureGenerateEvent
+                 for (StructurePiece piece : pieces) {
+                     piece.postProcess(transformerAccess, structureAccessor, chunkGenerator, random, chunkBox, chunkPos, blockposition1);
+                 }
+diff --git a/src/main/java/org/bukkit/craftbukkit/util/CraftStructureTransformer.java b/src/main/java/org/bukkit/craftbukkit/util/CraftStructureTransformer.java
+index b4d569b3f43c9c34f2235b08488fe3722af1b15c..dcb9b5ba8e3654ace3736210bb133f7762251ad6 100644
+--- a/src/main/java/org/bukkit/craftbukkit/util/CraftStructureTransformer.java
++++ b/src/main/java/org/bukkit/craftbukkit/util/CraftStructureTransformer.java
+@@ -63,8 +63,11 @@ public class CraftStructureTransformer {
+     private BlockTransformer[] blockTransformers;
+     private EntityTransformer[] entityTransformers;
+ 
+-    public CraftStructureTransformer(Cause cause, WorldGenLevel generatoraccessseed, StructureManager structuremanager, Structure structure, BoundingBox structureboundingbox, ChunkPos chunkcoordintpair) {
+-        AsyncStructureGenerateEvent event = new AsyncStructureGenerateEvent(structuremanager.level.getMinecraftWorld().getWorld(), !Bukkit.isPrimaryThread(), cause, CraftStructure.minecraftToBukkit(structure), new org.bukkit.util.BoundingBox(structureboundingbox.minX(), structureboundingbox.minY(), structureboundingbox.minZ(), structureboundingbox.maxX(), structureboundingbox.maxY(), structureboundingbox.maxZ()), chunkcoordintpair.x, chunkcoordintpair.z);
++    // Paper start - Adding GeneratedStructure to AsyncStructureGenerateEvent
++    public CraftStructureTransformer(net.minecraft.world.level.levelgen.structure.StructureStart structureStart, Cause cause, WorldGenLevel generatoraccessseed, StructureManager structuremanager, Structure structure, BoundingBox structureboundingbox, ChunkPos chunkcoordintpair) {
++        org.bukkit.generator.structure.GeneratedStructure generatedStructure = new org.bukkit.craftbukkit.generator.structure.CraftGeneratedStructure(structureStart);
++        AsyncStructureGenerateEvent event = new AsyncStructureGenerateEvent(structuremanager.level.getMinecraftWorld().getWorld(), !Bukkit.isPrimaryThread(), generatedStructure, cause, CraftStructure.minecraftToBukkit(structure), new org.bukkit.util.BoundingBox(structureboundingbox.minX(), structureboundingbox.minY(), structureboundingbox.minZ(), structureboundingbox.maxX(), structureboundingbox.maxY(), structureboundingbox.maxZ()), chunkcoordintpair.x, chunkcoordintpair.z);
++        // Paper end - Adding GeneratedStructure to AsyncStructureGenerateEvent
+         Bukkit.getPluginManager().callEvent(event);
+         this.blockTransformers = event.getBlockTransformers().values().toArray(BlockTransformer[]::new);
+         this.entityTransformers = event.getEntityTransformers().values().toArray(EntityTransformer[]::new);

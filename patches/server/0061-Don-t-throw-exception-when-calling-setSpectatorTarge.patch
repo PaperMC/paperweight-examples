@@ -1,0 +1,20 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: verdox <mail.ysp@web.de>
+Date: Thu, 22 Aug 2024 21:18:44 +0000
+Subject: [PATCH] Don't throw exception when calling setSpectatorTarget when
+ not in spectator mode
+
+
+diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
+index 66679e183d8446b9fb4d782e5622e0a7facfb60e..e3a9248a2de346405818993375acfe5e9dc964f4 100644
+--- a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
++++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
+@@ -2919,7 +2919,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
+ 
+     @Override
+     public void setSpectatorTarget(org.bukkit.entity.Entity entity) {
+-        Preconditions.checkArgument(this.getGameMode() == GameMode.SPECTATOR, "Player must be in spectator mode");
++        //Preconditions.checkArgument(this.getGameMode() == GameMode.SPECTATOR, "Player must be in spectator mode");
+         this.getHandle().setCamera((entity == null) ? null : ((CraftEntity) entity).getHandle());
+     }
+ 

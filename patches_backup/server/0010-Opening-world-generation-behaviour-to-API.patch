@@ -1,0 +1,38 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <lukasjonsson@outlook.de>
+Date: Sat, 18 Nov 2023 14:15:53 +0100
+Subject: [PATCH] Opening world generation behaviour to API
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/worldgen/WorldGenerationCallbackUtil.java b/src/main/java/de/verdox/mccreativelab/worldgen/WorldGenerationCallbackUtil.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..4e6e0e48f50fd9f81cd3f363cf7b9c18302014ef
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/worldgen/WorldGenerationCallbackUtil.java
+@@ -0,0 +1,26 @@
++package de.verdox.mccreativelab.worldgen;
++
++import de.verdox.mccreativelab.behaviour.WorldGenerationBehaviour;
++import net.minecraft.core.BlockPos;
++import net.minecraft.core.SectionPos;
++import net.minecraft.world.level.WorldGenLevel;
++import net.minecraft.world.level.block.state.BlockState;
++import net.minecraft.world.level.chunk.ChunkAccess;
++import net.minecraft.world.level.chunk.status.ChunkStatus;
++import org.bukkit.block.data.BlockData;
++import org.bukkit.util.BlockVector;
++
++public class WorldGenerationCallbackUtil {
++    public static void executeWorldGenCallbacks(WorldGenerationBehaviour.FeatureType featureType, WorldGenLevel worldGenLevel, BlockPos pos, BlockState state) {
++        var foundChunk = worldGenLevel.getChunk(SectionPos.blockToSectionCoord(pos.getX()), SectionPos.blockToSectionCoord(pos.getZ()), ChunkStatus.EMPTY, false);
++        executeWorldGenCallbacks(featureType, worldGenLevel, pos, state, foundChunk);
++    }
++    public static void executeWorldGenCallbacks(WorldGenerationBehaviour.FeatureType featureType, WorldGenLevel worldGenLevel, BlockPos pos, BlockState state, ChunkAccess chunkAccess) {
++        if(!WorldGenerationBehaviour.WORLD_GENERATION_BEHAVIOUR.isImplemented())
++            return;
++        WorldGenChunk worldGenChunk = new CraftWorldGenChunk(worldGenLevel.getMinecraftWorld().getWorld(), chunkAccess);
++        BlockData blockData = state.createCraftBlockData();
++        BlockVector blockPosition = new BlockVector(pos.getX(), pos.getY(), pos.getZ());
++        WorldGenerationBehaviour.WORLD_GENERATION_BEHAVIOUR.getBehaviour().featureBlockGenerationCallback(featureType, blockPosition, worldGenChunk, blockData);
++    }
++}

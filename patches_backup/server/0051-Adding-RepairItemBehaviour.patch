@@ -1,0 +1,46 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: verdox <mail.ysp@web.de>
+Date: Sun, 7 Jul 2024 20:15:29 +0000
+Subject: [PATCH] Adding RepairItemBehaviour
+
+
+diff --git a/src/main/java/net/minecraft/world/item/crafting/RepairItemRecipe.java b/src/main/java/net/minecraft/world/item/crafting/RepairItemRecipe.java
+index 5c6c92f47a00a1d2bf8179b7b21e706d1a485bcf..8824a4a4c7c4738656bfa2586175dacfe0a0f1dd 100644
+--- a/src/main/java/net/minecraft/world/item/crafting/RepairItemRecipe.java
++++ b/src/main/java/net/minecraft/world/item/crafting/RepairItemRecipe.java
+@@ -2,6 +2,9 @@ package net.minecraft.world.item.crafting;
+ 
+ import com.mojang.datafixers.util.Pair;
+ import javax.annotation.Nullable;
++
++import de.verdox.mccreativelab.behaviour.RepairItemBehaviour;
++import net.minecraft.core.Holder;
+ import net.minecraft.core.HolderLookup;
+ import net.minecraft.core.component.DataComponents;
+ import net.minecraft.core.registries.Registries;
+@@ -10,6 +13,7 @@ import net.minecraft.world.item.ItemStack;
+ import net.minecraft.world.item.enchantment.EnchantmentHelper;
+ import net.minecraft.world.item.enchantment.ItemEnchantments;
+ import net.minecraft.world.level.Level;
++import org.bukkit.craftbukkit.inventory.CraftItemStack;
+ 
+ public class RepairItemRecipe extends CustomRecipe {
+     public RepairItemRecipe(CraftingBookCategory category) {
+@@ -40,7 +44,7 @@ public class RepairItemRecipe extends CustomRecipe {
+     }
+ 
+     private static boolean canCombine(ItemStack first, ItemStack second) {
+-        return second.is(first.getItem())
++        return RepairItemBehaviour.REPAIR_ITEM_BEHAVIOUR.getBehaviour().canCombine(first.asBukkitMirror(), second.asBukkitMirror())
+             && first.getCount() == 1
+             && second.getCount() == 1
+             && first.has(DataComponents.MAX_DAMAGE)
+@@ -66,7 +70,7 @@ public class RepairItemRecipe extends CustomRecipe {
+             int j = itemStack.getMaxDamage() - itemStack.getDamageValue();
+             int k = itemStack2.getMaxDamage() - itemStack2.getDamageValue();
+             int l = j + k + i * 5 / 100;
+-            ItemStack itemStack3 = new ItemStack(itemStack.getItem());
++            ItemStack itemStack3 = CraftItemStack.asNMSCopy(RepairItemBehaviour.REPAIR_ITEM_BEHAVIOUR.getBehaviour().assemble(itemStack.asBukkitMirror(), itemStack2.asBukkitMirror()));
+             itemStack3.set(DataComponents.MAX_DAMAGE, i);
+             itemStack3.setDamageValue(Math.max(i - l, 0));
+             ItemEnchantments itemEnchantments = EnchantmentHelper.getEnchantmentsForCrafting(itemStack);

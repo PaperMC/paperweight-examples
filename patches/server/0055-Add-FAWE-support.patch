@@ -5,10 +5,10 @@ Subject: [PATCH] Add FAWE support
 
 
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index d0aa61f8a4b6b173d34c409e5cad7b0c58fe6606..e973757c69a1aec3edb3bb888b1abe0dafb30eab 100644
+index 9a0c6c393f7f357f97599b758aad88c03e8cd2b5..6dc0113830a9d04f3280261cd32d9751b32f4676 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
-@@ -855,6 +855,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ca.spottedleaf.
+@@ -812,6 +812,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ca.spottedleaf.
          for (int sectionIndex = 0, sectionsLen = sections.length; sectionIndex < sectionsLen; sectionIndex++) {
              final int offsetY = (sectionIndex + minSection) << 4;
              final LevelChunkSection section = sections[sectionIndex];

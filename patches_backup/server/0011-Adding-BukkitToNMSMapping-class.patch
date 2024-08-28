@@ -1,0 +1,83 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <lukasjonsson@outlook.de>
+Date: Thu, 23 Nov 2023 00:37:34 +0100
+Subject: [PATCH] Adding BukkitToNMSMapping class
+
+
+diff --git a/src/main/java/org/bukkit/craftbukkit/BukkitToNMSMapping.java b/src/main/java/org/bukkit/craftbukkit/BukkitToNMSMapping.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..1fde183aaf2cc7fb44f5f6ce4a93be44fe6c86ef
+--- /dev/null
++++ b/src/main/java/org/bukkit/craftbukkit/BukkitToNMSMapping.java
+@@ -0,0 +1,71 @@
++package org.bukkit.craftbukkit;
++
++import com.google.common.base.Preconditions;
++import net.kyori.adventure.translation.Translatable;
++import net.minecraft.core.Holder;
++import net.minecraft.core.Registry;
++import net.minecraft.resources.ResourceKey;
++import org.bukkit.Keyed;
++import org.bukkit.NamespacedKey;
++import org.bukkit.craftbukkit.util.CraftNamespacedKey;
++
++import java.util.Objects;
++
++/**
++ * @param <H> The NMS handle
++ */
++public abstract class BukkitToNMSMapping<H> implements Keyed, Translatable {
++    private final NamespacedKey key;
++    private final H handle;
++
++    public BukkitToNMSMapping(NamespacedKey key, H handle) {
++        this.key = key;
++        this.handle = handle;
++    }
++
++    public H getHandle() {
++        return handle;
++    }
++
++    public NamespacedKey getKey() {
++        return key;
++    }
++
++    @Override
++    public boolean equals(Object o) {
++        if (this == o) return true;
++        if (o == null || getClass() != o.getClass()) return false;
++        BukkitToNMSMapping<?> that = (BukkitToNMSMapping<?>) o;
++        return Objects.equals(key, that.key);
++    }
++
++    @Override
++    public int hashCode() {
++        return Objects.hash(key);
++    }
++
++    public static <C extends Keyed, V> C minecraftToBukkit(V minecraft, ResourceKey<Registry<V>> nmsRegistry, org.bukkit.Registry<C> bukkitRegistry) {
++        Preconditions.checkArgument(minecraft != null);
++        Registry<V> registry = CraftRegistry.getMinecraftRegistry(nmsRegistry);
++        C bukkit = bukkitRegistry.get(CraftNamespacedKey.fromMinecraft(registry.getResourceKey(minecraft).orElseThrow()
++                                                                               .location()));
++        Preconditions.checkArgument(bukkit != null);
++        return bukkit;
++    }
++
++    public static <C extends Keyed, V> V bukkitToMinecraft(C bukkit, ResourceKey<Registry<V>> nmsRegistry) {
++        Preconditions.checkArgument(bukkit != null);
++        return CraftRegistry.getMinecraftRegistry(nmsRegistry)
++                            .getOptional(CraftNamespacedKey.toMinecraft(bukkit.getKey())).orElseThrow();
++    }
++
++    public static <C extends Keyed, V> C minecraftHolderToBukkit(Holder<V> minecraft, ResourceKey<Registry<V>> nmsRegistry, org.bukkit.Registry<C> bukkitRegistry) {
++        return minecraftToBukkit(minecraft.value(), nmsRegistry, bukkitRegistry);
++    }
++
++    public static <C extends Keyed> C stringToBukkit(String bukkit, org.bukkit.Registry<C> bukkitRegistry) {
++        Preconditions.checkArgument(bukkit != null);
++
++        return bukkitRegistry.get(NamespacedKey.fromString(bukkit));
++    }
++}

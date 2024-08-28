@@ -1,0 +1,19 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: verdox <mail.ysp@web.de>
+Date: Wed, 1 May 2024 15:09:35 +0000
+Subject: [PATCH] Add brokenState to BlockBreakEvent
+
+
+diff --git a/src/main/java/net/minecraft/server/level/ServerPlayerGameMode.java b/src/main/java/net/minecraft/server/level/ServerPlayerGameMode.java
+index c9d040e736d0fa7eb19c053a9f42c21b62187d9a..b0f23370d09b57e43870b1ae0fc806d93995caae 100644
+--- a/src/main/java/net/minecraft/server/level/ServerPlayerGameMode.java
++++ b/src/main/java/net/minecraft/server/level/ServerPlayerGameMode.java
+@@ -365,7 +365,7 @@ public class ServerPlayerGameMode {
+                 this.player.connection.send(packet);
+             }
+ 
+-            event = new BlockBreakEvent(bblock, this.player.getBukkitEntity());
++            event = new BlockBreakEvent(bblock, bblock.getState(), this.player.getBukkitEntity());
+ 
+             // Sword + Creative mode pre-cancel
+             event.setCancelled(isSwordNoBreak);

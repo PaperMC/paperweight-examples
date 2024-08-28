@@ -1,0 +1,818 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <mail.ysp@web.de>
+Date: Mon, 15 Jan 2024 02:01:20 +0100
+Subject: [PATCH] Enhanced Entity AI API
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/ai/EntityBrain.java b/src/main/java/de/verdox/mccreativelab/ai/EntityBrain.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..334d84bdb3809d265777d1adc163404ccf7caf76
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/ai/EntityBrain.java
+@@ -0,0 +1,88 @@
++package de.verdox.mccreativelab.ai;
++
++import de.verdox.mccreativelab.ai.builder.ActivityBuilder;
++import de.verdox.mccreativelab.ai.builder.BehaviorFactory;
++import org.bukkit.EntityActivity;
++import org.bukkit.EntitySchedule;
++import org.bukkit.World;
++import org.bukkit.entity.LivingEntity;
++import org.bukkit.entity.memory.MemoryKey;
++
++import javax.annotation.Nullable;
++import java.util.*;
++import java.util.function.Consumer;
++
++public interface EntityBrain<E extends LivingEntity> {
++    BehaviorFactory getBehaviorFactory();
++
++    ActivityBuilder<E> createActivityBuilder(EntityActivity entityActivity);
++
++    void tick(World world, E entity);
++
++    <U> void eraseMemory(MemoryKey<U> memoryKey);
++
++    <U> void setMemory(MemoryKey<U> type, @Nullable U value);
++
++    <U> void setMemoryWithExpiry(MemoryKey<U> type, U value, long expiry);
++
++    <U> Optional<U> getMemory(MemoryKey<U> type);
++
++    <U> long getTimeUntilExpiry(MemoryKey<U> type);
++
++    <U> boolean isMemoryValue(MemoryKey<U> type, U value);
++
++    boolean checkMemory(MemoryKey<?> type, MemoryStatus state);
++
++    EntitySchedule getSchedule();
++
++    void setSchedule(EntitySchedule schedule);
++
++    void setCoreActivities(Set<EntityActivity> coreActivities);
++
++    void useDefaultActivity();
++
++    Optional<EntityActivity> getActiveNonCoreActivity();
++
++    void setActiveActivityIfPossible(EntityActivity activity);
++
++    void updateActivityFromSchedule(long timeOfDay, long time);
++
++    void setActiveActivityToFirstValid(List<EntityActivity> activities);
++
++    void setDefaultActivity(EntityActivity activity);
++
++    void addActivity(ActivityBuilder<E> activityBuilder, boolean replaceCompleteActivity, boolean replaceActivityRequirements, boolean replaceForgettingMemories);
++
++    default void addActivity(ActivityBuilder<E> activityBuilder, boolean replaceCompleteActivity, boolean replaceActivityRequirements) {
++        addActivity(activityBuilder, replaceCompleteActivity, replaceActivityRequirements, false);
++    }
++
++    default void addActivity(ActivityBuilder<E> activityBuilder, boolean replaceCompleteActivity) {
++        addActivity(activityBuilder, replaceCompleteActivity, false, false);
++    }
++
++    default void addActivity(ActivityBuilder<E> activityBuilder) {
++        addActivity(activityBuilder, true, false, false);
++    }
++
++    void addActivity(EntityActivity activity, Consumer<ActivityBuilder<E>> activityBuilder, boolean replaceCompleteActivity, boolean replaceActivityRequirements, boolean replaceForgettingMemories);
++
++    default void addActivity(EntityActivity activity, Consumer<ActivityBuilder<E>> activityBuilder, boolean replaceCompleteActivity, boolean replaceActivityRequirements) {
++        addActivity(activity, activityBuilder, replaceCompleteActivity, replaceActivityRequirements, false);
++    }
++
++    default void addActivity(EntityActivity activity, Consumer<ActivityBuilder<E>> activityBuilder, boolean replaceCompleteActivity) {
++        addActivity(activity, activityBuilder, replaceCompleteActivity, false, false);
++    }
++
++    default void addActivity(EntityActivity activity, Consumer<ActivityBuilder<E>> activityBuilder) {
++        addActivity(activity, activityBuilder, true, false, false);
++    }
++
++    boolean isActive(EntityActivity activity);
++
++    EntityBrain<E> copyWithoutBehaviours();
++
++    void stopAll(World world, E entity);
++
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/ai/MemoryStatus.java b/src/main/java/de/verdox/mccreativelab/ai/MemoryStatus.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..7ae3652289088cb3b7a7aca36fde3ede7a9d92b2
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/ai/MemoryStatus.java
+@@ -0,0 +1,7 @@
++package de.verdox.mccreativelab.ai;
++
++public enum MemoryStatus {
++    VALUE_PRESENT,
++    VALUE_ABSENT,
++    REGISTERED;
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/ai/behavior/AIBehavior.java b/src/main/java/de/verdox/mccreativelab/ai/behavior/AIBehavior.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..7b0f6c7a7ca996b9c6409a19fb168f54be027fa4
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/ai/behavior/AIBehavior.java
+@@ -0,0 +1,19 @@
++package de.verdox.mccreativelab.ai.behavior;
++
++import de.verdox.mccreativelab.ai.MemoryStatus;
++import org.bukkit.entity.LivingEntity;
++import org.bukkit.entity.memory.MemoryKey;
++
++import java.util.Map;
++
++/**
++ * Represents an AI behaviour that is run over more than one tick
++ * @param <E> - The entity type
++ */
++public interface AIBehavior<E extends LivingEntity> extends ControlledBehavior<E> {
++    int getMinDuration();
++
++    int getMaxDuration();
++
++    Map<MemoryKey<?>, MemoryStatus> getRequiredMemoryStates();
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/ai/behavior/ControlledBehavior.java b/src/main/java/de/verdox/mccreativelab/ai/behavior/ControlledBehavior.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..8c1be7e4ca6a500f6ea7f607fe2e451fb4bbf40c
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/ai/behavior/ControlledBehavior.java
+@@ -0,0 +1,11 @@
++package de.verdox.mccreativelab.ai.behavior;
++
++import org.bukkit.entity.LivingEntity;
++
++/**
++ * Represents any form of Behaviour run by an entity brain
++ * @param <E> - The type of entity
++ */
++public interface ControlledBehavior<E extends LivingEntity> {
++
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/ai/behavior/CustomAIBehavior.java b/src/main/java/de/verdox/mccreativelab/ai/behavior/CustomAIBehavior.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..4084b2193794b547c222518afe4e39b66ad50057
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/ai/behavior/CustomAIBehavior.java
+@@ -0,0 +1,26 @@
++package de.verdox.mccreativelab.ai.behavior;
++
++import org.bukkit.World;
++import org.bukkit.entity.LivingEntity;
++
++/**
++ * Represents a player based implementation of a behaviour
++ * @param <E> - The entity type
++ */
++public interface CustomAIBehavior<E extends LivingEntity> extends AIBehavior<E> {
++
++    void start(World world, E entity, long time);
++    void tick(World world, E entity, long time);
++
++    void stop(World world, E entity, long time);
++
++    boolean canStillUse(World world, E entity, long time);
++
++    boolean checkExtraStartConditions(World world, E entity, long time);
++    Class<? extends E> getEntityType();
++
++    enum Status {
++        STOPPED,
++        RUNNING,
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/ai/behavior/OneShotBehavior.java b/src/main/java/de/verdox/mccreativelab/ai/behavior/OneShotBehavior.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..f0b75db02589269a10b44c2c72cba3b8c0f0b88f
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/ai/behavior/OneShotBehavior.java
+@@ -0,0 +1,10 @@
++package de.verdox.mccreativelab.ai.behavior;
++
++import org.bukkit.entity.LivingEntity;
++
++/**
++ * A behaviour that is run in one try. It does not use ticks
++ * @param <E> - The Entity Type
++ */
++public interface OneShotBehavior<E extends LivingEntity> extends ControlledBehavior<E> {
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/ai/behavior/PaperCustomAIBehavior.java b/src/main/java/de/verdox/mccreativelab/ai/behavior/PaperCustomAIBehavior.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..e6b062b7f3578556222c2e0c9c9798bcfac4fceb
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/ai/behavior/PaperCustomAIBehavior.java
+@@ -0,0 +1,50 @@
++package de.verdox.mccreativelab.ai.behavior;
++
++import de.verdox.mccreativelab.ai.MemoryStatus;
++import org.bukkit.entity.LivingEntity;
++import org.bukkit.entity.memory.MemoryKey;
++
++import java.util.HashMap;
++import java.util.Map;
++
++public abstract class PaperCustomAIBehavior<E extends LivingEntity> implements CustomAIBehavior<E> {
++    private final Class<? extends E> entityType;
++    private final Map<MemoryKey<?>, MemoryStatus> requiredMemoryState;
++    private final int minRunTime;
++    private final int maxRunTime;
++
++    public PaperCustomAIBehavior(Class<? extends E> entityType, Map<MemoryKey<?>, MemoryStatus> requiredMemoryState, int minRunTime, int maxRunTime){
++        this.entityType = entityType;
++        this.requiredMemoryState = requiredMemoryState;
++        this.minRunTime = minRunTime;
++        this.maxRunTime = maxRunTime;
++    }
++
++    public PaperCustomAIBehavior(Class<? extends E> entityType, Map<MemoryKey<?>, MemoryStatus> requiredMemoryState) {
++        this(entityType, requiredMemoryState, 60);
++    }
++
++    public PaperCustomAIBehavior(Class<? extends E> entityType, Map<MemoryKey<?>, MemoryStatus> requiredMemoryState, int runTime) {
++        this(entityType, requiredMemoryState, runTime, runTime);
++    }
++
++    @Override
++    public final int getMinDuration() {
++        return minRunTime;
++    }
++
++    @Override
++    public final int getMaxDuration() {
++        return maxRunTime;
++    }
++
++    @Override
++    public final Map<MemoryKey<?>, MemoryStatus> getRequiredMemoryStates() {
++        return new HashMap<>(requiredMemoryState);
++    }
++
++    @Override
++    public final Class<? extends E> getEntityType() {
++        return entityType;
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/ai/builder/AIFactory.java b/src/main/java/de/verdox/mccreativelab/ai/builder/AIFactory.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..ba0c7f8e9ce7fbbf8ef17a19554199881fd76199
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/ai/builder/AIFactory.java
+@@ -0,0 +1,11 @@
++package de.verdox.mccreativelab.ai.builder;
++
++import org.bukkit.EntityActivity;
++import org.bukkit.entity.LivingEntity;
++
++public interface AIFactory {
++    BehaviorFactory getBehaviorFactory();
++    GoalFactory getGoalFactory();
++    <E extends LivingEntity> ActivityBuilder<E> createActivityBuilder(Class<? extends E> type, EntityActivity entityActivity);
++    <E extends LivingEntity> WeightedBehaviorsBuilder<E> createWeightedBehaviorsBuilder(Class<? extends E> type);
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/ai/builder/ActivityBuilder.java b/src/main/java/de/verdox/mccreativelab/ai/builder/ActivityBuilder.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..acab66d53990da2a4ddbf89ed9ce993c8af7e569
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/ai/builder/ActivityBuilder.java
+@@ -0,0 +1,29 @@
++package de.verdox.mccreativelab.ai.builder;
++
++import de.verdox.mccreativelab.ai.MemoryStatus;
++import de.verdox.mccreativelab.ai.behavior.AIBehavior;
++import de.verdox.mccreativelab.ai.behavior.ControlledBehavior;
++import de.verdox.mccreativelab.ai.behavior.CustomAIBehavior;
++import de.verdox.mccreativelab.ai.behavior.OneShotBehavior;
++import org.bukkit.entity.LivingEntity;
++import org.bukkit.entity.memory.MemoryKey;
++
++import java.util.function.Consumer;
++import java.util.function.Function;
++
++public interface ActivityBuilder<E extends LivingEntity> {
++
++    ActivityBuilder<E> withRequiredMemory(MemoryKey<?> requiredMemoryKey, MemoryStatus memoryStatus);
++
++    ActivityBuilder<E> withForgettingMemoriesWhenStopped(MemoryKey<?> forgettingMemoryKey);
++
++    ActivityBuilder<E> withBehaviour(int priority, ControlledBehavior<? super E> controlledBehavior);
++
++    ActivityBuilder<E> withBehaviour(int priority, AIBehavior<? super E> aiBehavior);
++
++    ActivityBuilder<E> withBehaviour(int priority, CustomAIBehavior<? super E> customAIBehavior);
++
++    ActivityBuilder<E> withBehaviour(int priority, OneShotBehavior<? super E> oneShotBehavior);
++
++    ActivityBuilder<E> withBehaviour(int priority, Function<BehaviorFactory, ControlledBehavior<? super E>> behaviourCreator);
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/ai/builder/BehaviorFactory.java b/src/main/java/de/verdox/mccreativelab/ai/builder/BehaviorFactory.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..ffca0ad259cf04a2f1c287e0931190462941e65d
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/ai/builder/BehaviorFactory.java
+@@ -0,0 +1,235 @@
++package de.verdox.mccreativelab.ai.builder;
++
++import com.destroystokyo.paper.entity.RangedEntity;
++import de.verdox.mccreativelab.ai.behavior.AIBehavior;
++import de.verdox.mccreativelab.ai.behavior.ControlledBehavior;
++import de.verdox.mccreativelab.ai.behavior.OneShotBehavior;
++import it.unimi.dsi.fastutil.Pair;
++import net.kyori.adventure.sound.Sound;
++import org.bukkit.*;
++import org.bukkit.entity.*;
++import org.bukkit.entity.memory.MemoryKey;
++
++import java.util.List;
++import java.util.function.*;
++
++public interface BehaviorFactory {
++
++    OneShotBehavior<Mob> acquirePOI(Predicate<PoiType> poiTypePredicate, MemoryKey<Location> poiPosModule, MemoryKey<Location> potentialPoiPosModule, boolean onlyRunIfChild, boolean entityEvent);
++    default OneShotBehavior<Mob> acquirePOI(Predicate<PoiType> poiTypePredicate, MemoryKey<Location> poiPosModule, boolean onlyRunIfChild, boolean entityEvent){
++        return acquirePOI(poiTypePredicate, poiPosModule, poiPosModule, onlyRunIfChild, entityEvent);
++    }
++
++    AIBehavior<Animals> animalMakeLove(EntityType targetType, float speed, int approachDistance);
++
++    AIBehavior<Mob> animalPanic(float speed, Predicate<Mob> panicPredicate);
++
++    OneShotBehavior<Villager> assignProfessionFromJobSite();
++
++    OneShotBehavior<Ageable> babyFollowAdult(int minRange, int maxRange, float speed);
++
++    OneShotBehavior<Mob> backupIfTooClose(int distance, float forwardMovement);
++
++    OneShotBehavior<LivingEntity> becomePassiveIfMemoryPresent(MemoryKey<?> requiredMemory, int duration);
++
++    AIBehavior<Villager> celebrateVillagersSurviveRaid(int minRuntime, int maxRunTime);
++
++    <T> OneShotBehavior<LivingEntity> copyMemoryWithExpiry(Predicate<LivingEntity> runPredicate, MemoryKey<T> sourceType, MemoryKey<T> targetType, int minExpiry, int maxExpiry);
++
++    AIBehavior<LivingEntity> countDownCooldownTicks(MemoryKey<Integer> moduleType);
++
++    AIBehavior<Frog> croak();
++
++    AIBehavior<RangedEntity> crossbowAttack();
++
++    OneShotBehavior<LivingEntity> dismountOrSkipMounting(int range, BiPredicate<LivingEntity, Entity> alternativeRideCondition);
++
++    ControlledBehavior<LivingEntity> doNothing(int minRuntime, int maxRunTime);
++
++    OneShotBehavior<LivingEntity> eraseMemoryIf(Predicate<LivingEntity> condition, MemoryKey<?> memory);
++
++    AIBehavior<Mob> followTemptation(Function<LivingEntity, Float> speed, Function<LivingEntity, Double> stopDistanceGetter);
++
++    AIBehavior<Villager> giveGiftToHero(int delay);
++
++    OneShotBehavior<Villager> goToClosestVillage(float speed, int completionRange);
++
++    AIBehavior<Villager> goToPotentialJobSite(float speed);
++
++    OneShotBehavior<Mob> goToTargetLocation(MemoryKey<Location> posModule, int completionRange, float speed);
++
++    OneShotBehavior<LivingEntity> goToWantedItem(Predicate<LivingEntity> startCondition, float speed, boolean requiresWalkTarget, int radius);
++
++    AIBehavior<Villager> harvestFarmland();
++
++    OneShotBehavior<Mob> insideBrownianWalk(float speed);
++
++    OneShotBehavior<LivingEntity> interactWith(EntityType entityType, int maxDistance, Predicate<LivingEntity> interactorPredicate, Predicate<Entity> targetPredicate, MemoryKey<Entity> memoryKey, float speed, int completionRange);
++
++    default OneShotBehavior<LivingEntity> interactWith(EntityType entityType, int maxDistance, MemoryKey<Entity> memoryKey, float speed, int completionRange) {
++        return interactWith(entityType, maxDistance, livingEntity -> true, entity -> true, memoryKey, speed, completionRange);
++    }
++
++    OneShotBehavior<LivingEntity> interactWithDoor();
++
++    AIBehavior<Mob> jumpOnBed(float walkSpeed);
++
++    OneShotBehavior<LivingEntity> locateHidingPlace(int maxDistance, float walkSpeed, int preferredDistance);
++
++    AIBehavior<Mob> longJumpMidJump(int minCooldownRange, int maxCooldownRange, Sound.Type soundType);
++
++    AIBehavior<Mob> longJumpToPreferredBlock(int minCooldownRange, int maxCooldownRange, int verticalRange, int horizontalRange, float maxRange, Sound.Type jumpSound, Tag<Material> favoredBlocks, float biasChance, BiPredicate<Mob, Location> jumpToPredicate);
++
++    AIBehavior<Mob> longJumpToRandomBlock(int minCooldownRange, int maxCooldownRange, int verticalRange, int horizontalRange, float maxRange, Sound.Type jumpSound);
++
++    AIBehavior<Villager> lookAndFollowTradingPlayerSink(float speed);
++
++    AIBehavior<Mob> lookAtTargetSink(int minRunTime, int maxRunTime);
++
++    OneShotBehavior<Mob> meleeAttack(int cooldown);
++
++    OneShotBehavior<LivingEntity> mount(float speed);
++
++    OneShotBehavior<LivingEntity> moveToSkySeeingSpot(float speed);
++
++    AIBehavior<Mob> moveToTargetSink(int minRunTime, int maxRunTime);
++
++    OneShotBehavior<Mob> playTagWithOtherKids();
++
++    OneShotBehavior<Villager> poiCompetitorScan();
++
++    AIBehavior<Mob> randomLookAround(int minCooldownRange, int maxCooldownRange, float maxYaw, float minPitch, float maxPitch);
++
++    OneShotBehavior<Mob> randomStroll(float speed, boolean strollInsideWater);
++
++    OneShotBehavior<Mob> randomStroll(float speed, int horizontalRadius, int verticalRadius);
++
++    OneShotBehavior<Mob> randomFlyStroll(float speed);
++
++    OneShotBehavior<Mob> randomSwimStroll(float speed);
++
++    OneShotBehavior<Villager> reactToBell();
++
++    OneShotBehavior<Villager> resetProfession();
++
++    OneShotBehavior<Villager> resetRaidStatus();
++
++    OneShotBehavior<Villager> ringBell();
++
++    OneShotBehavior<Villager> setCloseHomeAsWalkTarget(float speed);
++
++    OneShotBehavior<LivingEntity> setEntityLookTarget(Predicate<LivingEntity> predicate, float maxDistance);
++
++    default OneShotBehavior<LivingEntity> setEntityLookTarget(EntityType type, float maxDistance) {
++        return setEntityLookTarget(livingEntity -> livingEntity.getType() == type, maxDistance);
++    }
++
++    OneShotBehavior<Villager> setHiddenState(int maxHiddenSeconds, int distance);
++
++    OneShotBehavior<LivingEntity> setLookAndInteract(EntityType entityType, int maxDistance);
++
++    OneShotBehavior<LivingEntity> setRaidStatus();
++
++    OneShotBehavior<Mob> setWalkTargetAwayFromPos(MemoryKey<Location> memoryKey, float speed, int range, boolean requiresWalkTarget);
++
++    OneShotBehavior<Mob> setWalkTargetAwayFromEntity(MemoryKey<Entity> memoryKey, float speed, int range, boolean requiresWalkTarget);
++
++    OneShotBehavior<Mob> setWalkTargetFromAttackTargetIfTargetOutOfReach(Function<LivingEntity, Float> speed);
++
++    OneShotBehavior<Mob> setWalkTargetFromBlockMemory(MemoryKey<Location> blockMemoryKey, float speed, int completionRange, int maxDistance, int maxRunTime);
++
++    OneShotBehavior<Mob> setWalkTargetFromLookTarget(Predicate<LivingEntity> predicate, Function<LivingEntity, Float> speed, int completionRange);
++
++    default OneShotBehavior<Mob> setWalkTargetFromLookTarget(float speed, int completionRange) {
++        return setWalkTargetFromLookTarget(livingEntity -> true, livingEntity -> speed, completionRange);
++    }
++
++    AIBehavior<Villager> showTradesToPlayer(int minRunTime, int maxRunTime);
++
++    AIBehavior<Villager> sleepInBed();
++
++    OneShotBehavior<Villager> socializeAtBell();
++
++    OneShotBehavior<Mob> startAttacking(Function<Mob, LivingEntity> targetGetter);
++
++    OneShotBehavior<Piglin> startCelebratingIfTargetDead(int celebrationDuration, BiPredicate<LivingEntity, LivingEntity> predicate);
++
++    AIBehavior<Mob> stopAttackingIfTargetInvalid(Predicate<LivingEntity> alternativeCondition, BiConsumer<Mob, LivingEntity> forgetCallback, boolean shouldForgetIfTargetUnreachable);
++
++    OneShotBehavior<Mob> stopBeingAngryIfTargetDead();
++
++    OneShotBehavior<Mob> strollAroundPoi(MemoryKey<Location> posMemory, float walkSpeed, int maxDistance);
++
++    OneShotBehavior<Mob> strollToPoi(MemoryKey<Location> posMemory, float walkSpeed, int completionRange, int maxDistance);
++
++    OneShotBehavior<Mob> strollToPoiList(MemoryKey<List<Location>> posMemory, float walkSpeed, int completionRange, int primaryPositionActivationDistance, MemoryKey<Location> primaryPosition);
++
++    AIBehavior<Mob> swim(float chance);
++
++    AIBehavior<Villager> tradeWithVillager();
++
++    OneShotBehavior<Mob> tryFindLand(int range, float speed);
++
++    OneShotBehavior<Mob> tryFindLandNearWater(int range, float speed);
++
++    OneShotBehavior<Mob> tryFindWater(int range, float speed);
++
++    OneShotBehavior<Frog> tryLaySpawnOnWaterNearLand(Material spawn);
++
++    OneShotBehavior<Mob> updateActivityFromSchedule();
++
++    AIBehavior<Villager> useBonemeal();
++
++    OneShotBehavior<Villager> validateNearbyPoi(Predicate<PoiType> poiTypePredicate, MemoryKey<Location> poiMemory);
++
++    OneShotBehavior<Villager> villageBoundRandomStroll(float walkSpeed, int horizontalRange, int verticalRange);
++
++    default OneShotBehavior<Villager> villageBoundRandomStroll(float walkSpeed) {
++        return villageBoundRandomStroll(walkSpeed, 10, 7);
++    }
++
++    OneShotBehavior<Villager> villagerCalmDown();
++
++    AIBehavior<Villager> villagerMakeLove();
++
++    AIBehavior<Villager> villagerPanicTrigger();
++
++    OneShotBehavior<Villager> wakeUp();
++
++    AIBehavior<Villager> workAtComposter();
++
++    AIBehavior<Villager> workAtPoi();
++
++    OneShotBehavior<Villager> yieldJobSite(float speed);
++
++    // Logic
++    <T extends LivingEntity> ControlledBehavior<T> gateBehaviour(Consumer<ActivityBuilder<T>> activityBuilder, GateOrderPolicy gateOrderPolicy, GateRunningPolicy gateRunningPolicy);
++
++    default <T extends LivingEntity> ControlledBehavior<T> runOne(Consumer<ActivityBuilder<T>> activityBuilder) {
++        return gateBehaviour(activityBuilder, GateOrderPolicy.SHUFFLED, GateRunningPolicy.RUN_ONE);
++    }
++
++    <T extends LivingEntity> OneShotBehavior<T> triggerGate(Consumer<WeightedBehaviorsBuilder<T>> weightedTasks, GateOrderPolicy order, GateRunningPolicy runMode);
++
++    default <T extends LivingEntity> OneShotBehavior<T> triggerOneShuffled(Consumer<WeightedBehaviorsBuilder<T>> weightedTasks) {
++        return triggerGate(weightedTasks, GateOrderPolicy.SHUFFLED, GateRunningPolicy.RUN_ONE);
++    }
++
++    <T extends LivingEntity> OneShotBehavior<T> sequence(OneShotBehavior<T> predicateBehavior, OneShotBehavior<T> task);
++
++    <T extends LivingEntity> OneShotBehavior<T> triggerIf(Predicate<T> predicate, OneShotBehavior<T> task);
++
++    <T extends LivingEntity> OneShotBehavior<T> triggerIf(Predicate<T> predicate);
++
++    <T extends LivingEntity> OneShotBehavior<T> triggerIf(BiPredicate<World, T> predicate);
++
++    enum GateOrderPolicy {
++        ORDERED,
++        SHUFFLED
++    }
++
++    enum GateRunningPolicy {
++        RUN_ONE,
++        TRY_ALL
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/ai/builder/GoalFactory.java b/src/main/java/de/verdox/mccreativelab/ai/builder/GoalFactory.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..011258d926035d40fa97ad4739dd6a4c94fe3a4f
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/ai/builder/GoalFactory.java
+@@ -0,0 +1,120 @@
++package de.verdox.mccreativelab.ai.builder;
++
++import com.destroystokyo.paper.entity.RangedEntity;
++import com.destroystokyo.paper.entity.ai.VanillaGoal;
++import net.kyori.adventure.sound.Sound;
++import org.bukkit.Difficulty;
++import org.bukkit.Material;
++import org.bukkit.World;
++import org.bukkit.block.BlockState;
++import org.bukkit.entity.*;
++import org.bukkit.inventory.ItemStack;
++import org.bukkit.inventory.RecipeChoice;
++import de.verdox.mccreativelab.random.VanillaRandomSource;
++import java.util.function.Function;
++
++import java.util.function.BooleanSupplier;
++import java.util.function.Predicate;
++
++public interface GoalFactory {
++    VanillaGoal<Mob> avoidEntity(Mob mob, EntityType entityType, Predicate<LivingEntity> extraInclusionPredicate, float distance, double slowSpeed, double fastSpeed, Predicate<LivingEntity> inclusionSelector);
++
++    VanillaGoal<Wolf> beg(Wolf wolf, float begDistance);
++
++    VanillaGoal<Mob> breakDoor(Mob mob, Predicate<Difficulty> difficultySufficientPredicate);
++
++    VanillaGoal<Mob> breathAir(Mob mob);
++
++    VanillaGoal<Animals> breed(Animals animal, double speed, EntityType breedTarget);
++
++    VanillaGoal<Cat> catLieOnBed(Cat cat, double speed, int range);
++
++    VanillaGoal<Cat> catSitOnBlock(Cat cat, double speed);
++
++    VanillaGoal<Mob> climbOnTopOfPowderSnow(Mob mob, World world);
++
++    VanillaGoal<Dolphin> dolphinJump(Dolphin dolphin, int chance);
++
++    VanillaGoal<Mob> eatBlock(Mob mob, Function<VanillaRandomSource, Boolean> chanceToEat, Predicate<BlockState> predicate);
++
++    VanillaGoal<Mob> fleeSun(Mob mob, double speed);
++
++    VanillaGoal<Mob> floatOnWater(Mob mob);
++
++    VanillaGoal<Mob> followBoat(Mob mob);
++
++    VanillaGoal<Fish> followFlockLeader(Fish fish);
++
++    VanillaGoal<Fish> followMob(Mob mob, double speed, float minDistance, float maxDistance, Predicate<Mob> followPredicate);
++
++    VanillaGoal<Tameable> followOwner(Tameable tameable, double speed, float minDistance, float maxDistance, boolean leavesAllowed);
++
++    VanillaGoal<Animals> followParent(Animals animal, double speed);
++
++    VanillaGoal<Mob> randomStrollInVillage(Mob mob, double speed);
++
++    VanillaGoal<Mob> interact(Mob mob, EntityType entityType, float range, float chance);
++
++    VanillaGoal<Parrot> landOnOwnersShoulders(Parrot parrot);
++
++    VanillaGoal<Mob> leapAtTarget(Mob mob, float velocity);
++
++    VanillaGoal<Llama> llamaFollowCaravan(Llama llama, double speed);
++
++    VanillaGoal<Mob> lookAtMob(Mob mob, EntityType targetType, float range, float change, boolean lookForward);
++
++    VanillaGoal<AbstractVillager> lookAtTradingPlayer(AbstractVillager abstractVillager);
++
++    VanillaGoal<Mob> meleeAttack(Mob mob, double speed, boolean pauseWhenMobIdle);
++
++    VanillaGoal<Mob> moveBackToVillage(Mob mob, double speed, boolean canDespawn);
++
++    VanillaGoal<Mob> moveThroughVillage(Mob mob, double speed, boolean requiresNighttime, int distance, BooleanSupplier doorPassingThroughGetter);
++
++    VanillaGoal<Mob> moveTowardsTarget(Mob mob, double speed, float maxDistance);
++
++    VanillaGoal<Mob> ocelotAttack(Mob mob);
++
++    VanillaGoal<IronGolem> offerFlower(IronGolem ironGolem);
++
++    VanillaGoal<Mob> openDoor(Mob mob, boolean delayedClose);
++
++    VanillaGoal<Mob> panic(Mob mob, double speed);
++
++    VanillaGoal<Raider> pathFindToRaid(Raider raider);
++
++    VanillaGoal<Mob> randomLookAround(Mob mob);
++
++    VanillaGoal<AbstractHorse> randomStand(AbstractHorse abstractHorse);
++
++    VanillaGoal<Mob> randomSwim(Mob mob, double speed, int chance);
++
++    VanillaGoal<RangedEntity> rangedAttack(RangedEntity rangedEntity, double mobSpeed, int minIntervalTicks, int maxIntervalTicks, float maxShootRange);
++
++    VanillaGoal<RangedEntity> rangedBowAttack(RangedEntity rangedEntity, double speed, int attackInterval, float range);
++
++    VanillaGoal<RangedEntity> rangedCrossBowAttack(RangedEntity rangedEntity, double speed, float range);
++
++    VanillaGoal<Mob> removeBlock(Mob mob, Material blockType, double speed, int maxYDifference);
++
++    VanillaGoal<Mob> restrictSun(Mob mob);
++
++    VanillaGoal<AbstractHorse> runAroundLikeCrazy(AbstractHorse abstractHorse, double speed);
++
++    VanillaGoal<Tameable> sitWhenOrderedTo(Tameable tameable);
++
++    VanillaGoal<Mob> strollThroughVillage(Mob mob, int searchEngine);
++
++    VanillaGoal<Creeper> swellGoal(Creeper creeper, double distanceToStartSwell, double distanceToStopSwell);
++
++    VanillaGoal<Mob> temptGoal(Mob mob, double speed, RecipeChoice food, boolean canBeScared);
++
++    VanillaGoal<AbstractVillager> tradeWithPlayer(AbstractVillager abstractVillager);
++
++    VanillaGoal<Mob> tryFindWater(Mob mob);
++
++    VanillaGoal<Mob> useItem(Mob mob, ItemStack item, Sound.Type type, Predicate<Mob> mobPredicate);
++    VanillaGoal<Mob> waterAvoidRandomFly(Mob mob, double speed);
++    VanillaGoal<Mob> waterAvoidRandomStroll(Mob mob, double speed, float probability);
++    VanillaGoal<Zombie> zombieAttackGoal(Zombie zombie, double speed, boolean pauseWhenMobIdle);
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/ai/builder/WeightedBehaviorsBuilder.java b/src/main/java/de/verdox/mccreativelab/ai/builder/WeightedBehaviorsBuilder.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..1f99161b4bb432872be837a182df914ff679ad46
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/ai/builder/WeightedBehaviorsBuilder.java
+@@ -0,0 +1,21 @@
++package de.verdox.mccreativelab.ai.builder;
++
++import de.verdox.mccreativelab.ai.behavior.AIBehavior;
++import de.verdox.mccreativelab.ai.behavior.ControlledBehavior;
++import de.verdox.mccreativelab.ai.behavior.CustomAIBehavior;
++import de.verdox.mccreativelab.ai.behavior.OneShotBehavior;
++import org.bukkit.entity.LivingEntity;
++
++import java.util.function.Function;
++
++public interface WeightedBehaviorsBuilder<E extends LivingEntity> {
++    WeightedBehaviorsBuilder<E> withBehaviour(int priority, ControlledBehavior<? super E> aiBehavior);
++
++    WeightedBehaviorsBuilder<E> withBehaviour(int priority, AIBehavior<? super E> customAiBehavior);
++
++    WeightedBehaviorsBuilder<E> withBehaviour(int priority, CustomAIBehavior<? super E> customAiBehaviour);
++
++    WeightedBehaviorsBuilder<E> withBehaviour(int priority, OneShotBehavior<? super E> aiBehavior);
++
++    WeightedBehaviorsBuilder<E> withBehaviour(int priority, Function<BehaviorFactory, ControlledBehavior<? super E>> behaviourCreator);
++}
+diff --git a/src/main/java/org/bukkit/Bukkit.java b/src/main/java/org/bukkit/Bukkit.java
+index 4705c1d91e39fcc3c608b1f1a38a30d063ccf06e..32da2e981c4f57b136c2951edfbc4ce0eb6f640f 100644
+--- a/src/main/java/org/bukkit/Bukkit.java
++++ b/src/main/java/org/bukkit/Bukkit.java
+@@ -14,6 +14,8 @@ import java.util.Set;
+ import java.util.UUID;
+ import java.util.function.Consumer;
+ import java.util.logging.Logger;
++
++import de.verdox.mccreativelab.ai.builder.AIFactory;
+ import org.bukkit.Warning.WarningState;
+ import org.bukkit.advancement.Advancement;
+ import org.bukkit.block.data.BlockData;
+@@ -2910,4 +2912,11 @@ public final class Bukkit {
+     public static Server.Spigot spigot() {
+         return server.spigot();
+     }
++
++    // Paper start - Add AI Library
++    @NotNull
++    public static AIFactory getAIFactory(){
++        return server.aiFactory();
++    }
++    // Paper end - Add AI Library
+ }
+diff --git a/src/main/java/org/bukkit/Server.java b/src/main/java/org/bukkit/Server.java
+index c043d239c449bf4bb13a24467f2f6c67b4d28d2d..42c767524c49354e9b491a769eac70e4d2d32f0c 100644
+--- a/src/main/java/org/bukkit/Server.java
++++ b/src/main/java/org/bukkit/Server.java
+@@ -14,6 +14,8 @@ import java.util.Set;
+ import java.util.UUID;
+ import java.util.function.Consumer;
+ import java.util.logging.Logger;
++
++import de.verdox.mccreativelab.ai.builder.AIFactory;
+ import org.bukkit.Warning.WarningState;
+ import org.bukkit.advancement.Advancement;
+ import org.bukkit.block.data.BlockData;
+@@ -2543,4 +2545,9 @@ public interface Server extends PluginMessageRecipient, net.kyori.adventure.audi
+      */
+     boolean isOwnedByCurrentRegion(@NotNull Entity entity);
+     // Paper end - Folia region threading API
++
++    // Paper start - Add AI Library
++    @NotNull
++    AIFactory aiFactory();
++    // Paper end - Add AI Library
+ }
+diff --git a/src/main/java/org/bukkit/entity/LivingEntity.java b/src/main/java/org/bukkit/entity/LivingEntity.java
+index a1e54e9d14393a6c0ea57cca854071c5396d9717..75932be175956ab814fc15c37343bafb3cdc7d4d 100644
+--- a/src/main/java/org/bukkit/entity/LivingEntity.java
++++ b/src/main/java/org/bukkit/entity/LivingEntity.java
+@@ -962,6 +962,14 @@ public interface LivingEntity extends Attributable, Damageable, ProjectileSource
+      */
+     <T> void setMemory(@NotNull MemoryKey<T> memoryKey, @Nullable T memoryValue);
+ 
++    // MCCLab start - Adding EntityBrain
++    /**
++     * Gets the brain of this entity
++     * @return The brain
++     */
++    <T extends LivingEntity> de.verdox.mccreativelab.ai.EntityBrain<T> getBrain(Class<? extends T> type);
++    //MCCLab end - Adding EntityBrain
++
+     /**
+      * Get the {@link Sound} this entity will make when damaged.
+      *
+diff --git a/src/main/java/org/bukkit/entity/memory/MemoryKey.java b/src/main/java/org/bukkit/entity/memory/MemoryKey.java
+index d615c006c9153fb65024241604b744fbfc383efc..870654433bb3a122c94456d6e5d2b6bd127ebf5e 100644
+--- a/src/main/java/org/bukkit/entity/memory/MemoryKey.java
++++ b/src/main/java/org/bukkit/entity/memory/MemoryKey.java
+@@ -5,9 +5,11 @@ import java.util.HashSet;
+ import java.util.Map;
+ import java.util.Set;
+ import java.util.UUID;
++import java.util.List;
+ import org.bukkit.Keyed;
+ import org.bukkit.Location;
+ import org.bukkit.NamespacedKey;
++import org.bukkit.entity.Entity;
+ import org.jetbrains.annotations.NotNull;
+ import org.jetbrains.annotations.Nullable;
+ 
+@@ -44,6 +46,7 @@ public final class MemoryKey<T> implements Keyed {
+         return tClass;
+     }
+ 
++
+     private static final Map<NamespacedKey, MemoryKey> MEMORY_KEYS = new HashMap<>();
+     //
+     public static final MemoryKey<Location> HOME = new MemoryKey<>(NamespacedKey.minecraft("home"), Location.class);
+@@ -76,6 +79,13 @@ public final class MemoryKey<T> implements Keyed {
+      */
+     @Deprecated // Paper
+     public static final MemoryKey<Location> SNIFFER_EXPLORED_POSITIONS = new MemoryKey<>(NamespacedKey.minecraft("sniffer_explored_positions"), Location.class);
++    public static final MemoryKey<List<Location>> SECONDARY_JOB_SITE = createListKey(NamespacedKey.minecraft("secondary_job_site"), Location.class);
++    public static final MemoryKey<Entity> VISIBLE_VILLAGER_BABIES = new MemoryKey<>(NamespacedKey.minecraft("visible_villager_babies"), Entity.class);
++    public static final MemoryKey<Entity> INTERACTION_TARGET = new MemoryKey<>(NamespacedKey.minecraft("interaction_target"), Entity.class);
++    public static final MemoryKey<Entity> BREED_TARGET = new MemoryKey<>(NamespacedKey.minecraft("breed_target"), Entity.class);
++    public static final MemoryKey<Entity> NEAREST_HOSTILE = new MemoryKey<>(NamespacedKey.minecraft("nearest_hostile"), Entity.class);
++    public static final MemoryKey<Entity> HURT_BY_ENTITY = new MemoryKey<>(NamespacedKey.minecraft("hurt_by_entity"), Entity.class);
++    public static final MemoryKey<List<Entity>> NEAREST_VISIBLE_LIVING_ENTITIES = createListKey(NamespacedKey.minecraft("visible_mobs"), Entity.class);
+ 
+     /**
+      * Returns a {@link MemoryKey} by a {@link NamespacedKey}.
+@@ -99,4 +109,7 @@ public final class MemoryKey<T> implements Keyed {
+     public static Set<MemoryKey> values() {
+         return new HashSet<>(MEMORY_KEYS.values());
+     }
++    public static <T> MemoryKey<List<T>> createListKey(NamespacedKey namespacedKey, Class<T> type){
++        return (MemoryKey<List<T>>) new MemoryKey<>(namespacedKey, type);
++    }
+ }

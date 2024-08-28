@@ -1,0 +1,21 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: verdox <mail.ysp@web.de>
+Date: Thu, 22 Aug 2024 21:18:24 +0000
+Subject: [PATCH] Add WorldSelectChunkGeneratorEvent
+
+
+diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
+index c2b953a55fd137f957ab17da2e5c34d1c29e4bdf..f22e55d5f282f82e106e0fba5fa376faa2565b46 100644
+--- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
++++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
+@@ -1947,7 +1947,9 @@ public final class CraftServer implements Server {
+             }
+         }
+ 
+-        return result;
++        io.papermc.paper.event.world.WorldSelectChunkGeneratorEvent worldSelectChunkGeneratorEvent = new io.papermc.paper.event.world.WorldSelectChunkGeneratorEvent(world, result);
++        worldSelectChunkGeneratorEvent.callEvent();
++        return worldSelectChunkGeneratorEvent.getPickedWorldGenerator();
+     }
+ 
+     public BiomeProvider getBiomeProvider(String world) {

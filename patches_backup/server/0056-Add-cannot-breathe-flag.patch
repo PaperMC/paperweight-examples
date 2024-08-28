@@ -1,0 +1,69 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: verdox <mail.ysp@web.de>
+Date: Sat, 17 Aug 2024 11:55:20 +0000
+Subject: [PATCH] Add cannot breathe flag
+
+
+diff --git a/src/main/java/net/minecraft/world/entity/LivingEntity.java b/src/main/java/net/minecraft/world/entity/LivingEntity.java
+index e84c0dc8cf457a3ee4841c4b719c30b59cd95771..a4e583d03082bd9e3a4244f60cc938368240fe1b 100644
+--- a/src/main/java/net/minecraft/world/entity/LivingEntity.java
++++ b/src/main/java/net/minecraft/world/entity/LivingEntity.java
+@@ -425,6 +425,10 @@ public abstract class LivingEntity extends Entity implements Attackable {
+     public boolean hasLandedInLiquid() {
+         return this.getDeltaMovement().y() < 9.999999747378752E-6D && this.isInLiquid();
+     }
++    // MCCreativeLab start - Add cannot breathe flag
++    public boolean canBreathe = true;
++    public boolean spawnDrownParticles = true;
++    // MCCreativeLab end - Add cannot breathe flag
+ 
+     @Override
+     public void baseTick() {
+@@ -464,7 +468,7 @@ public abstract class LivingEntity extends Entity implements Attackable {
+                 }
+             }
+ 
+-            if (this.isEyeInFluid(FluidTags.WATER) && !this.level().getBlockState(BlockPos.containing(this.getX(), this.getEyeY(), this.getZ())).is(Blocks.BUBBLE_COLUMN)) {
++            if (!canBreathe || ((this.isEyeInFluid(FluidTags.WATER)) && !this.level().getBlockState(BlockPos.containing(this.getX(), this.getEyeY(), this.getZ())).is(Blocks.BUBBLE_COLUMN))) { // MCCreativeLab - Add cannot breathe flag
+                 boolean flag1 = !this.canBreatheUnderwater() && !MobEffectUtil.hasWaterBreathing(this) && (!flag || !((net.minecraft.world.entity.player.Player) this).getAbilities().invulnerable);
+ 
+                 if (flag1) {
+@@ -473,6 +477,7 @@ public abstract class LivingEntity extends Entity implements Attackable {
+                         this.setAirSupply(0);
+                         Vec3 vec3d = this.getDeltaMovement();
+ 
++                        if(spawnDrownParticles) // MCCreativeLab - Add cannot breathe flag
+                         for (int i = 0; i < 8; ++i) {
+                             double d2 = this.random.nextDouble() - this.random.nextDouble();
+                             double d3 = this.random.nextDouble() - this.random.nextDouble();
+diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftLivingEntity.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftLivingEntity.java
+index 147a66bba04edc348398f81d72c8eac87cbd25a3..1ae3351eaf2d83ff1ddd74e95dbb969ebfcff10f 100644
+--- a/src/main/java/org/bukkit/craftbukkit/entity/CraftLivingEntity.java
++++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftLivingEntity.java
+@@ -1194,4 +1194,26 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
+         return this.getHandle().canUseSlot(org.bukkit.craftbukkit.CraftEquipmentSlot.getNMS(slot));
+     }
+     // Paper end - Expose canUseSlot
++
++    // MCCreativeLab start - Add cannot breathe flag
++    @Override
++    public void setCanBreath(boolean value) {
++        getHandle().canBreathe = value;
++    }
++
++    @Override
++    public void setProducesBubblesOnAirDecrease(boolean value) {
++        getHandle().spawnDrownParticles = true;
++    }
++
++    @Override
++    public boolean canBreath() {
++        return getHandle().canBreathe;
++    }
++
++    @Override
++    public boolean producesBubblesOnAirDecrease() {
++        return getHandle().spawnDrownParticles;
++    }
++    // MCCreativeLab end - Add cannot breathe flag
+ }

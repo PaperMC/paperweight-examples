@@ -1,0 +1,157 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: verdox <mail.ysp@web.de>
+Date: Thu, 8 Aug 2024 12:37:49 +0000
+Subject: [PATCH] Compiler and logic fixes due to code changes in 1.21
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/ai/builder/BehaviorFactory.java b/src/main/java/de/verdox/mccreativelab/ai/builder/BehaviorFactory.java
+index ffca0ad259cf04a2f1c287e0931190462941e65d..df91e82098027d43165d81630a2b3028b056f9b9 100644
+--- a/src/main/java/de/verdox/mccreativelab/ai/builder/BehaviorFactory.java
++++ b/src/main/java/de/verdox/mccreativelab/ai/builder/BehaviorFactory.java
+@@ -7,6 +7,7 @@ import de.verdox.mccreativelab.ai.behavior.OneShotBehavior;
+ import it.unimi.dsi.fastutil.Pair;
+ import net.kyori.adventure.sound.Sound;
+ import org.bukkit.*;
++import org.bukkit.damage.DamageType;
+ import org.bukkit.entity.*;
+ import org.bukkit.entity.memory.MemoryKey;
+ 
+@@ -22,7 +23,7 @@ public interface BehaviorFactory {
+ 
+     AIBehavior<Animals> animalMakeLove(EntityType targetType, float speed, int approachDistance);
+ 
+-    AIBehavior<Mob> animalPanic(float speed, Predicate<Mob> panicPredicate);
++    AIBehavior<Mob> animalPanic(float speed, Function<Mob, io.papermc.paper.registry.tag.TagKey<DamageType>> panicPredicate);
+ 
+     OneShotBehavior<Villager> assignProfessionFromJobSite();
+ 
+diff --git a/src/main/java/de/verdox/mccreativelab/ai/builder/GoalFactory.java b/src/main/java/de/verdox/mccreativelab/ai/builder/GoalFactory.java
+index 011258d926035d40fa97ad4739dd6a4c94fe3a4f..4a3661eee3b6ff0ee689a24b69981d894aa1105e 100644
+--- a/src/main/java/de/verdox/mccreativelab/ai/builder/GoalFactory.java
++++ b/src/main/java/de/verdox/mccreativelab/ai/builder/GoalFactory.java
+@@ -47,7 +47,7 @@ public interface GoalFactory {
+ 
+     VanillaGoal<Fish> followMob(Mob mob, double speed, float minDistance, float maxDistance, Predicate<Mob> followPredicate);
+ 
+-    VanillaGoal<Tameable> followOwner(Tameable tameable, double speed, float minDistance, float maxDistance, boolean leavesAllowed);
++    VanillaGoal<Tameable> followOwner(Tameable tameable, double speed, float minDistance, float maxDistance);
+ 
+     VanillaGoal<Animals> followParent(Animals animal, double speed);
+ 
+diff --git a/src/main/java/de/verdox/mccreativelab/recipe/CustomItemData.java b/src/main/java/de/verdox/mccreativelab/recipe/CustomItemData.java
+index 92f0f2d1918cc8eb2eff4e2bf345d0b00d17d136..4a1d71e746c0f989de89bf5e94fd90f5413e0f9c 100644
+--- a/src/main/java/de/verdox/mccreativelab/recipe/CustomItemData.java
++++ b/src/main/java/de/verdox/mccreativelab/recipe/CustomItemData.java
+@@ -25,6 +25,6 @@ public record CustomItemData(Material material, int customModelData) {
+     }
+ 
+     public static CustomItemData fromItemStack(ItemStack stack) {
+-        return new CustomItemData(stack.getType(), ItemStack.getCustomModelData(stack));
++        return new CustomItemData(stack.getType(), stack.getItemMeta().hasCustomModelData() ? stack.getItemMeta().getCustomModelData() : 0);
+     }
+ }
+diff --git a/src/main/java/org/bukkit/attribute/Attribute.java b/src/main/java/org/bukkit/attribute/Attribute.java
+index da85d1e211f93b5ceba95878e3d6a8f3c3bf2ef5..1c9503bbfeff3deeb839e06053c60ba33a1cc49d 100644
+--- a/src/main/java/org/bukkit/attribute/Attribute.java
++++ b/src/main/java/org/bukkit/attribute/Attribute.java
+@@ -86,23 +86,23 @@ public abstract class Attribute implements Keyed, net.kyori.adventure.translatio
+     /**
+      * How long an entity remains burning after ingition.
+      */
+-    GENERIC_BURNING_TIME("generic.burning_time"),
++    public static final Attribute GENERIC_BURNING_TIME = getAttribute("generic.burning_time");
+     /**
+      * Resistance to knockback from explosions.
+      */
+-    GENERIC_EXPLOSION_KNOCKBACK_RESISTANCE("generic.explosion_knockback_resistance"),
++    public static final Attribute GENERIC_EXPLOSION_KNOCKBACK_RESISTANCE = getAttribute("generic.explosion_knockback_resistance");
+     /**
+      * Movement speed through difficult terrain.
+      */
+-    GENERIC_MOVEMENT_EFFICIENCY("generic.movement_efficiency"),
++    public static final Attribute GENERIC_MOVEMENT_EFFICIENCY = getAttribute("generic.movement_efficiency");
+     /**
+      * Oxygen use underwater.
+      */
+-    GENERIC_OXYGEN_BONUS("generic.oxygen_bonus"),
++    public static final Attribute GENERIC_OXYGEN_BONUS = getAttribute("generic.oxygen_bonus");
+     /**
+      * Movement speed through water.
+      */
+-    GENERIC_WATER_MOVEMENT_EFFICIENCY("generic.water_movement_efficiency"),
++    public static final Attribute GENERIC_WATER_MOVEMENT_EFFICIENCY = getAttribute("generic.water_movement_efficiency");
+     /**
+      * The block reach distance of a Player.
+      */
+@@ -118,19 +118,19 @@ public abstract class Attribute implements Keyed, net.kyori.adventure.translatio
+     /**
+      * Mining speed for correct tools.
+      */
+-    PLAYER_MINING_EFFICIENCY("player.mining_efficiency"),
++    public static final Attribute PLAYER_MINING_EFFICIENCY = getAttribute("player.mining_efficiency");
+     /**
+      * Sneaking speed.
+      */
+-    PLAYER_SNEAKING_SPEED("player.sneaking_speed"),
++    public static final Attribute PLAYER_SNEAKING_SPEED = getAttribute("player.sneaking_speed");
+     /**
+      * Underwater mining speed.
+      */
+-    PLAYER_SUBMERGED_MINING_SPEED("player.submerged_mining_speed"),
++    public static final Attribute PLAYER_SUBMERGED_MINING_SPEED = getAttribute("player.submerged_mining_speed");
+     /**
+      * Sweeping damage.
+      */
+-    PLAYER_SWEEPING_DAMAGE_RATIO("player.sweeping_damage_ratio"),
++    public static final Attribute PLAYER_SWEEPING_DAMAGE_RATIO = getAttribute("player.sweeping_damage_ratio");
+     /**
+      * Chance of a zombie to spawn reinforcements.
+      */
+diff --git a/src/main/java/org/bukkit/entity/Villager.java b/src/main/java/org/bukkit/entity/Villager.java
+index 444744ea6f5921b0ae229995f8b15ea9d980c402..737b807b9da1237cd781357d8b424b2c0461e9a1 100644
+--- a/src/main/java/org/bukkit/entity/Villager.java
++++ b/src/main/java/org/bukkit/entity/Villager.java
+@@ -299,6 +299,16 @@ public interface Villager extends AbstractVillager {
+             return profession;
+         }
+ 
++        // MCCreativeLab start - Custom Villager Professions
++        @NotNull
++        public static Profession getProfession(@NotNull NamespacedKey namespacedKey) {
++            Profession profession = Registry.VILLAGER_PROFESSION.get(namespacedKey);
++
++            Preconditions.checkNotNull(profession, "No villager profession found for %s. This is a bug.", namespacedKey);
++            return profession;
++        }
++        // MCCreativeLab end - Custom Villager Professions
++
+         /**
+          * @param name of the villager profession.
+          * @return the villager profession with the given name.
+diff --git a/src/main/java/org/bukkit/inventory/ItemStack.java b/src/main/java/org/bukkit/inventory/ItemStack.java
+index 8e3d171f27fb913c40dee718b78bc7c2f3cb5d78..48e2c1ec3b943586b3dae5252dd01a27b7b9fed6 100644
+--- a/src/main/java/org/bukkit/inventory/ItemStack.java
++++ b/src/main/java/org/bukkit/inventory/ItemStack.java
+@@ -1035,4 +1035,22 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
+         return Bukkit.getUnsafe().computeTooltipLines(this, tooltipContext, player);
+     }
+     // Paper end - expose itemstack tooltip lines
++
++    // MCCLab start - Add ItemBehaviour as instance to this specific Item Stack
++    public void setItemBehaviour(@Nullable de.verdox.mccreativelab.behaviour.ItemBehaviour itemBehaviour){
++        this.craftDelegate.setItemBehaviour(itemBehaviour);
++    }
++
++    public boolean hasCustomItemBehaviour(){
++        return this.craftDelegate.hasCustomItemBehaviour();
++    }
++
++    public @Nullable de.verdox.mccreativelab.behaviour.ItemBehaviour getDefinedItemBehaviour(){
++        return this.craftDelegate.getDefinedItemBehaviour();
++    }
++
++    public @Nullable de.verdox.mccreativelab.behaviour.ItemBehaviour getItemBehaviour(){
++        return this.craftDelegate.getItemBehaviour();
++    }
++    // MCCLab end - Add ItemBehaviour as instance to this specific Item Stack
+ }

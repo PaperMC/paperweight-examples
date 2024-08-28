@@ -1,0 +1,67 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: verdox <mail.ysp@web.de>
+Date: Thu, 22 Aug 2024 21:18:24 +0000
+Subject: [PATCH] Add WorldSelectChunkGeneratorEvent
+
+
+diff --git a/src/main/java/io/papermc/paper/event/world/WorldSelectChunkGeneratorEvent.java b/src/main/java/io/papermc/paper/event/world/WorldSelectChunkGeneratorEvent.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..76416b23ca3af9b7021a47bfe43aea2ec6f94ba4
+--- /dev/null
++++ b/src/main/java/io/papermc/paper/event/world/WorldSelectChunkGeneratorEvent.java
+@@ -0,0 +1,55 @@
++package io.papermc.paper.event.world;
++
++import org.bukkit.event.Event;
++import org.bukkit.event.HandlerList;
++import org.bukkit.generator.ChunkGenerator;
++import org.jetbrains.annotations.NotNull;
++import org.jetbrains.annotations.Nullable;
++
++/**
++ * Called when picking a custom {@link ChunkGenerator} for a world.
++ */
++public class WorldSelectChunkGeneratorEvent extends Event {
++    private static final HandlerList HANDLER_LIST = new HandlerList();
++    private final String worldName;
++    private ChunkGenerator pickedWorldGenerator;
++
++    public WorldSelectChunkGeneratorEvent(@NotNull String worldName, @Nullable ChunkGenerator pickedWorldGenerator){
++        this.worldName = worldName;
++        this.pickedWorldGenerator = pickedWorldGenerator;
++    }
++
++    /**
++     * Returns the world name
++     * @return the world name
++     */
++    public String getWorldName() {
++        return worldName;
++    }
++
++    /**
++     * Returns the picked world generator
++     * @return the picked world generator
++     */
++    public ChunkGenerator getPickedWorldGenerator() {
++        return pickedWorldGenerator;
++    }
++
++    /**
++     * Sets the picked world generator
++     * @param pickedWorldGenerator the picked world generator
++     */
++    public void setPickedWorldGenerator(ChunkGenerator pickedWorldGenerator) {
++        this.pickedWorldGenerator = pickedWorldGenerator;
++    }
++
++    @NotNull
++    public static HandlerList getHandlerList() {
++        return HANDLER_LIST;
++    }
++
++    @NotNull
++    public HandlerList getHandlers() {
++        return HANDLER_LIST;
++    }
++}

@@ -1,0 +1,19 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: verdox <mail.ysp@web.de>
+Date: Wed, 19 Jun 2024 15:16:19 +0000
+Subject: [PATCH] Make PDC Tag public
+
+
+diff --git a/src/main/java/net/minecraft/world/level/storage/PrimaryLevelData.java b/src/main/java/net/minecraft/world/level/storage/PrimaryLevelData.java
+index efd0bcfebb3b4f63018d4e20a6a89f79192898d1..660fc530be834a086ef8c4cfbf7964fab6d889c2 100644
+--- a/src/main/java/net/minecraft/world/level/storage/PrimaryLevelData.java
++++ b/src/main/java/net/minecraft/world/level/storage/PrimaryLevelData.java
+@@ -93,7 +93,7 @@ public class PrimaryLevelData implements ServerLevelData, WorldData {
+     // CraftBukkit start - Add world and pdc
+     public Registry<LevelStem> customDimensions;
+     private ServerLevel world;
+-    protected Tag pdc;
++    public Tag pdc;
+ 
+     public void setWorld(ServerLevel world) {
+         if (this.world != null) {

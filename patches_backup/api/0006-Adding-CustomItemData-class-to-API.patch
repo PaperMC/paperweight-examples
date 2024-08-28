@@ -1,0 +1,42 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <lukasjonsson@outlook.de>
+Date: Fri, 17 Nov 2023 20:22:48 +0100
+Subject: [PATCH] Adding CustomItemData class to API
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/recipe/CustomItemData.java b/src/main/java/de/verdox/mccreativelab/recipe/CustomItemData.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..92f0f2d1918cc8eb2eff4e2bf345d0b00d17d136
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/recipe/CustomItemData.java
+@@ -0,0 +1,30 @@
++package de.verdox.mccreativelab.recipe;
++
++import org.bukkit.Material;
++import org.bukkit.inventory.ItemStack;
++
++public record CustomItemData(Material material, int customModelData) {
++    public ItemStack createStack() {
++        var stack = new ItemStack(material);
++        if (customModelData != 0)
++            stack.editMeta(meta -> meta.setCustomModelData(customModelData));
++        return stack;
++    }
++
++    public boolean isSame(ItemStack stackToCheck) {
++        if (!stackToCheck.getType().equals(material))
++            return false;
++        if (customModelData == 0)
++            return !stackToCheck.hasItemMeta() || !stackToCheck.getItemMeta().hasCustomModelData() || stackToCheck
++                .getItemMeta().getCustomModelData() == customModelData;
++        else
++            return stackToCheck.getType().equals(material)
++                && stackToCheck.hasItemMeta()
++                && stackToCheck.getItemMeta().hasCustomModelData()
++                && stackToCheck.getItemMeta().getCustomModelData() == customModelData;
++    }
++
++    public static CustomItemData fromItemStack(ItemStack stack) {
++        return new CustomItemData(stack.getType(), ItemStack.getCustomModelData(stack));
++    }
++}

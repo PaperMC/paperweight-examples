@@ -1,0 +1,347 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: verdox <mail.ysp@web.de>
+Date: Wed, 1 May 2024 15:00:34 +0000
+Subject: [PATCH] Add AdvancementBuilder
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/CreativeLabImpl.java b/src/main/java/de/verdox/mccreativelab/CreativeLabImpl.java
+index a5102aa4584692ab01ca0c2e90ee27cea533a27a..a66931497100b559bb62964c1a272cb00ba8dc55 100644
+--- a/src/main/java/de/verdox/mccreativelab/CreativeLabImpl.java
++++ b/src/main/java/de/verdox/mccreativelab/CreativeLabImpl.java
+@@ -13,4 +13,9 @@ public final class CreativeLabImpl implements CreativeLab {
+     public de.verdox.mccreativelab.data.VanillaRegistryManipulator getRegistryManipulator() {
+         return vanillaRegistryManipulator;
+     }
++
++    @Override
++    public de.verdox.mccreativelab.advancement.AdvancementBuilder createAdvancement() {
++        return new de.verdox.mccreativelab.advancement.CraftAdvancementBuilder();
++    }
+ }
+diff --git a/src/main/java/de/verdox/mccreativelab/advancement/CraftAdvancementBuilder.java b/src/main/java/de/verdox/mccreativelab/advancement/CraftAdvancementBuilder.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..c5aa73f5c34dfd49f913bdc7e053f3cbe376fb29
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/advancement/CraftAdvancementBuilder.java
+@@ -0,0 +1,110 @@
++package de.verdox.mccreativelab.advancement;
++
++import io.papermc.paper.adventure.PaperAdventure;
++import net.kyori.adventure.text.Component;
++import net.minecraft.advancements.*;
++import net.minecraft.resources.ResourceLocation;
++import net.minecraft.server.MinecraftServer;
++import org.bukkit.Bukkit;
++import org.bukkit.NamespacedKey;
++import org.bukkit.advancement.Advancement;
++import org.bukkit.craftbukkit.advancement.CraftAdvancement;
++import org.bukkit.craftbukkit.util.CraftNamespacedKey;
++import org.jetbrains.annotations.Nullable;
++
++import java.util.Iterator;
++import java.util.List;
++import java.util.Map;
++import java.util.Optional;
++import java.util.function.Consumer;
++
++public class CraftAdvancementBuilder implements AdvancementBuilder {
++    @Nullable
++    NamespacedKey parent;
++    CraftAdvancementDisplayBuilder craftAdvancementDisplayBuilder = new CraftAdvancementDisplayBuilder();
++    CraftAdvancementRewardBuilder craftAdvancementRewardBuilder = new CraftAdvancementRewardBuilder();
++    CraftAdvancementRequirementsBuilder craftAdvancementRequirementsBuilder = new CraftAdvancementRequirementsBuilder();
++    boolean sendsTelemetryEvent;
++    @Nullable
++    Component name;
++
++    @Override
++    public AdvancementBuilder withParent(NamespacedKey namespacedKey) {
++        parent = namespacedKey;
++        return this;
++    }
++
++    @Override
++    public AdvancementBuilder withDisplay(Consumer<AdvancementDisplayBuilder> builder) {
++        builder.accept(craftAdvancementDisplayBuilder);
++        return this;
++    }
++
++    @Override
++    public AdvancementBuilder withRewards(Consumer<AdvancementRewardBuilder> builder) {
++        builder.accept(craftAdvancementRewardBuilder);
++        return this;
++    }
++
++    @Override
++    public AdvancementBuilder withRequirements(Consumer<AdvancementRequirementsBuilder> builder) {
++        builder.accept(craftAdvancementRequirementsBuilder);
++        return this;
++    }
++
++    @Override
++    public Advancement addToBukkit(NamespacedKey namespacedKey) {
++        Optional<ResourceLocation> parent = this.parent == null ? Optional.empty() : Optional.of(CraftNamespacedKey.toMinecraft(this.parent));
++        Optional<net.minecraft.network.chat.Component> name = this.name == null ? Optional.empty() : Optional.of(PaperAdventure.asVanilla(this.name));
++        DisplayInfo displayInfo = craftAdvancementDisplayBuilder.buildNMS();
++        Map<String, Criterion<?>> criteria = craftAdvancementRequirementsBuilder.getCriteria();
++        AdvancementRequirements advancementRequirements = craftAdvancementRequirementsBuilder.buildNMS();
++
++        if (criteria.isEmpty())
++            throw new IllegalArgumentException("You cannot add the advancement " + namespacedKey.asString() + " because it has no criteria.");
++
++        net.minecraft.advancements.Advancement nms = new net.minecraft.advancements.Advancement(
++            parent,
++            Optional.of(displayInfo),
++            craftAdvancementRewardBuilder.build(),
++            criteria,
++            advancementRequirements,
++            sendsTelemetryEvent,
++            name
++        );
++
++        ResourceLocation minecraftkey = CraftNamespacedKey.toMinecraft(namespacedKey);
++        final com.google.common.collect.ImmutableMap.Builder<ResourceLocation, AdvancementHolder> mapBuilder = com.google.common.collect.ImmutableMap.builder();
++        mapBuilder.putAll(MinecraftServer.getServer().getAdvancements().advancements);
++
++        final AdvancementHolder holder = new AdvancementHolder(minecraftkey, nms);
++        mapBuilder.put(minecraftkey, holder);
++
++        MinecraftServer.getServer().getAdvancements().advancements = mapBuilder.build();
++        final net.minecraft.advancements.AdvancementTree tree = MinecraftServer.getServer().getAdvancements().tree();
++        tree.addAll(List.of(holder));
++
++        if (craftAdvancementDisplayBuilder.customCoordinates) {
++            final net.minecraft.advancements.AdvancementNode node = tree.get(minecraftkey);
++            if (node != null) {
++                final net.minecraft.advancements.AdvancementNode root = node.root();
++                if (root.holder().value().display().isPresent()) {
++                    net.minecraft.advancements.TreeNodePosition.run(root);
++                }
++            }
++        }
++
++        Advancement bukkit = Bukkit.getAdvancement(namespacedKey);
++
++        if (bukkit != null) {
++            MinecraftServer.getServer().getPlayerList().getPlayers().forEach(player -> {
++                player.getAdvancements().reload(MinecraftServer.getServer().getAdvancements());
++                player.getAdvancements().flushDirty(player);
++            });
++            return bukkit;
++        }
++        else Bukkit.getLogger().warning("Could not add Advancement " + namespacedKey.asString() + " to bukkit");
++
++        return null;
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/advancement/CraftAdvancementDisplayBuilder.java b/src/main/java/de/verdox/mccreativelab/advancement/CraftAdvancementDisplayBuilder.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..d3f6890d1f2da9a790ab14cae299958bdd413ef4
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/advancement/CraftAdvancementDisplayBuilder.java
+@@ -0,0 +1,115 @@
++package de.verdox.mccreativelab.advancement;
++
++import io.papermc.paper.advancement.AdvancementDisplay;
++import io.papermc.paper.advancement.PaperAdvancementDisplay;
++import io.papermc.paper.adventure.PaperAdventure;
++import net.kyori.adventure.text.Component;
++import net.minecraft.advancements.AdvancementType;
++import net.minecraft.advancements.DisplayInfo;
++import org.bukkit.Material;
++import org.bukkit.NamespacedKey;
++import org.bukkit.craftbukkit.inventory.CraftItemStack;
++import org.bukkit.craftbukkit.util.CraftNamespacedKey;
++import org.bukkit.inventory.ItemStack;
++import org.jetbrains.annotations.NotNull;
++import org.jetbrains.annotations.Nullable;
++
++import java.util.Optional;
++
++public class CraftAdvancementDisplayBuilder implements AdvancementDisplayBuilder{
++    Component title = Component.empty();
++    Component description = Component.empty();
++    ItemStack icon = new ItemStack(Material.STONE);
++    @Nullable NamespacedKey background;
++    AdvancementDisplay.Frame frame = AdvancementDisplay.Frame.TASK;
++    boolean showToast = true;
++    boolean announceToChat = true;
++    boolean isHidden = false;
++    private float x;
++    private float y;
++    boolean customCoordinates;
++
++
++    @Override
++    public AdvancementDisplayBuilder setFrame(AdvancementDisplay.Frame frame) {
++        this.frame = frame;
++        return this;
++    }
++
++    @Override
++    public AdvancementDisplayBuilder setTitle(Component title) {
++        this.title = title;
++        return this;
++    }
++
++    @Override
++    public AdvancementDisplayBuilder setDescription(Component description) {
++        this.description = description;
++        return this;
++    }
++
++    @Override
++    public AdvancementDisplayBuilder setIcon(ItemStack icon) {
++        this.icon = icon;
++        return this;
++    }
++
++    @Override
++    public AdvancementDisplayBuilder setShowToast(boolean showToast) {
++        this.showToast = showToast;
++        return this;
++    }
++
++    @Override
++    public AdvancementDisplayBuilder setAnnounceToChat(boolean announceToChat) {
++        this.announceToChat = announceToChat;
++        return this;
++    }
++
++    @Override
++    public AdvancementDisplayBuilder setHidden(boolean hidden) {
++        isHidden = hidden;
++        return this;
++    }
++
++    @Override
++    public AdvancementDisplayBuilder setBackground(NamespacedKey background) {
++        this.background = background;
++        return this;
++    }
++
++    @Override
++    public AdvancementDisplayBuilder setX(float x) {
++        this.x = x;
++        return this;
++    }
++
++    @Override
++    public AdvancementDisplayBuilder setY(float y) {
++        this.y = y;
++        return this;
++    }
++
++    public DisplayInfo buildNMS(){
++        DisplayInfo displayInfo = new DisplayInfo(
++            CraftItemStack.asNMSCopy(icon), 
++            PaperAdventure.asVanilla(title), 
++            PaperAdventure.asVanilla(description),
++            background == null ? Optional.empty() : Optional.of(CraftNamespacedKey.toMinecraft(background)),
++            asVanillaFrame(frame),
++            showToast,
++            announceToChat,
++            isHidden
++            );
++        displayInfo.setLocation(x, y);
++        return displayInfo;
++    }
++
++    public static @NotNull AdvancementType asVanillaFrame(final @NotNull AdvancementDisplay.Frame frameType) {
++        return switch (frameType) {
++            case TASK -> AdvancementType.TASK;
++            case CHALLENGE -> AdvancementType.CHALLENGE;
++            case GOAL -> AdvancementType.GOAL;
++        };
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/advancement/CraftAdvancementRequirementsBuilder.java b/src/main/java/de/verdox/mccreativelab/advancement/CraftAdvancementRequirementsBuilder.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..085e8bcfaebc245983e7ec1262634fe187b54df4
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/advancement/CraftAdvancementRequirementsBuilder.java
+@@ -0,0 +1,37 @@
++package de.verdox.mccreativelab.advancement;
++
++import net.minecraft.advancements.AdvancementRequirements;
++import net.minecraft.advancements.CriteriaTriggers;
++import net.minecraft.advancements.Criterion;
++import net.minecraft.advancements.critereon.ImpossibleTrigger;
++
++import java.util.HashMap;
++import java.util.LinkedList;
++import java.util.List;
++import java.util.Map;
++
++public class CraftAdvancementRequirementsBuilder implements AdvancementRequirementsBuilder {
++    Map<String, Criterion<?>> criteria = new HashMap<>();
++    Strategy strategy = Strategy.OR;
++
++    @Override
++    public AdvancementRequirementsBuilder withStrategy(Strategy strategy) {
++        this.strategy = strategy;
++        return this;
++    }
++
++    @Override
++    public AdvancementRequirementsBuilder addCriterion(String name) {
++        this.criteria.put(name, CriteriaTriggers.IMPOSSIBLE.createCriterion(new ImpossibleTrigger.TriggerInstance()));
++        return this;
++    }
++
++    public AdvancementRequirements buildNMS() {
++        AdvancementRequirements.Strategy strategy = this.strategy == Strategy.AND ? AdvancementRequirements.Strategy.AND : AdvancementRequirements.Strategy.OR;
++        return strategy.create(criteria.keySet());
++    }
++    
++    public Map<String, Criterion<?>> getCriteria(){
++        return criteria;
++    }
++}
+diff --git a/src/main/java/de/verdox/mccreativelab/advancement/CraftAdvancementRewardBuilder.java b/src/main/java/de/verdox/mccreativelab/advancement/CraftAdvancementRewardBuilder.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..fa21f5f565b4cf6c5d89851e77dc380edd436a59
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/advancement/CraftAdvancementRewardBuilder.java
+@@ -0,0 +1,41 @@
++package de.verdox.mccreativelab.advancement;
++
++import net.minecraft.advancements.AdvancementRewards;
++import net.minecraft.core.registries.Registries;
++import net.minecraft.resources.ResourceKey;
++import org.bukkit.NamespacedKey;
++import org.bukkit.craftbukkit.util.CraftNamespacedKey;
++
++import java.util.ArrayList;
++import java.util.List;
++import java.util.Optional;
++
++public class CraftAdvancementRewardBuilder implements AdvancementRewardBuilder{
++    int experience;
++    final List<NamespacedKey> lootTables = new ArrayList<>();
++    final List<NamespacedKey> recipes = new ArrayList<>();
++
++    public CraftAdvancementRewardBuilder setExperience(int experience) {
++        this.experience = experience;
++        return this;
++    }
++
++    public CraftAdvancementRewardBuilder withLootTable(NamespacedKey namespacedKey){
++        this.lootTables.add(namespacedKey);
++        return this;
++    }
++
++    public CraftAdvancementRewardBuilder withRecipe(NamespacedKey namespacedKey){
++        this.recipes.add(namespacedKey);
++        return this;
++    }
++
++    public AdvancementRewards build(){
++        return new AdvancementRewards(
++            this.experience,
++            lootTables.stream().map(namespacedKey -> ResourceKey.create(Registries.LOOT_TABLE, CraftNamespacedKey.toMinecraft(namespacedKey))).toList(),
++            recipes.stream().map(CraftNamespacedKey::toMinecraft).toList(),
++            Optional.empty()
++            );
++    }
++}

@@ -1,0 +1,28 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: verdox <mail.ysp@web.de>
+Date: Sun, 7 Jul 2024 20:15:30 +0000
+Subject: [PATCH] Adding RepairItemBehaviour
+
+
+diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/RepairItemBehaviour.java b/src/main/java/de/verdox/mccreativelab/behaviour/RepairItemBehaviour.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..6dceda9e59a195e4748589163f63deb21a76a9dd
+--- /dev/null
++++ b/src/main/java/de/verdox/mccreativelab/behaviour/RepairItemBehaviour.java
+@@ -0,0 +1,16 @@
++package de.verdox.mccreativelab.behaviour;
++
++import de.verdox.mccreativelab.CustomBehaviour;
++import org.bukkit.inventory.ItemStack;
++
++public interface RepairItemBehaviour extends Behaviour {
++    CustomBehaviour<RepairItemBehaviour> REPAIR_ITEM_BEHAVIOUR = new CustomBehaviour<>(RepairItemBehaviour.class, new RepairItemBehaviour() {},"MCCLab - RepairItemBehaviour");
++    default boolean canCombine(ItemStack first, ItemStack second){
++        return first.getType().equals(second.getType());
++    }
++
++    default ItemStack assemble(ItemStack first, ItemStack second){
++        return new ItemStack(first.getType());
++    }
++
++}

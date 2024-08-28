@@ -1,0 +1,53 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <mail.ysp@web.de>
+Date: Fri, 12 Jan 2024 16:01:13 +0100
+Subject: [PATCH] Adding MilkGivingEntity to API
+
+
+diff --git a/src/main/java/org/bukkit/entity/Cow.java b/src/main/java/org/bukkit/entity/Cow.java
+index cd4ed4de01c7376c1b35f31af0bba6ac4e26f947..ec66dfb3ac1304c029d921cfe4a6eb729e66732e 100644
+--- a/src/main/java/org/bukkit/entity/Cow.java
++++ b/src/main/java/org/bukkit/entity/Cow.java
+@@ -3,4 +3,4 @@ package org.bukkit.entity;
+ /**
+  * Represents a Cow.
+  */
+-public interface Cow extends Animals {}
++public interface Cow extends Animals, MilkGivingEntity{}
+diff --git a/src/main/java/org/bukkit/entity/Goat.java b/src/main/java/org/bukkit/entity/Goat.java
+index 18e48bbb04076f1535b6a4c10e139908e82da44e..ec3810d5e5182293d784b9c783582582771d6a28 100644
+--- a/src/main/java/org/bukkit/entity/Goat.java
++++ b/src/main/java/org/bukkit/entity/Goat.java
+@@ -3,7 +3,7 @@ package org.bukkit.entity;
+ /**
+  * A Goat.
+  */
+-public interface Goat extends Animals {
++public interface Goat extends Animals, MilkGivingEntity {
+ 
+     /**
+      * Gets if this goat has its left horn.
+diff --git a/src/main/java/org/bukkit/entity/MilkGivingEntity.java b/src/main/java/org/bukkit/entity/MilkGivingEntity.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..a030e039203b82143723853f696b948954b94ba4
+--- /dev/null
++++ b/src/main/java/org/bukkit/entity/MilkGivingEntity.java
+@@ -0,0 +1,18 @@
++package org.bukkit.entity;
++
++/**
++ * Represents any entity that can give milk to the player
++ */
++public interface MilkGivingEntity extends LivingEntity {
++    /**
++     * Gets whether this entity can give milk
++     * @return True if the entity can give milk
++     */
++    boolean canGiveMilk();
++
++    /**
++     * Sets whether the entity should give milk when right clicked by a player
++     * @param giveMilk - The new value
++     */
++    void setCanGiveMilk(boolean giveMilk);
++}

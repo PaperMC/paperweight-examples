@@ -193,7 +193,7 @@ index 0000000000000000000000000000000000000000..3cd35eddfb5e7d6d728eb46309e58e62
 +    }
 +}
 diff --git a/src/main/java/org/bukkit/Registry.java b/src/main/java/org/bukkit/Registry.java
-index 8e306d05e372855929d30456ed2d27a04d55ac42..39a2a1f482e6e55808c7ca2d791b150e7207474a 100644
+index 20015393f91af405c99db2635a471fb6ff19e4bf..67adc8456a6db271fa8caa514e4affca5626e3aa 100644
 --- a/src/main/java/org/bukkit/Registry.java
 +++ b/src/main/java/org/bukkit/Registry.java
 @@ -10,6 +10,8 @@ import java.util.Objects;
@@ -214,7 +214,7 @@ index 8e306d05e372855929d30456ed2d27a04d55ac42..39a2a1f482e6e55808c7ca2d791b150e
      /**
       * Server banner patterns.
       *
-@@ -175,6 +177,26 @@ public interface Registry<T extends Keyed> extends Iterable<T> {
+@@ -177,6 +179,26 @@ public interface Registry<T extends Keyed> extends Iterable<T> {
       * @see Material
       */
      Registry<Material> MATERIAL = new SimpleRegistry<>(Material.class, (mat) -> !mat.isLegacy());

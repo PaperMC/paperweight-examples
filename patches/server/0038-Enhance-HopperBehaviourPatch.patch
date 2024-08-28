@@ -26,10 +26,10 @@ index 7e0aa0ed3d2028e672dbeaad7727ae17eaca5f05..4ea54bf464530efdab56ffde30e536d0
  
      default int countItem(Item item) {
 diff --git a/src/main/java/net/minecraft/world/level/block/entity/HopperBlockEntity.java b/src/main/java/net/minecraft/world/level/block/entity/HopperBlockEntity.java
-index 9228996911390416573b3b81783da923429c4ba8..e8399b3891a82aaa2d6c62ff6cd7ec6421454b69 100644
+index 30a2c32194902dc7dbc508dbb123dff366877146..e98cd978bd4be875885668413d2783ddaad03308 100644
 --- a/src/main/java/net/minecraft/world/level/block/entity/HopperBlockEntity.java
 +++ b/src/main/java/net/minecraft/world/level/block/entity/HopperBlockEntity.java
-@@ -1014,7 +1014,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+@@ -1022,7 +1022,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
  
      private static boolean canPlaceItemInContainerCustom(Container inventory, ItemStack stack, int slot, @Nullable Direction side) {
          //TODO: [MCCLab] - Hopper attempt place Item in Inventory Event
@@ -38,7 +38,7 @@ index 9228996911390416573b3b81783da923429c4ba8..e8399b3891a82aaa2d6c62ff6cd7ec64
              return false;
          } else {
              return de.verdox.mccreativelab.behaviour.InventoryHopperBehaviourUtil.canPlaceItemThroughFace(inventory, slot, stack, side , () -> {
-@@ -1036,7 +1036,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+@@ -1044,7 +1044,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
  
      private static boolean canTakeItemFromContainerCustom(Container hopperInventory, Container fromInventory, ItemStack stack, int slot, Direction facing) {
          //TODO: [MCCLab] - Hopper attempt take Item from Inventory Event

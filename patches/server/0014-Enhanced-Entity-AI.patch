@@ -1766,7 +1766,7 @@ index 137ec75ee803789deb7b1ca93dd9369c9af362b9..cb433002b980ad0ee8f7c265975e308e
          } else if (!this.creeper.getSensing().hasLineOfSight(this.target)) {
              this.creeper.setSwellDir(-1);
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-index c8b82bc41f2042bb4b067f06265a3a22e51f7629..a19fd714f0a04819b6f9a771c3f26b67d57f2728 100644
+index 1b36e94617d4e777c419660936460d5cf8a4b3e8..dfe42735077b9521dc2fb2f234337d47b2f384dc 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
 @@ -13,6 +13,8 @@ import com.mojang.brigadier.StringReader;
@@ -1811,10 +1811,10 @@ index c8b82bc41f2042bb4b067f06265a3a22e51f7629..a19fd714f0a04819b6f9a771c3f26b67
          this.spark.registerCommandAfterPlugins(this); // Paper - spark
          if (io.papermc.paper.plugin.PluginInitializerManager.instance().pluginRemapper != null) io.papermc.paper.plugin.PluginInitializerManager.instance().pluginRemapper.pluginsEnabled(); // Paper - Remap plugins
 diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftLivingEntity.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftLivingEntity.java
-index d2bb0831394c03b620b2cbd8306cb82b621f34f7..147a66bba04edc348398f81d72c8eac87cbd25a3 100644
+index beb6ad312028adb14053e3f019a4fcf6c9149373..5ca2bb97b6ee3b42689bf6036ca20c164ebed213 100644
 --- a/src/main/java/org/bukkit/craftbukkit/entity/CraftLivingEntity.java
 +++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftLivingEntity.java
-@@ -918,6 +918,11 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
+@@ -892,6 +892,11 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
          this.getHandle().getBrain().setMemory(CraftMemoryKey.bukkitToMinecraft(memoryKey), CraftMemoryMapper.toNms(t));
      }
  

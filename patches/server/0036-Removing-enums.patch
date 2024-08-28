@@ -5,10 +5,10 @@ Subject: [PATCH] Removing enums
 
 
 diff --git a/src/main/java/io/papermc/paper/registry/PaperRegistries.java b/src/main/java/io/papermc/paper/registry/PaperRegistries.java
-index 745536f79b376c385247682042ae455d4a0f4ee5..a0bb9b9b046d7b13a9df794cf4db27e0a43663f1 100644
+index 6ec9d9b9acf557aa2ebf39d38a14225b0205fae1..6642ef0bf1440f2424a41cd5a4265ecf0d7c1743 100644
 --- a/src/main/java/io/papermc/paper/registry/PaperRegistries.java
 +++ b/src/main/java/io/papermc/paper/registry/PaperRegistries.java
-@@ -80,6 +80,11 @@ public final class PaperRegistries {
+@@ -82,6 +82,11 @@ public final class PaperRegistries {
              entry(Registries.VILLAGER_TYPE, RegistryKey.VILLAGER_TYPE, Villager.Type.class, CraftVillager.CraftType::new),
              entry(Registries.MAP_DECORATION_TYPE, RegistryKey.MAP_DECORATION_TYPE, MapCursor.Type.class, CraftMapCursor.CraftType::new),
  
@@ -20,14 +20,14 @@ index 745536f79b376c385247682042ae455d4a0f4ee5..a0bb9b9b046d7b13a9df794cf4db27e0
              // data-drivens
              entry(Registries.STRUCTURE, RegistryKey.STRUCTURE, Structure.class, CraftStructure::new).delayed(),
              entry(Registries.TRIM_MATERIAL, RegistryKey.TRIM_MATERIAL, TrimMaterial.class, CraftTrimMaterial::new).delayed(),
-@@ -92,7 +97,6 @@ public final class PaperRegistries {
+@@ -95,7 +100,6 @@ public final class PaperRegistries {
              // api-only
              apiOnly(Registries.BIOME, RegistryKey.BIOME, () -> org.bukkit.Registry.BIOME),
              apiOnly(Registries.PAINTING_VARIANT, RegistryKey.PAINTING_VARIANT, () -> org.bukkit.Registry.ART),
 -            apiOnly(Registries.ATTRIBUTE, RegistryKey.ATTRIBUTE, () -> org.bukkit.Registry.ATTRIBUTE),
-             apiOnly(Registries.BANNER_PATTERN, RegistryKey.BANNER_PATTERN, () -> org.bukkit.Registry.BANNER_PATTERN),
              apiOnly(Registries.ENTITY_TYPE, RegistryKey.ENTITY_TYPE, () -> org.bukkit.Registry.ENTITY_TYPE),
              apiOnly(Registries.PARTICLE_TYPE, RegistryKey.PARTICLE_TYPE, () -> org.bukkit.Registry.PARTICLE_TYPE),
+             apiOnly(Registries.POTION, RegistryKey.POTION, () -> org.bukkit.Registry.POTION),
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftEntityActivity.java b/src/main/java/org/bukkit/craftbukkit/CraftEntityActivity.java
 new file mode 100644
 index 0000000000000000000000000000000000000000..b25a08cc1e7bcf015764201580d020401e201172
@@ -180,10 +180,10 @@ index 0000000000000000000000000000000000000000..5c6d277657dcc5aa7a03cceb87124fa8
 +    }
 +}
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftRegistry.java b/src/main/java/org/bukkit/craftbukkit/CraftRegistry.java
-index 0f3c46b8bb93fc42160300c9988d04bed68f493b..22a86c8cbe2dd18dc350aaf3d5ebcb65b9d277e5 100644
+index cacbb35d365c66881f2a42d099bb88c494b584ee..c06e4ccbf08eb7c77be14a49a0faf1157c4d885a 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftRegistry.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftRegistry.java
-@@ -150,10 +150,6 @@ public class CraftRegistry<B extends Keyed, M> implements Registry<B> {
+@@ -152,10 +152,6 @@ public class CraftRegistry<B extends Keyed, M> implements Registry<B> {
              if (bClass == Particle.class) {
                  return bukkit.get(FieldRename.PARTICLE_TYPE_RENAME.apply(namespacedKey, apiVersion));
              }
@@ -268,10 +268,10 @@ index 10e4318782107644f67818109784fff60d017e0a..d1a0d654ef7677f1e63726ad38164dec
 +    }
  }
 diff --git a/src/main/java/org/bukkit/craftbukkit/inventory/CraftMetaItem.java b/src/main/java/org/bukkit/craftbukkit/inventory/CraftMetaItem.java
-index d87bfdda1f06a94e97465c105d28989e1d64e1e0..e0d6c5c9d5e5d107ab776d6c31c08fa43c74ff5c 100644
+index 5c45946f54e4b16440c15a9165ef85be43e53c84..093656ebebdcb043afb05c24918a5b96ad34b459 100644
 --- a/src/main/java/org/bukkit/craftbukkit/inventory/CraftMetaItem.java
 +++ b/src/main/java/org/bukkit/craftbukkit/inventory/CraftMetaItem.java
-@@ -818,7 +818,7 @@ class CraftMetaItem implements ItemMeta, Damageable, Repairable, BlockDataMeta {
+@@ -825,7 +825,7 @@ class CraftMetaItem implements ItemMeta, Damageable, Repairable, BlockDataMeta {
                      continue;
                  }
                  AttributeModifier modifier = (AttributeModifier) o;
@@ -280,7 +280,7 @@ index d87bfdda1f06a94e97465c105d28989e1d64e1e0..e0d6c5c9d5e5d107ab776d6c31c08fa4
                  if (attribute == null) {
                      continue;
                  }
-@@ -2011,7 +2011,7 @@ class CraftMetaItem implements ItemMeta, Damageable, Repairable, BlockDataMeta {
+@@ -2018,7 +2018,7 @@ class CraftMetaItem implements ItemMeta, Damageable, Repairable, BlockDataMeta {
              if (modCollection == null || modCollection.isEmpty()) {
                  continue;
              }
@@ -290,16 +290,17 @@ index d87bfdda1f06a94e97465c105d28989e1d64e1e0..e0d6c5c9d5e5d107ab776d6c31c08fa4
          builder.put(key.BUKKIT, mods);
      }
 diff --git a/src/test/java/org/bukkit/support/provider/RegistriesArgumentProvider.java b/src/test/java/org/bukkit/support/provider/RegistriesArgumentProvider.java
-index 38b0e091234a00d57e9e9d4fb3eac6afb7343477..83c7b1e16b855b2c38f5887ca9adeb481f618a31 100644
+index c1f886c906a9f9313d97a223f719095fa2624c57..80f8cfb0eeacd4f41fbc24a257275be63a7553ed 100644
 --- a/src/test/java/org/bukkit/support/provider/RegistriesArgumentProvider.java
 +++ b/src/test/java/org/bukkit/support/provider/RegistriesArgumentProvider.java
-@@ -12,15 +12,23 @@ import net.minecraft.world.entity.animal.FrogVariant;
+@@ -12,17 +12,25 @@ import net.minecraft.world.entity.animal.FrogVariant;
  import net.minecraft.world.entity.animal.WolfVariant;
  import net.minecraft.world.entity.npc.VillagerProfession;
  import net.minecraft.world.entity.npc.VillagerType;
 +import net.minecraft.world.entity.schedule.Activity;
 +import net.minecraft.world.entity.schedule.Schedule;
  import net.minecraft.world.item.Instrument;
+ import net.minecraft.world.level.block.entity.BannerPattern;
  import net.minecraft.world.level.saveddata.maps.MapDecorationType;
  import org.bukkit.GameEvent;
  import org.bukkit.JukeboxSong;
@@ -308,6 +309,7 @@ index 38b0e091234a00d57e9e9d4fb3eac6afb7343477..83c7b1e16b855b2c38f5887ca9adeb48
 +import org.bukkit.attribute.Attribute;
 +import org.bukkit.block.Biome;
  import org.bukkit.block.BlockType;
+ import org.bukkit.block.banner.PatternType;
  import org.bukkit.craftbukkit.CraftGameEvent;
  import org.bukkit.craftbukkit.CraftJukeboxSong;
  import org.bukkit.craftbukkit.CraftMusicInstrument;
@@ -315,12 +317,13 @@ index 38b0e091234a00d57e9e9d4fb3eac6afb7343477..83c7b1e16b855b2c38f5887ca9adeb48
 +import org.bukkit.craftbukkit.attribute.CraftAttribute;
 +import org.bukkit.craftbukkit.block.CraftBiome;
  import org.bukkit.craftbukkit.block.CraftBlockType;
+ import org.bukkit.craftbukkit.block.banner.CraftPatternType;
  import org.bukkit.craftbukkit.damage.CraftDamageType;
- import org.bukkit.craftbukkit.enchantments.CraftEnchantment;
-@@ -77,6 +85,10 @@ public class RegistriesArgumentProvider implements ArgumentsProvider {
+@@ -80,6 +88,11 @@ public class RegistriesArgumentProvider implements ArgumentsProvider {
          register(RegistryKey.CAT_VARIANT, Cat.Type.class, Registries.CAT_VARIANT, CraftCat.CraftType.class, CatVariant.class);
          register(RegistryKey.MAP_DECORATION_TYPE, MapCursor.Type.class, Registries.MAP_DECORATION_TYPE, CraftMapCursor.CraftType.class, MapDecorationType.class);
- 
+         register(RegistryKey.BANNER_PATTERN, PatternType.class, Registries.BANNER_PATTERN, CraftPatternType.class, BannerPattern.class);
++
 +        register(RegistryKey.ATTRIBUTE, Attribute.class, Registries.ATTRIBUTE, CraftAttribute.class, net.minecraft.world.entity.ai.attributes.Attribute.class);
 +        register(RegistryKey.POI_TYPE, PoiType.class, Registries.POINT_OF_INTEREST_TYPE, CraftPoiType.class, net.minecraft.world.entity.ai.village.poi.PoiType.class);
 +        register(RegistryKey.ENTITY_ACTIVITY, EntityActivity.class, Registries.ACTIVITY, CraftEntityActivity.class, Activity.class);

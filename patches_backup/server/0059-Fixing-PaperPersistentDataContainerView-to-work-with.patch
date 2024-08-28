@@ -1,0 +1,36 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: verdox <mail.ysp@web.de>
+Date: Mon, 19 Aug 2024 19:57:48 +0000
+Subject: [PATCH] Fixing PaperPersistentDataContainerView to work with
+ PersistentDataObjectCache
+
+
+diff --git a/src/main/java/org/bukkit/craftbukkit/persistence/CraftPersistentDataContainer.java b/src/main/java/org/bukkit/craftbukkit/persistence/CraftPersistentDataContainer.java
+index f7574538c38331fc0616e1e6f30e4e216feff162..3a605108e69f0db4792bfdb8a262a2689104d3ee 100644
+--- a/src/main/java/org/bukkit/craftbukkit/persistence/CraftPersistentDataContainer.java
++++ b/src/main/java/org/bukkit/craftbukkit/persistence/CraftPersistentDataContainer.java
+@@ -194,6 +194,24 @@ public class CraftPersistentDataContainer extends io.papermc.paper.persistence.P
+     public CraftPersistentDataObjectCache getPersistentDataObjectCache() {
+         return craftPersistentDataObjectCache;
+     }
++
++    @Override
++    public boolean has(NamespacedKey key) {
++        craftPersistentDataObjectCache.serializeObjectAtKeyBeforeLookup(key); // Paper - Adding PersistentDataObjects
++        return super.has(key);
++    }
++
++    @Override
++    public <P, C> boolean has(NamespacedKey key, PersistentDataType<P, C> type) {
++        craftPersistentDataObjectCache.serializeObjectAtKeyBeforeLookup(key); // Paper - Adding PersistentDataObjects
++        return super.has(key, type);
++    }
++
++    @Override
++    public <P, C> @org.checkerframework.checker.nullness.qual.Nullable C get(NamespacedKey key, PersistentDataType<P, C> type) {
++        craftPersistentDataObjectCache.serializeObjectAtKeyBeforeLookup(key); // Paper - Adding PersistentDataObjects
++        return super.get(key, type);
++    }
+     // Paper end - Adding PersistentDataObjects
+ 
+ }

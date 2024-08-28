@@ -3,5 +3,12 @@ version: '1.0'
 main: de.verdox.mccreativelab.MCCreativeLabExtension
 description: MCCreativeLab Plugin Extension
 api-version: '1.20'
+load: STARTUP
 bootstrapper: de.verdox.mccreativelab.PluginBootstrap
 loader: de.verdox.mccreativelab.PluginLoader
+
+commands:
+  fakeblock:
+    description: "Fake Block command"
+  debug:
+    description: "Debug command"
