@@ -1,23 +1,22 @@
 package de.verdox.mccreativelab.generator.resourcepack;
 
 import com.google.gson.JsonObject;
+import de.verdox.mccreativelab.event.ResourcePackInstallEvent;
 import de.verdox.mccreativelab.generator.Asset;
 import de.verdox.mccreativelab.generator.AssetPath;
 import de.verdox.mccreativelab.generator.CustomPack;
 import de.verdox.mccreativelab.generator.Resource;
 import de.verdox.mccreativelab.generator.resourcepack.types.ItemTextureData;
+import de.verdox.mccreativelab.generator.resourcepack.types.lang.LanguageFile;
 import de.verdox.mccreativelab.generator.resourcepack.types.lang.Translatable;
 import de.verdox.mccreativelab.generator.resourcepack.types.lang.Translation;
-import de.verdox.mccreativelab.generator.resourcepack.types.rendered.ShaderRendered;
-import de.verdox.mccreativelab.generator.resourcepack.types.lang.LanguageFile;
 import de.verdox.mccreativelab.generator.resourcepack.types.menu.Resolution;
+import de.verdox.mccreativelab.generator.resourcepack.types.rendered.ShaderRendered;
 import de.verdox.mccreativelab.generator.resourcepack.types.sound.SoundData;
 import de.verdox.mccreativelab.util.gson.JsonObjectBuilder;
 import de.verdox.mccreativelab.util.gson.JsonUtil;
 import de.verdox.mccreativelab.util.io.AssetUtil;
 import de.verdox.mccreativelab.util.io.ZipUtil;
-import net.kyori.adventure.key.Key;
-import net.kyori.adventure.translation.TranslationRegistry;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -26,7 +25,6 @@ import org.codehaus.plexus.util.FileUtils;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
-import java.util.logging.Logger;
 
 public class CustomResourcePack extends CustomPack<CustomResourcePack> {
     public static final AssetPath resourcePacksFolder = AssetPath.buildPath("resourcePacks");
@@ -116,6 +114,7 @@ public class CustomResourcePack extends CustomPack<CustomResourcePack> {
     public File installPack(boolean reload) throws IOException {
         File file = super.installPack(reload);
         globalAssetInstallation();
+        Bukkit.getPluginManager().callEvent(new ResourcePackInstallEvent());
         return file;
     }
 
