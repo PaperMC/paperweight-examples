@@ -21,7 +21,7 @@ public class ClickableItem {
         this.builder = builder;
     }
 
-    Builder getBuilder() {
+    public Builder getBuilder() {
         return builder;
     }
 
