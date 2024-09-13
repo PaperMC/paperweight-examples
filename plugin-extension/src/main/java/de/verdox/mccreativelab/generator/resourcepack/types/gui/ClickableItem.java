@@ -34,7 +34,8 @@ public class ClickableItem {
     }
 
     public static class Builder {
-        private BiConsumer<InventoryClickEvent, ActiveGUI> onClick = (inventoryClickEvent, activeGUI) -> {};
+        private BiConsumer<InventoryClickEvent, ActiveGUI> onClick = (inventoryClickEvent, activeGUI) -> {
+        };
         private ItemStack item = new ItemStack(Material.STICK);
         public boolean popGUIStack = false;
         public boolean clearGUIStackAndClose = false;
@@ -49,18 +50,19 @@ public class ClickableItem {
             this.item = new ItemStack(material);
         }
 
-        public Builder(CustomItemData customItemData){
+        public Builder(CustomItemData customItemData) {
             this(customItemData.createStack());
         }
 
-        public Builder(){}
+        public Builder() {
+        }
 
         public Builder withClick(BiConsumer<InventoryClickEvent, ActiveGUI> onClick) {
             this.onClick = onClick;
             return this;
         }
 
-        public Builder withItem(ItemStack stack){
+        public Builder withItem(ItemStack stack) {
             this.item = stack;
             return this;
         }
@@ -72,16 +74,20 @@ public class ClickableItem {
 
         public Builder createCopy() {
             var copy = new Builder();
+            copy.onClick = this.onClick;
+            copy.item = this.item.clone();
+            copy.popGUIStack = this.popGUIStack;
+            copy.clearGUIStackAndClose = this.clearGUIStackAndClose;
             copy.metaSetup = this.metaSetup;
             return copy;
         }
 
-        public Builder backToLastScreenOnClick(){
+        public Builder backToLastScreenOnClick() {
             popGUIStack = true;
             return this;
         }
 
-        public Builder closeGUI(){
+        public Builder closeGUI() {
             clearGUIStackAndClose = true;
             return this;
         }
