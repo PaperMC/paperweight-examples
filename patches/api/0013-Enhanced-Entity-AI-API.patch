@@ -704,7 +704,7 @@ index 0000000000000000000000000000000000000000..1f99161b4bb432872be837a182df914f
 +    WeightedBehaviorsBuilder<E> withBehaviour(int priority, Function<BehaviorFactory, ControlledBehavior<? super E>> behaviourCreator);
 +}
 diff --git a/src/main/java/org/bukkit/Bukkit.java b/src/main/java/org/bukkit/Bukkit.java
-index 419c056faf0d49d9b0435feb01252e87e227b9a9..335dad2d2687982354831ccb9fe7208d28699187 100644
+index e20e4239a5a1f952e1c70e899549989d5e42f73c..80992a04af7155e271798b71806e3b2991f35a01 100644
 --- a/src/main/java/org/bukkit/Bukkit.java
 +++ b/src/main/java/org/bukkit/Bukkit.java
 @@ -14,6 +14,8 @@ import java.util.Set;
@@ -729,7 +729,7 @@ index 419c056faf0d49d9b0435feb01252e87e227b9a9..335dad2d2687982354831ccb9fe7208d
 +    // Paper end - Add AI Library
  }
 diff --git a/src/main/java/org/bukkit/Server.java b/src/main/java/org/bukkit/Server.java
-index 5aa64ea39ebd92e5067c53cea49a8685c0b9eee4..9bd65d894412d9705e5effdb0b81129b29551ae3 100644
+index 6246251caf2c6f025c824b8e7a944b8d48751fa1..f131798823b8f724cb6d010768d22522dbccb073 100644
 --- a/src/main/java/org/bukkit/Server.java
 +++ b/src/main/java/org/bukkit/Server.java
 @@ -14,6 +14,8 @@ import java.util.Set;
@@ -752,10 +752,10 @@ index 5aa64ea39ebd92e5067c53cea49a8685c0b9eee4..9bd65d894412d9705e5effdb0b81129b
 +    // Paper end - Add AI Library
  }
 diff --git a/src/main/java/org/bukkit/entity/LivingEntity.java b/src/main/java/org/bukkit/entity/LivingEntity.java
-index fcdc5fce88720cc926a3953d80b5045113d1516c..9cae9b229184706888b91bb39abb00bc40c24f6e 100644
+index 68c08e7a212bc3e3885f9b5a4d9aef85fcb3b029..86e9b56d02b2c77b0f60a3e4c397ed3261e0cdeb 100644
 --- a/src/main/java/org/bukkit/entity/LivingEntity.java
 +++ b/src/main/java/org/bukkit/entity/LivingEntity.java
-@@ -962,6 +962,14 @@ public interface LivingEntity extends Attributable, Damageable, ProjectileSource
+@@ -972,6 +972,14 @@ public interface LivingEntity extends Attributable, Damageable, ProjectileSource
       */
      <T> void setMemory(@NotNull MemoryKey<T> memoryKey, @Nullable T memoryValue);
  

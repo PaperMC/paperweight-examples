@@ -155,7 +155,7 @@ public class SingleHudText implements SingleHudElement {
                     modified = modified.append(child);
             }
 
-            return modified;
+            return modified.style(textComponent.style());
         }
 
         private int getTextLength(TextComponent textComponent) {

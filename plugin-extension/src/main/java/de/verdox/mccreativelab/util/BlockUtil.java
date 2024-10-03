@@ -1,11 +1,9 @@
 package de.verdox.mccreativelab.util;
 
 import de.verdox.mccreativelab.MCCreativeLabExtension;
-import de.verdox.mccreativelab.recipe.CustomItemData;
 import de.verdox.mccreativelab.registry.Reference;
 import de.verdox.mccreativelab.world.block.FakeBlock;
 import de.verdox.mccreativelab.world.item.FakeItem;
-import de.verdox.mccreativelab.world.item.FakeItemRegistry;
 import org.bukkit.block.BlockState;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
@@ -30,7 +28,7 @@ public class BlockUtil {
     private static float getDestroySpeed(Player player, BlockState blockState, @Nullable FakeBlock.FakeBlockState fakeBlockState) {
         ItemStack hand = player.getInventory().getItemInMainHand();
         float destroySpeed = 1;
-        Reference<? extends FakeItem> fakeItemReference = MCCreativeLabExtension.getFakeItemRegistry().getFakeItem(CustomItemData.fromItemStack(hand));
+        Reference<? extends FakeItem> fakeItemReference = MCCreativeLabExtension.getFakeItemRegistry().getFakeItem(hand);
         if(fakeItemReference != null)
             destroySpeed = fakeItemReference.unwrapValue().getDestroySpeed(hand, blockState.getBlock(), fakeBlockState);
         if(fakeBlockState != null && destroySpeed == 1)

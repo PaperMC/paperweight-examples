@@ -6,10 +6,10 @@ Subject: [PATCH] Add closing Inventory to InventoryCloseEvent if Reason =
 
 
 diff --git a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-index 7796e191747be545e744564a2b0b65790f69114d..49400ab3f977e3dad1413aabe7b71f4bb17ff436 100644
+index b13057c0792067cc6b0abdf0d64a9be2cc9389a4..50493f9158b0eaf13f9361a036aa44e943a8b693 100644
 --- a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 +++ b/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-@@ -2861,6 +2861,16 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
+@@ -2932,6 +2932,16 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
  
      }
  
@@ -40,10 +40,10 @@ index ba85b7bc8406c86b4f17b3aeab282598b5aecc43..3d263e5988f43d017da5fac6f50801c2
          ServerPlayer player = (ServerPlayer) this.getHandle();
          AbstractContainerMenu container;
 diff --git a/src/main/java/org/bukkit/craftbukkit/event/CraftEventFactory.java b/src/main/java/org/bukkit/craftbukkit/event/CraftEventFactory.java
-index 0ab53d46f0b8f3f3791dd01766738522c86932e8..9f45572ca0a876cdc9bd7837386d46abcffa4b0f 100644
+index 77ef27f9254235180a8596c6c8c4af750dc759d1..0acc9314af1429bd5a47f7ad6ba47f3584c397c5 100644
 --- a/src/main/java/org/bukkit/craftbukkit/event/CraftEventFactory.java
 +++ b/src/main/java/org/bukkit/craftbukkit/event/CraftEventFactory.java
-@@ -1421,7 +1421,7 @@ public class CraftEventFactory {
+@@ -1427,7 +1427,7 @@ public class CraftEventFactory {
      public static com.mojang.datafixers.util.Pair<net.kyori.adventure.text.@org.jetbrains.annotations.Nullable Component, @org.jetbrains.annotations.Nullable AbstractContainerMenu> callInventoryOpenEventWithTitle(ServerPlayer player, AbstractContainerMenu container, boolean cancelled) {
          // Paper end - Add titleOverride to InventoryOpenEvent
          if (player.containerMenu != player.inventoryMenu) { // fire INVENTORY_CLOSE if one already open
@@ -52,7 +52,7 @@ index 0ab53d46f0b8f3f3791dd01766738522c86932e8..9f45572ca0a876cdc9bd7837386d46ab
          }
  
          CraftServer server = player.level().getCraftServer();
-@@ -1616,6 +1616,15 @@ public class CraftEventFactory {
+@@ -1631,6 +1631,15 @@ public class CraftEventFactory {
          return event;
      }
  
@@ -68,7 +68,7 @@ index 0ab53d46f0b8f3f3791dd01766738522c86932e8..9f45572ca0a876cdc9bd7837386d46ab
      // Paper start
      /**
       * Incase plugins hooked into this or Spigot adds a new inventory close event. Prefer to pass a reason
-@@ -1623,13 +1632,10 @@ public class CraftEventFactory {
+@@ -1638,13 +1647,10 @@ public class CraftEventFactory {
       */
      @Deprecated
      public static void handleInventoryCloseEvent(net.minecraft.world.entity.player.Player human) {

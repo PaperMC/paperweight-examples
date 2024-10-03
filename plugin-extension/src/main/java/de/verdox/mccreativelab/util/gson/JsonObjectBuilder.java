@@ -1,5 +1,6 @@
 package de.verdox.mccreativelab.util.gson;
 
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 
@@ -13,6 +14,11 @@ public class JsonObjectBuilder extends JsonElementBuilder<JsonObject> {
 
     public JsonObjectBuilder add(String property, JsonElementBuilder<?> builder) {
         element.add(property, builder.element);
+        return this;
+    }
+
+    public JsonObjectBuilder add(String property, JsonElement jsonElement) {
+        element.add(property, jsonElement);
         return this;
     }
 

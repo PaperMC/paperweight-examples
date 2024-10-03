@@ -35,6 +35,7 @@ public class CustomMenu extends ResourcePackResource {
     boolean doFakeTime = true;
     boolean doYawPitchLock = true;
     boolean doPositionLoc = true;
+    boolean hideOtherPlayers = false;
 
 
     public CustomMenu(@NotNull NamespacedKey namespacedKey) {
@@ -52,6 +53,11 @@ public class CustomMenu extends ResourcePackResource {
 
     public CustomMenu cancelGameActionOn(PlayerKeyInput playerKeyInput) {
         this.cancelledGameInputs.add(playerKeyInput);
+        return this;
+    }
+
+    public CustomMenu hideOtherPlayers(boolean hideOtherPlayers) {
+        this.hideOtherPlayers = hideOtherPlayers;
         return this;
     }
 

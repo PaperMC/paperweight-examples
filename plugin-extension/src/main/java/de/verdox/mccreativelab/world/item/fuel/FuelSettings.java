@@ -1,6 +1,6 @@
 package de.verdox.mccreativelab.world.item.fuel;
 
-import de.verdox.mccreativelab.recipe.CustomItemData;
+import de.verdox.mccreativelab.wrapper.MCCItemType;
 import org.bukkit.Material;
 import org.bukkit.Tag;
 import org.bukkit.event.EventHandler;
@@ -15,7 +15,7 @@ import java.util.Map;
 import java.util.Set;
 
 public class FuelSettings implements Listener {
-    private final Map<CustomItemData, Integer> fuelDurations = new HashMap<>();
+    private final Map<MCCItemType, Integer> fuelDurations = new HashMap<>();
     private final Set<Material> vanillaFuelMaterials = new HashSet<>();
 
     public FuelSettings(){
@@ -28,29 +28,25 @@ public class FuelSettings implements Listener {
     }
 
     private int getBurnDuration(ItemStack fuel){
-        return fuelDurations.getOrDefault(CustomItemData.fromItemStack(fuel), 0);
+        return fuelDurations.getOrDefault(MCCItemType.of(fuel), 0);
     }
 
-    public void register(CustomItemData customItemData, int fuelDuration) {
-        if (!vanillaFuelMaterials.contains(customItemData.material()))
-            throw new IllegalArgumentException("Material of customItemData must be a burnable material. " + customItemData.material() + " is not burnable as fuel!");
-        fuelDurations.put(customItemData, fuelDuration);
+    public void register(MCCItemType mccItemType, int fuelDuration) {
+        if (!vanillaFuelMaterials.contains(mccItemType.getBukkitMaterial()))
+            throw new IllegalArgumentException("Material of item type must be a burnable material. " + mccItemType.getBukkitMaterial() + " is not burnable as fuel!");
+        fuelDurations.put(mccItemType, fuelDuration);
     }
 
     public void register(ItemStack stack, int fuelDuration) {
-        register(CustomItemData.fromItemStack(stack), fuelDuration);
+        register(MCCItemType.of(stack), fuelDuration);
     }
 
     public void register(Material material, int fuelDuration){
-        register(new CustomItemData(material, 0), fuelDuration);
-    }
-
-    public void register(Material material, int customModelData, int fuelDuration){
-        register(new CustomItemData(material, customModelData), fuelDuration);
+        register(MCCItemType.of(material), fuelDuration);
     }
 
     private void registerVanillaDuration(Material material, int fuelDuration) {
-        fuelDurations.put(new CustomItemData(material, 0), fuelDuration);
+        fuelDurations.put(MCCItemType.of(material), fuelDuration);
         vanillaFuelMaterials.add(material);
     }
 

@@ -1,12 +1,15 @@
 package de.verdox.mccreativelab.generator.resourcepack.types.lang;
 
+import org.bukkit.NamespacedKey;
+import org.jetbrains.annotations.NotNull;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
 public class Translatable implements GameTranslation{
     private final Map<LanguageInfo, Translation> cache = new HashMap<>();
-    private final String key;
+    private String key;
 
     public Translatable(LanguageInfo languageInfo, String key, String content){
         this.key = key;
@@ -17,6 +20,10 @@ public class Translatable implements GameTranslation{
         if(!cache.containsKey(languageInfo))
             return "";
         return cache.get(languageInfo).content();
+    }
+
+    public void changeTranslationKey(String key) {
+        this.key = key;
     }
 
     public Translatable(String key){

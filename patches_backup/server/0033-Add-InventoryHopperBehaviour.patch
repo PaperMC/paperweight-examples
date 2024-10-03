@@ -366,7 +366,7 @@ index 42207462c4e720677a5ddbba4129dae60420aaa3..7aa592ac5fdeb6610e9cd9ba44666811
 +    // MCCreativeLab end - Add InventoryHopperBehaviour
  }
 diff --git a/src/main/java/net/minecraft/world/level/block/entity/BaseContainerBlockEntity.java b/src/main/java/net/minecraft/world/level/block/entity/BaseContainerBlockEntity.java
-index 15fd1fe1b55b6421d2c09e8385c9f69fa0152e56..e1c7e7b7e7117a5cce30c3d1adc079ee804514b2 100644
+index 2ddf349fde5b310ec3f74baee1f3d33e09d5286c..317e13ceba27f7fbb244869440ceadba67ad87ee 100644
 --- a/src/main/java/net/minecraft/world/level/block/entity/BaseContainerBlockEntity.java
 +++ b/src/main/java/net/minecraft/world/level/block/entity/BaseContainerBlockEntity.java
 @@ -213,4 +213,26 @@ public abstract class BaseContainerBlockEntity extends BlockEntity implements Co
@@ -491,7 +491,7 @@ index 629795f2d4278902ba7375465b41f551d15697a8..c513931b9ba35768837cc71ed0dbeafc
 +    // MCCreativeLab end - Add InventoryHopperBehaviour
  }
 diff --git a/src/main/java/net/minecraft/world/level/block/entity/HopperBlockEntity.java b/src/main/java/net/minecraft/world/level/block/entity/HopperBlockEntity.java
-index 53f9d28bf3c6aafd4fdd6c12e0285500fe7350ce..9228996911390416573b3b81783da923429c4ba8 100644
+index cab403efd471bb61835224eea4e99570d34dcaaa..30a2c32194902dc7dbc508dbb123dff366877146 100644
 --- a/src/main/java/net/minecraft/world/level/block/entity/HopperBlockEntity.java
 +++ b/src/main/java/net/minecraft/world/level/block/entity/HopperBlockEntity.java
 @@ -394,6 +394,18 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
@@ -532,7 +532,7 @@ index 53f9d28bf3c6aafd4fdd6c12e0285500fe7350ce..9228996911390416573b3b81783da923
          if (iinventory instanceof WorldlyContainer) {
              for (int i : ((WorldlyContainer) iinventory).getSlotsForFace(enumdirection)) {
                  if (test.test(iinventory.getItem(i), i)) {
-@@ -526,6 +550,17 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+@@ -530,6 +554,17 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
      }
  
      private static boolean isFullContainer(Container inventory, Direction direction) {
@@ -550,7 +550,7 @@ index 53f9d28bf3c6aafd4fdd6c12e0285500fe7350ce..9228996911390416573b3b81783da923
          int[] aint = HopperBlockEntity.getSlots(inventory, direction);
          int[] aint1 = aint;
          int i = aint.length;
-@@ -549,6 +584,20 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+@@ -553,6 +588,20 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
          if (iinventory != null) {
              Direction enumdirection = Direction.DOWN;
              skipPullModeEventFire = skipHopperEvents; // Paper - Perf: Optimize Hoppers
@@ -571,7 +571,7 @@ index 53f9d28bf3c6aafd4fdd6c12e0285500fe7350ce..9228996911390416573b3b81783da923
              int[] aint = HopperBlockEntity.getSlots(iinventory, enumdirection);
              int i = aint.length;
  
-@@ -583,7 +632,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+@@ -587,7 +636,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
      private static boolean tryTakeInItemFromSlot(Hopper ihopper, Container iinventory, int i, Direction enumdirection, Level world) { // Spigot
          ItemStack itemstack = iinventory.getItem(i);
  
@@ -580,7 +580,7 @@ index 53f9d28bf3c6aafd4fdd6c12e0285500fe7350ce..9228996911390416573b3b81783da923
              // Paper start - Perf: Optimize Hoppers
              return hopperPull(world, ihopper, iinventory, itemstack, i);
          //    int j = itemstack.getCount();
-@@ -659,6 +708,15 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+@@ -667,6 +716,15 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
      public static ItemStack addItem(@Nullable Container from, Container to, ItemStack stack, @Nullable Direction side) {
          int i;
  
@@ -596,7 +596,7 @@ index 53f9d28bf3c6aafd4fdd6c12e0285500fe7350ce..9228996911390416573b3b81783da923
          if (to instanceof WorldlyContainer iworldinventory) {
              if (side != null) {
                  int[] aint = iworldinventory.getSlotsForFace(side);
-@@ -723,7 +781,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+@@ -731,7 +789,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
      private static ItemStack tryMoveInItem(@Nullable Container from, Container to, ItemStack stack, int slot, @Nullable Direction side) {
          ItemStack itemstack1 = to.getItem(slot);
  
@@ -605,7 +605,7 @@ index 53f9d28bf3c6aafd4fdd6c12e0285500fe7350ce..9228996911390416573b3b81783da923
              boolean flag = false;
              boolean flag1 = to.isEmpty();
  
-@@ -931,4 +989,73 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+@@ -939,4 +997,73 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
      protected AbstractContainerMenu createMenu(int syncId, net.minecraft.world.entity.player.Inventory playerInventory) {
          return new HopperMenu(syncId, playerInventory, this);
      }

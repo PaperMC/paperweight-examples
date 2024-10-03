@@ -22,6 +22,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
 import java.util.*;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 public class LanguageStorage {
@@ -127,8 +128,7 @@ public class LanguageStorage {
                 String translation = jsonObject.get(translationKey).getAsString();
                 addTranslation(new Translation(LanguageInfo.ENGLISH_US, translationKey, translation), true);
             }
-            Bukkit.getLogger()
-                .info("Cached " + jsonObject.keySet().size() + " vanilla translations into LanguageStorage");
+            Logger.getGlobal().info("Cached " + jsonObject.keySet().size() + " vanilla translations into LanguageStorage");
         } catch (Throwable e) {
             e.printStackTrace();
         }

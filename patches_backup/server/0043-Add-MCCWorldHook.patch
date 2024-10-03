@@ -47,10 +47,10 @@ index eb62cc86ff1ace74d06ad47804fa3890f9a32b4e..cb67115092ce9ba6e4998d44213051e4
      }
      // CraftBukkit end
 diff --git a/src/main/java/net/minecraft/world/level/block/Block.java b/src/main/java/net/minecraft/world/level/block/Block.java
-index 0dabef686bc83f743dd9884a04e960ddba5ce7ba..fb431295da7efcd7e3f6463865419d759f169edb 100644
+index 9c7ea6d361c85b689460352e45d4a9285ef0928a..baea88bd340bea386ce1ef6c47ba20fc983f974d 100644
 --- a/src/main/java/net/minecraft/world/level/block/Block.java
 +++ b/src/main/java/net/minecraft/world/level/block/Block.java
-@@ -347,7 +347,12 @@ public class Block extends BlockBehaviour implements ItemLike {
+@@ -346,7 +346,12 @@ public class Block extends BlockBehaviour implements ItemLike {
      public static void dropResources(BlockState state, Level world, BlockPos pos, @Nullable BlockEntity blockEntity, @Nullable Entity entity, ItemStack tool, boolean dropExperience) {
      // Paper end - Properly handle xp dropping
          if (world instanceof ServerLevel) {

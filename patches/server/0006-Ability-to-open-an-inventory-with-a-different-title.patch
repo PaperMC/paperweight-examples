@@ -5,10 +5,10 @@ Subject: [PATCH] Ability to open an inventory with a different title
 
 
 diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftHumanEntity.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftHumanEntity.java
-index c1bad887d1340ebc7c63fda3dceff929e4a44517..ba85b7bc8406c86b4f17b3aeab282598b5aecc43 100644
+index 7dcfb45c24d7743956be514c7d554e06aac77b3e..eb7d43d6e1e6cc69128642d729ebbd3fea0270ad 100644
 --- a/src/main/java/org/bukkit/craftbukkit/entity/CraftHumanEntity.java
 +++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftHumanEntity.java
-@@ -310,6 +310,66 @@ public class CraftHumanEntity extends CraftLivingEntity implements HumanEntity {
+@@ -318,6 +318,66 @@ public class CraftHumanEntity extends CraftLivingEntity implements HumanEntity {
          return this.getHandle().containerMenu.getBukkitView();
      }
  

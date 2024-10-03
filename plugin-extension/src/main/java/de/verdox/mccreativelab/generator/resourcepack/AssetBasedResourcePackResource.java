@@ -18,6 +18,14 @@ public class AssetBasedResourcePackResource extends ResourcePackResource{
         this.fileEnding = fileEnding;
     }
 
+    public AssetType<CustomResourcePack> getAssetType() {
+        return assetType;
+    }
+
+    public String getFileEnding() {
+        return fileEnding;
+    }
+
     public Asset<CustomResourcePack> getAsset() {
         return asset;
     }

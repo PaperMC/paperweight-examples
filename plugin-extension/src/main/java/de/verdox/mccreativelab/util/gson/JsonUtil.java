@@ -1,6 +1,7 @@
 package de.verdox.mccreativelab.util.gson;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 
 import java.io.*;
@@ -8,7 +9,7 @@ import java.nio.file.Path;
 import java.util.Objects;
 
 public class JsonUtil {
-    private static final Gson GSON_INSTANCE = new Gson();
+    private static final Gson GSON_INSTANCE = new GsonBuilder().setPrettyPrinting().create();
 
     public static JsonObject readJsonFromFile(File file) throws IOException {
         Objects.requireNonNull(file);

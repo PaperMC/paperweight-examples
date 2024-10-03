@@ -704,7 +704,7 @@ index 0000000000000000000000000000000000000000..1f99161b4bb432872be837a182df914f
 +    WeightedBehaviorsBuilder<E> withBehaviour(int priority, Function<BehaviorFactory, ControlledBehavior<? super E>> behaviourCreator);
 +}
 diff --git a/src/main/java/org/bukkit/Bukkit.java b/src/main/java/org/bukkit/Bukkit.java
-index 4705c1d91e39fcc3c608b1f1a38a30d063ccf06e..32da2e981c4f57b136c2951edfbc4ce0eb6f640f 100644
+index 419c056faf0d49d9b0435feb01252e87e227b9a9..335dad2d2687982354831ccb9fe7208d28699187 100644
 --- a/src/main/java/org/bukkit/Bukkit.java
 +++ b/src/main/java/org/bukkit/Bukkit.java
 @@ -14,6 +14,8 @@ import java.util.Set;
@@ -716,7 +716,7 @@ index 4705c1d91e39fcc3c608b1f1a38a30d063ccf06e..32da2e981c4f57b136c2951edfbc4ce0
  import org.bukkit.Warning.WarningState;
  import org.bukkit.advancement.Advancement;
  import org.bukkit.block.data.BlockData;
-@@ -2910,4 +2912,11 @@ public final class Bukkit {
+@@ -2921,4 +2923,11 @@ public final class Bukkit {
      public static Server.Spigot spigot() {
          return server.spigot();
      }
@@ -729,7 +729,7 @@ index 4705c1d91e39fcc3c608b1f1a38a30d063ccf06e..32da2e981c4f57b136c2951edfbc4ce0
 +    // Paper end - Add AI Library
  }
 diff --git a/src/main/java/org/bukkit/Server.java b/src/main/java/org/bukkit/Server.java
-index c043d239c449bf4bb13a24467f2f6c67b4d28d2d..42c767524c49354e9b491a769eac70e4d2d32f0c 100644
+index 5aa64ea39ebd92e5067c53cea49a8685c0b9eee4..9bd65d894412d9705e5effdb0b81129b29551ae3 100644
 --- a/src/main/java/org/bukkit/Server.java
 +++ b/src/main/java/org/bukkit/Server.java
 @@ -14,6 +14,8 @@ import java.util.Set;
@@ -741,7 +741,7 @@ index c043d239c449bf4bb13a24467f2f6c67b4d28d2d..42c767524c49354e9b491a769eac70e4
  import org.bukkit.Warning.WarningState;
  import org.bukkit.advancement.Advancement;
  import org.bukkit.block.data.BlockData;
-@@ -2543,4 +2545,9 @@ public interface Server extends PluginMessageRecipient, net.kyori.adventure.audi
+@@ -2554,4 +2556,9 @@ public interface Server extends PluginMessageRecipient, net.kyori.adventure.audi
       */
      boolean isOwnedByCurrentRegion(@NotNull Entity entity);
      // Paper end - Folia region threading API
@@ -752,7 +752,7 @@ index c043d239c449bf4bb13a24467f2f6c67b4d28d2d..42c767524c49354e9b491a769eac70e4
 +    // Paper end - Add AI Library
  }
 diff --git a/src/main/java/org/bukkit/entity/LivingEntity.java b/src/main/java/org/bukkit/entity/LivingEntity.java
-index a1e54e9d14393a6c0ea57cca854071c5396d9717..75932be175956ab814fc15c37343bafb3cdc7d4d 100644
+index fcdc5fce88720cc926a3953d80b5045113d1516c..9cae9b229184706888b91bb39abb00bc40c24f6e 100644
 --- a/src/main/java/org/bukkit/entity/LivingEntity.java
 +++ b/src/main/java/org/bukkit/entity/LivingEntity.java
 @@ -962,6 +962,14 @@ public interface LivingEntity extends Attributable, Damageable, ProjectileSource

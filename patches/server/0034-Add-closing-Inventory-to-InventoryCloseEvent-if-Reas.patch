@@ -6,10 +6,10 @@ Subject: [PATCH] Add closing Inventory to InventoryCloseEvent if Reason =
 
 
 diff --git a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-index b13057c0792067cc6b0abdf0d64a9be2cc9389a4..50493f9158b0eaf13f9361a036aa44e943a8b693 100644
+index fcccf989c25f0a259b160c4ff7873f7009e64d14..d6bb5f5c68b09498350d7568dda5add179867b74 100644
 --- a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 +++ b/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-@@ -2932,6 +2932,16 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
+@@ -2936,6 +2936,16 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
  
      }
  
@@ -27,10 +27,10 @@ index b13057c0792067cc6b0abdf0d64a9be2cc9389a4..50493f9158b0eaf13f9361a036aa44e9
      public void handleContainerClose(ServerboundContainerClosePacket packet) {
          // Paper start - Inventory close reason
 diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftHumanEntity.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftHumanEntity.java
-index ba85b7bc8406c86b4f17b3aeab282598b5aecc43..3d263e5988f43d017da5fac6f50801c224f62b37 100644
+index eb7d43d6e1e6cc69128642d729ebbd3fea0270ad..e3e0f0db46632da5fc0daa0735d56bed89944632 100644
 --- a/src/main/java/org/bukkit/craftbukkit/entity/CraftHumanEntity.java
 +++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftHumanEntity.java
-@@ -493,7 +493,7 @@ public class CraftHumanEntity extends CraftLivingEntity implements HumanEntity {
+@@ -501,7 +501,7 @@ public class CraftHumanEntity extends CraftLivingEntity implements HumanEntity {
          if (((ServerPlayer) this.getHandle()).connection == null) return;
          if (this.getHandle().containerMenu != this.getHandle().inventoryMenu) {
              // fire INVENTORY_CLOSE if one already open
@@ -40,7 +40,7 @@ index ba85b7bc8406c86b4f17b3aeab282598b5aecc43..3d263e5988f43d017da5fac6f50801c2
          ServerPlayer player = (ServerPlayer) this.getHandle();
          AbstractContainerMenu container;
 diff --git a/src/main/java/org/bukkit/craftbukkit/event/CraftEventFactory.java b/src/main/java/org/bukkit/craftbukkit/event/CraftEventFactory.java
-index 77ef27f9254235180a8596c6c8c4af750dc759d1..0acc9314af1429bd5a47f7ad6ba47f3584c397c5 100644
+index 4632eb883e9f5efde520ee543bcad25827c0da2c..c6fb1839e7ef4dd002b51872c675c4d91ffbbd10 100644
 --- a/src/main/java/org/bukkit/craftbukkit/event/CraftEventFactory.java
 +++ b/src/main/java/org/bukkit/craftbukkit/event/CraftEventFactory.java
 @@ -1427,7 +1427,7 @@ public class CraftEventFactory {

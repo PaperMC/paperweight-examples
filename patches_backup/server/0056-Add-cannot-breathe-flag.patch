@@ -5,7 +5,7 @@ Subject: [PATCH] Add cannot breathe flag
 
 
 diff --git a/src/main/java/net/minecraft/world/entity/LivingEntity.java b/src/main/java/net/minecraft/world/entity/LivingEntity.java
-index e84c0dc8cf457a3ee4841c4b719c30b59cd95771..a4e583d03082bd9e3a4244f60cc938368240fe1b 100644
+index fc2d28cd8af279f9318f05e9ead25809bbce9560..2f0d822ab34666fec1784fb896c15767f3271326 100644
 --- a/src/main/java/net/minecraft/world/entity/LivingEntity.java
 +++ b/src/main/java/net/minecraft/world/entity/LivingEntity.java
 @@ -425,6 +425,10 @@ public abstract class LivingEntity extends Entity implements Attackable {
@@ -37,10 +37,10 @@ index e84c0dc8cf457a3ee4841c4b719c30b59cd95771..a4e583d03082bd9e3a4244f60cc93836
                              double d2 = this.random.nextDouble() - this.random.nextDouble();
                              double d3 = this.random.nextDouble() - this.random.nextDouble();
 diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftLivingEntity.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftLivingEntity.java
-index 147a66bba04edc348398f81d72c8eac87cbd25a3..1ae3351eaf2d83ff1ddd74e95dbb969ebfcff10f 100644
+index 5ca2bb97b6ee3b42689bf6036ca20c164ebed213..b7fa24c29051b46c9d643fe2f16220d659c1e01f 100644
 --- a/src/main/java/org/bukkit/craftbukkit/entity/CraftLivingEntity.java
 +++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftLivingEntity.java
-@@ -1194,4 +1194,26 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
+@@ -1168,4 +1168,26 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
          return this.getHandle().canUseSlot(org.bukkit.craftbukkit.CraftEquipmentSlot.getNMS(slot));
      }
      // Paper end - Expose canUseSlot

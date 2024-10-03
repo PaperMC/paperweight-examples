@@ -2,13 +2,11 @@ package de.verdox.mccreativelab.features.legacy;
 
 import com.destroystokyo.paper.event.player.PlayerPostRespawnEvent;
 import de.verdox.mccreativelab.MCCreativeLabExtension;
-import de.verdox.mccreativelab.behaviour.BehaviourResult;
-import de.verdox.mccreativelab.behaviour.ItemBehaviour;
 import de.verdox.mccreativelab.generator.Asset;
 import de.verdox.mccreativelab.generator.resourcepack.AssetBasedResourcePackResource;
 import de.verdox.mccreativelab.generator.resourcepack.CustomResourcePack;
 import de.verdox.mccreativelab.generator.resourcepack.ResourcePackAssetTypes;
-import de.verdox.mccreativelab.recipe.CustomItemData;
+import de.verdox.mccreativelab.wrapper.MCCItemType;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -28,7 +26,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class LegacyFoodSystem extends LegacyFeature {
-    private static final Map<CustomItemData, Double> healAmounts = new HashMap<>();
+    private static final Map<MCCItemType, Double> healAmounts = new HashMap<>();
 
     @Override
     protected void onEnable() {
@@ -66,14 +64,13 @@ public class LegacyFoodSystem extends LegacyFeature {
         }
     }
 
-    public LegacyFoodSystem setHealAmountWhenEaten(CustomItemData customItemData, double healAmount) {
-        healAmounts.put(customItemData, healAmount);
+    public LegacyFoodSystem setHealAmountWhenEaten(MCCItemType mccItemType, double healAmount) {
+        healAmounts.put(mccItemType, healAmount);
         return this;
     }
 
     public LegacyFoodSystem setHealAmountWhenEaten(Material material, double healAmount) {
-        healAmounts.put(new CustomItemData(material, 0), healAmount);
-        return this;
+        return setHealAmountWhenEaten(MCCItemType.of(material), healAmount);
     }
 
     @EventHandler
@@ -109,8 +106,7 @@ public class LegacyFoodSystem extends LegacyFeature {
 
     @EventHandler
     public void itemConsumeEvent(PlayerItemConsumeEvent e) {
-        CustomItemData customItemData = CustomItemData.fromItemStack(e.getItem());
-        double healAmount = healAmounts.getOrDefault(customItemData, 0d);
+        double healAmount = healAmounts.getOrDefault(MCCItemType.of(e.getItem()), 0d);
         double maxHealth = e.getPlayer().getAttribute(Attribute.GENERIC_MAX_HEALTH).getValue();
         double newHealth = Math.min(maxHealth, e.getPlayer().getHealth() + healAmount);
         e.getPlayer().setHealth(newHealth);

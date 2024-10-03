@@ -12,7 +12,6 @@ uniform sampler2D Sampler0;
 
 uniform mat4 ModelViewMat;
 uniform mat4 ProjMat;
-uniform int FogShape;
 uniform vec2 ScreenSize;
 
 out float vertexDistance;
@@ -24,23 +23,14 @@ out vec2 texCoord0;
 
 
 float get_id(float offset) {
-    if (offset <= 0)
-    return 0;
-    return trunc(offset/1000);
+    if (offset <= 0.0)
+        return 0.0;
+    return trunc(offset/1000.0);
 }
 
 void main() {
     vec3 pos = Position;
 
-    // TODO: IMPORTANT FOR 1.20.6 Shader compat !!!
-    // On 1.20.6 change to ->
-    vertexDistance = fog_distance(Position, FogShape);
-    // because IViewRotMat was removed
-    //vertexDistance = fog_distance(ModelViewMat, IViewRotMat * Position, FogShape);
-
-    //vec4 lightColor = minecraft_sample_lightmap(Sampler0, UV2);
-    //if (vertexDistance > 800) lightColor = texelFetch(Sampler0, UV2 / 16, 0);
-    //vertexColor = Color * lightColor;
     vertexColor = Color;
     texCoord0 = UV0;
 
@@ -51,7 +41,7 @@ void main() {
     float id = get_id((round(guiSize.y - Position.y)) * -1);
 
 
-    if (id > 99 && Color.a != 0.0) {
+    if (id > 99.0 && Color.a != 0.0) {
         float yOffset = 0.0;
         float xOffset = 0.0;
         int layer = 0;

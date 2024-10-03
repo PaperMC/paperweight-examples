@@ -2,48 +2,44 @@ package de.verdox.mccreativelab.world.block.customhardness;
 
 import com.destroystokyo.paper.event.server.ServerTickEndEvent;
 import de.verdox.mccreativelab.MCCreativeLabExtension;
-import de.verdox.mccreativelab.recipe.CustomItemData;
 import de.verdox.mccreativelab.registry.Reference;
+import de.verdox.mccreativelab.util.BlockUtil;
+import de.verdox.mccreativelab.util.EntityMetadataPredicate;
 import de.verdox.mccreativelab.world.block.FakeBlock;
-import de.verdox.mccreativelab.world.block.FakeBlockRegistry;
 import de.verdox.mccreativelab.world.block.FakeBlockSoundManager;
 import de.verdox.mccreativelab.world.block.FakeBlockStorage;
 import de.verdox.mccreativelab.world.block.event.StartBlockBreakEvent;
 import de.verdox.mccreativelab.world.block.util.FakeBlockUtil;
-import de.verdox.mccreativelab.util.BlockUtil;
-import de.verdox.mccreativelab.util.EntityMetadataPredicate;
 import de.verdox.mccreativelab.world.item.FakeItem;
 import io.papermc.paper.event.block.BlockBreakProgressUpdateEvent;
-import io.papermc.paper.event.player.PlayerArmSwingEvent;
-import org.bukkit.*;
+import org.bukkit.Bukkit;
+import org.bukkit.GameMode;
+import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
-import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockDamageAbortEvent;
 import org.bukkit.event.block.BlockDamageEvent;
-import org.bukkit.event.player.PlayerAnimationType;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
-import org.bukkit.inventory.EquipmentSlot;
-import org.bukkit.inventory.EquipmentSlotGroup;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.metadata.FixedMetadataValue;
-import org.bukkit.potion.PotionEffect;
-import org.bukkit.potion.PotionEffectType;
 import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Predicate;
 
@@ -141,7 +137,7 @@ public class BlockBreakSpeedModifier implements Listener {
 
         Material bukkitMaterial = block.getType();
         ItemStack diggingItem = player.getInventory().getItemInMainHand();
-        Reference<? extends FakeItem> fakeItemReference = MCCreativeLabExtension.getFakeItemRegistry().getFakeItem(CustomItemData.fromItemStack(diggingItem));
+        Reference<? extends FakeItem> fakeItemReference = MCCreativeLabExtension.getFakeItemRegistry().getFakeItem(diggingItem);
         FakeBlock.FakeBlockState fakeBlockState = FakeBlockStorage.getFakeBlockState(block
             .getLocation(), false);
         float customBlockHardness = -1;

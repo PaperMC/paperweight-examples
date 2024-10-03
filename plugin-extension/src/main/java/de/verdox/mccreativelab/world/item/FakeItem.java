@@ -7,8 +7,8 @@ import de.verdox.mccreativelab.generator.Asset;
 import de.verdox.mccreativelab.generator.resourcepack.CustomResourcePack;
 import de.verdox.mccreativelab.generator.resourcepack.types.ItemTextureData;
 import de.verdox.mccreativelab.generator.resourcepack.types.lang.Translatable;
-import de.verdox.mccreativelab.world.block.FakeBlock;
 import de.verdox.mccreativelab.recipe.CustomItemData;
+import de.verdox.mccreativelab.world.block.FakeBlock;
 import de.verdox.mccreativelab.world.item.data.ItemDataContainer;
 import it.unimi.dsi.fastutil.Pair;
 import net.kyori.adventure.text.Component;
@@ -38,10 +38,6 @@ public class FakeItem implements Keyed, ItemBehaviour {
     private Consumer<ItemMeta> metaConsumer;
     private Translatable nameTranslation;
     private Function<Translatable, Component> nameFormat;
-
-    public CustomItemData asCustomItemData() {
-        return new CustomItemData(material, customModelData);
-    }
 
     public Material getMaterial() {
         return material;

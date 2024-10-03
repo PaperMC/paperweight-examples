@@ -1,5 +1,6 @@
 package de.verdox.mccreativelab;
 
+import com.google.gson.JsonElement;
 import de.verdox.mccreativelab.debug.*;
 import de.verdox.mccreativelab.event.MCCreativeLabReloadEvent;
 import de.verdox.mccreativelab.features.Feature;
@@ -12,6 +13,7 @@ import de.verdox.mccreativelab.generator.resourcepack.ResourcePackScanner;
 import de.verdox.mccreativelab.generator.resourcepack.types.hud.renderer.HudRenderer;
 import de.verdox.mccreativelab.registry.CustomRegistry;
 import de.verdox.mccreativelab.util.PlayerUtil;
+import de.verdox.mccreativelab.util.gson.JsonUtil;
 import de.verdox.mccreativelab.util.nbt.PersistentDataSaver;
 import de.verdox.mccreativelab.util.player.fakeinv.FakeInventory;
 import de.verdox.mccreativelab.world.CustomEventsCaller;
@@ -23,17 +25,27 @@ import de.verdox.mccreativelab.world.item.FakeItemListener;
 import de.verdox.mccreativelab.world.item.FakeItemRegistry;
 import de.verdox.mccreativelab.world.item.fuel.FuelSettings;
 import de.verdox.mccreativelab.world.sound.ReplacedSoundGroups;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.Bukkit;
+import org.bukkit.JukeboxSong;
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.entity.Player;
 import org.bukkit.event.server.ServerLoadEvent;
+import org.bukkit.inventory.ItemRarity;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.components.FoodComponent;
+import org.bukkit.inventory.meta.components.JukeboxPlayableComponent;
+import org.bukkit.inventory.meta.components.ToolComponent;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 
@@ -53,15 +65,14 @@ public class MCCreativeLabExtension extends JavaPlugin {
 
     public static void needsServerSoftware() {
         if (!isServerSoftware())
-            throw new IllegalStateException("This feature is not available without the MCCreativeLab Paper Fork. You are running "+Bukkit.getServer().getName());
+            throw new IllegalStateException("This feature is not available without the MCCreativeLab Paper Fork. You are running " + Bukkit.getServer().getName());
     }
 
     public static boolean isServerSoftware() {
-        try{
+        try {
             Class.forName("de.verdox.mccreativelab.MCCreativeLab");
             return true;
-        }
-        catch (ClassNotFoundException ignored){
+        } catch (ClassNotFoundException ignored) {
             return false;
         }
         //return Bukkit.getServer().getName().equals("MCCreativeLab");
@@ -73,7 +84,7 @@ public class MCCreativeLabExtension extends JavaPlugin {
 
         extensionFeatures = new ExtensionFeatures();
         extensionFeatures.onLoad();
-        if(isServerSoftware()) {
+        if (isServerSoftware()) {
             serverSoftwareExclusives = new ServerSoftwareExclusives();
             serverSoftwareExclusives.onLoad();
         }
@@ -92,7 +103,6 @@ public class MCCreativeLabExtension extends JavaPlugin {
             Debug.init();
             ReplacedBlocks.init();
         }
-        ;
     }
 
     @Override
@@ -101,14 +111,12 @@ public class MCCreativeLabExtension extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(extensionFeatures, this);
         Bukkit.getPluginManager().registerEvents(new CustomEventsCaller(), this);
 
-        if(isServerSoftware()) {
+        if (isServerSoftware()) {
             Bukkit.getPluginManager().registerEvents(serverSoftwareExclusives, this);
             serverSoftwareExclusives.onEnable();
         }
 
         PlayerUtil.startAsyncRaytracer();
-
-        
 
 
         if (isServerSoftware()) {
@@ -125,31 +133,31 @@ public class MCCreativeLabExtension extends JavaPlugin {
             Bukkit.getPluginManager().registerEvents(new BlockBreakSpeedModifier(), this);
             Bukkit.getPluginManager().registerEvents(new PersistentDataSaver(), this);
         }
-        Bukkit.getCommandMap().register("debug", "mccreativelab", new DebugCommand());
+        //TODO: Server Software exclusive debug commands
+        //Bukkit.getCommandMap().register("debug", "mccreativelab", new DebugCommand());
         resourcePackFileHoster.registerListener();
     }
 
-    public static  <T> void registerRegistryLookupCommand(String name, CustomRegistry<T> customRegistry, BiConsumer<Player, T> consumer) {
+    public static <T> void registerRegistryLookupCommand(String name, CustomRegistry<T> customRegistry, BiConsumer<Player, T> consumer) {
         Bukkit.getCommandMap().register(name, new RegistryLookUpCommand<>(name, customRegistry, consumer));
     }
 
     public void onServerLoad(ServerLoadEvent.LoadType loadType) {
-        if(isServerSoftware())
+        if (isServerSoftware())
             serverSoftwareExclusives.onServerLoad(loadType);
         extensionFeatures.onServerLoad(loadType);
-        if(loadType.equals(ServerLoadEvent.LoadType.STARTUP)){
+        if (loadType.equals(ServerLoadEvent.LoadType.STARTUP)) {
             if (createResourcePack())
                 MCCreativeLabExtension.getInstance().getResourcePackFileHoster()
-                                      .sendDefaultResourcePackToPlayers(Bukkit.getOnlinePlayers());
+                    .sendDefaultResourcePackToPlayers(Bukkit.getOnlinePlayers());
             Bukkit.getLogger().info("MCCreativeLabExtension started");
-        }
-        else {
+        } else {
             buildPackAndZipFiles(true);
             MCCreativeLabExtension.getInstance().getResourcePackFileHoster().sendDefaultResourcePackToPlayers(Bukkit.getOnlinePlayers());
             Bukkit.getLogger().info("MCCreativeLabExtension reloaded");
         }
 
-        FakeBlockRegistry.getReusedBlockStates().forEach((blockData, fakeBlockState) -> Bukkit.getLogger().info(fakeBlockState.toString()+" mapped to "+fakeBlockState));
+        FakeBlockRegistry.getReusedBlockStates().forEach((blockData, fakeBlockState) -> Bukkit.getLogger().info(fakeBlockState.toString() + " mapped to " + fakeBlockState));
     }
 
     boolean createResourcePack() {
@@ -167,7 +175,7 @@ public class MCCreativeLabExtension extends JavaPlugin {
         try {
             mergeOtherPacksIntoMainPack(getCustomResourcePack().getPathToSavePackDataTo().toPath().toFile(), getCustomResourcePack());
 
-            if(isServerSoftware()){
+            if (isServerSoftware()) {
                 if (!getFakeBlockRegistry().isEmpty()) {
                     try {
                         FakeBlock.FakeBlockHitbox.makeHitBoxesInvisible(getCustomResourcePack());
@@ -187,7 +195,7 @@ public class MCCreativeLabExtension extends JavaPlugin {
 
     private void mergeOtherPacksIntoMainPack(File mainPackFolder, CustomResourcePack customResourcePack) throws IOException {
         Path pathToWalk = CustomResourcePack.resourcePacksFolder.toPath();
-        if(!pathToWalk.toFile().exists())
+        if (!pathToWalk.toFile().exists())
             return;
         try (Stream<Path> stream = Files.walk(CustomResourcePack.resourcePacksFolder.toPath(), 1)) {
             stream.skip(1).forEach(path -> {
@@ -209,7 +217,7 @@ public class MCCreativeLabExtension extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        if(isServerSoftware())
+        if (isServerSoftware())
             serverSoftwareExclusives.onDisable();
         extensionFeatures.onDisable();
 

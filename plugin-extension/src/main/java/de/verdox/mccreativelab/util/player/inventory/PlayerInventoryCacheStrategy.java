@@ -1,6 +1,5 @@
 package de.verdox.mccreativelab.util.player.inventory;
 
-import de.verdox.mccreativelab.recipe.CustomItemData;
 import de.verdox.mccreativelab.world.item.FakeItem;
 import de.verdox.mccreativelab.wrapper.MCCItemType;
 import org.bukkit.Material;
@@ -69,25 +68,25 @@ public interface PlayerInventoryCacheStrategy {
     }
 
     class CachedSlots implements PlayerInventoryCacheStrategy {
-        private final Map<CustomItemData, Set<Integer>> dataToSlotMapping = new HashMap<>();
-        private final Map<Integer, CustomItemData> slotToDataMapping = new HashMap<>();
+        private final Map<MCCItemType, Set<Integer>> dataToSlotMapping = new HashMap<>();
+        private final Map<Integer, MCCItemType> slotToDataMapping = new HashMap<>();
 
         @Override
         public void cacheItemInSlot(int slot, ItemStack stack) {
-            CustomItemData customItemData = CustomItemData.fromItemStack(stack);
-            dataToSlotMapping.computeIfAbsent(customItemData, v -> new HashSet<>()).add(slot);
-            slotToDataMapping.put(slot, customItemData);
+            MCCItemType mccItemType = MCCItemType.of(stack);
+            dataToSlotMapping.computeIfAbsent(mccItemType, v -> new HashSet<>()).add(slot);
+            slotToDataMapping.put(slot, mccItemType);
         }
 
         @Override
         public void removeSlotFromCache(int slot, ItemStack stack) {
             if (!slotToDataMapping.containsKey(slot))
                 return;
-            CustomItemData customItemData = slotToDataMapping.get(slot);
+            MCCItemType mccItemType = slotToDataMapping.get(slot);
             slotToDataMapping.remove(slot);
-            if (!dataToSlotMapping.containsKey(customItemData))
+            if (!dataToSlotMapping.containsKey(mccItemType))
                 return;
-            dataToSlotMapping.get(customItemData).remove(slot);
+            dataToSlotMapping.get(mccItemType).remove(slot);
         }
     }
 }

@@ -6,10 +6,10 @@ Subject: [PATCH] Don't throw exception when calling setSpectatorTarget when
 
 
 diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
-index 66679e183d8446b9fb4d782e5622e0a7facfb60e..e3a9248a2de346405818993375acfe5e9dc964f4 100644
+index 918cb8c84339682260f14ab1ff8da88bf9b0d2ac..f73f510b2e3ea93d7987764533d5808ac8d175f7 100644
 --- a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
 +++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
-@@ -2919,7 +2919,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
+@@ -2918,7 +2918,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
  
      @Override
      public void setSpectatorTarget(org.bukkit.entity.Entity entity) {

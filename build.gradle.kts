@@ -1,3 +1,5 @@
+import io.papermc.paperweight.util.convertToPath
+
 plugins {
     java
     `maven-publish`
@@ -6,7 +8,7 @@ plugins {
     //id("com.github.johnrengelman.shadow") version "8.1.1" apply false
 
     // In general, keep this version in sync with upstream. Sometimes a newer version than upstream might work, but an older version is extremely likely to break.
-    id("io.papermc.paperweight.patcher") version "1.7.1"
+    id("io.papermc.paperweight.patcher") version "1.7.3"
 }
 
 val paperMavenPublicUrl = "https://repo.papermc.io/repository/maven-public/"
@@ -37,6 +39,7 @@ allprojects {
 
     tasks.compileJava{
         options.isWarnings = false;
+        options.release.set(21)
     }
 }
 
@@ -87,17 +90,28 @@ paperweight {
 // Everything below here is optional if you don't care about publishing API or dev bundles to your repository
 //
 
-/*tasks.generateDevelopmentBundle {
+tasks.generateDevelopmentBundle {
     apiCoordinates.set("de.verdox.mccreativelab:mccreativelab-api")
-    mojangApiCoordinates.set("io.papermc.paper:paper-mojangapi")
+    //mojangApiCoordinates.set("io.papermc.paper:paper-mojangapi")
     libraryRepositories.set(
         listOf(
-            "https://repo.maven.apache.org/maven2/",
-            paperMavenPublicUrl,
+            //"https://repo.maven.apache.org/maven2/",
             // "https://my.repo/", // This should be a repo hosting your API (in this example, 'com.example.paperfork:forktest-api')
         )
     )
-}*/
+}
+
+publishing {
+    // Publishing dev bundle:
+    // ./gradlew publishDevBundlePublicationTo(MavenLocal|MyRepoSnapshotsRepository) -PpublishDevBundle
+    if (project.hasProperty("publishDevBundle")) {
+        publications.create<MavenPublication>("devBundle") {
+            artifact(tasks.generateDevelopmentBundle) {
+                artifactId = "dev-bundle"
+            }
+        }
+    }
+}
 /*
 allprojects {
     // Publishing API:

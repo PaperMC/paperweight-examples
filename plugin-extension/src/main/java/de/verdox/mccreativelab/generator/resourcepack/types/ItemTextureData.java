@@ -6,11 +6,11 @@ import de.verdox.mccreativelab.generator.Asset;
 import de.verdox.mccreativelab.generator.resourcepack.CustomResourcePack;
 import de.verdox.mccreativelab.generator.resourcepack.ResourcePackAssetTypes;
 import de.verdox.mccreativelab.generator.resourcepack.ResourcePackResource;
-import de.verdox.mccreativelab.recipe.CustomItemData;
 import de.verdox.mccreativelab.util.gson.JsonArrayBuilder;
 import de.verdox.mccreativelab.util.gson.JsonObjectBuilder;
 import de.verdox.mccreativelab.util.gson.JsonUtil;
 import de.verdox.mccreativelab.util.io.AssetUtil;
+import de.verdox.mccreativelab.world.item.FakeItemRegistry;
 import org.bukkit.*;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
@@ -68,7 +68,10 @@ public class ItemTextureData extends ResourcePackResource {
     }
 
     public ItemStack createItem() {
-        return new CustomItemData(material, customModelData).createStack();
+        var stack = new ItemStack(material);
+        if (customModelData != 0)
+            stack.editMeta(meta -> meta.setCustomModelData(customModelData));
+        return stack;
     }
 
     @Override

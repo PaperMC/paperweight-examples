@@ -80,6 +80,8 @@ public abstract class CustomPack<C extends CustomPack<C>> {
     }
 
     private void reloadResourcesFromConfigs() throws IOException {
+        if(!addedResources.isEmpty())
+            ConfigurableResourceStorage.deleteTemplateFolder();
         for (Resource<C> addedResource : addedResources) {
             if (addedResource instanceof ConfigurableResource<C> configurableResource)
                 configurableResourceStorage.loadResourceFromStorage(configurableResource);

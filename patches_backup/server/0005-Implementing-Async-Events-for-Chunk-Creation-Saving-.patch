@@ -6,10 +6,10 @@ Subject: [PATCH] Implementing Async Events for Chunk Creation, Saving,
 
 
 diff --git a/src/main/java/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/NewChunkHolder.java b/src/main/java/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/NewChunkHolder.java
-index 9fcd1b6eef82cd0bbcddab26cf5aaf880d236969..d01538ee271de7407b351bc8f61b0bc90922b98d 100644
+index 45eda96fd8a1acb87dbb69ce5495fec7e451416f..9c5d0ee2e914f1c000b81efbf3139445165e46d8 100644
 --- a/src/main/java/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/NewChunkHolder.java
 +++ b/src/main/java/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/NewChunkHolder.java
-@@ -1754,14 +1754,14 @@ public final class NewChunkHolder {
+@@ -1739,14 +1739,14 @@ public final class NewChunkHolder {
          public void run() {
              final CompoundTag toSerialize;
              try {
@@ -26,7 +26,7 @@ index 9fcd1b6eef82cd0bbcddab26cf5aaf880d236969..d01538ee271de7407b351bc8f61b0bc9
                      } catch (final Throwable throwable2) {
                          LOGGER.error("Failed to synchronously save chunk " + AsyncChunkSerializeTask.this.chunk.getPos() + " for world '" + WorldUtil.getWorldName(AsyncChunkSerializeTask.this.world) + "', chunk data will be lost", throwable2);
                          AsyncChunkSerializeTask.this.toComplete.completeAsyncUnloadDataSave(RegionFileIOThread.RegionFileType.CHUNK_DATA, null);
-@@ -1815,7 +1815,7 @@ public final class NewChunkHolder {
+@@ -1800,7 +1800,7 @@ public final class NewChunkHolder {
                  }
              }
  

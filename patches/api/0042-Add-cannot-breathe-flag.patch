@@ -5,10 +5,10 @@ Subject: [PATCH] Add cannot breathe flag
 
 
 diff --git a/src/main/java/org/bukkit/entity/LivingEntity.java b/src/main/java/org/bukkit/entity/LivingEntity.java
-index 75932be175956ab814fc15c37343bafb3cdc7d4d..36654947af291927974ea28d385edf508a527ef0 100644
+index 86e9b56d02b2c77b0f60a3e4c397ed3261e0cdeb..9b28420ef045f857c332b1fd45285345869f6d3f 100644
 --- a/src/main/java/org/bukkit/entity/LivingEntity.java
 +++ b/src/main/java/org/bukkit/entity/LivingEntity.java
-@@ -1466,4 +1466,30 @@ public interface LivingEntity extends Attributable, Damageable, ProjectileSource
+@@ -1476,4 +1476,30 @@ public interface LivingEntity extends Attributable, Damageable, ProjectileSource
       */
      boolean canUseEquipmentSlot(org.bukkit.inventory.@NotNull EquipmentSlot slot);
      // Paper end - Expose canUseSlot

@@ -1,14 +1,15 @@
 package de.verdox.mccreativelab.generator.resourcepack.types.gui;
 
-import de.verdox.mccreativelab.recipe.CustomItemData;
+import de.verdox.mccreativelab.MCCreativeLabExtension;
 import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
+import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 public class ClickableItem {
     private final ItemStack stack;
@@ -36,7 +37,7 @@ public class ClickableItem {
     public static class Builder {
         private BiConsumer<InventoryClickEvent, ActiveGUI> onClick = (inventoryClickEvent, activeGUI) -> {
         };
-        private ItemStack item = new ItemStack(Material.STICK);
+        private ItemStack item = MCCreativeLabExtension.getCustomResourcePack().getEmptyItem().createItem();
         public boolean popGUIStack = false;
         public boolean clearGUIStackAndClose = false;
         Consumer<ItemMeta> metaSetup = meta -> {
@@ -48,10 +49,6 @@ public class ClickableItem {
 
         public Builder(Material material) {
             this.item = new ItemStack(material);
-        }
-
-        public Builder(CustomItemData customItemData) {
-            this(customItemData.createStack());
         }
 
         public Builder() {
@@ -85,6 +82,17 @@ public class ClickableItem {
         public Builder backToLastScreenOnClick() {
             popGUIStack = true;
             return this;
+        }
+
+        public Builder openGUI(Supplier<CustomGUIBuilder> supplyGUI){
+            return withClick((inventoryClickEvent, activeGUI) -> {
+                CustomGUIBuilder customGUIBuilder = supplyGUI.get();
+                customGUIBuilder.asNestedGUI((Player) inventoryClickEvent.getWhoClicked(), activeGUI, activeGUI::copyTemporaryDataFromGUI);
+            });
+        }
+
+        public Builder openGUI(CustomGUIBuilder customGUIBuilder){
+            return openGUI(() -> customGUIBuilder);
         }
 
         public Builder closeGUI() {

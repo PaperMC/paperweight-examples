@@ -4,6 +4,8 @@ import com.destroystokyo.paper.event.player.PlayerJumpEvent;
 import de.verdox.mccreativelab.MCCreativeLabExtension;
 import de.verdox.mccreativelab.generator.resourcepack.types.menu.events.PlayerMenuCloseEvent;
 import de.verdox.mccreativelab.generator.resourcepack.types.menu.events.PlayerMenuOpenEvent;
+import de.verdox.mccreativelab.util.player.fakeinv.FakeInventory;
+import io.papermc.paper.event.player.PlayerTrackEntityEvent;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.WeatherType;
@@ -15,6 +17,7 @@ import org.bukkit.event.entity.*;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryInteractEvent;
 import org.bukkit.event.player.*;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -51,6 +54,13 @@ public class MenuBehaviour implements Listener {
 
     public void start() {
         //player.doInventorySynchronization(false);
+
+        if (activeMenu.getCustomMenu().hideOtherPlayers) {
+            for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
+                player.hidePlayer(MCCreativeLabExtension.getInstance(), onlinePlayer);
+            }
+        }
+
         ItemStack[] fakeContents = new ItemStack[46];
 
         heldSlotBefore = player.getInventory().getHeldItemSlot();
@@ -67,19 +77,26 @@ public class MenuBehaviour implements Listener {
 
         Location locationOnOpen = getLocationOnOpen();
 
+        if (!MCCreativeLabExtension.isServerSoftware()) {
+            FakeInventory.setFakeInventoryOfPlayer(player);
+
+        }
 
         this.posUpdaterTask = Bukkit.getScheduler().runTaskTimer(platformPlugin, () -> {
             player.getInventory().setHeldItemSlot(4);
             fakeContents[45] = activeMenu.getActiveBackgroundPicture();
-            player.sendFakeInventoryContents(fakeContents);
+            if (MCCreativeLabExtension.isServerSoftware())
+                player.sendFakeInventoryContents(fakeContents);
+            else
+                player.getInventory().setItem(EquipmentSlot.OFF_HAND, activeMenu.getActiveBackgroundPicture());
 
-            if(!activeMenu.getCustomMenu().doYawPitchLock && !activeMenu.getCustomMenu().doPositionLoc)
+            if (!activeMenu.getCustomMenu().doYawPitchLock && !activeMenu.getCustomMenu().doPositionLoc)
                 return;
 
             if (player.getLocation().getYaw() == 0 && player.getLocation().getPitch() == -90 && activeMenu.getCustomMenu().doYawPitchLock)
                 return;
 
-            if(locationOnOpen != null)
+            if (locationOnOpen != null)
                 player.teleport(locationOnOpen);
         }, 0L, 1L);
 
@@ -97,15 +114,16 @@ public class MenuBehaviour implements Listener {
 
         if (activeMenu.getCustomMenu().doYawPitchLock)
             location = new Location(player.getLocation().getWorld(), player.getLocation().getBlockX() + 0.5, player.getLocation().getY(), player.getLocation().getBlockZ() + 0.5, 0, -90);
-        else if(activeMenu.getCustomMenu().doPositionLoc)
+        else if (activeMenu.getCustomMenu().doPositionLoc)
             location = new Location(player.getLocation().getWorld(), player.getLocation().getBlockX() + 0.5, player.getLocation().getY(), player.getLocation().getBlockZ() + 0.5, player.getYaw(), player.getPitch());
         return location;
     }
 
     public void close() {
-
         player.resetPlayerTime();
         player.resetPlayerWeather();
+
+        FakeInventory.stopFakeInventoryOfPlayer(player);
 
         Bukkit.getPluginManager().callEvent(new PlayerMenuCloseEvent(player, activeMenu));
 
@@ -124,6 +142,11 @@ public class MenuBehaviour implements Listener {
             onEnd.run();
 
         player.removeMetadata("hasMenuOpen", MCCreativeLabExtension.getInstance());
+        if (activeMenu.getCustomMenu().hideOtherPlayers) {
+            for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
+                player.showPlayer(MCCreativeLabExtension.getInstance(), onlinePlayer);
+            }
+        }
     }
 
     private boolean isRightPlayer(Player player) {
@@ -135,7 +158,7 @@ public class MenuBehaviour implements Listener {
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
-    private void onQuit(PlayerQuitEvent e) {
+    public void onQuit(PlayerQuitEvent e) {
         if (!isRightPlayer(e.getPlayer()))
             return;
 
@@ -143,14 +166,14 @@ public class MenuBehaviour implements Listener {
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
-    private void onDamage(EntityDamageByBlockEvent e) {
+    public void onDamage(EntityDamageByBlockEvent e) {
         if (!isRightPlayer(e.getEntity()))
             return;
         e.setCancelled(true);
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
-    private void onDamage(EntityDamageByEntityEvent e) {
+    public void onDamage(EntityDamageByEntityEvent e) {
         if (!isRightPlayer(e.getEntity()))
             return;
         e.setCancelled(true);
@@ -164,42 +187,52 @@ public class MenuBehaviour implements Listener {
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
-    private void onQuit(PlayerKickEvent e) {
+    public void onQuit(PlayerKickEvent e) {
         if (!isRightPlayer(e.getPlayer()))
             return;
         close();
     }
 
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void track(PlayerTrackEntityEvent e) {
+        if (!isRightPlayer(e.getEntity()))
+            return;
+        if (e.getEntity() instanceof Player) {
+            if (activeMenu.getCustomMenu().hideOtherPlayers)
+                e.setCancelled(true);
+        }
+    }
+
     @EventHandler
-    private void pickupItem(EntityPickupItemEvent e) {
+    public void pickupItem(EntityPickupItemEvent e) {
         if (!isRightPlayer(e.getEntity()))
             return;
         e.setCancelled(true);
     }
 
     @EventHandler
-    private void onInventoryClick(InventoryClickEvent e) {
+    public void onInventoryClick(InventoryClickEvent e) {
         if (!isRightPlayer((Player) e.getWhoClicked()))
             return;
         e.setCancelled(true);
     }
 
     @EventHandler
-    private void onInventoryClick(InventoryInteractEvent e) {
+    public void onInventoryClick(InventoryInteractEvent e) {
         if (!isRightPlayer((Player) e.getWhoClicked()))
             return;
         e.setCancelled(true);
     }
 
     @EventHandler
-    private void onSwap(PlayerSwapHandItemsEvent e) {
+    public void onSwap(PlayerSwapHandItemsEvent e) {
         if (!isRightPlayer(e.getPlayer()))
             return;
         e.setCancelled(true);
     }
 
     @EventHandler
-    private void playerHeldItemEvent(PlayerItemHeldEvent e) {
+    public void playerHeldItemEvent(PlayerItemHeldEvent e) {
         if (!isRightPlayer(e.getPlayer()))
             return;
         e.setCancelled(true);

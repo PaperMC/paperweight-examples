@@ -1,6 +1,7 @@
 package de.verdox.mccreativelab.world.block;
 
 import de.verdox.mccreativelab.MCCreativeLab;
+import de.verdox.mccreativelab.MCCreativeLabExtension;
 import de.verdox.mccreativelab.behaviour.MCCWorldHook;
 import de.verdox.mccreativelab.util.PaletteUtil;
 import de.verdox.mccreativelab.util.nbt.NBTContainer;
@@ -18,6 +19,8 @@ public class FakeBlockContainer implements NBTPersistent {
     }
 
     public static boolean setFakeBlockState(Location location, @Nullable FakeBlock.FakeBlockState fakeBlockState, boolean updateBlockData, boolean forceLoad) {
+        if(!MCCreativeLabExtension.isServerSoftware())
+            return false;
         long chunkKey = Chunk.getChunkKey(location);
         World world = location.getWorld();
         boolean isChunkLoaded = world.isChunkLoaded((int) chunkKey, (int) (chunkKey >> 32));
@@ -38,6 +41,8 @@ public class FakeBlockContainer implements NBTPersistent {
     }
 
     public static @Nullable FakeBlock.FakeBlockState getFakeBlockState(Location location, boolean forceLoad) {
+        if(!MCCreativeLabExtension.isServerSoftware())
+            return null;
         if (location.getBlockY() > location.getWorld().getMaxHeight()) {
             Bukkit.getLogger().warning("Tried to read a fakeblockstate at ("+location.getBlockX()+", "+location.getBlockY()+", "+location.getBlockZ()+") above world max height"+location.getWorld().getMaxHeight());
             for (StackTraceElement stackTraceElement : Thread.currentThread().getStackTrace()) {

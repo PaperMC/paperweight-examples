@@ -2,10 +2,7 @@ package de.verdox.mccreativelab.generator.resourcepack.types.gui;
 
 import de.verdox.mccreativelab.MCCreativeLabExtension;
 import de.verdox.mccreativelab.event.GUICloseEvent;
-import de.verdox.mccreativelab.util.nbt.NBTContainer;
-import de.verdox.mccreativelab.util.nbt.NBTPersistent;
 import org.bukkit.Bukkit;
-import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -13,21 +10,24 @@ import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.metadata.FixedMetadataValue;
 
 import java.util.Map;
 import java.util.Stack;
-import java.util.function.Supplier;
 
 /**
  * Tracks the GUIs opened by a player
  */
-public class PlayerGUIStack implements NBTPersistent, Listener {
+public class PlayerGUIStack implements Listener {
 
     private final Stack<StackElement> stack = new Stack<>();
     private final Player player;
 
     static PlayerGUIStack load(Player player) {
-        return player.getPersistentDataContainer().getPersistentDataObjectCache().loadOrSupplyPersistentDataObject(new NamespacedKey("mccreativelab", "gui_stack"), () -> new PlayerGUIStack(player));
+        if(!player.hasMetadata("playerGUIStack"))
+            player.setMetadata("playerGUIStack", new FixedMetadataValue(MCCreativeLabExtension.getInstance(), new PlayerGUIStack(player)));
+
+        return (PlayerGUIStack) player.getMetadata("playerGUIStack").get(0).value();
     }
 
     public PlayerGUIStack(Player player) {
@@ -47,15 +47,19 @@ public class PlayerGUIStack implements NBTPersistent, Listener {
         if (stack.isEmpty() || e.getReason().equals(InventoryCloseEvent.Reason.OPEN_NEW))
             return;
         if(e.getReason().equals(InventoryCloseEvent.Reason.PLAYER)){
-            StackElement stackElement = stack.pop();
-
-            if (stackElement.activeGUI.getComponentRendered().equals(e.getActiveGUI().getComponentRendered()))
-                return;
-
-            stackElement.activeGUI.openToPlayer(e.getPlayer());
+            popAndOpenLast(e.getPlayer(), e.getActiveGUI());
         }
         else
             clear();
+    }
+
+    public void popAndOpenLast(Player player, ActiveGUI activeGUI) {
+        StackElement stackElement = stack.pop();
+
+        if (stackElement.activeGUI.getComponentRendered().equals(activeGUI.getComponentRendered()))
+            return;
+
+        stackElement.activeGUI.openToPlayer(player);
     }
 
     public void trackGUI(ActiveGUI activeGUI) {
@@ -65,17 +69,6 @@ public class PlayerGUIStack implements NBTPersistent, Listener {
 
     public void clear() {
         stack.clear();
-    }
-
-
-    @Override
-    public void saveNBTData(NBTContainer storage) {
-
-    }
-
-    @Override
-    public void loadNBTData(NBTContainer storage) {
-
     }
 
     private record StackElement(ActiveGUI activeGUI, Map<String, Object> tempData) {

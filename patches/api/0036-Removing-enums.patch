@@ -33,7 +33,7 @@ index 0000000000000000000000000000000000000000..87f9a7403c5165066743e9ad4bb6ebac
 +    }
 +}
 diff --git a/src/main/java/io/papermc/paper/registry/RegistryKey.java b/src/main/java/io/papermc/paper/registry/RegistryKey.java
-index 2945dde566682f977e84fde5d473a6c69be24df1..662a357884ef3bb52d9fb77546e1f50dbc88a6f9 100644
+index d8716f855806471728c35b3ec34efb808a5146cf..22c609cb0fb2881fef9844d4e0b20299bbdf9bd3 100644
 --- a/src/main/java/io/papermc/paper/registry/RegistryKey.java
 +++ b/src/main/java/io/papermc/paper/registry/RegistryKey.java
 @@ -1,13 +1,7 @@
@@ -51,14 +51,12 @@ index 2945dde566682f977e84fde5d473a6c69be24df1..662a357884ef3bb52d9fb77546e1f50d
  import org.bukkit.attribute.Attribute;
  import org.bukkit.block.Biome;
  import org.bukkit.block.BlockType;
-@@ -132,10 +126,13 @@ public sealed interface RegistryKey<T> extends Keyed permits RegistryKeyImpl {
+@@ -170,8 +164,11 @@ public sealed interface RegistryKey<T> extends Keyed permits RegistryKeyImpl {
       * API-only Registries *
       * ******************* */
      RegistryKey<Art> PAINTING_VARIANT = create("painting_variant");
 +    RegistryKey<PoiType> POI_TYPE = create("point_of_interest_type");
      RegistryKey<Attribute> ATTRIBUTE = create("attribute");
-     RegistryKey<PatternType> BANNER_PATTERN = create("banner_pattern");
-     RegistryKey<Cat.Type> CAT_VARIANT = create("cat_variant");
      RegistryKey<EntityType> ENTITY_TYPE = create("entity_type");
 +    RegistryKey<EntitySchedule> ENTITY_SCHEDULE = create("schedule");
 +    RegistryKey<EntityActivity> ENTITY_ACTIVITY = create("activity");
@@ -193,7 +191,7 @@ index 0000000000000000000000000000000000000000..3cd35eddfb5e7d6d728eb46309e58e62
 +    }
 +}
 diff --git a/src/main/java/org/bukkit/Registry.java b/src/main/java/org/bukkit/Registry.java
-index 20015393f91af405c99db2635a471fb6ff19e4bf..67adc8456a6db271fa8caa514e4affca5626e3aa 100644
+index d81f687cba38ec930c555b001afc0df93c21731b..cab6256d61872dd10b64407dba88b3b3ede300b5 100644
 --- a/src/main/java/org/bukkit/Registry.java
 +++ b/src/main/java/org/bukkit/Registry.java
 @@ -10,6 +10,8 @@ import java.util.Objects;
@@ -205,7 +203,7 @@ index 20015393f91af405c99db2635a471fb6ff19e4bf..67adc8456a6db271fa8caa514e4affca
  import org.bukkit.advancement.Advancement;
  import org.bukkit.attribute.Attribute;
  import org.bukkit.block.Biome;
-@@ -82,7 +84,7 @@ public interface Registry<T extends Keyed> extends Iterable<T> {
+@@ -83,7 +85,7 @@ public interface Registry<T extends Keyed> extends Iterable<T> {
       *
       * @see Attribute
       */
@@ -214,7 +212,7 @@ index 20015393f91af405c99db2635a471fb6ff19e4bf..67adc8456a6db271fa8caa514e4affca
      /**
       * Server banner patterns.
       *
-@@ -177,6 +179,26 @@ public interface Registry<T extends Keyed> extends Iterable<T> {
+@@ -178,6 +180,26 @@ public interface Registry<T extends Keyed> extends Iterable<T> {
       * @see Material
       */
      Registry<Material> MATERIAL = new SimpleRegistry<>(Material.class, (mat) -> !mat.isLegacy());
@@ -239,7 +237,7 @@ index 20015393f91af405c99db2635a471fb6ff19e4bf..67adc8456a6db271fa8caa514e4affca
 +     */
 +    Registry<EntityActivity> ENTITY_ACTIVITY = io.papermc.paper.registry.RegistryAccess.registryAccess().getRegistry(RegistryKey.ENTITY_ACTIVITY); // Paper
      /**
-      * Server mob effects.
+      * Server menus.
       *
 diff --git a/src/main/java/org/bukkit/attribute/Attribute.java b/src/main/java/org/bukkit/attribute/Attribute.java
 index 947874c0172b690e7752e49b7bec64e0c0308515..da85d1e211f93b5ceba95878e3d6a8f3c3bf2ef5 100644

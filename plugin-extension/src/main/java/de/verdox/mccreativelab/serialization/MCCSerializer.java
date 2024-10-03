@@ -1,5 +1,6 @@
 package de.verdox.mccreativelab.serialization;
 
+import de.verdox.mccreativelab.MCCreativeLabExtension;
 import de.verdox.mccreativelab.recipe.CustomItemData;
 import de.verdox.mccreativelab.util.nbt.NBTContainer;
 import de.verdox.mccreativelab.wrapper.block.MCCBlockType;
@@ -30,20 +31,22 @@ public class MCCSerializer {
 
         instance.registerSerializer("vanilla_entity_type", MCCEntityType.Vanilla.class, MCCEntityType.Vanilla.INSTANCE);
 
-        instance.registerSerializer("item_type", CustomItemData.class, new NBTSerializer<>() {
-            @Override
-            public void serialize(CustomItemData data, NBTContainer nbtContainer) {
-                nbtContainer.set("type", data.material().name());
-                nbtContainer.set("custom_model_data", data.customModelData());
-            }
+        if(MCCreativeLabExtension.isServerSoftware()){
+            instance.registerSerializer("item_type", CustomItemData.class, new NBTSerializer<>() {
+                @Override
+                public void serialize(CustomItemData data, NBTContainer nbtContainer) {
+                    nbtContainer.set("type", data.material().name());
+                    nbtContainer.set("custom_model_data", data.customModelData());
+                }
 
-            @Override
-            public CustomItemData deserialize(NBTContainer nbtContainer) {
-                if(!nbtContainer.has("type") || !nbtContainer.has("custom_model_data"))
-                    return null;
-                return new CustomItemData(Material.valueOf(nbtContainer.getString("type")), nbtContainer.getInt("custom_model_data"));
-            }
-        });
+                @Override
+                public CustomItemData deserialize(NBTContainer nbtContainer) {
+                    if(!nbtContainer.has("type") || !nbtContainer.has("custom_model_data"))
+                        return null;
+                    return new CustomItemData(Material.valueOf(nbtContainer.getString("type")), nbtContainer.getInt("custom_model_data"));
+                }
+            });
+        }
     }
 
     private final Map<Class<?>, NBTSerializer<?>> storedSerializers = new HashMap<>();

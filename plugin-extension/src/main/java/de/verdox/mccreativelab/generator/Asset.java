@@ -94,7 +94,7 @@ public record Asset<C extends CustomPack<C>>(Supplier<InputStream> assetInputStr
             else
                 Bukkit.getLogger().info("Could not install "+namespacedKey+" cause it already exists");
             if (installationCallback != null)
-                installationCallback.accept(savePath.toPath().toFile());
+                installationCallback.accept(pathToCopyTo.toFile());
 
             AssetPath pathOfAssetFromLastInstallation = getPathRelativeToPack(customPack, namespacedKey, assetType).withNewParentPath(customPack.getPathOfOldPack());
 /*            Path oldFilePath = Path.of(pathOfAssetFromLastInstallation.toPath() + fileEnding);

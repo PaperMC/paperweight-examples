@@ -1,5 +1,6 @@
 plugins {
     java
+    //id("io.papermc.paperweight.userdev") version "1.7.3"
 }
 
 description = "plugin-extension"
@@ -15,7 +16,8 @@ allprojects {
         toolchain.languageVersion.set(JavaLanguageVersion.of(21))
     }
     dependencies {
-        compileOnly(project(":mccreativelab-api"))
+        //compileOnly(project(":mccreativelab-api"))
+        //paperweight.devBundle("de.verdox.mccreativelab", "1.21.1-R0.1-SNAPSHOT")
 
         compileOnly("com.hierynomus:sshj:0.38.0")
         compileOnly("io.vertx:vertx-core:4.5.0")
@@ -29,6 +31,8 @@ allprojects {
     }
 
     repositories {
+        mavenLocal()
+        mavenCentral()
         maven {
             url = uri("https://papermc.io/repo/repository/maven-public/")
         }

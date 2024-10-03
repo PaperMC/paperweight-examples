@@ -242,10 +242,10 @@ index 9549eee0d92f322bd5232abd7e695213660c2e22..9a1c4f05dda8b6d88fe2c24bd80464b8
 +    // MCCreativeLab end - Add InventoryHopperBehaviour
  }
 diff --git a/src/main/java/net/minecraft/world/entity/vehicle/ChestBoat.java b/src/main/java/net/minecraft/world/entity/vehicle/ChestBoat.java
-index 4cdf3b54187ebcb1f5ddfa6114386127a2846f01..74f8e18ce8b28dc1e3c6ef95c956b27bbf4d6afc 100644
+index c14019a131c90c699b8a76bada82592b66f0fa89..5bee417ca7a183c683fea0525446be05808a34d4 100644
 --- a/src/main/java/net/minecraft/world/entity/vehicle/ChestBoat.java
 +++ b/src/main/java/net/minecraft/world/entity/vehicle/ChestBoat.java
-@@ -319,4 +319,26 @@ public class ChestBoat extends Boat implements HasCustomInventoryScreen, Contain
+@@ -318,4 +318,26 @@ public class ChestBoat extends Boat implements HasCustomInventoryScreen, Contain
          return this.getBukkitEntity().getLocation();
      }
      // CraftBukkit end

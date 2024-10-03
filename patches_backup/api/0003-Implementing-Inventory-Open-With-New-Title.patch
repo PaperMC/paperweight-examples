@@ -5,7 +5,7 @@ Subject: [PATCH] Implementing Inventory Open With New Title
 
 
 diff --git a/src/main/java/org/bukkit/entity/HumanEntity.java b/src/main/java/org/bukkit/entity/HumanEntity.java
-index ee866f3497ed56708d4062685f5585ca06a03955..16112efd9b1286cc88d70c476ae8ad8ae7f81f6e 100644
+index 773651350c17cae9058346a590eda758071b7447..4aaca82e20bd81544d9dc9fe3872fda9418e2330 100644
 --- a/src/main/java/org/bukkit/entity/HumanEntity.java
 +++ b/src/main/java/org/bukkit/entity/HumanEntity.java
 @@ -2,6 +2,8 @@ package org.bukkit.entity;
@@ -17,7 +17,7 @@ index ee866f3497ed56708d4062685f5585ca06a03955..16112efd9b1286cc88d70c476ae8ad8a
  import org.bukkit.GameMode;
  import org.bukkit.Location;
  import org.bukkit.Material;
-@@ -111,6 +113,17 @@ public interface HumanEntity extends LivingEntity, AnimalTamer, InventoryHolder
+@@ -113,6 +115,17 @@ public interface HumanEntity extends LivingEntity, AnimalTamer, InventoryHolder
      @Nullable
      public InventoryView openInventory(@NotNull Inventory inventory);
  

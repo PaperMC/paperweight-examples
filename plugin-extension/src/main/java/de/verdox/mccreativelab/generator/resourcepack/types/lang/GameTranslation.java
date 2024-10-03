@@ -8,6 +8,7 @@ import net.kyori.adventure.text.TranslatableComponent;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.translation.TranslationRegistry;
+import org.bukkit.Keyed;
 import org.bukkit.entity.Player;
 
 import java.util.LinkedList;

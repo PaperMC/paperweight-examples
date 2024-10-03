@@ -87,7 +87,7 @@ public class CustomResourcePack extends CustomPack<CustomResourcePack> {
         Asset<CustomResourcePack> spaceFont = new Asset<>(() -> CustomResourcePack.class.getResourceAsStream("/space/font/default.json"));
         Asset<CustomResourcePack> spaceLanguage = new Asset<>(() -> CustomResourcePack.class.getResourceAsStream("/space/lang/en_us.json"));
         Asset<CustomResourcePack> spaceSplitterTexture = new Asset<>(() -> CustomResourcePack.class.getResourceAsStream("/space/textures/font/splitter.png"));
-        Asset<CustomResourcePack> minecraftFontWithSpaceChars = new Asset<>(() -> CustomResourcePack.class.getResourceAsStream("/font/default.json"));
+        //Asset<CustomResourcePack> minecraftFontWithSpaceChars = new Asset<>(() -> CustomResourcePack.class.getResourceAsStream("/font/default.json"));
 
         AssetBasedResourcePackResource spaceFontResource = new AssetBasedResourcePackResource(new NamespacedKey("space", "default"), spaceFont, ResourcePackAssetTypes.FONT, "json");
         register(spaceFontResource);
@@ -95,8 +95,8 @@ public class CustomResourcePack extends CustomPack<CustomResourcePack> {
         register(spaceLanguageResource);
         AssetBasedResourcePackResource spaceSplitterTextureResource = new AssetBasedResourcePackResource(new NamespacedKey("space", "font/splitter"), spaceSplitterTexture, ResourcePackAssetTypes.TEXTURES, "png");
         register(spaceSplitterTextureResource);
-        AssetBasedResourcePackResource minecraftFontWithSpaceCharsResource = new AssetBasedResourcePackResource(new NamespacedKey("minecraft", "default"), minecraftFontWithSpaceChars, ResourcePackAssetTypes.FONT, "json");
-        register(minecraftFontWithSpaceCharsResource);
+/*        AssetBasedResourcePackResource minecraftFontWithSpaceCharsResource = new AssetBasedResourcePackResource(new NamespacedKey("minecraft", "default"), minecraftFontWithSpaceChars, ResourcePackAssetTypes.FONT, "json");
+        register(minecraftFontWithSpaceCharsResource);*/
 
         for (Resolution value : Resolution.values())
             register(value.getResolutionItemModel());

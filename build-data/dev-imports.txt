@@ -31,3 +31,4 @@ minecraft net.minecraft.world.level.levelgen.structure.structures.JigsawStructur
 minecraft net.minecraft.data.worldgen.Structures
 minecraft net.minecraft.world.level.levelgen.structure.BuiltinStructures
 minecraft net.minecraft.data.worldgen.StructureSets
+minecraft net.minecraft.world.level.levelgen.NoiseChunk

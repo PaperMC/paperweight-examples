@@ -1,6 +1,7 @@
 package de.verdox.mccreativelab.util.gson;
 
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 
 import java.util.function.Consumer;
 
@@ -25,6 +26,11 @@ public class JsonArrayBuilder extends JsonElementBuilder<JsonArray> {
     }
 
     public JsonArrayBuilder add(String value) {
+        element.add(value);
+        return this;
+    }
+
+    public JsonArrayBuilder add(JsonElement value) {
         element.add(value);
         return this;
     }

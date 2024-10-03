@@ -5,6 +5,8 @@ import de.verdox.mccreativelab.generator.resourcepack.types.rendered.element.Hud
 import de.verdox.mccreativelab.generator.resourcepack.types.rendered.element.single.SingleHudText;
 import de.verdox.mccreativelab.util.io.StringAlign;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.Style;
+import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
@@ -47,7 +49,7 @@ public abstract class ActiveComponentRendered<T extends ActiveComponentRendered<
             return -1;
         })).toList();
 
-        forEachElementBehavior((activeHudRenderedHudElementBehavior, rendered) -> activeHudRenderedHudElementBehavior.onOpen((T) this, rendered));
+        forEachElementBehavior((activeHudRenderedHudElementBehavior, rendered) -> activeHudRenderedHudElementBehavior.onOpen((T) this, rendered), true);
     }
 
     public <R> ActiveComponentRendered<T, C> addTemporaryData(String key, @Nullable R value) {
@@ -67,7 +69,7 @@ public abstract class ActiveComponentRendered<T extends ActiveComponentRendered<
         return type.cast(tempData.getOrDefault(key, defaultVal));
     }
 
-    public final void forEachElementBehavior(BiConsumer<RenderedElementBehavior<T, HudElement.Rendered<?>>, HudElement.Rendered<?>> forEach) {
+    public final void forEachElementBehavior(BiConsumer<RenderedElementBehavior<T, HudElement.Rendered<?>>, HudElement.Rendered<?>> forEach, boolean forceUpdate) {
         for (HudElement.Rendered<?> rendered : this.sorted) {
             HudElement hudElement = rendered.getHudElement();
             RenderedElementBehavior<T, HudElement.Rendered<?>> behavior = (RenderedElementBehavior<T, HudElement.Rendered<?>>) componentRendered
@@ -75,7 +77,8 @@ public abstract class ActiveComponentRendered<T extends ActiveComponentRendered<
             if (behavior != null)
                 forEach.accept(behavior, rendered);
         }
-        forceUpdate();
+        if(forceUpdate)
+            forceUpdate();
     }
 
     public final void hideAll() {
@@ -112,7 +115,7 @@ public abstract class ActiveComponentRendered<T extends ActiveComponentRendered<
             }
 
 
-            lastRendered = component;
+            lastRendered = component.style(Style.empty());
             needsUpdate = false;
         }
         return lastRendered;
