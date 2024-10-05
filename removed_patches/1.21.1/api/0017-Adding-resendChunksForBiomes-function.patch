@@ -5,10 +5,10 @@ Subject: [PATCH] Adding resendChunksForBiomes function
 
 
 diff --git a/src/main/java/org/bukkit/World.java b/src/main/java/org/bukkit/World.java
-index deaf45aecab653efdb8381e714a93871972f433e..d11dbfe1a82320ff76d29a073fc159c73e895b7f 100644
+index 4ae956ae0abd6d0970848a811976c88a255168a0..76561dc9c038a78930e07d1381b48e280c3019e1 100644
 --- a/src/main/java/org/bukkit/World.java
 +++ b/src/main/java/org/bukkit/World.java
-@@ -2355,6 +2355,12 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
+@@ -2336,6 +2336,12 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
      @Nullable
      public BiomeProvider getBiomeProvider();
  

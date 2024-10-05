@@ -66,7 +66,7 @@ index e8d857aa900eeda485ce81019cacaaaa3be8a019..d004a89c5b0425b39b63e1c3052535dd
              }
          };
 diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
-index ad740739437be632fc7fedec488a7d0c49534688..918cb8c84339682260f14ab1ff8da88bf9b0d2ac 100644
+index 42d7660efe5baa6f796f2a7606686c765b6f2478..f9698cb3082404f90c63a2208c7d520cea7181c6 100644
 --- a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
 +++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
 @@ -929,6 +929,31 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
@@ -101,7 +101,7 @@ index ad740739437be632fc7fedec488a7d0c49534688..918cb8c84339682260f14ab1ff8da88b
      @Override
      public <T> void playEffect(Location loc, Effect effect, T data) {
          Preconditions.checkArgument(effect != null, "Effect cannot be null");
-@@ -1538,6 +1563,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
+@@ -1543,6 +1568,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
      @Deprecated
      @Override
      public void updateInventory() {

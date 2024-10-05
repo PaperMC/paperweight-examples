@@ -5,7 +5,7 @@ Subject: [PATCH] Removing enums for pack asset types
 
 
 diff --git a/src/main/java/de/verdox/mccreativelab/CraftDataPackInterceptor.java b/src/main/java/de/verdox/mccreativelab/CraftDataPackInterceptor.java
-index 7c013cf076255902668fbe2e3a3426d11e29ff67..78ef6ae36d72bd8d71560d0a5c90b8c5bff3b9f5 100644
+index f8dcc2863b242dcb58869bfbab4914f595bbb874..bc35313a672a4ee0b15cdf22e3fd0d7747a27e9d 100644
 --- a/src/main/java/de/verdox/mccreativelab/CraftDataPackInterceptor.java
 +++ b/src/main/java/de/verdox/mccreativelab/CraftDataPackInterceptor.java
 @@ -69,7 +69,7 @@ public class CraftDataPackInterceptor implements DataPackInterceptor {

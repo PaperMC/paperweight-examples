@@ -137,10 +137,10 @@ index 0000000000000000000000000000000000000000..0efa9f3d64eaac6059d39920cb9394a8
 +    }
 +}
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-index ae8d168b8779342debfdd7cc207bce3ac8953d23..310e5b13078cf02bc0179cbdacdbb681dea786e2 100644
+index 82c204ac42c6f73ceaf9b2d6e9c216e34518adf4..cef73e8e31462837a490a8f318c9da3b419b746e 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-@@ -1409,6 +1409,11 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+@@ -1452,6 +1452,11 @@ public class CraftWorld extends CraftRegionAccessor implements World {
          return this.getHandle().moonrise$getPlayerChunkLoader().getAPITickDistance(); // Paper - rewrite chunk system
      }
  

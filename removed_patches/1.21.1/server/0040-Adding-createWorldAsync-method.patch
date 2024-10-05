@@ -325,10 +325,10 @@ index 63374a66c399139256f7cc75979978b27574bf72..f3ede58efd53d2622ccf0c244d75674e
      public java.util.stream.Stream<org.bukkit.block.data.BlockData> streamAllBlockDataVariants(org.bukkit.Material blockMaterial) {
          if(!blockMaterial.isBlock())
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index 55fa49c519b8ab867b845683010597504d1395ff..284e93b36eb61b96c506b2d550c2bc9392d113da 100644
+index f4b5c0b7fd1cb1bd702feb6e1d7f86a240a432ab..4cf242d41f094a1d641a47dd174f90d2114fd736 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
-@@ -797,7 +797,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -796,7 +796,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
      }
      // CraftBukkit end
  
@@ -337,7 +337,7 @@ index 55fa49c519b8ab867b845683010597504d1395ff..284e93b36eb61b96c506b2d550c2bc93
          if (debugWorld) {
              worldProperties.setSpawn(BlockPos.ZERO.above(80), 0.0F);
          } else {
-@@ -864,7 +864,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -863,7 +863,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
          }
      }
  
