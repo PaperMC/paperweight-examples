@@ -77,7 +77,7 @@ index f41da0a94007aca4a50f88afffc827b4585109d3..5b97437571054882e696607f50d7ee3c
 +                    BlockState iblockdata1 = world.getBlockState(blockposition);
 +
 +                    if (iblockdata1.is(iblockdata.getBlock())) {
-+                        iblockdata1 = this.updateBlockStateFromTag(null, blockposition, world, itemstack, iblockdata1);
++                        iblockdata1 = this.updateBlockStateFromTag(blockposition, world, itemstack, iblockdata1);
 +                        // Paper start - Reset placed block on exception
 +                        try {
 +                            this.updateCustomBlockEntityTag(blockposition, world, null, itemstack, iblockdata1);

@@ -16,7 +16,9 @@ allprojects {
         toolchain.languageVersion.set(JavaLanguageVersion.of(21))
     }
     dependencies {
-        //compileOnly(project(":mccreativelab-api"))
+        compileOnly(project(":mccreativelab-api"))
+        implementation(project(":mcc-util"))
+
         //paperweight.devBundle("de.verdox.mccreativelab", "1.21.1-R0.1-SNAPSHOT")
 
         compileOnly("com.hierynomus:sshj:0.38.0")

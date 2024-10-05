@@ -4,19 +4,6 @@ Date: Wed, 1 May 2024 14:54:55 +0000
 Subject: [PATCH] Add brokenState variable to BlockBreakEvent
 
 
-diff --git a/src/test/java/org/bukkit/plugin/TimedRegisteredListenerTest.java b/src/test/java/org/bukkit/plugin/TimedRegisteredListenerTest.java
-index 9ed416ed57676c845833736f93ed6088513c6da4..90ee4cdc682434aed66a98a687b2c549a6f381c4 100644
---- a/src/test/java/org/bukkit/plugin/TimedRegisteredListenerTest.java
-+++ b/src/test/java/org/bukkit/plugin/TimedRegisteredListenerTest.java
-@@ -25,7 +25,7 @@ public class TimedRegisteredListenerTest {
- 
-         PlayerInteractEvent interactEvent = new PlayerInteractEvent(null, null, null, null, null);
-         PlayerMoveEvent moveEvent = new PlayerMoveEvent(null, null, null);
--        BlockBreakEvent breakEvent = new BlockBreakEvent(null, null);
-+        BlockBreakEvent breakEvent = new BlockBreakEvent(null, null, null);
- 
-         TimedRegisteredListener trl = new TimedRegisteredListener(listener, executor, EventPriority.NORMAL, plugin, false);
- 
 diff --git a/src/main/java/org/bukkit/event/block/BlockBreakEvent.java b/src/main/java/org/bukkit/event/block/BlockBreakEvent.java
 index 691733a642b3295bbe6d484be728c77cd32803bd..4fb16ab0189a8c017d41034d43064344e226cce9 100644
 --- a/src/main/java/org/bukkit/event/block/BlockBreakEvent.java
@@ -46,3 +33,16 @@ index 691733a642b3295bbe6d484be728c77cd32803bd..4fb16ab0189a8c017d41034d43064344
      /**
       * Gets the Player that is breaking the block involved in this event.
       *
+diff --git a/src/test/java/org/bukkit/plugin/TimedRegisteredListenerTest.java b/src/test/java/org/bukkit/plugin/TimedRegisteredListenerTest.java
+index 9ed416ed57676c845833736f93ed6088513c6da4..90ee4cdc682434aed66a98a687b2c549a6f381c4 100644
+--- a/src/test/java/org/bukkit/plugin/TimedRegisteredListenerTest.java
++++ b/src/test/java/org/bukkit/plugin/TimedRegisteredListenerTest.java
+@@ -25,7 +25,7 @@ public class TimedRegisteredListenerTest {
+ 
+         PlayerInteractEvent interactEvent = new PlayerInteractEvent(null, null, null, null, null);
+         PlayerMoveEvent moveEvent = new PlayerMoveEvent(null, null, null);
+-        BlockBreakEvent breakEvent = new BlockBreakEvent(null, null);
++        BlockBreakEvent breakEvent = new BlockBreakEvent(null, null, null);
+ 
+         TimedRegisteredListener trl = new TimedRegisteredListener(listener, executor, EventPriority.NORMAL, plugin, false);
+ 

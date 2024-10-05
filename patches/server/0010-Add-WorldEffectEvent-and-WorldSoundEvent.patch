@@ -134,10 +134,10 @@ index 0000000000000000000000000000000000000000..a808416df475ea14399e9e725f3a8788
 +
 +}
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index f9abf63e12ea930275121b470e4e4906cff0fc12..a39e571b6e1dc5c608652ca62bcaf11442ec7866 100644
+index 5b09c288c81f2eafc042d2fb50a69f55dadc925c..5b9b0e97753b69ffbf78cd6491bb40121d3795c2 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
-@@ -1645,27 +1645,22 @@ public class ServerLevel extends Level implements WorldGenLevel, ca.spottedleaf.
+@@ -1646,27 +1646,22 @@ public class ServerLevel extends Level implements WorldGenLevel, ca.spottedleaf.
  
      @Override
      public void playSeededSound(@Nullable Player source, double x, double y, double z, Holder<SoundEvent> sound, SoundSource category, float volume, float pitch, long seed) {

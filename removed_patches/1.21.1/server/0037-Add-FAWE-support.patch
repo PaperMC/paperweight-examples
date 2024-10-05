@@ -1,0 +1,35 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: verdox <mail.ysp@web.de>
+Date: Wed, 14 Aug 2024 00:38:37 +0000
+Subject: [PATCH] Add FAWE support
+
+
+diff --git a/src/main/java/net/minecraft/world/level/chunk/LevelChunkSection.java b/src/main/java/net/minecraft/world/level/chunk/LevelChunkSection.java
+index f16bd7f5a99417d5b3c213db9fe375c25781dd11..0f169b1e8ba51036b8262c8b88344b8ff01232ca 100644
+--- a/src/main/java/net/minecraft/world/level/chunk/LevelChunkSection.java
++++ b/src/main/java/net/minecraft/world/level/chunk/LevelChunkSection.java
+@@ -52,6 +52,24 @@ public class LevelChunkSection implements ca.spottedleaf.moonrise.patches.block_
+     }
+     // Paper end - block counting
+ 
++    // MCCreativeLab start - Add FAWE support
++    public LevelChunkSection(PalettedContainer<BlockState> datapaletteblock, PalettedContainer<Holder<Biome>> palettedcontainerro) {
++        // CraftBukkit end
++        this.states = datapaletteblock;
++        this.biomes = palettedcontainerro;
++        this.recalcBlockCounts();
++    }
++
++    public void init(net.minecraft.world.level.Level level, net.minecraft.world.level.ChunkPos chunkPos, int chunkSectionY){
++        if(this.level != null && this.chunkPos != null)
++            return;
++        this.level = level;
++        this.chunkPos = chunkPos;
++        this.chunkSectionY = chunkSectionY;
++        this.recalcBlockCounts();
++    }
++    // MCCreativeLab end - Add FAWE support
++
+     public LevelChunkSection(net.minecraft.world.level.Level level, net.minecraft.world.level.ChunkPos chunkPos, PalettedContainer<BlockState> datapaletteblock, PalettedContainer<Holder<Biome>> palettedcontainerro, int chunkSectionY) {
+         // CraftBukkit end
+         this.level = level;

@@ -24,7 +24,6 @@ dependencies {
     remapper("net.fabricmc:tiny-remapper:0.10.3:fat") // Must be kept in sync with upstream
     decompiler("org.vineflower:vineflower:1.10.1") // Must be kept in sync with upstream
     paperclip("io.papermc:paperclip:3.0.3") // You probably want this to be kept in sync with upstream
-    //implementation("com.squareup:javapoet:1.13.0")
 }
 
 allprojects {
@@ -92,7 +91,6 @@ paperweight {
 
 tasks.generateDevelopmentBundle {
     apiCoordinates.set("de.verdox.mccreativelab:mccreativelab-api")
-    //mojangApiCoordinates.set("io.papermc.paper:paper-mojangapi")
     libraryRepositories.set(
         listOf(
             //"https://repo.maven.apache.org/maven2/",

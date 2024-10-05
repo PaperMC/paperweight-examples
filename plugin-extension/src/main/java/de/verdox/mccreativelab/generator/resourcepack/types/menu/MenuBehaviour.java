@@ -53,8 +53,6 @@ public class MenuBehaviour implements Listener {
     }
 
     public void start() {
-        //player.doInventorySynchronization(false);
-
         if (activeMenu.getCustomMenu().hideOtherPlayers) {
             for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
                 player.hidePlayer(MCCreativeLabExtension.getInstance(), onlinePlayer);
@@ -129,7 +127,6 @@ public class MenuBehaviour implements Listener {
 
         player.getInventory().setHeldItemSlot(heldSlotBefore);
 
-        //player.doInventorySynchronization(true);
         player.updateInventory();
 
         HandlerList.unregisterAll(this);
