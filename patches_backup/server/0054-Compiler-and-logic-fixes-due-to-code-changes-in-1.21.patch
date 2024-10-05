@@ -143,23 +143,6 @@ index 6991cdfad5a4e5954731ad4b3598d1cda87507a2..2af88d8475201be5ee64ed36280d4113
          }
  
          public static void breedCallback(net.minecraft.world.entity.animal.Animal parent1, net.minecraft.world.entity.animal.Animal parent2, net.minecraft.world.entity.AgeableMob child){
-diff --git a/src/main/java/net/minecraft/server/level/ServerPlayer.java b/src/main/java/net/minecraft/server/level/ServerPlayer.java
-index c458fb393316fb11e3f28a375190d335012b2c03..345528d4d709fc8291a2db6187997b32d93be12d 100644
---- a/src/main/java/net/minecraft/server/level/ServerPlayer.java
-+++ b/src/main/java/net/minecraft/server/level/ServerPlayer.java
-@@ -1028,11 +1028,8 @@ public class ServerPlayer extends net.minecraft.world.entity.player.Player imple
- 
-         if (!keepInventory) {
-             for (ItemStack item : this.getInventory().getContents()) {
--<<<<<<< HEAD
-                 if (!item.isEmpty() && !EnchantmentHelper.has(item, EnchantmentEffectComponents.PREVENT_EQUIPMENT_DROP)) {
--=======
--                if (!item.isEmpty() && !EnchantmentHelper.hasVanishingCurse(item) && de.verdox.mccreativelab.behaviour.ItemBehaviourUtil.canDrop(item)) { // MCCreativeLab - Add ItemBehaviour
-->>>>>>> Adding behaviours
-+
-                     loot.add(new DefaultDrop(item, stack -> this.drop(stack, true, false, false))); // Paper - Restore vanilla drops behavior; drop function taken from Inventory#dropAll (don't fire drop event)
-                 }
-             }
 diff --git a/src/main/java/net/minecraft/stats/ServerStatsCounter.java b/src/main/java/net/minecraft/stats/ServerStatsCounter.java
 index 3ac6a6305faa4ac3ef340687d1ec3f795e831626..6db489cc6f32b4cdd3f35e783a9fc5e200c5435e 100644
 --- a/src/main/java/net/minecraft/stats/ServerStatsCounter.java

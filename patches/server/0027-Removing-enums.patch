@@ -5,7 +5,7 @@ Subject: [PATCH] Removing enums
 
 
 diff --git a/src/main/java/io/papermc/paper/registry/PaperRegistries.java b/src/main/java/io/papermc/paper/registry/PaperRegistries.java
-index 98b096339fe48b2fc8169ae0376e05d59236fc9a..19a0b85d0ddda0cd58608f7d64666af9b5bc1143 100644
+index 12220f78ffaf06433ada72fd0c7f22b97d55287d..d972781f9e7675985c155c7d83da2bf53aa904ca 100644
 --- a/src/main/java/io/papermc/paper/registry/PaperRegistries.java
 +++ b/src/main/java/io/papermc/paper/registry/PaperRegistries.java
 @@ -85,6 +85,11 @@ public final class PaperRegistries {
@@ -84,64 +84,6 @@ index 0000000000000000000000000000000000000000..af41fd04720694a46db4e50df05a0928
 +        return "CraftEntitySchedule{key=" + this.getKey() + "}";
 +    }
 +}
-diff --git a/src/main/java/org/bukkit/craftbukkit/CraftFoodProperties.java b/src/main/java/org/bukkit/craftbukkit/CraftFoodProperties.java
-deleted file mode 100644
-index a3307b0d9d5fc863e7117fa762212afcbcfa3067..0000000000000000000000000000000000000000
---- a/src/main/java/org/bukkit/craftbukkit/CraftFoodProperties.java
-+++ /dev/null
-@@ -1,52 +0,0 @@
--package org.bukkit.craftbukkit;
--
--import it.unimi.dsi.fastutil.Pair;
--import net.minecraft.world.effect.MobEffectInstance;
--import org.bukkit.craftbukkit.potion.CraftPotionUtil;
--import org.bukkit.potion.PotionEffect;
--
--import java.util.List;
--import java.util.stream.Collectors;
--
--public class CraftFoodProperties implements FoodProperties {
--    public static net.minecraft.world.food.FoodProperties toNMS(FoodProperties foodProperties){
--        return ((CraftFoodProperties) foodProperties).handle;
--    }
--
--    public static FoodProperties toBukkit(net.minecraft.world.food.FoodProperties foodProperties){
--        return new CraftFoodProperties(foodProperties);
--    }
--
--    private final net.minecraft.world.food.FoodProperties handle;
--    public CraftFoodProperties(net.minecraft.world.food.FoodProperties handle){
--        this.handle = handle;
--    }
--    @Override
--    public int getNutrition() {
--        return handle.nutrition();
--    }
--
--    @Override
--    public float getSaturationModifier() {
--        return handle.saturation();
--    }
--
--    @Override
--    public float getEatSeconds() {
--        return handle.eatSeconds();
--    }
--
--    @Override
--    public boolean canAlwaysEat() {
--        return handle.canAlwaysEat();
--    }
--
--    @Override
--    public List<Pair<PotionEffect, Float>> getEffects() {
--        return handle.effects().stream().map(potionEffectFloatPair -> {
--            MobEffectInstance mobEffectInstance = potionEffectFloatPair.effect();
--            float value = potionEffectFloatPair.probability();
--            return Pair.of(CraftPotionUtil.toBukkit(mobEffectInstance), value);
--        }).collect(Collectors.toList());
--    }
--}
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftPoiType.java b/src/main/java/org/bukkit/craftbukkit/CraftPoiType.java
 new file mode 100644
 index 0000000000000000000000000000000000000000..5c6d277657dcc5aa7a03cceb87124fa8dfcc24c0

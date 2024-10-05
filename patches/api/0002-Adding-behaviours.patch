@@ -1410,7 +1410,7 @@ diff --git a/src/main/java/io/papermc/paper/event/player/PlayerTradeEvent.java b
 old mode 100755
 new mode 100644
 diff --git a/src/main/java/org/bukkit/entity/Entity.java b/src/main/java/org/bukkit/entity/Entity.java
-index 725ef320f929d5e3d141c1ed3246d73a7d741f31..5a8d74f299692e946250a57202b878d88b469b6f 100644
+index d0ae8a94db20281d3664d74718c65234eb2e5f83..09dc6e36d4142743bbcce5b911a0318ad03bab81 100644
 --- a/src/main/java/org/bukkit/entity/Entity.java
 +++ b/src/main/java/org/bukkit/entity/Entity.java
 @@ -768,6 +768,35 @@ public interface Entity extends Metadatable, CommandSender, Nameable, Persistent
@@ -1450,7 +1450,7 @@ index 725ef320f929d5e3d141c1ed3246d73a7d741f31..5a8d74f299692e946250a57202b878d8
       * Add a tag to this entity.
       * <br>
 diff --git a/src/main/java/org/bukkit/inventory/ItemStack.java b/src/main/java/org/bukkit/inventory/ItemStack.java
-index b3abe3bde05d4a360e31e490bff8a859dc2bd4a6..8e3d171f27fb913c40dee718b78bc7c2f3cb5d78 100644
+index b59222b8c262545d100a9fd28b3bf1d2a4cf4eb0..25f7eee19da7369642e5d01b73d9de14200aa25a 100644
 --- a/src/main/java/org/bukkit/inventory/ItemStack.java
 +++ b/src/main/java/org/bukkit/inventory/ItemStack.java
 @@ -143,6 +143,7 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
@@ -1469,3 +1469,26 @@ index b3abe3bde05d4a360e31e490bff8a859dc2bd4a6..8e3d171f27fb913c40dee718b78bc7c2
      }
  
      /**
+@@ -1137,4 +1139,22 @@ public class ItemStack implements Cloneable, ConfigurationSerializable, Translat
+         return Bukkit.getUnsafe().computeTooltipLines(this, tooltipContext, player);
+     }
+     // Paper end - expose itemstack tooltip lines
++
++    // MCCLab start - Add ItemBehaviour as instance to this specific Item Stack
++    public void setItemBehaviour(@Nullable de.verdox.mccreativelab.behaviour.ItemBehaviour itemBehaviour){
++        this.craftDelegate.setItemBehaviour(itemBehaviour);
++    }
++
++    public boolean hasCustomItemBehaviour(){
++        return this.craftDelegate.hasCustomItemBehaviour();
++    }
++
++    public @Nullable de.verdox.mccreativelab.behaviour.ItemBehaviour getDefinedItemBehaviour(){
++        return this.craftDelegate.getDefinedItemBehaviour();
++    }
++
++    public @Nullable de.verdox.mccreativelab.behaviour.ItemBehaviour getItemBehaviour(){
++        return this.craftDelegate.getItemBehaviour();
++    }
++    // MCCLab end - Add ItemBehaviour as instance to this specific Item Stack
+ }

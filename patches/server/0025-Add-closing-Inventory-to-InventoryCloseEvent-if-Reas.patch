@@ -27,10 +27,10 @@ index befeaac4786760f6847a5945da2296a3e68dbb17..d676e4dc666998cc07e7060c305460a6
      public void handleContainerClose(ServerboundContainerClosePacket packet) {
          // Paper start - Inventory close reason
 diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftHumanEntity.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftHumanEntity.java
-index eb7d43d6e1e6cc69128642d729ebbd3fea0270ad..e3e0f0db46632da5fc0daa0735d56bed89944632 100644
+index 7dcfb45c24d7743956be514c7d554e06aac77b3e..e2ff0c34fc4d9e4b2d53141baef6b95347fb262f 100644
 --- a/src/main/java/org/bukkit/craftbukkit/entity/CraftHumanEntity.java
 +++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftHumanEntity.java
-@@ -501,7 +501,7 @@ public class CraftHumanEntity extends CraftLivingEntity implements HumanEntity {
+@@ -441,7 +441,7 @@ public class CraftHumanEntity extends CraftLivingEntity implements HumanEntity {
          if (((ServerPlayer) this.getHandle()).connection == null) return;
          if (this.getHandle().containerMenu != this.getHandle().inventoryMenu) {
              // fire INVENTORY_CLOSE if one already open

@@ -5,10 +5,10 @@ Subject: [PATCH] Adding fill biome function
 
 
 diff --git a/src/main/java/org/bukkit/World.java b/src/main/java/org/bukkit/World.java
-index 613d8fc14c1a86c232691dc787ffe86f95e16182..8e576b98a81c6a638191cdd726998c052abf35de 100644
+index b4b2db9e699ffa28c5fe85ff19abca1d6f5c566f..deaf45aecab653efdb8381e714a93871972f433e 100644
 --- a/src/main/java/org/bukkit/World.java
 +++ b/src/main/java/org/bukkit/World.java
-@@ -2507,6 +2507,53 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
+@@ -2571,6 +2571,53 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
      @Deprecated
      void setBiome(int x, int z, @NotNull Biome bio);
  

@@ -5,6 +5,21 @@ Subject: [PATCH] Implementing Async Events for Chunk Creation, Saving,
  Loading. These Events occur on the respective async chunk thread.
 
 
+diff --git a/src/main/java/ca/spottedleaf/moonrise/patches/chunk_system/ChunkSystemFeatures.java b/src/main/java/ca/spottedleaf/moonrise/patches/chunk_system/ChunkSystemFeatures.java
+index 67f6dd9a4855611cfe242c2e37e90f6d27d4c823..efc52443d616a8efa25c0215cbd0a4282e1d0a4f 100644
+--- a/src/main/java/ca/spottedleaf/moonrise/patches/chunk_system/ChunkSystemFeatures.java
++++ b/src/main/java/ca/spottedleaf/moonrise/patches/chunk_system/ChunkSystemFeatures.java
+@@ -17,8 +17,8 @@ public final class ChunkSystemFeatures {
+         return net.minecraft.world.level.chunk.storage.ChunkSerializer.getAsyncSaveData(world, chunk);
+     }
+ 
+-    public static CompoundTag saveChunkAsync(final ServerLevel world, final ChunkAccess chunk, final AsyncChunkSaveData asyncSaveData) {
+-        return net.minecraft.world.level.chunk.storage.ChunkSerializer.saveChunk(world, chunk, asyncSaveData);
++    public static CompoundTag saveChunkAsync(final ServerLevel world, final ChunkAccess chunk, final AsyncChunkSaveData asyncSaveData, boolean unload) {
++        return net.minecraft.world.level.chunk.storage.ChunkSerializer.saveChunk(world, chunk, asyncSaveData, unload);
+     }
+ 
+     public static boolean forceNoSave(final ChunkAccess chunk) {
 diff --git a/src/main/java/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/NewChunkHolder.java b/src/main/java/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/NewChunkHolder.java
 index 45eda96fd8a1acb87dbb69ce5495fec7e451416f..9c5d0ee2e914f1c000b81efbf3139445165e46d8 100644
 --- a/src/main/java/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/NewChunkHolder.java
@@ -95,7 +110,7 @@ index 3723c07183e7b894cccf4d01bedf1d0d832c1910..9f12e41a5f55093963bbc101b97b2948
  public class ChunkStatus implements ca.spottedleaf.moonrise.patches.chunk_system.level.chunk.ChunkSystemChunkStatus { // Paper - rewrite chunk system
      public static final int MAX_STRUCTURE_DISTANCE = 8;
 diff --git a/src/main/java/net/minecraft/world/level/chunk/storage/ChunkSerializer.java b/src/main/java/net/minecraft/world/level/chunk/storage/ChunkSerializer.java
-index 69e8e978593027d17789104f0aec0411b2c41044..3924ab7f7940e7bc912bd4b0a117f771233f6268 100644
+index 48a5d673ef7e71f7fa25ef288e31cb4797035ae9..254d7a7e5aa702627a8a2d485c0af0cb36773e62 100644
 --- a/src/main/java/net/minecraft/world/level/chunk/storage/ChunkSerializer.java
 +++ b/src/main/java/net/minecraft/world/level/chunk/storage/ChunkSerializer.java
 @@ -306,6 +306,7 @@ public class ChunkSerializer {
@@ -115,12 +130,15 @@ index 69e8e978593027d17789104f0aec0411b2c41044..3924ab7f7940e7bc912bd4b0a117f771
              return protochunk1;
          }
      }
-@@ -386,9 +387,9 @@ public class ChunkSerializer {
+@@ -384,11 +385,11 @@ public class ChunkSerializer {
+      }
+     // Paper end - async chunk saving
  
-     public static CompoundTag write(ServerLevel world, ChunkAccess chunk) {
+-    public static CompoundTag write(ServerLevel world, ChunkAccess chunk) {
++    public static CompoundTag write(ServerLevel world, ChunkAccess chunk, boolean unloading) {
          // Paper start - async chunk saving
 -        return saveChunk(world, chunk, null);
-+        return saveChunk(world, chunk, null, false);
++        return saveChunk(world, chunk, null, unloading);
      }
 -    public static CompoundTag saveChunk(ServerLevel world, ChunkAccess chunk, ca.spottedleaf.moonrise.patches.chunk_system.async_save.AsyncChunkSaveData asyncsavedata) {
 +    public static CompoundTag saveChunk(ServerLevel world, ChunkAccess chunk, ca.spottedleaf.moonrise.patches.chunk_system.async_save.AsyncChunkSaveData asyncsavedata, boolean unloadingChunk) {

@@ -240,10 +240,10 @@ index d81f687cba38ec930c555b001afc0df93c21731b..cab6256d61872dd10b64407dba88b3b3
       * Server menus.
       *
 diff --git a/src/main/java/org/bukkit/attribute/Attribute.java b/src/main/java/org/bukkit/attribute/Attribute.java
-index 947874c0172b690e7752e49b7bec64e0c0308515..da85d1e211f93b5ceba95878e3d6a8f3c3bf2ef5 100644
+index 947874c0172b690e7752e49b7bec64e0c0308515..1c9503bbfeff3deeb839e06053c60ba33a1cc49d 100644
 --- a/src/main/java/org/bukkit/attribute/Attribute.java
 +++ b/src/main/java/org/bukkit/attribute/Attribute.java
-@@ -9,80 +9,80 @@ import org.jetbrains.annotations.NotNull;
+@@ -9,156 +9,159 @@ import org.jetbrains.annotations.NotNull;
  /**
   * Types of attributes which may be present on an {@link Attributable}.
   */
@@ -344,7 +344,28 @@ index 947874c0172b690e7752e49b7bec64e0c0308515..da85d1e211f93b5ceba95878e3d6a8f3
      /**
       * How long an entity remains burning after ingition.
       */
-@@ -106,15 +106,15 @@ public enum Attribute implements Keyed, Translatable, net.kyori.adventure.transl
+-    GENERIC_BURNING_TIME("generic.burning_time"),
++    public static final Attribute GENERIC_BURNING_TIME = getAttribute("generic.burning_time");
+     /**
+      * Resistance to knockback from explosions.
+      */
+-    GENERIC_EXPLOSION_KNOCKBACK_RESISTANCE("generic.explosion_knockback_resistance"),
++    public static final Attribute GENERIC_EXPLOSION_KNOCKBACK_RESISTANCE = getAttribute("generic.explosion_knockback_resistance");
+     /**
+      * Movement speed through difficult terrain.
+      */
+-    GENERIC_MOVEMENT_EFFICIENCY("generic.movement_efficiency"),
++    public static final Attribute GENERIC_MOVEMENT_EFFICIENCY = getAttribute("generic.movement_efficiency");
+     /**
+      * Oxygen use underwater.
+      */
+-    GENERIC_OXYGEN_BONUS("generic.oxygen_bonus"),
++    public static final Attribute GENERIC_OXYGEN_BONUS = getAttribute("generic.oxygen_bonus");
+     /**
+      * Movement speed through water.
+      */
+-    GENERIC_WATER_MOVEMENT_EFFICIENCY("generic.water_movement_efficiency"),
++    public static final Attribute GENERIC_WATER_MOVEMENT_EFFICIENCY = getAttribute("generic.water_movement_efficiency");
      /**
       * The block reach distance of a Player.
       */
@@ -363,7 +384,23 @@ index 947874c0172b690e7752e49b7bec64e0c0308515..da85d1e211f93b5ceba95878e3d6a8f3
      /**
       * Mining speed for correct tools.
       */
-@@ -134,31 +134,34 @@ public enum Attribute implements Keyed, Translatable, net.kyori.adventure.transl
+-    PLAYER_MINING_EFFICIENCY("player.mining_efficiency"),
++    public static final Attribute PLAYER_MINING_EFFICIENCY = getAttribute("player.mining_efficiency");
+     /**
+      * Sneaking speed.
+      */
+-    PLAYER_SNEAKING_SPEED("player.sneaking_speed"),
++    public static final Attribute PLAYER_SNEAKING_SPEED = getAttribute("player.sneaking_speed");
+     /**
+      * Underwater mining speed.
+      */
+-    PLAYER_SUBMERGED_MINING_SPEED("player.submerged_mining_speed"),
++    public static final Attribute PLAYER_SUBMERGED_MINING_SPEED = getAttribute("player.submerged_mining_speed");
+     /**
+      * Sweeping damage.
+      */
+-    PLAYER_SWEEPING_DAMAGE_RATIO("player.sweeping_damage_ratio"),
++    public static final Attribute PLAYER_SWEEPING_DAMAGE_RATIO = getAttribute("player.sweeping_damage_ratio");
      /**
       * Chance of a zombie to spawn reinforcements.
       */

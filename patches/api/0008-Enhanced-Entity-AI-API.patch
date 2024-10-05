@@ -6,10 +6,10 @@ Subject: [PATCH] Enhanced Entity AI API
 
 diff --git a/src/main/java/de/verdox/mccreativelab/ai/EntityBrain.java b/src/main/java/de/verdox/mccreativelab/ai/EntityBrain.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..334d84bdb3809d265777d1adc163404ccf7caf76
+index 0000000000000000000000000000000000000000..e0df00a788dced9e5434a00e0028c7300ad77b8c
 --- /dev/null
 +++ b/src/main/java/de/verdox/mccreativelab/ai/EntityBrain.java
-@@ -0,0 +1,88 @@
+@@ -0,0 +1,90 @@
 +package de.verdox.mccreativelab.ai;
 +
 +import de.verdox.mccreativelab.ai.builder.ActivityBuilder;
@@ -30,6 +30,8 @@ index 0000000000000000000000000000000000000000..334d84bdb3809d265777d1adc163404c
 +    ActivityBuilder<E> createActivityBuilder(EntityActivity entityActivity);
 +
 +    void tick(World world, E entity);
++
++    <U> void addMemoryToBrain(MemoryKey<U> memoryKey);
 +
 +    <U> void eraseMemory(MemoryKey<U> memoryKey);
 +
@@ -311,10 +313,10 @@ index 0000000000000000000000000000000000000000..acab66d53990da2a4ddbf89ed9ce993c
 +}
 diff --git a/src/main/java/de/verdox/mccreativelab/ai/builder/BehaviorFactory.java b/src/main/java/de/verdox/mccreativelab/ai/builder/BehaviorFactory.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..ffca0ad259cf04a2f1c287e0931190462941e65d
+index 0000000000000000000000000000000000000000..df91e82098027d43165d81630a2b3028b056f9b9
 --- /dev/null
 +++ b/src/main/java/de/verdox/mccreativelab/ai/builder/BehaviorFactory.java
-@@ -0,0 +1,235 @@
+@@ -0,0 +1,236 @@
 +package de.verdox.mccreativelab.ai.builder;
 +
 +import com.destroystokyo.paper.entity.RangedEntity;
@@ -324,6 +326,7 @@ index 0000000000000000000000000000000000000000..ffca0ad259cf04a2f1c287e093119046
 +import it.unimi.dsi.fastutil.Pair;
 +import net.kyori.adventure.sound.Sound;
 +import org.bukkit.*;
++import org.bukkit.damage.DamageType;
 +import org.bukkit.entity.*;
 +import org.bukkit.entity.memory.MemoryKey;
 +
@@ -339,7 +342,7 @@ index 0000000000000000000000000000000000000000..ffca0ad259cf04a2f1c287e093119046
 +
 +    AIBehavior<Animals> animalMakeLove(EntityType targetType, float speed, int approachDistance);
 +
-+    AIBehavior<Mob> animalPanic(float speed, Predicate<Mob> panicPredicate);
++    AIBehavior<Mob> animalPanic(float speed, Function<Mob, io.papermc.paper.registry.tag.TagKey<DamageType>> panicPredicate);
 +
 +    OneShotBehavior<Villager> assignProfessionFromJobSite();
 +
@@ -552,7 +555,7 @@ index 0000000000000000000000000000000000000000..ffca0ad259cf04a2f1c287e093119046
 +}
 diff --git a/src/main/java/de/verdox/mccreativelab/ai/builder/GoalFactory.java b/src/main/java/de/verdox/mccreativelab/ai/builder/GoalFactory.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..011258d926035d40fa97ad4739dd6a4c94fe3a4f
+index 0000000000000000000000000000000000000000..4a3661eee3b6ff0ee689a24b69981d894aa1105e
 --- /dev/null
 +++ b/src/main/java/de/verdox/mccreativelab/ai/builder/GoalFactory.java
 @@ -0,0 +1,120 @@
@@ -605,7 +608,7 @@ index 0000000000000000000000000000000000000000..011258d926035d40fa97ad4739dd6a4c
 +
 +    VanillaGoal<Fish> followMob(Mob mob, double speed, float minDistance, float maxDistance, Predicate<Mob> followPredicate);
 +
-+    VanillaGoal<Tameable> followOwner(Tameable tameable, double speed, float minDistance, float maxDistance, boolean leavesAllowed);
++    VanillaGoal<Tameable> followOwner(Tameable tameable, double speed, float minDistance, float maxDistance);
 +
 +    VanillaGoal<Animals> followParent(Animals animal, double speed);
 +

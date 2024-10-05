@@ -1,0 +1,36 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <mail.ysp@web.de>
+Date: Sun, 3 Dec 2023 14:20:30 +0100
+Subject: [PATCH] Implementing Basic Item Format
+
+
+diff --git a/src/main/java/net/minecraft/world/item/ItemStack.java b/src/main/java/net/minecraft/world/item/ItemStack.java
+index 49e7dad3e3f60edbe99df7e63bdde23f1d9e2987..8914f31555116898a47adf6e8a35f52a51f7fd08 100644
+--- a/src/main/java/net/minecraft/world/item/ItemStack.java
++++ b/src/main/java/net/minecraft/world/item/ItemStack.java
+@@ -304,11 +304,13 @@ public final class ItemStack implements DataComponentHolder {
+         this.count = count;
+         this.components = components;
+         this.getItem().verifyComponentsAfterLoad(this);
++        de.verdox.itemformat.BasicItemFormat.applyItemFormatAndReturn(getBukkitStack());
+     }
+ 
+     private ItemStack(@Nullable Void v) {
+         this.item = null;
+         this.components = new PatchedDataComponentMap(DataComponentMap.EMPTY);
++        de.verdox.itemformat.BasicItemFormat.applyItemFormatAndReturn(getBukkitStack());
+     }
+ 
+     public static DataResult<Unit> validateComponents(DataComponentMap components) {
+diff --git a/src/main/java/org/bukkit/craftbukkit/inventory/CraftItemStack.java b/src/main/java/org/bukkit/craftbukkit/inventory/CraftItemStack.java
+index 35a9a4cad098d4b39bc94330d987211bacb9c1af..5d12b0ed59fe4c1bb67455cbb07f82daa83e610d 100644
+--- a/src/main/java/org/bukkit/craftbukkit/inventory/CraftItemStack.java
++++ b/src/main/java/org/bukkit/craftbukkit/inventory/CraftItemStack.java
+@@ -169,6 +169,7 @@ public final class CraftItemStack extends ItemStack {
+         this.setAmount(amount);
+         this.setDurability(durability);
+         this.setItemMeta(itemMeta);
++        de.verdox.itemformat.BasicItemFormat.applyItemFormatAndReturn(this);
+     }
+ 
+     @Override

@@ -1,0 +1,35 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: verdox <mail.ysp@web.de>
+Date: Wed, 19 Jun 2024 15:16:06 +0000
+Subject: [PATCH] Add SerializationBehaviour TODOs
+
+
+diff --git a/src/main/java/net/minecraft/world/level/storage/LevelStorageSource.java b/src/main/java/net/minecraft/world/level/storage/LevelStorageSource.java
+index 85ba843ce7e1f62971e736fa2cc028c47b274ce4..18ffee3290e75decb986173d2446ce9e0d42859a 100644
+--- a/src/main/java/net/minecraft/world/level/storage/LevelStorageSource.java
++++ b/src/main/java/net/minecraft/world/level/storage/LevelStorageSource.java
+@@ -271,6 +271,7 @@ public class LevelStorageSource {
+     }
+ 
+     static CompoundTag readLevelDataTagRaw(Path path) throws IOException {
++        //TODO: StorageBehaviour
+         return NbtIo.readCompressed(path, NbtAccounter.create(104857600L));
+     }
+ 
+@@ -519,6 +520,7 @@ public class LevelStorageSource {
+             // CraftBukkit end
+             this.levelId = s;
+             this.levelDirectory = new LevelStorageSource.LevelDirectory(path);
++            //TODO: StorageBehaviour for locks!
+             this.lock = DirectoryLock.create(path);
+         }
+ 
+@@ -613,7 +615,7 @@ public class LevelStorageSource {
+ 
+             try {
+                 Path path1 = Files.createTempFile(path, "level", ".dat");
+-
++                //TODO: StorageBehaviour
+                 NbtIo.writeCompressed(nbt, path1);
+                 Path path2 = this.levelDirectory.oldDataFile();
+                 Path path3 = this.levelDirectory.dataFile();

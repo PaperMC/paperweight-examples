@@ -164,7 +164,7 @@ index 5e2c4969e77c669acbb4a13c07033cb267c3d586..54f62b0df68315ff4cab133cd91695d6
          }
  
 diff --git a/src/main/java/net/minecraft/stats/ServerStatsCounter.java b/src/main/java/net/minecraft/stats/ServerStatsCounter.java
-index fb7342f7a5008a283c3400c6313c637de8210dfa..3ac6a6305faa4ac3ef340687d1ec3f795e831626 100644
+index fb7342f7a5008a283c3400c6313c637de8210dfa..6db489cc6f32b4cdd3f35e783a9fc5e200c5435e 100644
 --- a/src/main/java/net/minecraft/stats/ServerStatsCounter.java
 +++ b/src/main/java/net/minecraft/stats/ServerStatsCounter.java
 @@ -44,20 +44,14 @@ public class ServerStatsCounter extends StatsCounter {
@@ -282,7 +282,7 @@ index fb7342f7a5008a283c3400c6313c637de8210dfa..3ac6a6305faa4ac3ef340687d1ec3f79
 +                            String s1 = (String) iterator.next();
 +
 +                            if (nbttagcompound1.contains(s1, 10)) {
-+                                Util.ifElse(BuiltInRegistries.STAT_TYPE.getOptional(new ResourceLocation(s1)), (statisticwrapper) -> {
++                                Util.ifElse(BuiltInRegistries.STAT_TYPE.getOptional(ResourceLocation.parse(s1)), (statisticwrapper) -> {
 +                                    CompoundTag nbttagcompound2 = nbttagcompound1.getCompound(s1);
 +                                    Iterator iterator1 = nbttagcompound2.getAllKeys().iterator();
 +

@@ -495,7 +495,7 @@ index 0000000000000000000000000000000000000000..575742848775f032b50cecc7731e030e
 +}
 diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/EntityBehaviourUtil.java b/src/main/java/de/verdox/mccreativelab/behaviour/EntityBehaviourUtil.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..6991cdfad5a4e5954731ad4b3598d1cda87507a2
+index 0000000000000000000000000000000000000000..2af88d8475201be5ee64ed36280d4113138f58e1
 --- /dev/null
 +++ b/src/main/java/de/verdox/mccreativelab/behaviour/EntityBehaviourUtil.java
 @@ -0,0 +1,161 @@
@@ -633,7 +633,7 @@ index 0000000000000000000000000000000000000000..6991cdfad5a4e5954731ad4b3598d1cd
 +
 +    public static class Animal {
 +        public static boolean canMate(net.minecraft.world.entity.animal.Animal entity, net.minecraft.world.entity.animal.Animal other, Supplier<Boolean> vanillaLogic) {
-+            return evaluateBoolean(getBehaviour(entity, Animals.class, AnimalEntityBehaviour.class), entityBehaviour -> entityBehaviour.canMate((org.bukkit.entity.Animals) entity.getBukkitLivingEntity(), (org.bukkit.entity.Animals) other.getBukkitMob()), vanillaLogic);
++            return evaluateBoolean(getBehaviour(entity, Animals.class, AnimalEntityBehaviour.class), entityBehaviour -> entityBehaviour.canMate((org.bukkit.entity.Animals) entity.getBukkitLivingEntity(), (org.bukkit.entity.Animals) other.getBukkitLivingEntity()), vanillaLogic);
 +        }
 +
 +        public static void breedCallback(net.minecraft.world.entity.animal.Animal parent1, net.minecraft.world.entity.animal.Animal parent2, net.minecraft.world.entity.AgeableMob child){
@@ -662,10 +662,10 @@ index 0000000000000000000000000000000000000000..6991cdfad5a4e5954731ad4b3598d1cd
 +}
 diff --git a/src/main/java/de/verdox/mccreativelab/behaviour/ItemBehaviourUtil.java b/src/main/java/de/verdox/mccreativelab/behaviour/ItemBehaviourUtil.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..cda9bdf631325975f8de24d2ce1b5ee5a3cb59ff
+index 0000000000000000000000000000000000000000..5b9a675a01c283637ee76bb45e21fc812c4654d2
 --- /dev/null
 +++ b/src/main/java/de/verdox/mccreativelab/behaviour/ItemBehaviourUtil.java
-@@ -0,0 +1,176 @@
+@@ -0,0 +1,179 @@
 +package de.verdox.mccreativelab.behaviour;
 +
 +import de.verdox.mccreativelab.MultiCustomBehaviour;
@@ -744,7 +744,10 @@ index 0000000000000000000000000000000000000000..cda9bdf631325975f8de24d2ce1b5ee5
 +    public static boolean isCorrectToolForDrops(ItemStack stack, BlockState blockState) {
 +        return evaluateBoolean(getBehaviour(stack),
 +            itemBehaviour -> itemBehaviour.isCorrectToolForDrops(stack.asBukkitMirror(), blockState.createCraftBlockData()),
-+            () -> stack.isCorrectToolForDrops(blockState)
++            () -> {
++                net.minecraft.world.item.component.Tool tool = stack.get(DataComponents.TOOL);
++                return tool != null && tool.isCorrectForDrops(blockState);
++            }
 +        );
 +    }
 +
@@ -931,18 +934,15 @@ index dd56c8e041116ef3602a9f89c998c8208ab89b51..5245efc25c62be360398c58630ba8031
          // Paper start - Add Velocity IP Forwarding Support
          boolean usingProxy = org.spigotmc.SpigotConfig.bungee || io.papermc.paper.configuration.GlobalConfiguration.get().proxies.velocity.enabled;
 diff --git a/src/main/java/net/minecraft/server/level/ServerPlayer.java b/src/main/java/net/minecraft/server/level/ServerPlayer.java
-index c396580a9cfd86ff261bed439bb4662ae88010b5..e8d857aa900eeda485ce81019cacaaaa3be8a019 100644
+index c396580a9cfd86ff261bed439bb4662ae88010b5..ec2c9c7b559cf14b45393800480ad548a387e58b 100644
 --- a/src/main/java/net/minecraft/server/level/ServerPlayer.java
 +++ b/src/main/java/net/minecraft/server/level/ServerPlayer.java
-@@ -1017,7 +1017,11 @@ public class ServerPlayer extends net.minecraft.world.entity.player.Player imple
+@@ -1017,7 +1017,7 @@ public class ServerPlayer extends net.minecraft.world.entity.player.Player imple
  
          if (!keepInventory) {
              for (ItemStack item : this.getInventory().getContents()) {
-+<<<<<<< HEAD
-                 if (!item.isEmpty() && !EnchantmentHelper.has(item, EnchantmentEffectComponents.PREVENT_EQUIPMENT_DROP)) {
-+=======
-+                if (!item.isEmpty() && !EnchantmentHelper.hasVanishingCurse(item) && de.verdox.mccreativelab.behaviour.ItemBehaviourUtil.canDrop(item)) { // MCCreativeLab - Add ItemBehaviour
-+>>>>>>> Adding behaviours
+-                if (!item.isEmpty() && !EnchantmentHelper.has(item, EnchantmentEffectComponents.PREVENT_EQUIPMENT_DROP)) {
++                if (!item.isEmpty() && !EnchantmentHelper.has(item, EnchantmentEffectComponents.PREVENT_EQUIPMENT_DROP) && de.verdox.mccreativelab.behaviour.ItemBehaviourUtil.canDrop(item)) { // MCCreativeLab - Add ItemBehaviour
                      loot.add(new DefaultDrop(item, stack -> this.drop(stack, true, false, false))); // Paper - Restore vanilla drops behavior; drop function taken from Inventory#dropAll (don't fire drop event)
                  }
              }
@@ -959,7 +959,7 @@ index ee9e4521079137d7b72194e8789810e7a89b8e75..aa94815188e1bd0f16abe56f3c74cd8f
                  // CraftBukkit end
              }
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 9f68c0fda7f5526eb97619f1a35ed3b78d1b3751..6937409d625fe1ea36d0b679e2efda0af56c3183 100644
+index 4b54d0ea31062972e68ee8fafe3cfaf68f65a5cd..875395cd5b62ddf7d6e9df18cc0c7c2833063d8a 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -169,6 +169,7 @@ import org.bukkit.plugin.PluginManager;
@@ -978,7 +978,7 @@ index 9f68c0fda7f5526eb97619f1a35ed3b78d1b3751..6937409d625fe1ea36d0b679e2efda0a
          // No clean way to break out of ticking once the entity has been copied to a new world, so instead we move the portalling later in the tick cycle
          if (!(this instanceof ServerPlayer) && this.isAlive()) { // Paper - don't attempt to teleport dead entities
              this.handlePortal();
-@@ -1223,6 +1225,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -1225,6 +1227,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
                  // CraftBukkit end
  
                  if (this.onGround()) {
@@ -986,7 +986,7 @@ index 9f68c0fda7f5526eb97619f1a35ed3b78d1b3751..6937409d625fe1ea36d0b679e2efda0a
                      block.stepOn(this.level(), blockposition, iblockdata, this);
                  }
  
-@@ -1847,7 +1850,9 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -1849,7 +1852,9 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
      }
  
      public boolean fireImmune() {
@@ -997,7 +997,7 @@ index 9f68c0fda7f5526eb97619f1a35ed3b78d1b3751..6937409d625fe1ea36d0b679e2efda0a
      }
  
      public boolean causeFallDamage(float fallDistance, float damageMultiplier, DamageSource damageSource) {
-@@ -2529,6 +2534,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -2531,6 +2536,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
                  }
              }
  
@@ -1005,7 +1005,7 @@ index 9f68c0fda7f5526eb97619f1a35ed3b78d1b3751..6937409d625fe1ea36d0b679e2efda0a
              // CraftBukkit start - stores eventually existing bukkit values
              if (this.bukkitEntity != null) {
                  this.bukkitEntity.storeBukkitValues(nbttagcompound);
-@@ -2654,6 +2660,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -2656,6 +2662,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
              }
              // CraftBukkit end
  
@@ -1013,7 +1013,7 @@ index 9f68c0fda7f5526eb97619f1a35ed3b78d1b3751..6937409d625fe1ea36d0b679e2efda0a
              // CraftBukkit start
              // Paper - move world parsing/loading to PlayerList#placeNewPlayer
              this.getBukkitEntity().readBukkitValues(nbt);
-@@ -2690,7 +2697,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -2692,7 +2699,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
              if (spawnReason == null) {
                  if (spawnedViaMobSpawner) {
                      spawnReason = org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.SPAWNER;
@@ -1022,7 +1022,7 @@ index 9f68c0fda7f5526eb97619f1a35ed3b78d1b3751..6937409d625fe1ea36d0b679e2efda0a
                      if (!nbt.getBoolean("PersistenceRequired")) {
                          spawnReason = org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.NATURAL;
                      }
-@@ -2798,6 +2805,8 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -2800,6 +2807,8 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
      }
      @Nullable
      public ItemEntity spawnAtLocation(ItemStack stack, float yOffset, @Nullable java.util.function.Consumer<? super ItemEntity> delayedAddConsumer) {
@@ -1031,7 +1031,7 @@ index 9f68c0fda7f5526eb97619f1a35ed3b78d1b3751..6937409d625fe1ea36d0b679e2efda0a
          // Paper end - Restore vanilla drops behavior
          if (stack.isEmpty()) {
              return null;
-@@ -3871,7 +3880,9 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -3875,7 +3884,9 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
      }
  
      public boolean canChangeDimensions(Level from, Level to) {
@@ -1043,7 +1043,7 @@ index 9f68c0fda7f5526eb97619f1a35ed3b78d1b3751..6937409d625fe1ea36d0b679e2efda0a
  
      public float getBlockExplosionResistance(Explosion explosion, BlockGetter world, BlockPos pos, BlockState blockState, FluidState fluidState, float max) {
 diff --git a/src/main/java/net/minecraft/world/entity/LivingEntity.java b/src/main/java/net/minecraft/world/entity/LivingEntity.java
-index 30f4f1254fc295442d72d50479e8af635f2fe983..430f896c10e088c370b86cc9eb021c37c45a0b95 100644
+index 2aa6374cd4a96efd85899be8cd3172a8257bfe6b..a2b979b2a5c889463f6f2e0d2f46318462e049d2 100644
 --- a/src/main/java/net/minecraft/world/entity/LivingEntity.java
 +++ b/src/main/java/net/minecraft/world/entity/LivingEntity.java
 @@ -3566,11 +3566,15 @@ public abstract class LivingEntity extends Entity implements Attackable {
@@ -1476,10 +1476,10 @@ index fadd341ff398886a4da102eefa1beb95a63bbd6d..21f5c8b04491e0fa1e0837419b8116a9
  
          if (enuminteractionresult.consumesAction() && flag) {
 diff --git a/src/main/java/net/minecraft/world/entity/item/ItemEntity.java b/src/main/java/net/minecraft/world/entity/item/ItemEntity.java
-index 607f1a9802eb0ff4865af4c53f302128a6e6fe02..df5a879e9d1d065be5a2b3479a77093656833d84 100644
+index 4423973d4d9a2c3879d98d1d4c8b8c117c677ac5..83c9a086fbcc82705fdfa772c5d4b2f9013c2d92 100644
 --- a/src/main/java/net/minecraft/world/entity/item/ItemEntity.java
 +++ b/src/main/java/net/minecraft/world/entity/item/ItemEntity.java
-@@ -376,7 +376,7 @@ public class ItemEntity extends Entity implements TraceableEntity {
+@@ -375,7 +375,7 @@ public class ItemEntity extends Entity implements TraceableEntity {
              return false;
          } else if (!this.getItem().isEmpty() && this.getItem().is(Items.NETHER_STAR) && source.is(DamageTypeTags.IS_EXPLOSION)) {
              return false;
@@ -1748,8 +1748,22 @@ index 83e34ed4287d3434d1d702a6377cc114248a417b..b29a48f5aa46e519f832a321575c3af8
      }
  
      public static boolean growWaterPlant(ItemStack stack, Level world, BlockPos blockPos, @Nullable Direction facing) {
+diff --git a/src/main/java/net/minecraft/world/item/Item.java b/src/main/java/net/minecraft/world/item/Item.java
+index 8fd54bccb7af59da9113d8a289d12d8fad1fb467..77dfa58a515684975d4fd548f42129286ead4b27 100644
+--- a/src/main/java/net/minecraft/world/item/Item.java
++++ b/src/main/java/net/minecraft/world/item/Item.java
+@@ -206,8 +206,7 @@ public class Item implements FeatureElement, ItemLike {
+     }
+ 
+     public boolean isCorrectToolForDrops(ItemStack stack, BlockState state) {
+-        Tool tool = stack.get(DataComponents.TOOL);
+-        return tool != null && tool.isCorrectForDrops(state);
++        return de.verdox.mccreativelab.behaviour.ItemBehaviourUtil.isCorrectToolForDrops(stack, state);
+     }
+ 
+     public InteractionResult interactLivingEntity(ItemStack stack, Player user, LivingEntity entity, InteractionHand hand) {
 diff --git a/src/main/java/net/minecraft/world/item/ItemStack.java b/src/main/java/net/minecraft/world/item/ItemStack.java
-index eec0ec43590be7e8ae5b530a7404c98b5e23cb53..2bde9f5c7ddbc64c74b126da884383e9fa1cd297 100644
+index eec0ec43590be7e8ae5b530a7404c98b5e23cb53..49e7dad3e3f60edbe99df7e63bdde23f1d9e2987 100644
 --- a/src/main/java/net/minecraft/world/item/ItemStack.java
 +++ b/src/main/java/net/minecraft/world/item/ItemStack.java
 @@ -264,6 +264,7 @@ public final class ItemStack implements DataComponentHolder {
@@ -1760,7 +1774,16 @@ index eec0ec43590be7e8ae5b530a7404c98b5e23cb53..2bde9f5c7ddbc64c74b126da884383e9
  
      @Override
      public DataComponentMap getComponents() {
-@@ -431,7 +432,7 @@ public final class ItemStack implements DataComponentHolder {
+@@ -413,6 +414,8 @@ public final class ItemStack implements DataComponentHolder {
+         net.minecraft.world.entity.player.Player entityhuman = context.getPlayer();
+         BlockPos blockposition = context.getClickedPos();
+ 
++        ItemStack blockUsedToPlaceBlock = copy();
++
+         if (entityhuman != null && !entityhuman.getAbilities().mayBuild && !this.canPlaceOnBlockInAdventureMode(new BlockInWorld(context.getLevel(), blockposition, false))) {
+             return InteractionResult.PASS;
+         } else {
+@@ -431,7 +434,7 @@ public final class ItemStack implements DataComponentHolder {
              }
              InteractionResult enuminteractionresult;
              try {
@@ -1769,7 +1792,22 @@ index eec0ec43590be7e8ae5b530a7404c98b5e23cb53..2bde9f5c7ddbc64c74b126da884383e9
              } finally {
                  world.captureBlockStates = false;
              }
-@@ -600,11 +601,11 @@ public final class ItemStack implements DataComponentHolder {
+@@ -585,6 +588,14 @@ public final class ItemStack implements DataComponentHolder {
+                     }
+ 
+                     entityhuman.awardStat(Stats.ITEM_USED.get(item));
++
++                    if(placeEvent != null && !placeEvent.isCancelled() && placeEvent.canBuild()){
++                        for (BlockState block : blocks) {
++                            BlockPos blockPos = CraftLocation.toBlockPosition(block.getLocation());
++                            de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.getInstance().onPlayerPlaceCallback(entityhuman, blockUsedToPlaceBlock, world.getBlockState(blockPos), world, blockPos);
++                        }
++
++                    }
+                 }
+             }
+             world.capturedTileEntities.clear();
+@@ -600,11 +611,11 @@ public final class ItemStack implements DataComponentHolder {
      }
  
      public InteractionResultHolder<ItemStack> use(Level world, net.minecraft.world.entity.player.Player user, InteractionHand hand) {
@@ -1783,7 +1821,7 @@ index eec0ec43590be7e8ae5b530a7404c98b5e23cb53..2bde9f5c7ddbc64c74b126da884383e9
      }
  
      public Tag save(HolderLookup.Provider registries, Tag prefix) {
-@@ -792,12 +793,7 @@ public final class ItemStack implements DataComponentHolder {
+@@ -792,12 +803,7 @@ public final class ItemStack implements DataComponentHolder {
      }
  
      public void mineBlock(Level world, net.minecraft.world.level.block.state.BlockState state, BlockPos pos, net.minecraft.world.entity.player.Player miner) {
@@ -1797,7 +1835,7 @@ index eec0ec43590be7e8ae5b530a7404c98b5e23cb53..2bde9f5c7ddbc64c74b126da884383e9
      }
  
      public boolean isCorrectToolForDrops(net.minecraft.world.level.block.state.BlockState state) {
-@@ -805,7 +801,7 @@ public final class ItemStack implements DataComponentHolder {
+@@ -805,7 +811,7 @@ public final class ItemStack implements DataComponentHolder {
      }
  
      public InteractionResult interactLivingEntity(net.minecraft.world.entity.player.Player user, LivingEntity entity, InteractionHand hand) {
@@ -1806,7 +1844,7 @@ index eec0ec43590be7e8ae5b530a7404c98b5e23cb53..2bde9f5c7ddbc64c74b126da884383e9
      }
  
      public ItemStack copy() {
-@@ -819,7 +815,7 @@ public final class ItemStack implements DataComponentHolder {
+@@ -819,7 +825,7 @@ public final class ItemStack implements DataComponentHolder {
              return ItemStack.EMPTY;
          } else {
              ItemStack itemstack = new ItemStack(originalItem ? this.item : this.getItem(), this.count, this.components.copy()); // Paper - Perf: Optimize Hoppers
@@ -1815,7 +1853,7 @@ index eec0ec43590be7e8ae5b530a7404c98b5e23cb53..2bde9f5c7ddbc64c74b126da884383e9
              itemstack.setPopTime(this.getPopTime());
              return itemstack;
          }
-@@ -930,8 +926,11 @@ public final class ItemStack implements DataComponentHolder {
+@@ -930,8 +936,11 @@ public final class ItemStack implements DataComponentHolder {
      }
  
      public void onCraftedBy(Level world, net.minecraft.world.entity.player.Player player, int amount) {
@@ -1829,7 +1867,7 @@ index eec0ec43590be7e8ae5b530a7404c98b5e23cb53..2bde9f5c7ddbc64c74b126da884383e9
      }
  
      public void onCraftedBySystem(Level world) {
-@@ -1372,6 +1371,7 @@ public final class ItemStack implements DataComponentHolder {
+@@ -1372,6 +1381,7 @@ public final class ItemStack implements DataComponentHolder {
  
      public void onDestroyed(ItemEntity entity) {
          this.getItem().onDestroyed(entity);
@@ -1837,7 +1875,7 @@ index eec0ec43590be7e8ae5b530a7404c98b5e23cb53..2bde9f5c7ddbc64c74b126da884383e9
      }
  
      public SoundEvent getDrinkingSound() {
-@@ -1389,4 +1389,22 @@ public final class ItemStack implements DataComponentHolder {
+@@ -1389,4 +1399,22 @@ public final class ItemStack implements DataComponentHolder {
      public boolean canBeHurtBy(DamageSource source) {
          return !this.has(DataComponents.FIRE_RESISTANT) || !source.is(DamageTypeTags.IS_FIRE);
      }
@@ -1893,10 +1931,10 @@ index a1130ac038f1cf2ec7edde9e227d27df2cef0c85..228af31befcaca0a2df4fe565082fd27
                  nonNullList.set(i, itemStack.copyWithCount(1));
                  break;
 diff --git a/src/main/java/net/minecraft/world/item/crafting/Recipe.java b/src/main/java/net/minecraft/world/item/crafting/Recipe.java
-index b57568d5e9c4c148a4b3c303c925a813fdd5dc67..bf75ecb1045f75139182ba6574b4d81bc1a819df 100644
+index b57568d5e9c4c148a4b3c303c925a813fdd5dc67..7fafbeacc80dfdeb0da40cf670dfe4c76104e7d3 100644
 --- a/src/main/java/net/minecraft/world/item/crafting/Recipe.java
 +++ b/src/main/java/net/minecraft/world/item/crafting/Recipe.java
-@@ -30,7 +30,7 @@ public interface Recipe<T extends RecipeInput> {
+@@ -30,10 +30,10 @@ public interface Recipe<T extends RecipeInput> {
          NonNullList<ItemStack> nonnulllist = NonNullList.withSize(input.size(), ItemStack.EMPTY);
  
          for (int i = 0; i < nonnulllist.size(); ++i) {
@@ -1904,12 +1942,16 @@ index b57568d5e9c4c148a4b3c303c925a813fdd5dc67..bf75ecb1045f75139182ba6574b4d81b
 +            ItemStack item = input.getItem(i);
  
              if (item.hasCraftingRemainingItem()) {
-                 nonnulllist.set(i, new ItemStack(item.getCraftingRemainingItem()));
+-                nonnulllist.set(i, new ItemStack(item.getCraftingRemainingItem()));
++                nonnulllist.set(i, item.getCraftingRemainingItem());
+             }
+         }
+ 
 diff --git a/src/main/java/net/minecraft/world/level/Explosion.java b/src/main/java/net/minecraft/world/level/Explosion.java
-index ad57bf49476192dea6a7367cbd0ad3f11e142e1b..5720244cf31ac428fb63706e827b688f3a88cae4 100644
+index f696afd7e241bf1966a2d505b5d59bff824b43e4..4492861474bda51ed08c37356fa66aa4a212aac0 100644
 --- a/src/main/java/net/minecraft/world/level/Explosion.java
 +++ b/src/main/java/net/minecraft/world/level/Explosion.java
-@@ -528,7 +528,7 @@ public class Explosion {
+@@ -529,7 +529,7 @@ public class Explosion {
          while (iterator.hasNext()) {
              Entity entity = (Entity) iterator.next();
  
@@ -1932,7 +1974,7 @@ index 0ef9b402d129b072134688c06719a56328581158..3db3d9f0838cd51835f558f3a41cb5f0
  
      public boolean shouldBlockExplode(Explosion explosion, BlockGetter world, BlockPos pos, BlockState state, float power) {
 diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
-index e2a0487089eb5a7bdc1433e4c75f69d8e9f9d5f9..eb62cc86ff1ace74d06ad47804fa3890f9a32b4e 100644
+index 507671476c3d2d92a2fdb05be24443af27d26dcf..9017ca9fc9b1fd5fa20fc6ab582a85e97891ddfc 100644
 --- a/src/main/java/net/minecraft/world/level/Level.java
 +++ b/src/main/java/net/minecraft/world/level/Level.java
 @@ -1209,7 +1209,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
@@ -2001,10 +2043,10 @@ index 730aca233f6e7564d4cb85b5b628d23c4f01d2f4..b748b8d045284775d438fc6739d44e35
                      }
                  }
 diff --git a/src/main/java/net/minecraft/world/level/block/entity/BrewingStandBlockEntity.java b/src/main/java/net/minecraft/world/level/block/entity/BrewingStandBlockEntity.java
-index a2fafef89d5354e2cb02f5672810909950a57777..28e946279f1df3aadacb0c926793dd19bf02fcfa 100644
+index 0a93bacd62249bae1800ff306b8a7c765b0e5a8b..4625d8f397ea672b667f472017f0fc22e86f1be5 100644
 --- a/src/main/java/net/minecraft/world/level/block/entity/BrewingStandBlockEntity.java
 +++ b/src/main/java/net/minecraft/world/level/block/entity/BrewingStandBlockEntity.java
-@@ -278,8 +278,10 @@ public class BrewingStandBlockEntity extends BaseContainerBlockEntity implements
+@@ -288,8 +288,10 @@ public class BrewingStandBlockEntity extends BaseContainerBlockEntity implements
          }
  
          itemstack.shrink(1);
@@ -2017,6 +2059,27 @@ index a2fafef89d5354e2cb02f5672810909950a57777..28e946279f1df3aadacb0c926793dd19
  
              if (itemstack.isEmpty()) {
                  itemstack = itemstack1;
+diff --git a/src/main/java/net/minecraft/world/level/block/piston/PistonBaseBlock.java b/src/main/java/net/minecraft/world/level/block/piston/PistonBaseBlock.java
+index e0c62227b279a5fe0f3868fbf9ce8c78c515a09c..0976ae83bf36dd652639545901d2bec5e935edb1 100644
+--- a/src/main/java/net/minecraft/world/level/block/piston/PistonBaseBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/piston/PistonBaseBlock.java
+@@ -450,6 +450,8 @@ public class PistonBaseBlock extends DirectionalBlock {
+                 map.remove(blockposition3);
+                 BlockState iblockdata2 = (BlockState) Blocks.MOVING_PISTON.defaultBlockState().setValue(PistonBaseBlock.FACING, dir);
+ 
++                BlockState beforeUpdate = world.getBlockState(oldPos);
++
+                 world.setBlock(blockposition3, iblockdata2, 68);
+                 // Paper start - fix a variety of piston desync dupes
+                 if (!allowDesync) {
+@@ -462,6 +464,7 @@ public class PistonBaseBlock extends DirectionalBlock {
+                 }
+                 // Paper end - fix a variety of piston desync dupes
+                 aiblockdata[i++] = iblockdata1;
++                de.verdox.mccreativelab.behaviour.BlockBehaviourUtil.getInstance().onPistonMove(beforeUpdate, world, oldPos, blockposition3, pos, enumdirection1);
+             }
+ 
+             if (retract) {
 diff --git a/src/main/java/net/minecraft/world/level/block/state/BlockBehaviour.java b/src/main/java/net/minecraft/world/level/block/state/BlockBehaviour.java
 index d0109633e8bdf109cfc9178963d7b6cf92f8b189..10075915db4c167b4eafde0ec6749afa32fc00b9 100644
 --- a/src/main/java/net/minecraft/world/level/block/state/BlockBehaviour.java
@@ -2180,7 +2243,7 @@ index 7c11853c5090fbc4fa5b3e73a69acf166158fdec..393e75fcd311a21153b27c991e683988
  
                      if (iblockdata.hasBlockEntity()) {
 diff --git a/src/main/java/net/minecraft/world/level/chunk/LevelChunkSection.java b/src/main/java/net/minecraft/world/level/chunk/LevelChunkSection.java
-index c3b1caa352b988ec44fa2b2eb0536517711f5460..d745e1e0d657120110dff32959fff6d00882ecd2 100644
+index c3b1caa352b988ec44fa2b2eb0536517711f5460..f16bd7f5a99417d5b3c213db9fe375c25781dd11 100644
 --- a/src/main/java/net/minecraft/world/level/chunk/LevelChunkSection.java
 +++ b/src/main/java/net/minecraft/world/level/chunk/LevelChunkSection.java
 @@ -36,7 +36,11 @@ public class LevelChunkSection implements ca.spottedleaf.moonrise.patches.block_
@@ -2227,7 +2290,7 @@ index c3b1caa352b988ec44fa2b2eb0536517711f5460..d745e1e0d657120110dff32959fff6d0
  
 +        // MCCLab start - Add BlockBehaviour
 +        int globalX = chunkPos != null ? chunkPos.x * 16 + x : -1;
-+        int globalY = (((level.getMinSection() + chunkSectionY) << 4) + y);
++        int globalY = (((chunkSectionY) << 4) + y);
 +        int globalZ = chunkPos != null ? chunkPos.z * 16 + z : -1;
 +        // MCCLab end - Add BlockBehaviour
 +
@@ -2256,12 +2319,12 @@ index c3b1caa352b988ec44fa2b2eb0536517711f5460..d745e1e0d657120110dff32959fff6d0
  
 +                // MCCLab start - Add BlockBehaviour
 +                int sizedBitsOfBlockStatePalette = 4;
-+                int x = i & ((1 << sizedBitsOfBlockStatePalette) - 1);
-+                int z = (i >> sizedBitsOfBlockStatePalette) & ((1 << sizedBitsOfBlockStatePalette) - 1);
-+                int y = (i >> (sizedBitsOfBlockStatePalette * 2)) & ((1 << sizedBitsOfBlockStatePalette) - 1);
++                int x = paletteIdx & ((1 << sizedBitsOfBlockStatePalette) - 1);
++                int z = (paletteIdx >> sizedBitsOfBlockStatePalette) & ((1 << sizedBitsOfBlockStatePalette) - 1);
++                int y = (paletteIdx >> (sizedBitsOfBlockStatePalette * 2)) & ((1 << sizedBitsOfBlockStatePalette) - 1);
 +
 +                int globalX = chunkPos != null ? chunkPos.x * 16 + x : -1;
-+                int globalY = chunkSectionY << 4 + y;
++                int globalY = (((chunkSectionY) << 4) + y);
 +                int globalZ = chunkPos != null ? chunkPos.z * 16 + z : -1;
 +                // MCCLab end - Add BlockBehaviour
 +
@@ -2275,7 +2338,7 @@ index c3b1caa352b988ec44fa2b2eb0536517711f5460..d745e1e0d657120110dff32959fff6d0
                      final int[] raw = coordinates.elements();
  
 diff --git a/src/main/java/net/minecraft/world/level/chunk/storage/ChunkSerializer.java b/src/main/java/net/minecraft/world/level/chunk/storage/ChunkSerializer.java
-index 4bd048387651250135f963303c78c17f8473cfee..69e8e978593027d17789104f0aec0411b2c41044 100644
+index 4bd048387651250135f963303c78c17f8473cfee..48a5d673ef7e71f7fa25ef288e31cb4797035ae9 100644
 --- a/src/main/java/net/minecraft/world/level/chunk/storage/ChunkSerializer.java
 +++ b/src/main/java/net/minecraft/world/level/chunk/storage/ChunkSerializer.java
 @@ -176,7 +176,7 @@ public class ChunkSerializer {
@@ -2283,7 +2346,7 @@ index 4bd048387651250135f963303c78c17f8473cfee..69e8e978593027d17789104f0aec0411
                  }
  
 -                LevelChunkSection chunksection = new LevelChunkSection(datapaletteblock, (PalettedContainer) object); // CraftBukkit - read/write
-+                LevelChunkSection chunksection = new LevelChunkSection(world, chunkPos, datapaletteblock, (PalettedContainer) object, k); // CraftBukkit - read/write
++                LevelChunkSection chunksection = new LevelChunkSection(world, chunkPos, datapaletteblock, (PalettedContainer) object, world.getSectionYFromSectionIndex(k)); // CraftBukkit - read/write
  
                  achunksection[k] = chunksection;
                  SectionPos sectionposition = SectionPos.of(chunkPos, b0);
@@ -2354,64 +2417,6 @@ index 64c22e5fb5ebc609667507ea8a6b1b8d0da768a1..f3e6a1a3e1f36764d4b0c21bc086ec5b
          };
          boolean bl = this.doPlace(worldGenLevel, randomSource, blockPos, biConsumer, biConsumer2, foliageSetter, treeConfiguration);
          if (bl && (!set2.isEmpty() || !set3.isEmpty())) {
-diff --git a/src/main/java/org/bukkit/craftbukkit/CraftFoodProperties.java b/src/main/java/org/bukkit/craftbukkit/CraftFoodProperties.java
-new file mode 100644
-index 0000000000000000000000000000000000000000..a3307b0d9d5fc863e7117fa762212afcbcfa3067
---- /dev/null
-+++ b/src/main/java/org/bukkit/craftbukkit/CraftFoodProperties.java
-@@ -0,0 +1,52 @@
-+package org.bukkit.craftbukkit;
-+
-+import it.unimi.dsi.fastutil.Pair;
-+import net.minecraft.world.effect.MobEffectInstance;
-+import org.bukkit.craftbukkit.potion.CraftPotionUtil;
-+import org.bukkit.potion.PotionEffect;
-+
-+import java.util.List;
-+import java.util.stream.Collectors;
-+
-+public class CraftFoodProperties implements FoodProperties {
-+    public static net.minecraft.world.food.FoodProperties toNMS(FoodProperties foodProperties){
-+        return ((CraftFoodProperties) foodProperties).handle;
-+    }
-+
-+    public static FoodProperties toBukkit(net.minecraft.world.food.FoodProperties foodProperties){
-+        return new CraftFoodProperties(foodProperties);
-+    }
-+
-+    private final net.minecraft.world.food.FoodProperties handle;
-+    public CraftFoodProperties(net.minecraft.world.food.FoodProperties handle){
-+        this.handle = handle;
-+    }
-+    @Override
-+    public int getNutrition() {
-+        return handle.nutrition();
-+    }
-+
-+    @Override
-+    public float getSaturationModifier() {
-+        return handle.saturation();
-+    }
-+
-+    @Override
-+    public float getEatSeconds() {
-+        return handle.eatSeconds();
-+    }
-+
-+    @Override
-+    public boolean canAlwaysEat() {
-+        return handle.canAlwaysEat();
-+    }
-+
-+    @Override
-+    public List<Pair<PotionEffect, Float>> getEffects() {
-+        return handle.effects().stream().map(potionEffectFloatPair -> {
-+            MobEffectInstance mobEffectInstance = potionEffectFloatPair.effect();
-+            float value = potionEffectFloatPair.probability();
-+            return Pair.of(CraftPotionUtil.toBukkit(mobEffectInstance), value);
-+        }).collect(Collectors.toList());
-+    }
-+}
 diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftAnimals.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftAnimals.java
 index ab42bc721d5b6c17c2ca6c7153b757571aea05e8..669f44c6706f69c7691ab8cfe02a837702d9d1ce 100644
 --- a/src/main/java/org/bukkit/craftbukkit/entity/CraftAnimals.java
@@ -2426,7 +2431,7 @@ index ab42bc721d5b6c17c2ca6c7153b757571aea05e8..669f44c6706f69c7691ab8cfe02a8377
  
      @Override
 diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
-index cd789c235acf740ec29c30b180e7fbe1a140caa9..fa3e472771fdb1cd0fdcbab8f791d77057d74b32 100644
+index 89c8713d2c2206d1b0d8c0a392c9d13b3e736f0c..e86b12e23163163c7410fd3e5691fdf47cf0876d 100644
 --- a/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
 +++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
 @@ -312,6 +312,40 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
@@ -2471,7 +2476,7 @@ index cd789c235acf740ec29c30b180e7fbe1a140caa9..fa3e472771fdb1cd0fdcbab8f791d770
      public int getEntityId() {
          return this.entity.getId();
 diff --git a/src/main/java/org/bukkit/craftbukkit/generator/OldCraftChunkData.java b/src/main/java/org/bukkit/craftbukkit/generator/OldCraftChunkData.java
-index 03eb35d5c67f125c44cf46595c93d124ac7892b8..c7bc571abfe551e092b5effd7bfd79af2920c7fb 100644
+index 03eb35d5c67f125c44cf46595c93d124ac7892b8..25cab77731fbf0ea46615917880aaf86d68788ee 100644
 --- a/src/main/java/org/bukkit/craftbukkit/generator/OldCraftChunkData.java
 +++ b/src/main/java/org/bukkit/craftbukkit/generator/OldCraftChunkData.java
 @@ -181,7 +181,7 @@ public final class OldCraftChunkData implements ChunkGenerator.ChunkData {
@@ -2479,58 +2484,26 @@ index 03eb35d5c67f125c44cf46595c93d124ac7892b8..c7bc571abfe551e092b5effd7bfd79af
          LevelChunkSection section = this.sections[offset];
          if (create && section == null) {
 -            this.sections[offset] = section = new LevelChunkSection(this.biomes, this.world instanceof org.bukkit.craftbukkit.CraftWorld ? ((org.bukkit.craftbukkit.CraftWorld) this.world).getHandle() : null, null, offset + (this.minHeight >> 4)); // Paper - Anti-Xray - Add parameters
-+            this.sections[offset] = section = new LevelChunkSection(this.biomes, this.world instanceof org.bukkit.craftbukkit.CraftWorld ? ((org.bukkit.craftbukkit.CraftWorld) this.world).getHandle() : null, null, offset); // Paper - Anti-Xray - Add parameters
++            this.sections[offset] = section = new LevelChunkSection(this.biomes, this.world instanceof org.bukkit.craftbukkit.CraftWorld ? ((org.bukkit.craftbukkit.CraftWorld) this.world).getHandle() : null, null, ((org.bukkit.craftbukkit.CraftWorld;) world).getHandle().getSectionYFromSectionIndex(offset)); // Paper - Anti-Xray - Add parameters
          }
          return section;
      }
 diff --git a/src/main/java/org/bukkit/craftbukkit/inventory/CraftItemStack.java b/src/main/java/org/bukkit/craftbukkit/inventory/CraftItemStack.java
-index 454d1ad710159a47f2112f77ea4b6c87241caf4e..86e5f9c2bccdb0c4063dc81bca766790fc721e8c 100644
+index f84e07fa0876bb6da0f99f4de6cb811f897adca2..35a9a4cad098d4b39bc94330d987211bacb9c1af 100644
 --- a/src/main/java/org/bukkit/craftbukkit/inventory/CraftItemStack.java
 +++ b/src/main/java/org/bukkit/craftbukkit/inventory/CraftItemStack.java
-@@ -94,9 +94,19 @@ public final class CraftItemStack extends ItemStack {
-         if (original == null || original.isEmpty()) {
+@@ -95,7 +95,9 @@ public final class CraftItemStack extends ItemStack {
              return net.minecraft.world.item.ItemStack.EMPTY;
          }
-+<<<<<<< HEAD
          final CraftItemStack stack = getCraftStack(original);
-         return stack.handle == null ? net.minecraft.world.item.ItemStack.EMPTY : stack.handle.copy();
+-        return stack.handle == null ? net.minecraft.world.item.ItemStack.EMPTY : stack.handle.copy();
++        net.minecraft.world.item.ItemStack nms = stack.handle == null ? net.minecraft.world.item.ItemStack.EMPTY : stack.handle.copy();
++        nms.itemBehaviour = original.getDefinedItemBehaviour();
++        return nms;
          // Paper end - re-implement after delegating all api ItemStack calls to CraftItemStack
-+=======
-+
-+        net.minecraft.world.item.ItemStack stack = new net.minecraft.world.item.ItemStack(item, original.getAmount());
-+        if (original.hasItemMeta()) {
-+            CraftItemStack.setItemMeta(stack, original.getItemMeta());
-+        }
-+        stack.itemBehaviour = original.getDefinedItemBehaviour(); // MCCLab - Add ItemBehaviour as instance to this specific Item Stack
-+        return stack;
-+>>>>>>> Adding behaviours
      }
  
-     // Paper start
-@@ -119,10 +129,22 @@ public final class CraftItemStack extends ItemStack {
-      * Copies the NMS stack to return as a strictly-Bukkit stack
-      */
-     public static ItemStack asBukkitCopy(net.minecraft.world.item.ItemStack original) {
-+<<<<<<< HEAD
-         // Paper start - no such thing as a "strictly-Bukkit stack" anymore
-         // we copy the stack since it should be a complete copy not a mirror
-         return asCraftMirror(original.copy());
-         // Paper end
-+=======
-+        if (original.isEmpty()) {
-+            return new ItemStack(Material.AIR);
-+        }
-+        ItemStack stack = new ItemStack(CraftItemType.minecraftToBukkit(original.getItem()), original.getCount());
-+        if (CraftItemStack.hasItemMeta(original)) {
-+            stack.setItemMeta(CraftItemStack.getItemMeta(original));
-+        }
-+        stack.setItemBehaviour(original.itemBehaviour); // MCCLab - Add ItemBehaviour as instance to this specific Item Stack
-+        return stack;
-+>>>>>>> Adding behaviours
-     }
- 
-     public static CraftItemStack asCraftMirror(net.minecraft.world.item.ItemStack original) {
-@@ -132,7 +154,9 @@ public final class CraftItemStack extends ItemStack {
+@@ -132,7 +134,9 @@ public final class CraftItemStack extends ItemStack {
      public static CraftItemStack asCraftCopy(ItemStack original) {
          if (original instanceof CraftItemStack) {
              CraftItemStack stack = (CraftItemStack) original;
@@ -2541,7 +2514,7 @@ index 454d1ad710159a47f2112f77ea4b6c87241caf4e..86e5f9c2bccdb0c4063dc81bca766790
          }
          return new CraftItemStack(original);
      }
-@@ -157,6 +181,7 @@ public final class CraftItemStack extends ItemStack {
+@@ -157,6 +161,7 @@ public final class CraftItemStack extends ItemStack {
  
      private CraftItemStack(ItemStack item) {
          this(item.getType(), item.getAmount(), item.getDurability(), item.hasItemMeta() ? item.getItemMeta() : null);
@@ -2549,35 +2522,38 @@ index 454d1ad710159a47f2112f77ea4b6c87241caf4e..86e5f9c2bccdb0c4063dc81bca766790
      }
  
      private CraftItemStack(Material type, int amount, short durability, ItemMeta itemMeta) {
-@@ -485,6 +510,7 @@ public final class CraftItemStack extends ItemStack {
-     }
-     // Paper end
- 
-+<<<<<<< HEAD
-     // Paper start - pdc
-     private net.minecraft.nbt.CompoundTag getPdcTag() {
-         if (this.handle == null) {
-@@ -543,4 +569,23 @@ public final class CraftItemStack extends ItemStack {
+@@ -543,4 +548,34 @@ public final class CraftItemStack extends ItemStack {
          return this.pdcView;
      }
      // Paper end - pdc
-+=======
 +    // MCCLab start - Add ItemBehaviour as instance to this specific Item Stack
 +    @Override
 +    public @org.jetbrains.annotations.Nullable de.verdox.mccreativelab.behaviour.ItemBehaviour getItemBehaviour() {
 +        if(this.handle != null)
 +            return this.handle.itemBehaviour;
-+        return super.getItemBehaviour();
++        return de.verdox.mccreativelab.behaviour.ItemBehaviour.ITEM_BEHAVIOUR.getBehaviour(de.verdox.mccreativelab.recipe.CustomItemData.fromItemStack(this));
 +    }
++
++    public @org.jetbrains.annotations.Nullable de.verdox.mccreativelab.behaviour.ItemBehaviour getDefinedItemBehaviour() {
++        if(this.handle == null)
++            return null;
++        return this.handle.itemBehaviour;
++   }
 +
 +    @Override
 +    public void setItemBehaviour(@org.jetbrains.annotations.Nullable de.verdox.mccreativelab.behaviour.ItemBehaviour itemBehaviour) {
-+        if(this.handle != null)
-+            this.handle.itemBehaviour = itemBehaviour;
-+        else
-+            super.setItemBehaviour(itemBehaviour);
++        if(this.handle == null){
++            if(itemBehaviour == null)
++                return;
++            throw new IllegalArgumentException("Cannot set itemBehaviour for empty item "+this);
++        }
++       this.handle.itemBehaviour = itemBehaviour;
++    }
++
++    @Override
++    public boolean hasCustomItemBehaviour() {
++        return this.handle.itemBehaviour != null;
 +    }
 +    // MCCLab end - Add ItemBehaviour as instance to this specific Item Stack
 +
-+>>>>>>> Adding behaviours
  }

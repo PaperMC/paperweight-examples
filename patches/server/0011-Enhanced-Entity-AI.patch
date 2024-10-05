@@ -505,16 +505,17 @@ index 0000000000000000000000000000000000000000..e16263942a7691d9a755f5f61d7f7774
 +}
 diff --git a/src/main/java/de/verdox/mccreativelab/ai/builder/CraftBehaviorFactory.java b/src/main/java/de/verdox/mccreativelab/ai/builder/CraftBehaviorFactory.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..2683b9f75587c1d5c27335e819e724c34b780a44
+index 0000000000000000000000000000000000000000..ed95db79fca3a1dfb84d6726398a2a224d79a3fc
 --- /dev/null
 +++ b/src/main/java/de/verdox/mccreativelab/ai/builder/CraftBehaviorFactory.java
-@@ -0,0 +1,576 @@
+@@ -0,0 +1,579 @@
 +package de.verdox.mccreativelab.ai.builder;
 +
 +import com.destroystokyo.paper.entity.RangedEntity;
 +import com.mojang.datafixers.util.Pair;
 +import de.verdox.mccreativelab.ai.behavior.*;
 +import io.papermc.paper.adventure.PaperAdventure;
++import io.papermc.paper.registry.PaperRegistries;
 +import net.kyori.adventure.sound.Sound;
 +import net.minecraft.core.GlobalPos;
 +import net.minecraft.core.Holder;
@@ -533,12 +534,14 @@ index 0000000000000000000000000000000000000000..2683b9f75587c1d5c27335e819e724c3
 +import net.minecraft.world.level.block.Block;
 +import org.bukkit.*;
 +import org.bukkit.craftbukkit.CraftPoiType;
++import org.bukkit.craftbukkit.damage.CraftDamageType;
 +import org.bukkit.craftbukkit.entity.CraftEntityType;
 +import org.bukkit.craftbukkit.entity.CraftLivingEntity;
 +import org.bukkit.craftbukkit.entity.memory.CraftMemoryKey;
 +import org.bukkit.craftbukkit.tag.CraftBlockTag;
 +import org.bukkit.craftbukkit.util.CraftMagicNumbers;
 +import org.bukkit.craftbukkit.util.CraftNamespacedKey;
++import org.bukkit.damage.DamageType;
 +import org.bukkit.entity.*;
 +import org.bukkit.entity.memory.MemoryKey;
 +
@@ -595,8 +598,8 @@ index 0000000000000000000000000000000000000000..2683b9f75587c1d5c27335e819e724c3
 +    }
 +
 +    @Override
-+    public AIBehavior<Mob> animalPanic(float speed, Predicate<Mob> panicPredicate) {
-+        return asBehavior(new AnimalPanic<>(speed, pathfinderMob -> panicPredicate.test(pathfinderMob.getBukkitCreature())));
++    public AIBehavior<Mob> animalPanic(float speed, Function<Mob, io.papermc.paper.registry.tag.TagKey<DamageType>> panicPredicate) {
++        return asBehavior(new AnimalPanic<>(speed, pathfinderMob -> PaperRegistries.toNms(panicPredicate.apply(((Mob)pathfinderMob.getBukkitLivingEntity())))));
 +    }
 +
 +    @Override
@@ -763,7 +766,7 @@ index 0000000000000000000000000000000000000000..2683b9f75587c1d5c27335e819e724c3
 +        ResourceLocation key = CraftNamespacedKey.toMinecraft(craftBlockTag.getKey());
 +        TagKey<Block> blockTagKey = TagKey.create(Registries.BLOCK, key);
 +
-+        return asBehavior(new LongJumpToPreferredBlock<>(UniformInt.of(minCooldownRange, maxCooldownRange), verticalRange, horizontalRange, maxRange, mob -> BuiltInRegistries.SOUND_EVENT.get(PaperAdventure.asVanilla(jumpSound.key())), blockTagKey, biasChance, (mob, pos) -> jumpToPredicate.test(mob.getBukkitMob(), new Location(mob
++        return asBehavior(new LongJumpToPreferredBlock<>(UniformInt.of(minCooldownRange, maxCooldownRange), verticalRange, horizontalRange, maxRange, mob -> BuiltInRegistries.SOUND_EVENT.get(PaperAdventure.asVanilla(jumpSound.key())), blockTagKey, biasChance, (mob, pos) -> jumpToPredicate.test((Mob) mob.getBukkitLivingEntity(), new Location(mob
 +            .getBukkitEntity().getWorld(), pos.getX(), pos.getY(), pos.getZ()))));
 +    }
 +
@@ -925,7 +928,7 @@ index 0000000000000000000000000000000000000000..2683b9f75587c1d5c27335e819e724c3
 +    @Override
 +    public OneShotBehavior<Mob> startAttacking(Function<Mob, LivingEntity> targetGetter) {
 +        return asOneshot(StartAttacking.create(mob -> {
-+            var entity = targetGetter.apply(mob.getBukkitMob());
++            var entity = targetGetter.apply((Mob)mob.getBukkitLivingEntity());
 +            if(entity == null)
 +                return Optional.empty();
 +            else
@@ -942,7 +945,7 @@ index 0000000000000000000000000000000000000000..2683b9f75587c1d5c27335e819e724c3
 +    public AIBehavior<Mob> stopAttackingIfTargetInvalid(Predicate<LivingEntity> alternativeCondition, BiConsumer<Mob, LivingEntity> forgetCallback, boolean shouldForgetIfTargetUnreachable) {
 +        return asBehavior((Behavior<? extends net.minecraft.world.entity.LivingEntity>) StopAttackingIfTargetInvalid.create(livingEntity ->
 +            alternativeCondition.test(livingEntity.getBukkitLivingEntity()), (mob, livingEntity) -> {
-+            forgetCallback.accept(mob.getBukkitMob(), livingEntity.getBukkitLivingEntity());
++            forgetCallback.accept((Mob) mob.getBukkitLivingEntity(), livingEntity.getBukkitLivingEntity());
 +        }, shouldForgetIfTargetUnreachable));
 +    }
 +
@@ -1087,7 +1090,7 @@ index 0000000000000000000000000000000000000000..2683b9f75587c1d5c27335e819e724c3
 +}
 diff --git a/src/main/java/de/verdox/mccreativelab/ai/builder/CraftGoalFactory.java b/src/main/java/de/verdox/mccreativelab/ai/builder/CraftGoalFactory.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..7110abaac95d29e5ec2ec446de56c7d02c54ba7e
+index 0000000000000000000000000000000000000000..19fb405ddaef1c046451a31f1be0b4619e277183
 --- /dev/null
 +++ b/src/main/java/de/verdox/mccreativelab/ai/builder/CraftGoalFactory.java
 @@ -0,0 +1,339 @@
@@ -1205,8 +1208,8 @@ index 0000000000000000000000000000000000000000..7110abaac95d29e5ec2ec446de56c7d0
 +    }
 +
 +    @Override
-+    public VanillaGoal<Tameable> followOwner(Tameable tameable, double speed, float minDistance, float maxDistance, boolean leavesAllowed) {
-+        return asGoal(new FollowOwnerGoal((TamableAnimal) toNms(tameable), speed, minDistance, maxDistance, leavesAllowed));
++    public VanillaGoal<Tameable> followOwner(Tameable tameable, double speed, float minDistance, float maxDistance) {
++        return asGoal(new FollowOwnerGoal((TamableAnimal) toNms(tameable), speed, minDistance, maxDistance));
 +    }
 +
 +    @Override
@@ -1423,7 +1426,7 @@ index 0000000000000000000000000000000000000000..7110abaac95d29e5ec2ec446de56c7d0
 +    }
 +
 +    private Predicate<net.minecraft.world.entity.Mob> toNMSMobPredicate(Predicate<Mob> predicate){
-+        return mob -> predicate.test(mob.getBukkitMob());
++        return mob -> predicate.test((Mob)mob.getBukkitLivingEntity());
 +    }
 +
 +    private <T extends Mob> VanillaGoal<T> asGoal(Goal goal) {

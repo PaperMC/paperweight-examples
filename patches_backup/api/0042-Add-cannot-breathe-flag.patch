@@ -1,0 +1,41 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: verdox <mail.ysp@web.de>
+Date: Sat, 17 Aug 2024 11:55:20 +0000
+Subject: [PATCH] Add cannot breathe flag
+
+
+diff --git a/src/main/java/org/bukkit/entity/LivingEntity.java b/src/main/java/org/bukkit/entity/LivingEntity.java
+index 86e9b56d02b2c77b0f60a3e4c397ed3261e0cdeb..9b28420ef045f857c332b1fd45285345869f6d3f 100644
+--- a/src/main/java/org/bukkit/entity/LivingEntity.java
++++ b/src/main/java/org/bukkit/entity/LivingEntity.java
+@@ -1476,4 +1476,30 @@ public interface LivingEntity extends Attributable, Damageable, ProjectileSource
+      */
+     boolean canUseEquipmentSlot(org.bukkit.inventory.@NotNull EquipmentSlot slot);
+     // Paper end - Expose canUseSlot
++
++    // MCCreativeLab start - Add cannot breathe flag
++
++    /**
++     * Sets if the {@link LivingEntity} is able to breathe regardless of being in the water or not.
++     * @param value
++     */
++    void setCanBreath(boolean value);
++    /**
++     * Sets if the {@link LivingEntity} produces bubbles when holding its breath.
++     * @param value
++     */
++    void setProducesBubblesOnAirDecrease(boolean value);
++
++    /**
++     * Returns if the {@link LivingEntity} can breathe oxygen
++     * @return true if it can breathe (vanilla-standard)
++     */
++    boolean canBreath();
++
++    /**
++     * Returns if the {@link LivingEntity} produces bubbles when holding its breath
++     * @return true if it can breathe (vanilla-standard)
++     */
++    boolean producesBubblesOnAirDecrease();
++    // MCCreativeLab end - Add cannot breathe flag
+ }

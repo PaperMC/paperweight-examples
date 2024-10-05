@@ -52,10 +52,10 @@ index 0000000000000000000000000000000000000000..25f7eebc83169c04123bd5986057ba4f
 +    NoiseRouter getNoiseRouter();
 +}
 diff --git a/src/main/java/org/bukkit/World.java b/src/main/java/org/bukkit/World.java
-index 08fc48cdf8c3b96352d1b911752e0dae34c88b4d..1b5358c6ab078fba6d9d6fd80bf3ce5edb3a4d1d 100644
+index 05147db2c0810cd0df796080dcfd479e1da9f139..e8180ef54b9f7b3941772c4bfdc80390a2cad3b4 100644
 --- a/src/main/java/org/bukkit/World.java
 +++ b/src/main/java/org/bukkit/World.java
-@@ -2786,6 +2786,12 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
+@@ -2850,6 +2850,12 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
       */
      int getSimulationDistance();
  

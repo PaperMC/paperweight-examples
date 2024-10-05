@@ -1,0 +1,74 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: derverdox <mail.ysp@web.de>
+Date: Thu, 22 Feb 2024 00:16:20 +0100
+Subject: [PATCH] Adding UUID to GeneratedStructure
+
+
+diff --git a/src/main/java/net/minecraft/world/level/levelgen/structure/StructureStart.java b/src/main/java/net/minecraft/world/level/levelgen/structure/StructureStart.java
+index 71c68762e88a1ffbea90b68a32e732303d0b51fe..7c79adb99ad49a610e2a19120772d1e053b73ed4 100644
+--- a/src/main/java/net/minecraft/world/level/levelgen/structure/StructureStart.java
++++ b/src/main/java/net/minecraft/world/level/levelgen/structure/StructureStart.java
+@@ -37,12 +37,19 @@ public final class StructureStart {
+     public org.bukkit.craftbukkit.persistence.DirtyCraftPersistentDataContainer persistentDataContainer = new org.bukkit.craftbukkit.persistence.DirtyCraftPersistentDataContainer(StructureStart.DATA_TYPE_REGISTRY);
+     public org.bukkit.event.world.AsyncStructureGenerateEvent.Cause generationEventCause = org.bukkit.event.world.AsyncStructureGenerateEvent.Cause.WORLD_GENERATION;
+     // CraftBukkit end
+-
+-    public StructureStart(Structure structure, ChunkPos pos, int references, PiecesContainer children) {
++    // Paper start - Add UUID to GeneratedStructure
++    public java.util.UUID uuid;
++    public StructureStart(Structure structure, ChunkPos pos, int references, PiecesContainer children, java.util.UUID uuid) {
+         this.structure = structure;
+         this.chunkPos = pos;
+         this.references = references;
+         this.pieceContainer = children;
++        this.uuid = uuid;
++    }
++    // Paper end - Add UUID to GeneratedStructure
++
++    public StructureStart(Structure structure, ChunkPos pos, int references, PiecesContainer children) {
++        this(structure, pos, references, children, java.util.UUID.randomUUID()); // Paper - Add UUID to GeneratedStructure
+     }
+ 
+     @Nullable
+@@ -62,6 +69,7 @@ public final class StructureStart {
+                 ChunkPos chunkcoordintpair = new ChunkPos(nbt.getInt("ChunkX"), nbt.getInt("ChunkZ"));
+                 int j = nbt.getInt("references");
+                 ListTag nbttaglist = nbt.getList("Children", 10);
++                java.util.UUID uuid = nbt.hasUUID("uuid") ? nbt.getUUID("uuid") : java.util.UUID.randomUUID(); // Paper - Add UUID to GeneratedStructure
+ 
+                 try {
+                     PiecesContainer piecescontainer = PiecesContainer.load(nbttaglist, context);
+@@ -70,7 +78,7 @@ public final class StructureStart {
+                         piecescontainer = OceanMonumentStructure.regeneratePiecesAfterLoad(chunkcoordintpair, seed, piecescontainer);
+                     }
+ 
+-                    return new StructureStart(structure, chunkcoordintpair, j, piecescontainer);
++                    return new StructureStart(structure, chunkcoordintpair, j, piecescontainer, uuid); // Paper - Add UUID to GeneratedStructure
+                 } catch (Exception exception) {
+                     StructureStart.LOGGER.error("Failed Start with id {}", s, exception);
+                     return null;
+@@ -139,6 +147,7 @@ public final class StructureStart {
+             nbttagcompound.putInt("ChunkZ", chunkPos.z);
+             nbttagcompound.putInt("references", this.references);
+             nbttagcompound.put("Children", this.pieceContainer.save(context));
++            nbttagcompound.putUUID("uuid",uuid); // Paper - Add UUID to GeneratedStructure
+             return nbttagcompound;
+         } else {
+             nbttagcompound.putString("id", "INVALID");
+diff --git a/src/main/java/org/bukkit/craftbukkit/generator/structure/CraftGeneratedStructure.java b/src/main/java/org/bukkit/craftbukkit/generator/structure/CraftGeneratedStructure.java
+index f6e36583a339ba0992519bf49b0a2748dacf1175..34cbf0599c6335d5f61144234a1bd2d2a07d1de5 100644
+--- a/src/main/java/org/bukkit/craftbukkit/generator/structure/CraftGeneratedStructure.java
++++ b/src/main/java/org/bukkit/craftbukkit/generator/structure/CraftGeneratedStructure.java
+@@ -43,6 +43,12 @@ public class CraftGeneratedStructure implements GeneratedStructure {
+ 
+         return this.pieces;
+     }
++    // Paper start - Add UUID to GeneratedStructure
++    @Override
++    public java.util.UUID getUUID() {
++        return handle.uuid;
++    }
++    // Paper end - Add UUID to GeneratedStructure
+ 
+     @Override
+     public PersistentDataContainer getPersistentDataContainer() {

@@ -4,63 +4,8 @@ Date: Wed, 19 Jun 2024 15:25:03 +0000
 Subject: [PATCH] Temp patch
 
 
-diff --git a/build.gradle.kts b/build.gradle.kts
-index 9c47f9f5b1e946df94d906086869a5ca779f3315..f4f2fb795d715ebcf620a0e3b89ac775897460ed 100644
---- a/build.gradle.kts
-+++ b/build.gradle.kts
-@@ -193,6 +193,7 @@ tasks.registerRunTask("runServer") {
-     description = "Spin up a test server from the Mojang mapped server jar"
-     classpath(tasks.includeMappings.flatMap { it.outputJar })
-     classpath(runtimeClasspathWithoutVanillaServer)
-+    jvmArgs("-Dpaper.debug-sync-loads=true", "-Dfile.encoding=UTF-8")
-     dependsOn(":plugin-extension:build")
- }
- 
-@@ -200,13 +201,14 @@ tasks.registerRunTask("runReobfServer") {
-     description = "Spin up a test server from the reobfJar output jar"
-     classpath(tasks.reobfJar.flatMap { it.outputJar })
-     classpath(runtimeClasspathWithoutVanillaServer)
-+    jvmArgs("-Dpaper.debug-sync-loads=true", "-Dfile.encoding=UTF-8")
-     dependsOn(":plugin-extension:build")
- }
- 
- tasks.registerRunTask("runDevServer") {
-     description = "Spin up a test server without assembling a jar"
-     classpath(sourceSets.main.map { it.runtimeClasspath })
--    jvmArgs("-DPaper.pushPaperAssetsRoot=true")
-+    jvmArgs("-DPaper.pushPaperAssetsRoot=true", "-Dpaper.debug-sync-loads=true", "-Dfile.encoding=UTF-8")
-     dependsOn(":plugin-extension:build")
- }
- 
-@@ -215,22 +217,26 @@ tasks.registerRunTask("runBundler") {
-     classpath(rootProject.tasks.named<io.papermc.paperweight.tasks.CreateBundlerJar>("createMojmapBundlerJar").flatMap { it.outputZip })
-     mainClass.set(null as String?)
-     dependsOn(":plugin-extension:build")
-+    jvmArgs("-Dpaper.debug-sync-loads=true", "-Dfile.encoding=UTF-8")
- }
- tasks.registerRunTask("runReobfBundler") {
-     description = "Spin up a test server from the reobf bundler jar"
-     classpath(rootProject.tasks.named<io.papermc.paperweight.tasks.CreateBundlerJar>("createReobfBundlerJar").flatMap { it.outputZip })
-     mainClass.set(null as String?)
-     dependsOn(":plugin-extension:build")
-+    jvmArgs("-Dpaper.debug-sync-loads=true", "-Dfile.encoding=UTF-8")
- }
- tasks.registerRunTask("runPaperclip") {
-     description = "Spin up a test server from the Mojang mapped Paperclip jar"
-     classpath(rootProject.tasks.named<io.papermc.paperweight.tasks.CreatePaperclipJar>("createMojmapPaperclipJar").flatMap { it.outputZip })
-     mainClass.set(null as String?)
-     dependsOn(":plugin-extension:build")
-+    jvmArgs("-Dpaper.debug-sync-loads=true", "-Dfile.encoding=UTF-8")
- }
- tasks.registerRunTask("runReobfPaperclip") {
-     description = "Spin up a test server from the reobf Paperclip jar"
-     classpath(rootProject.tasks.named<io.papermc.paperweight.tasks.CreatePaperclipJar>("createReobfPaperclipJar").flatMap { it.outputZip })
-     mainClass.set(null as String?)
-     dependsOn(":plugin-extension:build")
-+    jvmArgs("-Dpaper.debug-sync-loads=true", "-Dfile.encoding=UTF-8")
- }
 diff --git a/src/main/java/de/verdox/mccreativelab/CreativeLabImpl.java b/src/main/java/de/verdox/mccreativelab/CreativeLabImpl.java
-index d03ad6f59f503556037fcd55111a06f44c6779df..69d81cf08c4cdd458b85bea1a213c0c36c2ec50e 100644
+index 16a1968fc9bb4af1bf56f4926054501c58833515..628b2ce2b803fe23b3b33fd62a77866dd6b2135f 100644
 --- a/src/main/java/de/verdox/mccreativelab/CreativeLabImpl.java
 +++ b/src/main/java/de/verdox/mccreativelab/CreativeLabImpl.java
 @@ -1,7 +1,26 @@
