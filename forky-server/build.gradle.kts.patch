@@ -1,6 +1,6 @@
 --- a/fork-server/build.gradle.kts
 +++ b/fork-server/build.gradle.kts
-@@ -30,7 +_,22 @@
+@@ -33,8 +_,22 @@
          }
      }
  
@@ -19,12 +19,12 @@
 +            outputDir = rootDirectory.dir("fork-server")
 +        }
 +    }
-+
+ 
 +    activeFork = forky
  
-     spigot {
-         buildDataRef = "3edaf46ec1eed4115ce1b18d2846cded42577e42"
-@@ -116,10 +_,14 @@
+     //updatingMinecraft {
+     //    oldPaperCommit = "f4f275519f7c1fbe9db173b7144a4fe81440e365"
+@@ -124,10 +_,14 @@
      main {
          java { srcDir("../paper-server/src/main/java") }
          resources { srcDir("../paper-server/src/main/resources") }
@@ -39,7 +39,7 @@
      }
  }
  
-@@ -143,7 +_,7 @@
+@@ -155,7 +_,7 @@
  }
  
  dependencies {
