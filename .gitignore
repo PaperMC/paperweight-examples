@@ -1,5 +1,6 @@
 # Ignore Gradle project-specific cache directory
 .gradle
+kls_database.db
 
 # Ignore Gradle build output directory
 build
@@ -14,3 +15,6 @@ build
 /paper-api-generator
 
 .idea/
+
+# Ignore patch reject files
+*.rej
