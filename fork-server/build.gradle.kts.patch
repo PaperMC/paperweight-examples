@@ -1,6 +1,6 @@
 --- a/paper-server/build.gradle.kts
 +++ b/paper-server/build.gradle.kts
-@@ -26,6 +_,17 @@
+@@ -22,6 +_,17 @@
      minecraftVersion = providers.gradleProperty("mcVersion")
      gitFilePatches = false
  
@@ -17,8 +17,8 @@
 +
      spigot {
          enabled = true
-         buildDataRef = "436eac9815c211be1a2a6ca0702615f995e81c44"
-@@ -107,7 +_,20 @@
+         buildDataRef = "17f77cee7117ab9d6175f088ae8962bfd04e61a9"
+@@ -104,7 +_,20 @@
      }
  }
  
@@ -40,16 +40,16 @@
  configurations.named(log4jPlugins.compileClasspathConfigurationName) {
      extendsFrom(configurations.compileClasspath.get())
  }
-@@ -129,7 +_,7 @@
+@@ -127,7 +_,7 @@
  }
  
  dependencies {
 -    implementation(project(":paper-api"))
 +    implementation(project(":fork-api"))
-     implementation("ca.spottedleaf:concurrentutil:0.0.3")
+     implementation("ca.spottedleaf:concurrentutil:0.0.8")
      implementation("org.jline:jline-terminal-ffm:3.27.1") // use ffm on java 22+
      implementation("org.jline:jline-terminal-jni:3.27.1") // fall back to jni on java 21
-@@ -266,7 +_,7 @@
+@@ -264,7 +_,7 @@
      jvmArgumentProviders.add(provider)
  }
  
