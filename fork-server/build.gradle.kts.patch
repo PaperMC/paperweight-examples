@@ -36,7 +36,7 @@
      implementation("ca.spottedleaf:concurrentutil:0.0.8")
      implementation("org.jline:jline-terminal-ffm:3.27.1") // use ffm on java 22+
      implementation("org.jline:jline-terminal-jni:3.27.1") // fall back to jni on java 21
-@@ -264,16 +_,20 @@
+@@ -264,16 +_,22 @@
      jvmArgumentProviders.add(provider)
  }
  
@@ -49,10 +49,10 @@
  }
  sourceSets {
      main {
--        java {
--            srcDir(generatedDir)
--        }
-+        java { srcDir("../paper-server/src/main/java") }
+         java {
+             srcDir(generatedDir)
++            srcDir("../paper-server/src/main/java")
+         }
 +        resources { srcDir("../paper-server/src/main/resources") }
 +    }
 +    test {
