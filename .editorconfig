@@ -1,0 +1,3 @@
+# Prevent Intellij IDEA from removing contextually spaced lines
+[{fork-api,fork-server}/**/*.patch]
+trim_trailing_whitespace = false
