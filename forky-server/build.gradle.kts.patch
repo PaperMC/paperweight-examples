@@ -1,6 +1,6 @@
 --- a/fork-server/build.gradle.kts
 +++ b/fork-server/build.gradle.kts
-@@ -35,7 +_,22 @@
+@@ -31,7 +_,22 @@
          }
      }
  
@@ -22,9 +22,9 @@
 +
 +    activeFork = forky
  
-     spigot {
-         enabled = true
-@@ -122,10 +_,14 @@
+     updatingMinecraft {
+         // oldPaperCommit = "d4fe85375af18bfa88f44d7c1e6a61904ae550cc"
+@@ -101,10 +_,14 @@
      main {
          java { srcDir("../paper-server/src/main/java") }
          resources { srcDir("../paper-server/src/main/resources") }
@@ -39,12 +39,12 @@
      }
  }
  
-@@ -153,7 +_,7 @@
+@@ -133,7 +_,7 @@
  }
  
  dependencies {
 -    implementation(project(":fork-api"))
 +    implementation(project(":forky-api"))
-     implementation("ca.spottedleaf:concurrentutil:0.0.3")
+     implementation("ca.spottedleaf:leafpile:1.0.0")
      implementation("org.jline:jline-terminal-ffm:3.27.1") // use ffm on java 22+
      implementation("org.jline:jline-terminal-jni:3.27.1") // fall back to jni on java 21

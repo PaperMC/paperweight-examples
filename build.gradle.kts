@@ -2,7 +2,7 @@ import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
 
 plugins {
-    id("io.papermc.paperweight.patcher") version "2.0.0-beta.18"
+    id("io.papermc.paperweight.patcher") version "2.0.0-beta.21"
 }
 
 paperweight {
@@ -34,15 +34,37 @@ paperweight {
     }
 }
 
-val paperMavenPublicUrl = "https://repo.papermc.io/repository/maven-public/"
-
 subprojects {
     apply(plugin = "java-library")
     apply(plugin = "maven-publish")
 
     extensions.configure<JavaPluginExtension> {
         toolchain {
-            languageVersion = JavaLanguageVersion.of(21)
+            languageVersion = JavaLanguageVersion.of(25)
+        }
+    }
+}
+
+val paperMavenPublicUrl = "https://repo.papermc.io/repository/maven-public/"
+
+subprojects {
+    tasks.withType<JavaCompile>().configureEach {
+        options.encoding = Charsets.UTF_8.name()
+        options.release = 25
+        options.isFork = true
+        options.compilerArgs.addAll(listOf("-Xlint:-deprecation", "-Xlint:-removal"))
+    }
+    tasks.withType<Javadoc>().configureEach {
+        options.encoding = Charsets.UTF_8.name()
+    }
+    tasks.withType<ProcessResources>().configureEach {
+        filteringCharset = Charsets.UTF_8.name()
+    }
+    tasks.withType<Test>().configureEach {
+        testLogging {
+            showStackTraces = true
+            exceptionFormat = TestExceptionFormat.FULL
+            events(TestLogEvent.STANDARD_OUT)
         }
     }
 
@@ -51,37 +73,12 @@ subprojects {
         maven(paperMavenPublicUrl)
     }
 
-    tasks.withType<AbstractArchiveTask>().configureEach {
-        isPreserveFileTimestamps = false
-        isReproducibleFileOrder = true
-    }
-    tasks.withType<JavaCompile> {
-        options.encoding = Charsets.UTF_8.name()
-        options.release = 21
-        options.isFork = true
-    }
-    tasks.withType<Javadoc> {
-        options.encoding = Charsets.UTF_8.name()
-    }
-    tasks.withType<ProcessResources> {
-        filteringCharset = Charsets.UTF_8.name()
-    }
-    tasks.withType<Test> {
-        testLogging {
-            showStackTraces = true
-            exceptionFormat = TestExceptionFormat.FULL
-            events(TestLogEvent.STANDARD_OUT)
-        }
-    }
-
     extensions.configure<PublishingExtension> {
         repositories {
-            /*
-            maven("https://repo.papermc.io/repository/maven-snapshots/") {
-                name = "paperSnapshots"
+            maven("https://artifactory.papermc.io/artifactory/releases/") {
+                name = "paperReleases"
                 credentials(PasswordCredentials::class)
             }
-             */
         }
     }
 }
